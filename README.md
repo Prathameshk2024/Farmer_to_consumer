@@ -7,7 +7,7 @@ Marathi first, English as the toggle.
 ## Layout
 
 ```
-frontend/   seller + customer app  (React + Vite)
+frontend/   farmer + buyer website (React + Vite)
 admin/      admin console          (React + Vite, deployed as its own site)
 backend/    Express API for both   (includes /api/admin/*)
 shared/     types and domain rules imported by all three
@@ -30,12 +30,12 @@ Vite proxies `/api` to `localhost:4000`, so development needs no configuration.
 
 ## Try it
 
-A fresh clone starts with an **empty** database. For demo sellers and products,
+A fresh clone starts with an **empty** database. For demo farmers and produce,
 put `SEED_DEMO_DATA=true` in `backend/.env` before the first start. To reseed
 later, stop the API, delete `backend/data/db.json`, and start it again.
 
-- **Seller or customer:** any 10-digit number. With no SMS provider
-  configured, the OTP screen shows the 6-digit code; only that code works.
+- **Farmer or buyer:** register with any 10-digit number and a password of
+  at least 6 characters. There is no OTP.
 - **Seeded farmers:** the four from the poster, all in अणदूर: राजेश पाटील
   `9822011223`, सविता कांबळे `9764455661`, गणेश जगदाळे `9890033441` and
   लक्ष्मी शिंदे `9850012345`. Seeding never invents passwords, so give one a
@@ -55,17 +55,18 @@ later, stop the API, delete `backend/data/db.json`, and start it again.
 
 Copy `backend/.env.example` to `backend/.env`, and `frontend/.env.example` to
 `frontend/.env`. Every integration is optional: with an empty `.env` the API
-uses a JSON file instead of Firestore, emoji instead of Cloudinary photos, and
-the on-screen OTP instead of MSG91. The boot banner lists what is live. The
-comments in `backend/.env.example` explain each variable.
+uses a JSON file instead of Firestore, category pictures instead of uploaded
+photos, and no mandi price in the price hint (`DATA_GOV_IN_API_KEY`). The boot
+banner lists what is live. The comments in `backend/.env.example` explain each
+variable.
 
 `VITE_*` values are compiled into the public JavaScript bundle. Never put a
-secret such as `MSG91_AUTH_KEY` in one.
+secret in one.
 
 ## Deployment
 
 The API runs on Cloud Run. `frontend/` and `admin/` are two Vercel projects
-built from the `prathamesh2` branch. Follow [`docs/DEPLOY.md`](docs/DEPLOY.md);
+built from the `main` branch. Follow [`docs/DEPLOY.md`](docs/DEPLOY.md);
 several required settings are not the platform defaults.
 
 ## Further reading

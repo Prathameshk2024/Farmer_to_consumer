@@ -21,13 +21,14 @@ deploy independently while still sharing `shared/src/types.ts`.
 
 ## 1. Cloud Run — the API
 
-The live service:
+The service (the commands below call it `f2c-api`; use whatever name it is
+created with):
 
 | | |
 |---|---|
-| Service | `shantai-api` |
+| Service | `f2c-api` |
 | Region | `asia-south1` (Mumbai) |
-| URL | `https://shantai-api-204453348000.asia-south1.run.app` |
+| URL | `https://f2c-api-<project number>.asia-south1.run.app` — record it here once deployed |
 
 ### How the container is built
 
@@ -63,7 +64,7 @@ the build if one points at nothing.
 To deploy from a clone, at the repository root:
 
 ```bash
-gcloud run deploy shantai-api --source . --region asia-south1 --project <PROJECT_ID>
+gcloud run deploy f2c-api --source . --region asia-south1 --project <PROJECT_ID>
 ```
 
 `--source` uploads the folder to Cloud Build, which finds the Dockerfile and
@@ -82,15 +83,11 @@ revision is holding unsaved changes in memory that a deploy would throw away —
 its log says `in memory only - retrying every 60s`. Either way, deploy after
 the reset, around 12:30 IST.
 
-Not yet compared with the live service: which image the current revision runs
-and the names of the secrets it mounts. `gcloud run services describe` (next
-section) shows both; record them here once checked.
-
 To try the image locally, where Docker is installed:
 
 ```bash
-docker build -t shantai-api .
-docker run -p 4000:4000 --env-file backend/.env shantai-api
+docker build -t f2c-api .
+docker run -p 4000:4000 --env-file backend/.env f2c-api
 ```
 
 **Never with a `.env` holding the production Firebase key.** That container is
@@ -145,14 +142,14 @@ Things to know:
 Neither is visible from outside the service, so check them rather than assume:
 
 ```bash
-gcloud run services describe shantai-api --region asia-south1 --project <PROJECT_ID>
+gcloud run services describe f2c-api --region asia-south1 --project <PROJECT_ID>
 ```
 
 Look for `autoscaling.knative.dev/maxScale: '1'` and
 `run.googleapis.com/cpu-throttling: 'false'`. To set both:
 
 ```bash
-gcloud run services update shantai-api --region asia-south1 --project <PROJECT_ID> \
+gcloud run services update f2c-api --region asia-south1 --project <PROJECT_ID> \
   --max-instances 1 --no-cpu-throttling
 ```
 
@@ -181,7 +178,7 @@ this. Do it when nobody is placing orders, not in the evening.
 
 Set these on the service (Console → *Edit & deploy new revision* → *Variables
 & Secrets*). Cloud Run sets `PORT` itself and `config.ts` reads it — do not set
-it. The four marked secret are held in **Secret Manager** and exposed to the
+it. The three marked secret are held in **Secret Manager** and exposed to the
 service as environment variables, not typed in as plain values — a plain
 variable is readable by anyone with viewer access to the project.
 
@@ -196,12 +193,10 @@ changes nothing until the next revision is deployed.
 | `SESSION_SECRET` | **Secret. Required.** The server refuses to boot without it. Generate a fresh one, do not reuse your local value. Changing it later signs every user out. |
 | `FIREBASE_SERVICE_ACCOUNT` | **Secret.** The whole service-account JSON on one line. |
 | `CLOUDINARY_URL` | **Secret.** `cloudinary://key:secret@cloud` from the Cloudinary dashboard. |
-| `CLOUDINARY_FOLDER` | `shanta-mahila-bazar` |
+| `CLOUDINARY_FOLDER` | `f2c` |
 | `CORS_ORIGIN` | Both Vercel URLs, comma-separated. See §3. |
 | `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD_HASH` | First sign-in only, while no administrator exists. Make the hash locally with `npm run admin:users -- hash` — Cloud Run has no shell to run it in. Remove both once a real account exists. There is no `ADMIN_PASSWORD`. |
-| `MSG91_AUTH_KEY` | **Secret.** The account Auth Key, and the only thing that can check a widget token. Never copy it into a `VITE_*` variable. |
-| `MSG91_WIDGET_ID` | The OTP widget's id. With `MSG91_AUTH_KEY` this selects the widget, which needs no DLT registration. |
-| `MSG91_TEMPLATE_ID` / `MSG91_SENDER` | Only for your own DLT-approved template. Leave unset while using the widget. |
+| `DATA_GOV_IN_API_KEY` | Optional. A data.gov.in key for the Agmarknet mandi price in the price hint. Without it the hint shows only the site's own prices. |
 | `SEED_DEMO_DATA` | Leave unset. Setting it would put invented farmers in front of real customers. |
 | `ALLOW_BULK_DELETE` | Leave unset. It is for one command run by hand, never for the service. |
 
@@ -234,7 +229,7 @@ the Root Directory.
 |---|---|---|
 | Root Directory | `frontend` | `admin` |
 | Framework preset | Vite | Vite |
-| Environment variables | `VITE_API_URL=https://shantai-api-204453348000.asia-south1.run.app`<br>`VITE_MSG91_WIDGET_ID=...`<br>`VITE_MSG91_TOKEN_AUTH=...` | `VITE_API_URL` only |
+| Environment variables | `VITE_API_URL=<Cloud Run URL>` | `VITE_API_URL=<Cloud Run URL>` |
 
 Vercel detects the npm workspaces and installs from the repo root, so `shared/`
 resolves normally. Your local `.env` files are gitignored, so Vercel sees none
@@ -251,18 +246,9 @@ Deployment → Root Directory*:
   Vercel knows a commit to `shared/` alone affects them. Remove it and such a
   commit deploys neither app.
 
-**Production is the branch Vercel is told it is**, and in this repository no
-default picks the right one. On import Vercel chooses `main` if it exists,
-and here `main` holds only the initial commit; GitHub's default branch is
-`prathamesh`, an older copy of the app from 8 September with no `admin/`
-folder, and a root `package-lock.json` written on Windows that is missing
-rollup's Linux binary. The first deployment built that branch and failed with
-`Cannot find module @rollup/rollup-linux-x64-gnu`. The app is `prathamesh2`.
-
-Set it in both projects: *Settings → Environments → Production → Branch
-Tracking*, then *Deployments → Create Deployment* with the branch name. Do not
-merge `prathamesh` into it — the two branches share nothing after the initial
-commit, and its commits are an older version of the same files.
+**Production is the branch Vercel is told it is.** The app is on `main`.
+Check it in both projects: *Settings → Environments → Production → Branch
+Tracking*.
 
 Pushing any other branch makes a preview deployment, on its own URL, which §3
 will then block.
@@ -276,7 +262,7 @@ will then block.
 ```
 
 Both apps route in the browser. Vercel knows nothing about `/farmer/orders` or
-`/payments`, so without this, **reloading any page other than the home page
+`/password-requests`, so without this, **reloading any page other than the home page
 returns 404** — the first thing anyone does after being sent a link. Static
 files are matched before rewrites, so `/assets/…` still serves the real bundle.
 
@@ -288,16 +274,8 @@ blank screen. Nothing to configure in Vercel; the default `npm run build` is
 right.
 
 Every `VITE_*` value is read at **build** time, not run time — changing one
-means redeploying, not just restarting. The admin console has no login OTP, so
-the MSG91 pair belongs to project 1 alone.
-
-The two MSG91 values here are public by design; the browser cannot run the
-widget without them. **`MSG91_AUTH_KEY` is not one of them** — it lives on
-Cloud Run only. Anything named `VITE_*` is inlined into the JS bundle that
-ships to every phone, so putting the auth key here would publish it.
-
-MSG91's widget settings restrict which domains may use it. Add the Vercel URL
-there, or the widget loads and then refuses to send.
+means redeploying, not just restarting. Anything named `VITE_*` is inlined
+into the JS bundle that ships to every browser, so never put a secret in one.
 
 In development neither app needs it: `vite.config.ts` proxies `/api` to
 `localhost:4000`.
@@ -310,7 +288,7 @@ In development neither app needs it: `vite.config.ts` proxies `/api` to
 API:
 
 ```
-CORS_ORIGIN=https://shanta-bazar.vercel.app,https://shanta-admin.vercel.app
+CORS_ORIGIN=https://<app>.vercel.app,https://<admin>.vercel.app
 ```
 
 Rules worth knowing:
@@ -327,23 +305,19 @@ Rules worth knowing:
   variable. Change the delimiter with gcloud's `^;^` prefix:
 
   ```bash
-  gcloud run services update shantai-api --region asia-south1 --project <PROJECT_ID> \
-    --update-env-vars "^;^CORS_ORIGIN=https://shanta-bazar.vercel.app,https://shanta-admin.vercel.app"
+  gcloud run services update f2c-api --region asia-south1 --project <PROJECT_ID> \
+    --update-env-vars "^;^CORS_ORIGIN=https://<app>.vercel.app,https://<admin>.vercel.app"
   ```
 
 Confirm it on boot — the banner prints what is active, in the service's
 *Logs* tab:
 
 ```
-  Database       Firestore (shantaimahilabajar)
-  Images         Cloudinary (wvd4cteq)
-  OTP            MSG91 widget (356a4b...)
-  CORS           https://shanta-bazar.vercel.app, https://shanta-admin.vercel.app
+  Database       Firestore (<project id>)
+  Images         Cloudinary (<cloud name>)
+  Mandi prices   on
+  CORS           https://<app>.vercel.app, https://<admin>.vercel.app
 ```
-
-`OTP  demo (code shown on screen)` on a production host means the widget did
-not configure and the API should not have booted — check both `MSG91_AUTH_KEY`
-and `MSG91_WIDGET_ID` are set, since either alone falls back.
 
 ---
 
@@ -354,27 +328,19 @@ passes:
 
 1. Deploy the API to Cloud Run with maximum instances 1 and CPU always
    allocated. Set everything except `CORS_ORIGIN`.
-2. Deploy both Vercel projects with `VITE_API_URL` pointing at Cloud Run, and
-   the `VITE_MSG91_*` pair on project 1.
+2. Deploy both Vercel projects with `VITE_API_URL` pointing at Cloud Run.
 3. Set `CORS_ORIGIN` on Cloud Run to the two Vercel URLs (the `^;^` command in
    §3). That makes a new revision — the same quiet-moment rule applies.
-4. Add the project-1 Vercel URL to the MSG91 widget's allowed domains.
-5. Deploy the Firestore rules: `firebase deploy --only firestore:rules`.
-6. Check the boot banner shows Firestore, Cloudinary, the MSG91 widget and both
-   origins.
-7. Log in once on a real phone. The widget path is the one thing here that
-   cannot be verified from the banner alone.
+4. Deploy the Firestore rules: `firebase deploy --only firestore:rules`.
+5. Check the boot banner shows Firestore, Cloudinary and both origins.
+6. Register and log in once on a real phone.
 
 ---
 
 ## 5. Before real users
 
 - [ ] `SESSION_SECRET` set to a fresh random value — changing it later signs every user out
-- [ ] `SESSION_SECRET`, `FIREBASE_SERVICE_ACCOUNT`, `CLOUDINARY_URL` and `MSG91_AUTH_KEY` come from Secret Manager, not plain variables
-- [ ] MSG91 configured — **the API refuses to boot in production without it**, because demo mode returns the login code in the HTTP response
-- [ ] `VITE_MSG91_WIDGET_ID` + `VITE_MSG91_TOKEN_AUTH` set on the Vercel frontend project, and the Vercel URL added to the widget's allowed domains
-- [ ] `MSG91_AUTH_KEY` appears **only** on Cloud Run, never in a `VITE_*` variable
-- [ ] The auth key committed in `.env.example` at `a0775b7` has been rotated — deleting the line did not revoke it
+- [ ] `SESSION_SECRET`, `FIREBASE_SERVICE_ACCOUNT` and `CLOUDINARY_URL` come from Secret Manager, not plain variables
 - [ ] `ADMIN_BOOTSTRAP_EMAIL` + `ADMIN_BOOTSTRAP_PASSWORD_HASH` set for the first sign-in (`npm run admin:users -- hash`), then removed once a real administrator exists
 - [ ] `CORS_ORIGIN` set to both origins
 - [ ] Cloud Run maximum instances is 1

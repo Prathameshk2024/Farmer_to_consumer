@@ -4,12 +4,12 @@
 rules adopted by the महाराष्ट्र शासन (1972, revised 2009) and used by
 बालभारती in every state school textbook.
 
-That source is chosen for one reason, and it is not academic. The women who
-use this app learned to read from बालभारती textbooks, and many are reading
+That source is chosen for one reason, and it is not academic. The farmers who
+use this site learned to read from बालभारती textbooks, and many are reading
 Marathi on a screen for the first time. Spelling they were taught is spelling
 they recognise. Anything else — a Hindi-influenced form, an English sentence
 shape wearing Marathi words, a colloquial spelling from one district — makes a
-reader who is already unsure stop and wonder whether she has misread it.
+reader who is already unsure stop and wonder whether they have misread it.
 
 **Only Marathi follows this sheet.** The English dictionary is an independent
 piece of writing, not a translation, and is never edited to match a Marathi
@@ -76,10 +76,9 @@ skimming.
 |---|---|---|
 | UPI address | `UPI आयडी` | `UPI ID` |
 | to view | `पहा` | `पाहा` (in imperatives) |
-| slot | `जागा` | `स्लॉट`, `पॅक` (पॅक is ours, not hers) |
 | product | `उत्पादन` | `प्रॉडक्ट`; `माल` only for farm produce (next row) |
 | farm produce | `शेतमाल` or `माल`, alongside `उत्पादन` | — (for what a farmer grows, `माल` is the ordinary word: `तुमचा माल ग्राहकांना दिसेल`) |
-| farmer | `शेतकरी` | `विक्रेती`, `विक्रेता`, `उद्योजिका` (farmers are men and women) |
+| farmer | `शेतकरी` | `विक्रेती`, `विक्रेता`, `उद्योजिका` (one neutral word for every farmer) |
 | cart | `टोपली` | `कार्ट` |
 | payment | `भरणा` | `पेमेंट` in admin-facing text |
 

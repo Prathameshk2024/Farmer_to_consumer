@@ -51,13 +51,13 @@ Done also means:
 
 *Added 25 September 2026.*
 
-A farmer has one flat `deliveryFee` (and `freeDeliveryAbove`), and no screen
-asks her for either — so almost every order carries 0, which the cart shows
+A farmer has one flat `deliveryFee` (and `freeDeliveryAbove`), and few set
+either — so almost every order carries 0, which the cart shows
 as "ask the farmer" (see *One farmer per cart* in `CLAUDE.md`). The buyer
 learns the real charge only on a phone call after ordering.
 
 Give the farmer the option of charges by distance: for example ₹20 up to
-5 km, ₹40 up to 10 km, ₹60 up to 20 km — bands she chooses. The checkout
+5 km, ₹40 up to 10 km, ₹60 up to 20 km — bands the farmer chooses. The checkout
 then works out the charge for the buyer's address and shows
 
 > **total = item price + delivery charge**
@@ -68,32 +68,33 @@ chosen now).
 
 To settle before building it:
 
-- **Where the distance comes from.** Nothing in the app has a location today —
-  only pincodes. The cheapest honest answer is the distance between the
-  centres of the farmer's and the buyer's pincodes, from a bundled
-  Maharashtra pincode table; asking for GPS adds a permission prompt and a
-  wrong-location problem. Say on screen that the figure is approximate.
+- **Where the distance comes from.** A farmer may have stored a location
+  (`lat`, `lng`, optional); a buyer has only a pincode. The cheapest honest
+  answer is the farmer's point (or pincode centre) against the centre of the
+  buyer's pincode, from a bundled Maharashtra pincode table; asking the buyer
+  for GPS adds a permission prompt and a wrong-location problem. Say on screen
+  that the figure is approximate.
 - **It stays optional.** A farmer who sets no bands keeps today's behaviour,
   and 0 still means "ask the farmer", never "free".
-- **Beyond her last band.** Her pincode list is a hint, not a gate (*Where an
+- **Beyond the last band.** The farmer's pincode list is a hint, not a gate (*Where an
   order may go*), so an address past the last band should fall back to "ask
   the farmer" rather than refuse the order.
-- **`freeDeliveryAbove` still wins** when the order meets it — that is her
-  promise.
+- **`freeDeliveryAbove` still wins** when the order meets it — that is the
+  farmer's promise.
 - The server computes the charge; the client's figure is only a preview.
 - Editing the bands follows the design rules: one page, not a wizard, and a
   Marathi label for every field (`docs/MARATHI-STYLE.md`).
 
-## Signed-in devices, with sign-out, on her profile screen
+## Signed-in devices, with sign-out, on the profile screen
 
 *Added 25 September 2026.*
 
 One account can be signed in on up to ten devices at once
 (`MAX_SESSIONS_PER_USER` in `backend/src/auth/sessions.ts`), and signing in on
 a new phone does not sign the old one out. Today nobody but an admin can see
-where an account is signed in or end a session on a lost phone — she can only
-log out of the phone in her hand. Google Play does not require this; it is for
-"my phone was stolen" and for the handset a field coordinator shares.
+where an account is signed in or end a session on a lost phone — the owner can
+only log out of the phone in hand. It is for "my phone was stolen" and for the
+handset a field coordinator shares.
 
 The server half is already built and unused:
 
@@ -110,9 +111,7 @@ Done means:
   last used, the current one marked "this phone" and without a sign-out
   button — Log out already does that.
 - Signing a device out is a confirmation that states the consequence
-  (that phone will need a new OTP), not "Are you sure?".
-- Nothing extra for push: the FCM token lives on the session, so ending the
-  session stops that phone's notifications.
+  (that phone will need the password again), not "Are you sure?".
 
 To settle before building it:
 
@@ -122,7 +121,7 @@ To settle before building it:
   agent at login. Do not store the raw user agent.
 - **"Sign out everywhere else".** `revokeAllForUser()` exists but no route
   calls it. One button that ends every session but this one is probably the
-  control a woman with a stolen phone actually needs.
+  control someone with a stolen phone actually needs.
 - Every label in both languages, written separately (`docs/MARATHI-STYLE.md`).
 
 ## Move Firebase to Blaze, with a budget alert
@@ -183,8 +182,8 @@ fixes that for a few dollars, and on Spark this rewrite can spend reads
 **What it buys.** More than one instance, and deploys that no longer overlap
 two copies of the data. Starts that read nothing. No memory ceiling. Edits in
 the Firebase console take effect at once instead of being overwritten by a
-stale copy. The class of bug behind the 10 September deletion — an in-memory
-copy that was wrong, treated as the truth — goes away. Scripts
+stale copy. The class of bug where an in-memory copy that was wrong is treated as the
+truth goes away. Scripts
 (`admin:users`, `purge:demo`) read what they touch, not everything.
 
 **What it costs — settle each before building:**
@@ -196,19 +195,18 @@ copy that was wrong, treated as the truth — goes away. Scripts
   the browser. Without a cache, or ratings and counts stored as fields,
   ordinary browsing can out-read ten full starts a day.
 - **Rules that scan a whole collection need another shape.** The
-  duplicate-UTR check, slot counting, the per-village serial in the
-  `F2C-<VILLAGE>-<NNN>` ID, farmer ratings and the dashboard counts each need a
-  query with an index, or a stored counter. The 48-hour sweep of rejected
-  listings and the archive purge need a scheduled job instead of running at
-  boot.
+  duplicate-UTR check, the per-village serial in the `F2C-<VILLAGE>-<NNN>`
+  ID, farmer ratings, the research tables and the dashboard counts each need a
+  query with an index, or a stored counter. The sweeps that run at boot
+  (closed accounts, archived rows) need a scheduled job instead.
 - **Races that cannot happen today become possible.** One process runs one
-  handler at a time against memory, so two requests cannot both take the
-  last slot or both claim the same UTR. Slot limits, stock, duplicate UTRs,
-  order transitions and single-use OTPs and registration tickets all need
-  Firestore **transactions**.
+  handler at a time against memory, so two requests cannot both buy the
+  last kilogram or both claim the same UTR. Stock, duplicate UTRs, order
+  transitions and registration of the same phone all need Firestore
+  **transactions**.
 - **State held in the process has to move out of it.** The rate limiter
-  (`auth/rateLimit.ts`) is a `Map`; with two instances "three codes a day"
-  becomes six. It needs a shared store.
+  (`auth/rateLimit.ts`) is a `Map`; with two instances "five wrong passwords"
+  becomes ten. It needs a shared store.
 - **Latency.** Each request pays network round trips, and reads made one
   after another (session → order → farmer) add up on rural 4G.
 - **Size of the rewrite.** `getDb()` has about 75 call sites in 15 files, and
@@ -232,5 +230,5 @@ Done means:
 - `docs/CAPACITY.md` §4 counts reads per request, not documents × starts.
 - `isBulkDelete()` is kept or replaced by an equivalent guard on any
   remaining batch path.
-- Tests cover the transactions: two concurrent requests for the last slot,
+- Tests cover the transactions: two concurrent orders for the last stock,
   and the same UTR claimed on two orders at once, each succeed exactly once.

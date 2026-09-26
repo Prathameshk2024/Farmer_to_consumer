@@ -1,8 +1,7 @@
 # Backups — and how to restore from them
 
 The live project is on Firebase's free **Spark** plan, which has no managed
-backups and no point-in-time recovery — only the one hour of version history
-that recovered six farmers on 10 September 2026. So the backup is a copy into
+backups and no point-in-time recovery — only one hour of version history. So the backup is a copy into
 **separate free accounts**, made by `npm run backup` and put back by
 `npm run restore` (`backend/scripts/backup.ts` and `restore.ts`; the rules in
 `backend/src/db/backupPlan.ts`, the reading and writing they share in
@@ -27,33 +26,32 @@ somebody restores from one.
 
 | Copy | Account | Updated | Holds |
 |---|---|---|---|
-| Backup Firestore **A** | `smb-backup-99778` | nightly, 03:00 IST | the latest copy only |
-| Backup Cloudinary **A** | `e4bdb893` | nightly, 03:00 IST | every photo ever copied |
+| Backup Firestore **A** | `<backup project id>` | nightly, 03:00 IST | the latest copy only |
+| Backup Cloudinary **A** | `<backup cloud name>` | nightly, 03:00 IST | every photo ever copied |
 | Local database files | `backend/data/backups/` on a laptop | whenever it is run | one file per run: the last 30 days, then the first of each month for good |
 | Local photos | `backend/data/backups/images/` | whenever it is run | every photo ever downloaded |
 
-Backup A was set up on 24 September 2026. **The logins for the backup
+**The logins for the backup
 accounts must be known to more than one person** — a backup nobody can sign in
 to is not a backup.
 
-What is copied: `farmers`, `products`, `orders`, `payments`, `customers`,
-`reviews`, `admins`, `authEvents`, and every image under
-`shanta-mahila-bazar/` (`product/` and `payment/`).
+What is copied: every collection in `COLLECTIONS` (`backend/src/db/firestore.ts`)
+except `sessions`, and every image under the `CLOUDINARY_FOLDER` (`f2c/` by
+default).
 
 What is **not**:
 
 - `sessions` — live credentials. Copying them widens who could steal one;
   losing them means everybody signs in again.
-- Configuration: Secret Manager, Cloud Run settings, Vercel variables, MSG91.
+- Configuration: Secret Manager, Cloud Run settings, Vercel variables.
   `docs/DEPLOY.md` is the record of those.
-- The Android wrapper and its signing keystore, which live outside this repo.
 
 ---
 
 ## 2. The rules the copy follows
 
 - **The live project is only read.** One run costs one read per document —
-  about 950 today, the same as one API start — out of Spark's 50,000 a day.
+  the same as one API start — out of Spark's 50,000 a day.
 - **The backup database mirrors the live one**, deletions included, writing
   only documents that changed. A copy that never deleted would bring back every
   purged demo farmer and deleted draft on the day it was restored.
@@ -62,8 +60,7 @@ What is **not**:
   comes back empty, nothing is written, the backup keeps the older data, and
   the run fails. This is the same line `isBulkDelete()` draws in the API. The
   override is `ALLOW_BULK_DELETE=true`, for a shrink that is deliberate.
-- **Photos are never deleted** from either copy — the payment screenshots are
-  the proof behind every approved ₹50.
+- **Photos are never deleted** from either copy.
 - **The script refuses to use the live project or the live Cloudinary account
   as a backup target.**
 - **With two or more targets, each run copies into one**, rotating by day, so
@@ -121,9 +118,7 @@ dated database files and the photos on disk — the only copy that does not
 depend on any account staying open. `backend/data/backups/` is gitignored: it
 holds phone numbers, addresses and admin password hashes.
 
-Space, measured on 23 September 2026: **42 KB** per database file (948
-documents, gzipped) and **6.8 MB** of photos (94). Pruning keeps it small;
-`BACKUP_KEEP_DAYS` changes the 30.
+Pruning keeps the database files small; `BACKUP_KEEP_DAYS` changes the 30.
 
 ### Adding a second target
 
@@ -166,7 +161,7 @@ delete them afterwards.
   you copy them first.
 - **Then restart the API** so it reads the restored data, instead of writing
   its stale in-memory copy back over it: deploy a new revision, for example
-  `gcloud run services update shantai-api --region asia-south1 --update-env-vars RESTORED_AT=<date>`.
+  `gcloud run services update <service> --region asia-south1 --update-env-vars RESTORED_AT=<date>`.
   Do both at a quiet hour.
 - Everybody is signed out, because `sessions` is not backed up.
 
@@ -182,8 +177,8 @@ project that is now live.
 The same reverse run, with Cloudinary:
 
 ```bash
-CLOUDINARY_URL="cloudinary://<backup key>:<backup secret>@e4bdb893" \
-CLOUDINARY_FOLDER=shanta-mahila-bazar \
+CLOUDINARY_URL="cloudinary://<backup key>:<backup secret>@<backup cloud name>" \
+CLOUDINARY_FOLDER=f2c \
 BACKUP_TARGETS=live \
 BACKUP_LIVE_CLOUDINARY_URL="cloudinary://<live key>:<live secret>@<live cloud>" \
 npm run backup -- --to live --no-local-images --dry-run
@@ -248,7 +243,7 @@ Every photo the app shows is a **full URL stored in Firestore**, and a URL
 names the account it lives in:
 
 ```
-https://res.cloudinary.com/<cloud name>/image/upload/v1726…/shanta-mahila-bazar/product/abc123.jpg
+https://res.cloudinary.com/<cloud name>/image/upload/v1726…/f2c/product/abc123.jpg
 ```
 
 So restoring the photos into a **different** Cloudinary account — the
@@ -258,21 +253,15 @@ live account itself is lost, closed or locked, not in any other restore. Until
 it is built, the answer is to keep the live account alive: its login must be
 known to more than one person, like the backup accounts'.
 
-What building it means, measured on the copy of 23 September 2026:
-
-| Field | Documents with a Cloudinary URL |
-|---|---|
-| `products.imageUrl` | 33 |
-| `farmers.upiQrUrl` | 4 |
-| `payments.screenshotUrl` | 6 |
-| `farmers.photo` | 0 today; the field exists and would need the same treatment if it ever holds one |
+What building it means. The fields holding a Cloudinary URL are
+`products.imageUrl` and `farmers.upiQrUrl`:
 
 - **Replace the prefix only**: `https://res.cloudinary.com/<old>/` becomes
   `https://res.cloudinary.com/<new>/`. The rest of the URL — the version, the
   folder, the `public_id` — stays as it is, because `restore --images` and the
   backup both keep every `public_id`. `imagePublicId` and `upiQrPublicId`
   carry no account name and need no change.
-- **Search every string in every document**, not just the three fields, and
+- **Search every string in every document**, not just those fields, and
   report any other field it finds: a URL copied somewhere new since this was
   written is exactly what a field list would miss.
 - **Behave like `restore`**: a dry run by default that prints what it would
@@ -281,9 +270,6 @@ What building it means, measured on the copy of 23 September 2026:
   because it holds the old URLs in memory.
 - **Switch the live settings at the same time**: `CLOUDINARY_URL` (or
   `CLOUDINARY_*`) on Cloud Run to the new account, so new uploads go there.
-  `screenshotProblem()` in `backend/src/db/payments.ts` checks a new
-  screenshot against the configured cloud name, so it follows by itself;
-  screenshots already approved are not checked again.
 - **Then the backups**: the backup Cloudinary becomes the account the app
   depends on — it should stop being a backup target, and a new backup account
   take its place, before the nightly workflow is re-enabled.
@@ -300,11 +286,11 @@ command line in place of the live ones:
 
 ```bash
 FIREBASE_SERVICE_ACCOUNT="$(cat backup-a-key.json)" \
-CLOUDINARY_URL="cloudinary://<backup key>:<backup secret>@e4bdb893" \
+CLOUDINARY_URL="cloudinary://<backup key>:<backup secret>@<backup cloud name>" \
 npm run restore -- --file backend/data/backups/<file>.json.gz --images
 ```
 
-The dry run should name `smb-backup-99778` and `e4bdb893`, never the live
+The dry run should name backup A's project and cloud name, never the live
 ones — if it names the live project, stop. Then add `--commit`, point a local
 API at backup A (`npm run dev:api` with that key) and look around. That is
 also the test of the photo URLs.
@@ -317,7 +303,7 @@ also the test of the photo URLs.
 |---|---|
 | `FIREBASE_SERVICE_ACCOUNT is not valid JSON or base64 JSON` and `target "a" has a Firebase key, but the live Firebase is not configured` | The `LIVE_FIREBASE_SERVICE_ACCOUNT` secret was pasted with something extra — the `FIREBASE_SERVICE_ACCOUNT=` prefix, or quotes. Copy the exact value with `node --env-file=backend/.env -e "process.stdout.write(process.env.FIREBASE_SERVICE_ACCOUNT)" \| clip` and update the secret. |
 | `cloudinary not configured` | One of the three `LIVE_CLOUDINARY_*` secrets is missing or misspelled. |
-| `the live project has shrunk since this backup was taken` | A collection lost more than half its documents. **Find out why before doing anything else** — this is what 10 September looked like. If the shrink was deliberate (a purge), run once with `ALLOW_BULK_DELETE=true`. |
+| `the live project has shrunk since this backup was taken` | A collection lost more than half its documents. **Find out why before doing anything else.** If the shrink was deliberate (a purge), run once with `ALLOW_BULK_DELETE=true`. |
 | `is the LIVE Firebase project - refusing` / `is the LIVE Cloudinary account - refusing` | A backup secret holds the live key. |
 | `backup target "a" has neither a Firebase key nor a Cloudinary URL` | `BACKUP_TARGETS` names a target whose secrets are not in the workflow's `env:`. |
 | A Firestore error on the backup project | Its Firestore database was never created (Build → Firestore Database), or its Spark write limit (20,000 a day) is spent. |

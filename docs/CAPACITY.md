@@ -1,8 +1,8 @@
 # Capacity — what each service holds, and what breaks first
 
 Written 18 September 2026. **These are estimates**, built from how the code
-reads, writes and polls, from document sizes measured on the 13 September
-recovery snapshot (`backend/data/recovery/`), and from each provider's
+reads, writes and polls, from document sizes measured on an earlier deployment
+of the same code, and from each provider's
 published free limits as remembered on that date. No live dashboard was read.
 Section 9 lists what to look up to replace the guesses with real numbers.
 
@@ -13,10 +13,9 @@ Section 9 lists what to look up to replace the guesses with real numbers.
 | Service | Plan | What that means here |
 |---|---|---|
 | Firestore (Firebase) | **Spark — free** | Daily limits are **hard stops**, not bills. See §4. |
-| Cloud Run (`shantai-api`) | billed project, **CPU always allocated** | Pay for every second the instance exists, idle included. See §5. |
+| Cloud Run (the API service) | billed project, **CPU always allocated** | Pay for every second the instance exists, idle included. See §5. |
 | Cloudinary | not recorded — assumed Free | 25 credits a month. See §6. |
 | Vercel (two projects) | not recorded — assumed Hobby | 100 GB transfer, 1M requests a month. See §7. |
-| MSG91 | pay per SMS | See §8. |
 | Secret Manager, Cloud Build, Artifact Registry, Cloud Storage, Cloud Logging | billed project | All inside free allowances or cents. See §8. |
 
 ---
@@ -25,13 +24,12 @@ Section 9 lists what to look up to replace the guesses with real numbers.
 
 | Thing | Firestore documents | Size of each | Firestore writes | Cloudinary |
 |---|---|---|---|---|
-| Farmer | 1 | ~1.2 KB (measured: 1,206 B average) | ~4 to register | her payment QR, ~0.2 MB |
-| Product | 1 | ~0.5 KB (measured: 493 B average) | ~3 (create, approve, edit) | ~0.4 MB with thumbnails; ~6 transformations |
+| Farmer | 1 | ~1.2 KB (measured: 1,206 B average) | ~4 to register | payment QR, ~0.2 MB |
+| Product | 1 | ~0.5 KB (measured: 493 B average) | ~3 (create, edits) | ~0.4 MB with thumbnails; ~6 transformations |
 | Order | 1, plus ~1.5 reviews (the buyer must rate every product) | ~1.2 KB + ~0.4 KB per review | ~13 over its life | — |
 | Buyer | 1 | ~0.5 KB | — | — |
-| Sign-in | ~3 auth-log rows + 1 session | ~0.25 KB each | ~4, and one SMS | — |
+| Sign-in | ~3 auth-log rows + 1 session | ~0.25 KB each | ~4 | — |
 | Time spent in the app | — | — | 1 per 5 minutes of use (the session's `lastSeenAt`) | — |
-| ₹50 payment | 1 | ~0.5 KB | ~4 | screenshot, ~0.45 MB |
 
 Built-in ceilings: the auth log keeps at most 5,000 rows or 90 days, a person
 at most 10 sessions, a farmer at most 30 notices. **Orders and reviews end up
@@ -39,24 +37,23 @@ as roughly three documents in four** — they are what grows.
 
 ---
 
-## 3. Three sizes of market, after one year
+## 3. Two sizes of market, after one year
 
-| | Now (13 Sep snapshot) | Pilot | District |
-|---|---|---|---|
-| Farmers / live products | 6 / 13 | 100 / 400 | 1,000 / 4,000 |
-| Buyers registered / active in a month | not known | 1,000 / 300 | 10,000 / 3,000 |
-| Orders a day | not known | 20 | 200 |
-| **Firestore documents** | under ~1,000 | ~26,000 | ~210,000 |
-| Raw data | under 1 MB | ~16 MB | ~145 MB |
-| Firestore storage (raw × ~3 for indexes) | under 3 MB | ~50 MB | ~450 MB |
-| Firestore writes a day | under 100 | ~1,100 | ~11,000 |
-| Server memory | ~130 MB | ~230 MB | ~1 GB |
-| Cloudinary stored | ~7 MB | ~0.35 GB | ~3.5 GB |
-| Cloudinary delivered a month | tiny | ~2.5 GB | ~24 GB |
-| Cloudinary credits a month | under 1 | ~3–4 | **~30** |
-| Vercel requests a month | tiny | ~90,000 | **~900,000** |
-| Vercel transfer a month | tiny | ~3 GB | ~25 GB |
-| SMS a month | tens | ~400 (~₹100) | ~4,000 (~₹1,000) |
+| | Pilot | District |
+|---|---|---|
+| Farmers / live products | 100 / 400 | 1,000 / 4,000 |
+| Buyers registered / active in a month | 1,000 / 300 | 10,000 / 3,000 |
+| Orders a day | 20 | 200 |
+| **Firestore documents** | ~26,000 | ~210,000 |
+| Raw data | ~16 MB | ~145 MB |
+| Firestore storage (raw × ~3 for indexes) | ~50 MB | ~450 MB |
+| Firestore writes a day | ~1,100 | ~11,000 |
+| Server memory | ~230 MB | ~1 GB |
+| Cloudinary stored | ~0.35 GB | ~3.5 GB |
+| Cloudinary delivered a month | ~2.5 GB | ~24 GB |
+| Cloudinary credits a month | ~3–4 | **~30** |
+| Vercel requests a month | ~90,000 | **~900,000** |
+| Vercel transfer a month | ~3 GB | ~25 GB |
 
 Growth at pilot level is roughly **2,000 Firestore documents a month**.
 
@@ -181,12 +178,10 @@ poll:
 | Poll | Every | Pauses when hidden? |
 |---|---|---|
 | Admin console stats (`admin/src/components/Shell.tsx`) | 60 s | **Yes, since 18 Sep 2026** |
-| Farmer waiting for payment approval (`frontend/src/screens/farmer/Subscription.tsx`) | 10 s | **Yes, since 18 Sep 2026** |
 | Buyer's rating gate (`RateOrderGate`) | 2 min | Yes, always did |
 
 Before 18 September, an admin tab left open overnight kept the instance up
-all night, and so did a farmer's phone left on the payment-waiting screen for
-the day an approval can take. Now the instance is up only while someone is
+all night. Now the instance is up only while someone is
 actually using an app, plus the ~15 minutes after.
 
 Rough monthly cost: a few hours of use a day stays within the free allowance
@@ -199,18 +194,16 @@ or costs a few dollars; all-day use approaches $44.
 On the Free plan, **1 credit = 1 GB stored, or 1 GB delivered, or 1,000
 transformations**, and there are 25 a month.
 
-- **Stored**: ~0.4 MB per product with its thumbnails, ~0.2 MB per farmer QR,
-  ~0.45 MB per payment screenshot. Photos are compressed on the phone first
+- **Stored**: ~0.4 MB per product with its thumbnails, ~0.2 MB per farmer QR.
+  Photos are compressed on the phone first
   (`frontend/src/lib/compress.ts`).
 - **Delivered**: product cards and pages ask for resized WebP/AVIF
   (`cloudinaryThumb`), about 0.5–1.5 MB for a buyer's browsing session. The
-  admin screens load photos and screenshots **full size**.
+  admin screens load photos **full size**.
 - **Ceiling**: at about **2,500–3,000 buyers active in a month** the 25 credits
   run out, nearly all of it delivery. The next plan up costs real money each
   month.
-- **Rejected listings**: since 19 September 2026 the 48-hour sweep destroys the
-  photo along with the row. Before that the photo stayed in Cloudinary for
-  ever; those already left behind are not cleaned up retroactively.
+- **Removed listings**: taking a listing down destroys its photo with the row.
 
 ---
 
@@ -218,12 +211,12 @@ transformations**, and there are 25 a month.
 
 Assumed Hobby: 100 GB of transfer and 1,000,000 requests a month. A first
 visit is about 1 MB (143 KB of compressed JavaScript, CSS, up to ~860 KB of
-bundled photos); later visits mostly revalidate. Every app open, including
-each launch of the APK, is roughly 20 requests, so **requests run out before
+bundled photos); later visits mostly revalidate. Every visit is roughly 20
+requests, so **requests run out before
 transfer** — around the district size in §3.
 
-Hobby's terms cover personal, non-commercial use. Whether a marketplace
-charging ₹50 subscriptions fits that is worth checking before it grows.
+Hobby's terms cover personal, non-commercial use. Whether a marketplace fits
+that is worth checking before it grows.
 
 ---
 
@@ -231,8 +224,7 @@ charging ₹50 subscriptions fits that is worth checking before it grows.
 
 | Service | Use | Limit | Verdict |
 |---|---|---|---|
-| **MSG91** | one SMS per sign-in; a farmer signs in at least every 90 days, a buyer after 15 idle days; +~25% retries | at most 3 per number per day | ~₹0.2–0.3 each; ₹100–1,000 a month across §3 |
-| **Secret Manager** | 4 secrets, read at every start | 6 active versions and 10,000 reads a month free | Free. Disable old versions when rotating. |
+| **Secret Manager** | 3 secrets, read at every start | 6 active versions and 10,000 reads a month free | Free. Disable old versions when rotating. |
 | **Cloud Build** | one build per deploy, ~3–6 minutes | 2,500 build-minutes a month free | Free |
 | **Cloud Logging** | request logs and the app's own lines | 50 GiB a month free | Free |
 | **Cloud Storage** (source upload bucket) | ~3 MB per deploy | ~$0.02 per GB-month | Negligible |
@@ -286,7 +278,7 @@ the one that turns into an outage (§4).
     database*, and *Server starts a day the free read limit covers*;
   - the **Cloud Run log** at every start, e.g.
     `[firestore] loaded 812 documents (61 starts a day fit in the free 50000 reads): farmers 6 · products 13 · …`
-    — all nine collections. At **10 starts a day or fewer** (about 5,000
+    — every collection. At **10 starts a day or fewer** (about 5,000
     documents) the next line is a warning.
 - **Starts per day**: count the `[firestore] loaded` lines in the Cloud Run
   logs for a day, and compare with the second admin tile. When the two meet,
@@ -294,13 +286,12 @@ the one that turns into an outage (§4).
 
 To replace the estimates in this file with real figures:
 
-- `gcloud run services describe shantai-api --region asia-south1` — memory, CPU,
+- `gcloud run services describe <service> --region asia-south1` — memory, CPU,
   minimum instances, the image in use;
 - Firebase console — Firestore location, whether it is the `(default)`
   database, and the Usage tab;
 - Cloudinary dashboard — credits used this month, and the plan;
-- Vercel → Usage, and the plan on both projects;
-- MSG91 — the per-SMS rate on the account.
+- Vercel → Usage, and the plan on both projects.
 
 ---
 

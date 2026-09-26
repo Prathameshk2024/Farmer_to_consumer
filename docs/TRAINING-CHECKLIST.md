@@ -1,204 +1,126 @@
 # Training session checklist
 
-For trainers and co-trainers running a 2–3 hour session on the app for rural
-women farmers, with students and teachers helping. Checked against the code on
-`prathamesh2`.
+For trainers and field coordinators running a 2–3 hour session on the website
+for farmers, with students and teachers helping.
 
 ---
 
-## ⚠️ Fix this before the session: the app's safety limits will block a training room
+## Before the session: the rate limits will notice a training room
 
-The server limits how many logins and sign-ups can come from one internet
-connection. If everyone in the room is on the same venue Wi-Fi or one phone's
-hotspot, the whole room counts as one user (`backend/src/auth/rateLimit.ts`):
+The server limits sign-ups and logins per internet connection
+(`backend/src/auth/rateLimit.ts`). If the whole room is on one venue Wi-Fi or
+one phone's hotspot, the room counts as one address:
 
 | Limit | Value | What happens in the room |
 |---|---|---|
-| OTP requests from one connection | **20 per hour** | The 21st woman can't get a code for an hour |
-| Farmer sign-ups from one connection | **10 per hour** | Only 10 women can register per hour |
-| OTP codes per phone number | **3 per 24 hours** | Pressing "resend" 3 times locks her out until tomorrow |
-| Code checks from one connection | 50 per hour | Typos by the whole room add up |
+| Registrations from one connection | **10 per hour** | The 11th farmer waits an hour |
+| Logins from one connection | 50 per hour | Typos by the whole room add up |
+| Wrong passwords for one phone | 5 per 15 minutes | That phone waits 15 minutes |
+| Forgot-password requests | 3 per phone per day, 20 per connection per hour | — |
 
-- [ ] **Best option:** each woman uses her own mobile data, not venue Wi-Fi or a shared hotspot.
-- [ ] **Or** raise these limits for the day, deploy **the night before**, and put them back afterwards. The counts are kept in memory, so a new deploy also resets them.
+- [ ] **Best option:** each farmer uses their own mobile data, not a shared network.
+- [ ] **Or** raise the limits for the day, deploy **the night before**, and put them back afterwards. The counts are held in memory, so a deploy also resets them.
 - [ ] **Never deploy during the session.** The server must run as a single copy, and for a few seconds during a deploy there are two.
-- [ ] Tell everyone: **type the code once, and don't press "resend" again and again.** 3 codes a day is the limit.
-- [ ] The code arrives by SMS on the phone that has that SIM. The SIM must be in the phone she is holding, not at home.
 
 ---
 
 ## A. The day before
 
-**Accounts and data**
-- [ ] Make sure the admin console login works. Have **two admins** available: one presents, one approves listings and payments live.
-- [ ] Set up **one demo farmer shop** (a trainer's number) with 3–4 approved products and a real UPI ID. All practice orders go to this shop.
-- [ ] Decide on practice orders: **women must not place test orders with real farmers.** Any order placed reaches the real farmer.
-- [ ] Decide what happens to practice listings. Every new product goes to admin for checking. Approve the real ones; **reject** the practice ones, which gives the slot back.
-- [ ] Decide on the ₹50 pack: will women actually pay on the day? If yes, the admin needs the college account's bank statement or UPI app open, because approval needs 3 ticks: UTR matches, date and time match, money received.
-- [ ] Check the college UPI ID and name on the payment screen match the poster.
+- [ ] Admin console login works. Have **two admins**: one presents, one verifies farmers live.
+- [ ] Set up **one demo farmer** (a trainer's number), verified, with 3–4 live listings and a real UPI ID. All practice orders go to this farmer.
+- [ ] **Practice orders never go to real farmers.** An order reaches whoever it is placed with.
+- [ ] Materials: projector or a phone mirrored to a screen; the website address as a printed QR code; a list of expected farmers (name, phone, village); one-page Marathi cards (login, adding produce, accepting an order, confirming a payment); a few produce samples to photograph; power banks and cables; an attendance and photo-consent sheet.
+- [ ] Walk the whole flow once on a cheap Android phone in Chrome: register → verify (admin) → listing → order → accept → payment → deliver or pickup → rating. Time it.
 
-**Materials**
-- [ ] Projector, or a phone mirrored to the screen / TV (screen-mirroring app plus cable)
-- [ ] Printed **APK install steps** or a QR code for the link, and the APK file on a pendrive/Bluetooth for phones with no data
-- [ ] A printed list of each woman's name, phone number and village
-- [ ] Printed **one-page Marathi cards**: login, adding a product, accepting an order, confirming a payment. Mostly pictures and few words.
-- [ ] Sample products to photograph: a pickle jar, papad, a bag. Take a good photo beforehand to show as an example.
-- [ ] Power banks, extension boards and charging cables (Type-C and micro-USB)
-- [ ] An attendance / consent sheet, with separate consent for taking photos of the women
+## B. On the day (arrive 45 minutes early)
 
-**Practice run**
-- [ ] Do the whole flow once on a cheap Android phone **inside the APK**: login → register → product → order → accept → payment → deliver → review.
-- [ ] Time it. This tells you how long each part will really take in the room.
-
----
-
-## B. On the day, before starting (arrive 45 minutes early)
-
-- [ ] Check the network in the hall: 4G signal for each carrier (Jio, Airtel, Vi)
-- [ ] Open the app once. The first load may be slow because the server was idle.
-- [ ] Admin console open on a laptop, on the pending products and payments pages
-- [ ] Seat women **in pairs or groups of 3–4** (someone who can read beside someone who can't), with one student/teacher volunteer per group
-- [ ] Brief the volunteers for 10 minutes: **don't take the phone and do it for her; point with your finger and let her press.** Never ask to see her OTP.
-- [ ] Check phones: Android, enough free storage, APK installed or ready to install
-
----
+- [ ] Check 4G signal in the hall for each carrier.
+- [ ] Open the site once; the first load may be slow after the server was idle.
+- [ ] Admin console open on a laptop at the Farmers list, filtered to those awaiting verification.
+- [ ] Seat farmers in groups of 3–4 with one volunteer each. Brief volunteers: **point, do not press** — the farmer's own finger does it. Never ask anyone for their password.
+- [ ] Offer "Add to home screen" in Chrome so the site opens like an app.
 
 ## C. Session plan (about 2 hours 45 minutes)
 
 | Time | Part | Content |
 |---|---|---|
-| 0:00–0:15 | **Introduction** | Why the market is named after शांताबाई काकी, who can sell, what is sold. Photos of real farmers. |
-| 0:15–0:30 | **Installing the app** | Install the APK and allow "unknown apps". Introduce the language (Marathi by default). |
-| 0:30–0:55 | **Login + farmer registration** | In small groups (because of the limits above) |
-| 0:55–1:05 | Tea break | Pending registrations get finished |
-| 1:05–1:40 | **Adding a product** | Photo, name, price, stock, "send for checking" |
-| 1:40–2:15 | **Orders and money** | Trainers place live orders; each woman accepts, packs and delivers |
-| 2:15–2:30 | **The buyer's side** | Students/teachers as buyers |
-| 2:30–2:45 | **Safety, questions, closing** | Printed cards, help number |
+| 0:00–0:15 | Introduction | What the site does, who buys, that it is free |
+| 0:15–0:55 | Registration | In small groups, because of the limits above |
+| 0:55–1:05 | Tea break | Admin verifies the new farmers |
+| 1:05–1:40 | Adding produce | Photo, crop, unit, price, quantity, minimum order, harvest date, cultivation |
+| 1:40–2:15 | Orders and money | Trainers place live orders; each farmer accepts and completes one |
+| 2:15–2:30 | The buyer's side | Students and teachers as buyers |
+| 2:30–2:45 | Safety, questions, closing | Printed cards, help number |
 
----
-
-## D. What to cover in each part
+## D. What to cover
 
 ### 1. Introduction
-- [ ] "What will the app do for you?" A shop on your phone that buyers from other villages can see.
-- [ ] **Costs:** registration is free. **₹50 = 5 products for 6 months.** No commission on sales.
-- [ ] **Money comes straight from the buyer to your UPI.** The app does not hold your money.
-- [ ] No English is needed. The whole app is in Marathi, and you can **speak into the mic** to type.
+- [ ] A shop on the phone that buyers from other villages and towns can see.
+- [ ] **Free.** No fee, no commission.
+- [ ] **Money goes straight from the buyer to the farmer's UPI, or as cash on delivery.** The site never holds money.
+- [ ] Everything is in Marathi, and the mic can type by voice.
 
-### 2. Login
-- [ ] Enter your 10-digit mobile number → a 6-digit code comes by SMS → type it in.
-- [ ] **Never tell this code to anyone**, even someone who calls saying "I'm from Shantai Bazar".
-- [ ] You don't need to log in every time. If you don't open the app for 15 days, you'll be asked again.
-- [ ] "Back" or refresh doesn't log you out. Only the **Log out** button does.
+### 2. Registration (ten screens, one question each)
+1. [ ] **Phone and password.** At least 6 characters; digits only is fine. Write it down somewhere safe at home.
+2. [ ] Name · 3. Village, taluka, pincode · 4. Location — "माझे ठिकाण वापरा" puts the farm on the buyers' map (rounded to about 1 km); it can be skipped.
+5. [ ] Main crops.
+6. [ ] **UPI ID — the most important screen.** Open PhonePe or GPay and read the UPI ID from there, not from memory. A wrong ID sends buyers' money to a stranger. If the site asks "Did you mean @ybl?", check and correct it.
+7. [ ] Age group, education, landholding, farmer type · 8. The ten digital-readiness questions — there are no right or wrong answers · 9. How produce is sold today and the main problems.
+10. [ ] Review every answer; "बदला" goes back to that screen.
+- [ ] Explain the farmer ID (e.g. `F2C-ANADUR-001`): village and serial number.
+- [ ] Until an admin verifies the farmer, listings can be prepared but buyers do not see them. Show one verification live.
 
-### 3. Farmer registration (6 screens)
-1. [ ] **About you**: name
-2. [ ] **Village and address**: pick the village from the list; pincode
-3. [ ] **Your business**: shop name, type of business, **do you sell food?** Explain carefully: **this answer is hard to change later**, and it decides which product categories she sees.
-4. [ ] **Digital use**: tell them there's no right or wrong answer. It is for measuring before and after.
-5. [ ] **Where your money arrives**: UPI ID. ⚠️ **The most important screen.**
-   - Have her open PhonePe or GPay and **read the UPI ID from there**. Don't type it from memory.
-   - A wrong UPI ID means buyers' money goes to a stranger.
-   - If the app says "Did you mean @ybl?", read it and correct it.
-6. [ ] **Check**: read every answer. "बदला" (Change) takes you back to that screen.
-- [ ] Explain the **SMB ID** (e.g. F2C-ANADUR-001), including what the village and number mean.
-- [ ] Show that the first time a screen opens it explains itself (the walkthrough), and that **Help & Training** replays it any time.
+### 3. Forgotten password
+- [ ] "पासवर्ड विसरलात?" on the login screen: leave phone and name, and a representative calls back with a temporary password, which must be changed at the next login.
 
-### 4. The ₹50 pack
-- [ ] Why it's needed: without a pack, nothing can go live.
-- [ ] **A phone can't scan its own screen.** Two ways:
-  - **"Save QR to phone"** → PhonePe/GPay → scan QR → **pick from gallery**
-  - Or **copy the UPI ID** → paste it in PhonePe
-- [ ] After paying, three things are needed:
-  - [ ] a **screenshot** of the success screen
-  - [ ] the date and time you paid
-  - [ ] the **12-digit UTR** (show where it is in PhonePe/GPay: "UTR" or "UPI Ref No.")
-- [ ] The admin checks by hand, so **it won't turn on instantly**. Show the waiting screen.
-- [ ] **Six months later:** a reminder comes a week ahead. If the date passes, the shop is paused. Pay ₹50 and **everything comes back exactly as before**, products included.
+### 4. Adding produce
+- [ ] **One photo, from the gallery.** Take it with the camera first: good light, plain background, the whole produce visible.
+- [ ] Crop, category (use **"Other"** rather than a wrong category), unit, price per unit, available quantity, minimum order, harvest date, organic / natural / chemical.
+- [ ] The price hint under the price box shows what others ask on the site and, when available, the mandi price. It is advice, not a rule.
+- [ ] A verified farmer's listing goes live at once. Price and quantity can be changed any time — keep them honest.
+- [ ] Delivery, pickup or both: set a pickup place and/or delivery pincodes on the profile.
+- [ ] Show the listing's QR code: print it and stick it on the crate; a buyer who scans it sees the farmer, village, harvest date and cultivation.
 
-### 5. Adding a product
-- [ ] **Photo:** only one photo, from the gallery. Show a good photo and a bad one: light, plain background, whole product visible, not blurry. Take it with the phone camera first, then choose it in the app.
-- [ ] Name, category. If the product isn't in the list, choose **"Other"**. Don't put it in the wrong category.
-- [ ] For food: ingredients and **veg/non-veg**. Anything else: material.
-- [ ] **Price, MRP, stock.** Made to order? Explain what that means.
-- [ ] The button says **"send for checking"**, not "publish". The product appears to buyers only **after admin checks it**. Show one approval live in the room.
-- [ ] If it's rejected, the reason is shown in the app and the slot is freed. Fix it and send it again.
-- [ ] ⚠️ **Rules:**
-  - [ ] **You can't delete a product that has been sent.** If you want it removed, ask the admin.
-  - [ ] **Name, photo, category and so on can be changed only 2 times.**
-  - [ ] **Price and stock can be changed any number of times.** Keep them up to date.
-  - [ ] A draft costs no slot and can be deleted.
-- [ ] Use the **mic** for the product description.
+### 5. Orders (do it live)
+- [ ] A new order appears in the updates list **while the site is open**; there is no pop-up notification. Open the site twice a day.
+- [ ] "Outside your area" means the pincode is not on the farmer's list — decide whether delivery is possible.
+- [ ] **Accept or reject**, with a reason from the list.
+- [ ] **UPI order:** after acceptance the buyer pays → **check your own UPI app** → only then press "Money received". A UTR typed by the buyer is not money. Until the money is confirmed, the "Packed" button does not appear.
+- [ ] **Cash on delivery:** collect the cash at delivery or pickup.
+- [ ] Delivery: Packed → Out for delivery → Delivered. Pickup: Ready for pickup → Delivered.
+- [ ] Delivery charge 0 shows buyers "ask the farmer". Call the buyer; the number is on the order.
+- [ ] A farmer can cancel between Accepted and Out for delivery. **Money already received must be returned by the farmer**; the site moves no money.
 
-### 6. Orders, the most important part (do it live)
-Trainers place orders from the buyer's side into the women's shops (or the demo shop):
-- [ ] **A new order arrives** → the bell / updates list. The app only knows **while it's open**; there is no pop-up notification. Tell them to **open the app twice a day**.
-- [ ] Look at the order: product, quantity, buyer's village. If it says **"outside your area"**, decide whether you can get there.
-- [ ] **Accept or Reject.** Rejecting needs a reason from the list.
-- [ ] **UPI order:** after you accept, the buyer pays → you **check your own PhonePe/GPay to see if the money arrived** → only then press "Money received".
-  - [ ] ⚠️ **A UTR typed by the buyer is not money.** Always check your own UPI app.
-  - [ ] Until you confirm the money, the "Packed" button doesn't appear. That is on purpose.
-- [ ] Packed → Out for delivery → Delivered
-- [ ] **Delivery charge:** the app doesn't ask for it, so the buyer sees "ask the farmer". **Call the buyer and tell them the charge.** The buyer's phone number is on the order.
-- [ ] **Cancelling:** the farmer can cancel between Accepted and Out for delivery. The button is at the bottom. **If money came in, you have to send it back yourself.** The app doesn't return money.
-- [ ] A buyer can cancel only before you accept. After that they'll call you.
+### 6. The buyer's side
+- [ ] Register with phone and password, then name.
+- [ ] Browse, search (the mic works here too), the farmer map, a farmer's page.
+- [ ] A cart holds one farmer's produce at a time.
+- [ ] Order → wait for acceptance → **then pay** (QR or UPI ID, then the 12-digit UTR), or cash.
+- [ ] **Rating is required after delivery** before another order can be placed. Say so in advance.
 
-### 7. The buyer's side (students/teachers)
-- [ ] Customer registration: phone, OTP, name
-- [ ] Browse by category, the product page, "More from this shop"
-- [ ] **A cart holds one shop's goods at a time.** Adding from another shop is refused; finish or empty the cart first.
-- [ ] Order → wait for the farmer to accept → **then pay** (QR/UPI ID, then the 12-digit UTR)
-- [ ] The order screen shows 4 stages: confirmed → shipped → out for delivery → delivered
-- [ ] **Rating is required after delivery.** Until they rate, the app won't let them do anything else or place a new order. Tell them in advance so it doesn't come as a surprise.
-- [ ] Only the buyer's first name is shown publicly.
-
-### 8. Reviews and the business screen
-- [ ] The farmer's rating is the average of her products' ratings
-- [ ] Where to see reviews, "My business", "My buyers"
-- [ ] Good packing, on-time delivery and honest photos lead to good ratings
-
-### 9. Safety and fraud (don't skip this)
-- [ ] Never tell the OTP to anyone
-- [ ] A fake "payment done" screenshot or SMS is not money. **Only trust your own UPI app.**
-- [ ] Don't tell anyone your UPI PIN, and there is no PIN for *receiving* money. "Enter your PIN to receive" is a scam.
-- [ ] Don't put your phone number in a product description
-- [ ] On a shared phone, **log out** after use
-
----
+### 7. Safety
+- [ ] Never tell anyone your password or UPI PIN. There is no PIN for *receiving* money.
+- [ ] A "payment done" screenshot or SMS is not money. Only your own UPI app is.
+- [ ] Do not put a phone number in a listing description.
+- [ ] On a shared phone, **log out** after use.
 
 ## E. Suiting the audience
 
-- [ ] **Speak Marathi.** Use the app's own words: ऑर्डर, भरणा, स्वीकारा. Avoid English terms (not "submit" or "dashboard").
-- [ ] **Show one step → they do it → check → next step.** Go at the pace of the slowest woman.
-- [ ] Point at the icons and colours: green tick = done, red = cancelled. Every status has a word written with it.
-- [ ] Don't take the phone away from her. **Her finger should do the pressing.**
-- [ ] Don't praise or criticise anyone's reading in front of the group.
-- [ ] Give an example of a local product and a real price ("mango pickle, 500g, ₹150").
-- [ ] Take photos only with consent, and don't photograph women who refuse.
-- [ ] Choose a time that works around household work. Keep a break and water.
-- [ ] Take questions again after every part: "Did anyone get stuck here?"
+- [ ] Speak Marathi and use the site's own words: ऑर्डर, भरणा, स्वीकारा.
+- [ ] One step → they do it → check → next. Go at the pace of the slowest person.
+- [ ] Every status has a colour, an icon and a word — point at all three.
+- [ ] Use a local example with a real price ("टोमॅटो, 1 kg, ₹30").
+- [ ] Photos only with consent. Choose a time that fits field work.
 
----
+## F. Closing and after
 
-## F. Closing (last 15 minutes)
+- [ ] Hand out the cards, the help number and the local coordinator's name.
+- [ ] List anyone who did not finish (network, limits) and follow up the next day.
+- [ ] Admin: verify every real registration the same day; cancel practice orders.
+- [ ] If limits were raised, put them back and deploy.
+- [ ] Note which screen or word caused trouble, so it can be fixed.
+- [ ] Call each farmer after a week and ask whether the first order has come.
 
-- [ ] Hand out the printed cards, the help number and the name of the local coordinator
-- [ ] Tell the next steps: pay ₹50 → add products → wait for approval
-- [ ] Keep a list of anyone who didn't finish registering (OTP limit, network) and **follow up the next day**
-- [ ] Two-minute verbal feedback: what was easy, what was hard
-
-## G. After the session
-
-- [ ] Admin: approve or reject all pending products and payments **the same day**. A long wait is discouraging.
-- [ ] Cancel practice orders and reject practice products
-- [ ] If you raised the limits, put them back and deploy
-- [ ] Write down what caused trouble (which screen, which word) so the app can be fixed
-- [ ] Call each woman after a week and ask whether her first order has come
-
----
-
-**Take along:** a list of what the app doesn't do yet, so you can answer
-honestly when asked. There are no notifications on the phone, no chat, no
-returns or refunds inside the app, and no direct camera photo (the photo must
-come from the gallery).
+**What the site does not do yet**, so it can be answered honestly: no phone
+notifications, no chat, no returns or refunds inside the site, no in-app
+camera (photos come from the gallery).
