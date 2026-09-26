@@ -14,6 +14,7 @@ import { ordersRouter } from './routes/orders.routes.js'
 import { complaintsRouter } from './routes/complaints.routes.js'
 import { reportsRouter } from './routes/reports.routes.js'
 import { adminRouter } from './routes/admin.routes.js'
+import { surveysRouter } from './routes/surveys.routes.js'
 import { flush, getDb, initStore, resetDb, save } from './db/store.js'
 import { uploadsRouter } from './routes/uploads.routes.js'
 import { customersRouter } from './routes/customers.routes.js'
@@ -109,6 +110,7 @@ app.use('/api/uploads', uploadsRouter)
 app.use('/api/insights', insightsRouter)
 
 // Admin has no frontend in this repo by design - the admin site is separate.
+app.use('/api/admin/surveys', surveysRouter)
 app.use('/api/admin', adminRouter)
 
 /**

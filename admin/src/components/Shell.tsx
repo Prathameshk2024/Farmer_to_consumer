@@ -9,6 +9,7 @@ import { Confirm } from './Confirm.js'
 import {
   IconBack, IconHome, IconImpact, IconOrders, IconProducts,
   IconComplaints, IconReviews, IconFarmers, IconToday, IconPasswords, IconDemand, IconMap,
+  IconSurveys, IconResearch,
 } from './icons.js'
 
 /**
@@ -67,7 +68,10 @@ export function Shell() {
     { to: '/complaints', icon: IconComplaints, label: t('nav.complaints') },
     { to: '/password-requests', icon: IconPasswords, label: t('pwr.title'), badge: s?.openPasswordRequests },
     { to: '/impact', icon: IconImpact, label: t('nav.impact') },
-    { to: '/demand', icon: IconDemand, IconMap, label: t('nav.demand') },
+    { to: '/demand', icon: IconDemand, label: t('nav.demand') },
+    { to: '/map', icon: IconMap, label: t('map.title') },
+    { to: '/surveys', icon: IconSurveys, label: t('nav.surveys') },
+    { to: '/research', icon: IconResearch, label: t('nav.research') },
   ]
 
   return (

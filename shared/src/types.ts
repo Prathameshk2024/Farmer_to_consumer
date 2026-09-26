@@ -234,6 +234,35 @@ export interface AdminNotice {
   note?: string
 }
 
+/**
+ * A paper questionnaire typed in by a coordinator, for a farmer who has no
+ * account. Every answer is optional: a skipped question stays absent so the
+ * research tables can count it as "not answered" rather than "no".
+ * `linkedFarmerId` marks the same person as a registered farmer, who is then
+ * counted once, from the farmer's own record.
+ */
+export interface Survey {
+  id: string
+  village: string
+  taluka?: string
+  phone?: string
+  ageGroup?: AgeGroup
+  education?: Education
+  landholding?: Landholding
+  farmerTypes: FarmerType[]
+  crops: string[]
+  sellingChannels: SellingChannel[]
+  problems: SellingProblem[]
+  fdri: Partial<FdriAnswers>
+  lat?: number
+  lng?: number
+  photoUrl?: string
+  linkedFarmerId?: string
+  /** The admin who typed it in, readable months later. */
+  enteredBy: string
+  at: string
+}
+
 export interface Farmer {
   id: string
   /** Farmer code, e.g. F2C-ANADUR-001. Printed on packaging and posters. */

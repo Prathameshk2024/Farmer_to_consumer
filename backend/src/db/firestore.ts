@@ -44,6 +44,8 @@ export const COLLECTIONS = [
   // Password hashes, kept off the farmer and customer rows; and the
   // forgot-password queue, which only the admin API reads.
   'credentials', 'passwordRequests',
+  // Coordinators' typed-in questionnaires, for the research tables.
+  'surveys',
 ] as const
 type CollectionName = (typeof COLLECTIONS)[number]
 

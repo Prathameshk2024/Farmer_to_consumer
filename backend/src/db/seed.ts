@@ -1,5 +1,5 @@
 import type {
-  Category, Complaint, Customer, Order, Product, Report, Review, Farmer,
+  Category, Complaint, Customer, Order, Product, Report, Review, Farmer, Survey,
 } from '@shared/types.js'
 import { FDRI_INDICATORS, cleanFdri, fdriBand, fdriScore } from '@shared/fdri.js'
 import { deriveCustomersFromOrders } from './customers.js'
@@ -32,6 +32,8 @@ export interface Db {
   credentials: Credential[]
   /** Forgot-password requests waiting for an admin's call. Never seeded. */
   passwordRequests: PasswordRequest[]
+  /** Questionnaires typed in by coordinators. Never seeded: invented answers would be invented research. */
+  surveys: Survey[]
 }
 
 /**
@@ -47,7 +49,7 @@ export function emptyDb(): Db {
   return {
     farmers: [], products: [], orders: [], customers: [], reviews: [],
     reports: [], complaints: [], sessions: [], admins: [], authEvents: [],
-    credentials: [], passwordRequests: [],
+    credentials: [], passwordRequests: [], surveys: [],
   }
 }
 
@@ -65,6 +67,7 @@ export function withDefaults(raw: Partial<Db>): Db {
     authEvents: raw.authEvents ?? [],
     credentials: raw.credentials ?? [],
     passwordRequests: raw.passwordRequests ?? [],
+    surveys: raw.surveys ?? [],
   }
 }
 
@@ -278,6 +281,8 @@ export function seed(): Db {
     sessions: [], admins: [], authEvents: [],
     // No passwords either: a demo farmer signs in after an admin reset.
     credentials: [], passwordRequests: [],
+    // No surveys: a questionnaire is a real person's answers.
+    surveys: [],
   }
 }
 

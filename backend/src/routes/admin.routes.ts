@@ -3,6 +3,8 @@ import type { AdminStats } from '@shared/types.js'
 import type { Unit } from '@shared/produce.js'
 import { canSellNow } from '@shared/farmer.js'
 import { isValidLatLng } from '@shared/geo.js'
+import { fdriBand, fdriScore } from '@shared/fdri.js'
+import { researchTables, respondents } from '@shared/research.js'
 import { summarizeReviews } from '@shared/review.js'
 import { getDb, save } from '../db/store.js'
 import { documentCount, startsWithinFreeReads } from '../db/firestore.js'
@@ -43,7 +45,7 @@ adminRouter.use(requireRole('admin'))
  * removed. Before per-person accounts existed this said the same thing for
  * everybody, whoever clicked it.
  */
-function verifierName(db: ReturnType<typeof getDb>, req: Request): string {
+export function verifierName(db: ReturnType<typeof getDb>, req: Request): string {
   const admin = db.admins.find((a) => a.id === req.auth?.userId)
   return admin ? `${admin.name} <${admin.email}>` : (req.auth?.userId ?? 'unknown')
 }
@@ -472,13 +474,32 @@ adminRouter.post('/reviews/:id/hide', (req, res) => {
 /**
  * The admin's map: exact points, whatever the consent. Consent governs what
  * buyers see; the programme placing a farm on its own field map is the reason
- * the point was collected. `surveys` fills in once survey entry exists.
+ * the point was collected. Surveys are placed wherever the coordinator
+ * recorded a point.
  */
 adminRouter.get('/map', (_req, res) => {
-  const farmers = getDb().farmers
+  const db = getDb()
+  const farmers = db.farmers
     .filter((f) => isValidLatLng(f.lat, f.lng))
     .map((f) => ({ id: f.id, name: f.name, village: f.village, lat: f.lat!, lng: f.lng!, fdriBand: f.fdriBand, crops: f.crops }))
-  res.json({ farmers, surveys: [] })
+  const surveys = db.surveys
+    .filter((s) => isValidLatLng(s.lat, s.lng))
+    .map((s) => ({ id: s.id, village: s.village, lat: s.lat!, lng: s.lng!, fdriBand: fdriBand(fdriScore(s.fdri)) }))
+  res.json({ farmers, surveys })
+})
+
+/**
+ * The paper's Tables 1-9 over registered farmers plus unlinked
+ * questionnaires. `n` is the two sources separately, so the screen can say
+ * where the respondents came from.
+ */
+adminRouter.get('/research', (_req, res) => {
+  const db = getDb()
+  const rows = respondents(db.farmers, db.surveys)
+  res.json({
+    tables: researchTables(rows),
+    n: { farmers: rows.filter((r) => r.source === 'farmer').length, surveys: rows.filter((r) => r.source === 'survey').length },
+  })
 })
 
 adminRouter.get('/farmers', (_req, res) => {

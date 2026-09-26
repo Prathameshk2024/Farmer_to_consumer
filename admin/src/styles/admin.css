@@ -668,3 +668,7 @@ textarea::placeholder {
 /* What the buyers said, under the listing they said it about. */
 .reportlist { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; }
 .reportlist li::marker { color: var(--danger); }
+/* Survey form: a question with several ticks, laid out as a wrapping row. */
+.optgroup { border: 0; margin: 0; padding: 0; min-width: 0; }
+.optgrid { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.optgrid label { min-height: 44px; }

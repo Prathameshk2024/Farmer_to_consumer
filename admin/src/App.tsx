@@ -16,6 +16,8 @@ import { Impact } from './screens/Impact.js'
 import { PasswordRequests } from './screens/PasswordRequests.js'
 import { Demand } from './screens/Demand.js'
 import { MapScreen } from './screens/MapScreen.js'
+import { Surveys } from './screens/Surveys.js'
+import { Research } from './screens/Research.js'
 
 /**
  * The admin console.
@@ -61,6 +63,8 @@ function Gate() {
         <Route path="/password-requests" element={<PasswordRequests />} />
         <Route path="/demand" element={<Demand />} />
         <Route path="/map" element={<MapScreen />} />
+        <Route path="/surveys" element={<Surveys />} />
+        <Route path="/research" element={<Research />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

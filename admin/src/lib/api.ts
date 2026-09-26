@@ -1,6 +1,7 @@
 import type {
-  AdminStats, Complaint, Order, Product, RatingSummary, Report, Review, Farmer,
+  AdminStats, Complaint, Order, Product, RatingSummary, Report, Review, Farmer, Survey,
 } from '@shared/types.js'
+import type { ResearchTable } from '@shared/research.js'
 import type { FdriBand } from '@shared/fdri.js'
 
 /**
@@ -148,6 +149,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 const get = <T,>(p: string) => request<T>(p)
 const post = <T,>(p: string, body?: unknown) =>
   request<T>(p, { method: 'POST', body: JSON.stringify(body ?? {}) })
+const del = <T,>(p: string) => request<T>(p, { method: 'DELETE' })
 
 /* ------------------------------------------------------------------ */
 /* Shapes the admin endpoints return                                   */
@@ -323,4 +325,12 @@ export const api = {
 
   closePasswordRequest: (id: string, reason?: string) =>
     post<{ request: PasswordRequestRow }>(`/admin/password-requests/${id}/close`, { reason }),
+
+  surveys: () => get<{ surveys: Survey[] }>('/admin/surveys'),
+  /** Any answer left out stays "not answered"; the server keeps only what was given. */
+  createSurvey: (body: Partial<Survey>) => post<{ survey: Survey }>('/admin/surveys', body),
+  deleteSurvey: (id: string) => del<{ ok: true }>(`/admin/surveys/${id}`),
+
+  /** Tables 1-9, and how many respondents came from each source. */
+  research: () => get<{ tables: ResearchTable[]; n: { farmers: number; surveys: number } }>('/admin/research'),
 }
