@@ -93,7 +93,7 @@ app.use(express.json({ limit: '2mb' }))
 app.use(attachAuth)
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'shanta-mahila-bazar-api', time: new Date().toISOString() })
+  res.json({ ok: true, service: 'f2c-api', time: new Date().toISOString() })
 })
 
 app.use('/api/auth', authRouter)
@@ -208,7 +208,7 @@ async function main() {
   startHousekeeping()
 
   app.listen(PORT, () => {
-    console.log(`\n  Shantai Mahila Bazar API   http://localhost:${PORT}/api/health`)
+    console.log(`\n  Farmers to Consumer API   http://localhost:${PORT}/api/health`)
     console.log(`  Admin API      http://localhost:${PORT}/api/admin/*  (backend only)`)
     console.log(describeConfig())
     const admins = describeAdminState(getDb())

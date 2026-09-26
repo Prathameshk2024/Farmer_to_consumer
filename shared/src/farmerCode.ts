@@ -25,9 +25,9 @@
  *
  * Every row here said तुळजापूर, which was true of the first village and then
  * copied down the list. Four of the six are not in Tuljapur at all, and the
- * taluka is not decoration: it is written onto her farmer record, printed
- * with her address, and is how a field coordinator works out whose round she
- * is on. A woman in Umarga filed under Tuljapur is a woman nobody visits.
+ * taluka is not decoration: it is written onto the farmer record, printed
+ * with the address, and is how a field coordinator works out whose round the
+ * farmer is on. A farmer in Umarga filed under Tuljapur is a farmer nobody visits.
  *
  * Checked against the 2011 census village lists and the Dharashiv district
  * village directory, September 2026. All six are in धाराशिव (Osmanabad).

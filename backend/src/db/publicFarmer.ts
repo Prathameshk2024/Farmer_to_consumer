@@ -10,7 +10,7 @@ import type { PublicFarmer, RatingSummary, Farmer } from '@shared/types.js'
  * is only as current as the last person who remembered to extend it.
  *
  * What is here, and why each is public:
- *  - who and where: name, photo, shop, SMB ID, village - what a buyer is
+ *  - who and where: name, photo, shop, farmer code, village - what a buyer is
  *    choosing between, and what the law wants beside a food listing.
  *  - delivery terms and pincodes - checkout needs them to price and warn.
  *  - UPI ID, QR image and whether it is set up - the thing a buyer pays to.

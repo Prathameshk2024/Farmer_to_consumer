@@ -237,7 +237,7 @@ export const EDUCATION_LEVELS: { value: string; mr: string; en: string }[] = [
  * WHAT SHE MAY CHANGE ABOUT HERSELF, AND WHAT IT HAS TO LOOK LIKE.
  *
  * The allow-list on `PATCH /farmers/me` decides WHICH fields can move - her
- * status and her SMB ID are not on it and never will be. This
+ * status and her farmer code are not on it and never will be. This
  * decides whether the values she sent make sense, and it runs on both sides
  * for the usual two reasons: the form can say "18 to 90" the instant she types
  * it, and the server can refuse a delivery fee of -500 typed by something that

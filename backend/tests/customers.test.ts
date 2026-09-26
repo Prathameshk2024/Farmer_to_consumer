@@ -137,7 +137,7 @@ test('operations on an unknown customer do not throw', () => {
 
 function orderFrom(over: Partial<Order> = {}): Order {
   return {
-    id: 'SMB0001',
+    id: 'F2C0001',
     farmerId: 's1',
     customerId: PRIYA,
     customerName: 'प्रिया देशमुख',
@@ -174,7 +174,7 @@ test('ordering twice to the same address does not duplicate it', () => {
   const db = emptyDb()
 
   recordOrderCustomer(db, orderFrom())
-  recordOrderCustomer(db, orderFrom({ id: 'SMB0002' }))
+  recordOrderCustomer(db, orderFrom({ id: 'F2C0002' }))
 
   assert.equal(findCustomer(db, PRIYA)!.addresses.length, 1)
 })
@@ -183,7 +183,7 @@ test('ordering to a new address appends it', () => {
   const db = emptyDb()
 
   recordOrderCustomer(db, orderFrom())
-  recordOrderCustomer(db, orderFrom({ id: 'SMB0002', address: 'नवीन पत्ता', pincode: '413603' }))
+  recordOrderCustomer(db, orderFrom({ id: 'F2C0002', address: 'नवीन पत्ता', pincode: '413603' }))
 
   assert.equal(findCustomer(db, PRIYA)!.addresses.length, 2)
 })

@@ -78,7 +78,7 @@ skimming.
 | to view | `पहा` | `पाहा` (in imperatives) |
 | slot | `जागा` | `स्लॉट`, `पॅक` (पॅक is ours, not hers) |
 | product | `उत्पादन` | `प्रॉडक्ट`, `माल` |
-| farmer | `विक्रेती` | `विक्रेता` (every farmer here is a woman) |
+| farmer | `शेतकरी` | `विक्रेती`, `विक्रेता`, `उद्योजिका` (farmers are men and women) |
 | cart | `टोपली` | `कार्ट` |
 | payment | `भरणा` | `पेमेंट` in admin-facing text |
 
@@ -111,9 +111,10 @@ exceptions that are **not** errors and must not be "corrected":
 1. **The landing-page calls to action** are colloquial: `मला विकायचं आहे`,
    `हे कसं चालतं?`. They are spoken lines, meant to sound like a neighbour
    saying them, and `मला विकायचे आहे` on a button reads like a form.
-2. **Her own voice on her own buttons** is first person feminine:
-   `नंतर करते`, `ऑर्डरनुसार बनवते`. The app speaks *as* her where she is
-   choosing, and *to* her everywhere else (`टाका`, `पहा`, `भरा`).
+2. **The reader's own voice on their own buttons** is first person plural,
+   which Marathi uses for any adult: `नंतर करू`, `ऑर्डरनुसार बनवून देऊ`. The
+   app speaks *as* the reader where they are choosing, and *to* them everywhere
+   else (`टाका`, `पहा`, `भरा`). Never a feminine or masculine singular form.
 
 Instructions are imperative and plural-polite (आदरार्थी): `टाका`, not
 `टाकावे` and not `टाक`.

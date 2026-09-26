@@ -16,7 +16,7 @@ type Tab = 'OPEN' | 'RESOLVED' | 'ALL'
  *
  * A queue, not an archive: open ones first, and the point of the screen is to
  * empty it. Each row carries her name, her number and - for a farmer - the
- * SMB id, so the answer to most of these is a phone call made from this page
+ * farmer code, so the answer to most of these is a phone call made from this page
  * rather than a hunt through the farmer list.
  *
  * Marking one done records WHO did it, for the same reason a verification does:

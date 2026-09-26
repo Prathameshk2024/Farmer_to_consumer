@@ -194,14 +194,14 @@ export interface FarmerDetail {
 export interface ImpactReport {
   generatedAt: string
   totals: {
-    women: number
-    activeWomen: number
-    womenWithEarnings: number
+    farmers: number
+    activeFarmers: number
+    farmersWithEarnings: number
     earned: number
     orders: number
     villages: number
   }
-  byVillage: { code: string; village: string; women: number; earned: number }[]
+  byVillage: { code: string; village: string; farmers: number; earned: number }[]
   readiness: { farmerCode: string; village: string; score: number; band: ReadinessBand }[]
 }
 

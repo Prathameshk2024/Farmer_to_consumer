@@ -110,6 +110,7 @@ export const IconStar: IconType = FiStar
 export const IconCall: IconType = FiPhone
 export const IconWhatsapp: IconType = FaWhatsapp
 export const IconMap: IconType = FiMapPin
+export const IconDelivery: IconType = FiTruck
 export const IconCash: IconType = MdCurrencyRupee
 export const IconUpi: IconType = FiSmartphone
 

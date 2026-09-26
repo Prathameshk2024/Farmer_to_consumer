@@ -85,7 +85,7 @@ export const BAND_LABEL: Record<ReadinessBand, { mr: string; en: string }> = {
   starter: { mr: 'प्रारंभिक', en: 'Starter' },
   basic: { mr: 'मूलभूत', en: 'Basic' },
   advanced: { mr: 'प्रगत', en: 'Advanced' },
-  digital: { mr: 'डिजिटल उद्योजिका', en: 'Digital entrepreneur' },
+  digital: { mr: 'डिजिटल शेतकरी', en: 'Digital farmer' },
 }
 
 /**

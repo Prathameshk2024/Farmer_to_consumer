@@ -40,6 +40,7 @@ export function SignIn() {
         <div className="signin__brand">
           <img className="signin__logo" src={logo} alt="" aria-hidden="true" />
           <div className="signin__name">{t('app.name')}</div>
+          <div className="signin__short">{t('app.nameShort')}</div>
           <div className="signin__sub">{t('in.sub')}</div>
         </div>
 

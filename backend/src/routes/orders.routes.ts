@@ -143,7 +143,7 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
     if (!farmer || !canSellNow(farmer) || !farmer.isOpen) {
       res.status(409).json({
         error: 'Farmer unavailable',
-        messageMr: 'ही विक्रेती सध्या ऑर्डर घेत नाही',
+        messageMr: 'हा शेतकरी सध्या ऑर्डर घेत नाही',
       })
       return
     }
@@ -194,7 +194,7 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
 
     const now = new Date().toISOString()
     const order: Order = {
-      id: newShortId('SMB', (id) => db.orders.some((o) => o.id === id)),
+      id: newShortId('F2C', (id) => db.orders.some((o) => o.id === id)),
       groupId,
       farmerId: farmer.id,
       customerId: auth.customerId!,

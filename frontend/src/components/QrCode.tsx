@@ -14,11 +14,11 @@ import QRCode from 'qrcode'
  * UPI address should not be sent to a third party to be turned into a picture.
  */
 /**
- * Maroon on white: enough contrast for any scanner, and it keeps the code
+ * Dark leaf green on white (7.9:1): enough contrast for any scanner, and it keeps the code
  * on-brand instead of dropping a black square into a warm page. Shared with
  * the saved copy, so the picture in her gallery is the one she saw on screen.
  */
-export const QR_COLOURS = { dark: '#7b1e2eff', light: '#ffffffff' }
+export const QR_COLOURS = { dark: '#1b5e20ff', light: '#ffffffff' }
 
 export default function QrCode({
   value,

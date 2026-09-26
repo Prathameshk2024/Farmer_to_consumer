@@ -74,11 +74,11 @@ export function Shell() {
         {/* The mark goes home, the way a masthead does everywhere else. It was
             the only thing on the page that looked clickable and was not. */}
         <Link className="side__brand" to="/" aria-label={t('nav.home')}>
-          {/* शांताबाई, the woman the market is named for. Decorative here -
-              her name is the line printed beside it. */}
+          {/* The mark is decorative; the name is printed beside it. */}
           <img className="side__logo" src={logo} alt="" aria-hidden="true" />
           <div className="min0">
             <div className="side__name">{t('app.name')}</div>
+            <div className="side__short">{t('app.nameShort')}</div>
             <div className="side__role">{t('app.admin')}</div>
           </div>
         </Link>

@@ -202,7 +202,7 @@ async function downloadAssets(assets: Asset[]): Promise<void> {
 /* ------------------------------------------------------------------ */
 
 async function main(): Promise<void> {
-  const folder = cloudinary?.folder ?? process.env.CLOUDINARY_FOLDER?.trim() ?? 'shanta-mahila-bazar'
+  const folder = cloudinary?.folder ?? process.env.CLOUDINARY_FOLDER?.trim() ?? 'f2c'
   const { targets, problems } = readTargets(process.env, folder)
   for (const p of problems) fail(p)
 

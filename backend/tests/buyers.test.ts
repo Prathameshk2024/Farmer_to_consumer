@@ -12,7 +12,7 @@ import { buyersForFarmer } from '../src/db/customers.js'
 
 function order(over: Partial<Order>): Order {
   return {
-    id: 'SMB0000',
+    id: 'F2C0000',
     farmerId: 's1',
     customerId: 'c-9011223344',
     customerName: 'प्रिया देशमुख',

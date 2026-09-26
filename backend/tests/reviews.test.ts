@@ -23,7 +23,7 @@ import {
 const DAY = 86_400_000
 const DELIVERED_AT = '2026-09-10T10:00:00.000Z'
 
-function order(status: OrderStatus = 'DELIVERED', id = 'SMB1234'): Order {
+function order(status: OrderStatus = 'DELIVERED', id = 'F2C1234'): Order {
   return {
     id,
     farmerId: 's1',
@@ -162,7 +162,7 @@ test('the average is rounded to one decimal place, and zero with nothing to aver
  */
 test('an old whole-order review becomes one review per product, once', () => {
   const legacy = {
-    id: 'rv1', orderId: 'SMB1234', farmerId: 's1', customerId: 'c-1', customerName: 'सविता',
+    id: 'rv1', orderId: 'F2C1234', farmerId: 's1', customerId: 'c-1', customerName: 'सविता',
     rating: 4, comment: 'छान', createdAt: '2026-09-11T00:00:00.000Z',
     items: [{ productId: 'p1', name: 'आंबा लोणचे' }, { productId: 'p2', name: 'पापड' }],
   } as unknown as Review

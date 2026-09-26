@@ -14,7 +14,7 @@ export function newId(prefix: string): string {
 }
 
 /**
- * A short id a woman can read down a phone line - SMB4821, not SMBm8k2x9q.
+ * A short id a woman can read down a phone line - F2C4821, not F2Cm8k2x9q.
  *
  * Four digits is 9,000 ids, and the birthday bound puts an even chance of a
  * repeat at about 112 of them, so the caller hands in a way to ask whether one

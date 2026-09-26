@@ -72,10 +72,11 @@ test('no space before punctuation, and no doubled spaces', () => {
   assert.deepEqual(bad, [])
 })
 
-test('every farmer is a woman, so she is विक्रेती', () => {
-  // Not merely inconsistent: this console exists to administer a market for
-  // women, and the word it uses for them is the word that reaches their app.
-  const bad = everything.filter((e) => /विक्रेता/.test(e.value)).map((e) => e.where)
+test('the farmer is शेतकरी, and no copy assumes a woman', () => {
+  // §4. The console names the farmers of an open programme, men and women.
+  const bad = everything
+    .filter((e) => /विक्रेत|उद्योजिका|महिला|शांताई/.test(e.value))
+    .map((e) => e.where)
   assert.deepEqual(bad, [])
 })
 

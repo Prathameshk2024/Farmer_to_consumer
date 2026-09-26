@@ -120,15 +120,15 @@ test('no space before punctuation, and no doubled spaces', () => {
   assert.deepEqual(bad, [])
 })
 
-test('every farmer is a woman, so she is विक्रेती', () => {
+test('the farmer is शेतकरी, and no copy assumes a woman', () => {
   /**
-   * §4 again, and the one place the wrong word is not merely inconsistent:
-   * this market exists for women, and "विक्रेता" tells a farmer reading her own
-   * app that it was written for somebody else.
+   * §4. The reference market was for women and called every farmer विक्रेती;
+   * this one is for any farmer, so the word is शेतकरी and the feminine
+   * nouns and the old brand are gone from everything that ships.
    */
-  const bad = Object.entries(mr)
-    .filter(([, v]) => /विक्रेता/.test(v))
-    .map(([k]) => k)
+  const bad = everything
+    .filter(({ value }) => /विक्रेत|उद्योजिका|महिला|शांताई/.test(value))
+    .map(({ where }) => where)
   assert.deepEqual(bad, [])
 })
 

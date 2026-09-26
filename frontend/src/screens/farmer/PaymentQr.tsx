@@ -54,7 +54,7 @@ export default function PaymentQr() {
         upiId: farmer.upiId,
         name: farmer.shopName,
         amount: 100,
-        note: 'Shantai Mahila Bazar',
+        note: 'Farmers to Consumer',
       })
     : ''
 

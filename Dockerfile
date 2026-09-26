@@ -1,11 +1,11 @@
 # ─────────────────────────────────────────────────────────────────────
-# Shantai Mahila Bazar — backend API
+# Farmers to Consumer — backend API
 #
 # Multi-stage build.  Context MUST be the REPOSITORY ROOT because
 # the backend TypeScript compilation includes ../shared/src/.
 #
-# Build:  docker build -t shantai-api .
-# Run:    docker run -p 4000:4000 --env-file backend/.env shantai-api
+# Build:  docker build -t f2c-api .
+# Run:    docker run -p 4000:4000 --env-file backend/.env f2c-api
 #         Never with a .env that holds the PRODUCTION Firebase key: that
 #         container is a second process writing the live database
 #         (docs/DEPLOY.md, "Exactly one instance").

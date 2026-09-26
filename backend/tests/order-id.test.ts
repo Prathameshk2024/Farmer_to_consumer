@@ -9,7 +9,7 @@ import { newShortId } from '../src/db/ids.js'
  * the day two orders share an id the second buyer opens the first buyer's
  * order and the wrong woman is credited with the payment.
  *
- * SMB ids are four digits - 9,000 of them - which is small enough that the
+ * farmer codes are four digits - 9,000 of them - which is small enough that the
  * birthday bound makes a repeat an even bet at about 112 orders. The draw is
  * therefore only ever a proposal; this file is the check that it is verified
  * against the register before it becomes an order.
@@ -26,10 +26,10 @@ test('an id already in the register is never handed out again', () => {
   // one of them may land on an order that already exists - the id that comes
   // back is either the single free short one or the long fallback, and never
   // somebody else's.
-  const all = Array.from({ length: 9000 }, (_, n) => `SMB${1000 + n}`)
-  const taken = register(all.filter((id) => id !== 'SMB9999'))
+  const all = Array.from({ length: 9000 }, (_, n) => `F2C${1000 + n}`)
+  const taken = register(all.filter((id) => id !== 'F2C9999'))
   for (let i = 0; i < 200; i += 1) {
-    const id = newShortId('SMB', taken)
+    const id = newShortId('F2C', taken)
     assert.ok(!taken(id), `${id} belongs to an order that already exists`)
   }
 })
@@ -38,11 +38,11 @@ test('a full space still yields an unused id rather than a clash', () => {
   // Past a few thousand live orders the short draws start missing entirely.
   // The fallback is longer and uglier on a receipt, and it is still hers
   // alone - refusing to mint an id would mean refusing a paid order.
-  const all = Array.from({ length: 9000 }, (_, n) => `SMB${1000 + n}`)
+  const all = Array.from({ length: 9000 }, (_, n) => `F2C${1000 + n}`)
   const taken = register(all)
-  const id = newShortId('SMB', taken)
+  const id = newShortId('F2C', taken)
   assert.ok(!taken(id), `${id} was already taken`)
-  assert.match(id, /^SMB/)
+  assert.match(id, /^F2C/)
 })
 
 test('ten thousand orders in a row never repeat an id', () => {
@@ -50,7 +50,7 @@ test('ten thousand orders in a row never repeat an id', () => {
   // check this fails inside the first few hundred.
   const issued = new Set<string>()
   for (let i = 0; i < 10_000; i += 1) {
-    const id = newShortId('SMB', (x) => issued.has(x))
+    const id = newShortId('F2C', (x) => issued.has(x))
     assert.ok(!issued.has(id), `${id} was issued twice, on order ${i + 1}`)
     issued.add(id)
   }
@@ -60,5 +60,5 @@ test('a register that claims everything fails loudly instead of hanging', () => 
   // This cannot happen with a real order list, and the loop that answers it
   // still has to be bounded: a checkout that never returns is worse than one
   // that errors.
-  assert.throws(() => newShortId('SMB', () => true), /Could not mint/)
+  assert.throws(() => newShortId('F2C', () => true), /Could not mint/)
 })

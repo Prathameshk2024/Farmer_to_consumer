@@ -179,7 +179,7 @@ catalogRouter.get('/farmers/:id/contact', requireRole('customer'), (req, res) =>
   const db = getDb()
   const farmer = db.farmers.find((s) => s.id === req.params.id)
   if (!farmer || !canSellNow(farmer) || !farmer.isOpen) {
-    res.status(404).json({ error: 'Farmer not found', messageMr: 'ही विक्रेती सापडली नाही' })
+    res.status(404).json({ error: 'Farmer not found', messageMr: 'हा शेतकरी सापडला नाही' })
     return
   }
   res.json({ phone: farmer.phone, whatsapp: farmer.whatsapp || farmer.phone })

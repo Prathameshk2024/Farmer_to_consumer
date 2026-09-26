@@ -5,7 +5,7 @@ import { isStuck, maskCustomer, maskedLabel, rupees, when } from '../src/lib/for
 
 function order(over: Partial<Order> = {}): Order {
   return {
-    id: 'SMB1043',
+    id: 'F2C1043',
     farmerId: 's1',
     customerId: 'c-9011223344',
     customerName: 'प्रिया देशमुख',

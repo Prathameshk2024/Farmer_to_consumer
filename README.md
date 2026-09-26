@@ -1,8 +1,8 @@
-# शांताई महिला बाजार · Shantai Mahila Bazar
+# शेतकऱ्यापासून थेट ग्राहकापर्यंत · Farmers to Consumer
 
-A digital marketplace for rural women entrepreneurs in Maharashtra. Sellers
-list what they make, customers order it, and an admin approves listings and
-subscription payments.
+A website that lets farmers in Maharashtra sell straight to buyers: farmers
+list their produce, buyers order it, and an admin verifies each farmer once.
+Marathi first, English as the toggle.
 
 ## Layout
 

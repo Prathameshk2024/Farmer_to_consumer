@@ -10,7 +10,7 @@ import {
 /**
  * The numbers a funder or a government department asks for.
  *
- * The API builds this so nobody assembles "N women, ₹X earned, Y villages" by
+ * The API builds this so nobody assembles "N farmers, ₹X earned, Y villages" by
  * hand every month. The screen's job is to make them copyable, not pretty -
  * so there is a button that puts the whole thing on the clipboard as text
  * that can be pasted straight into a report.
@@ -42,9 +42,9 @@ export function Impact() {
       <div className="body stack">
 
         <div className="tiles">
-          <Tile n={r.totals.women} label={t('im.women')} />
-          <Tile n={r.totals.activeWomen} label={t('im.activeWomen')} />
-          <Tile n={r.totals.womenWithEarnings} label={t('im.womenEarning')} />
+          <Tile n={r.totals.farmers} label={t('im.farmers')} />
+          <Tile n={r.totals.activeFarmers} label={t('im.activeFarmers')} />
+          <Tile n={r.totals.farmersWithEarnings} label={t('im.farmersEarning')} />
           <Tile n={rupees(r.totals.earned)} label={t('im.earned')} />
           <Tile n={r.totals.orders} label={t('im.orders')} />
           <Tile n={r.totals.villages} label={t('im.villages')} />
@@ -64,7 +64,7 @@ export function Impact() {
                 <thead>
                   <tr>
                     <th>{t('se.village')}</th>
-                    <th className="right">{t('im.women')}</th>
+                    <th className="right">{t('im.farmers')}</th>
                     <th className="right">{t('im.earned')}</th>
                     <th style={{ width: '38%' }} />
                   </tr>
@@ -74,7 +74,7 @@ export function Impact() {
                     <tr key={v.code}>
                       {/* Village names as stored - Marathi stays Marathi. */}
                       <td>{v.village}</td>
-                      <td className="right num">{v.women}</td>
+                      <td className="right num">{v.farmers}</td>
                       <td className="right num">{rupees(v.earned)}</td>
                       <td>
                         <div className="bar__track">
@@ -107,15 +107,15 @@ function Tile({ n, label }: { n: number | string; label: string }) {
 /** Plain text, in whichever language is on screen, ready to paste. */
 function asReportText(r: ImpactReport, t: (k: string) => string): string {
   const lines = [
-    `${t('im.women')}: ${r.totals.women}`,
-    `${t('im.activeWomen')}: ${r.totals.activeWomen}`,
-    `${t('im.womenEarning')}: ${r.totals.womenWithEarnings}`,
+    `${t('im.farmers')}: ${r.totals.farmers}`,
+    `${t('im.activeFarmers')}: ${r.totals.activeFarmers}`,
+    `${t('im.farmersEarning')}: ${r.totals.farmersWithEarnings}`,
     `${t('im.earned')}: ${rupees(r.totals.earned)}`,
     `${t('im.orders')}: ${r.totals.orders}`,
     `${t('im.villages')}: ${r.totals.villages}`,
     '',
     t('im.byVillage'),
-    ...r.byVillage.map((v) => `  ${v.village}: ${v.women} · ${rupees(v.earned)}`),
+    ...r.byVillage.map((v) => `  ${v.village}: ${v.farmers} · ${rupees(v.earned)}`),
     '',
     `${t('im.generatedAt')}: ${when(r.generatedAt)}`,
   ]

@@ -2,7 +2,7 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useState,
   type ReactNode,
 } from 'react'
-import { dictionaries, LANGS, type LangCode } from './strings.js'
+import { dictionaries, LANGS, translate, type LangCode } from './strings.js'
 
 /**
  * Deliberately a copy of the farmer app's provider rather than a shared one.
@@ -29,7 +29,8 @@ const STORAGE_KEY = 'wb.admin.lang'
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<LangCode>(() => {
     try {
-      return localStorage.getItem(STORAGE_KEY) === 'en' ? 'en' : 'mr'
+      const v = localStorage.getItem(STORAGE_KEY)
+      return v === 'en' ? 'en' : 'mr'
     } catch {
       return 'mr'
     }
@@ -51,7 +52,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   /** t('some.key', { n: 3 }) fills {n} in the string. */
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>) => {
-      const raw = dictionaries[lang][key] ?? dictionaries.en[key] ?? key
+      const raw = translate(dictionaries, lang, key)
       if (!vars) return raw
       return Object.keys(vars).reduce(
         (acc, k) => acc.replaceAll(`{${k}}`, String(vars[k])),

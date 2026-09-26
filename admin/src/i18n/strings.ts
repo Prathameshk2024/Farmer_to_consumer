@@ -21,7 +21,8 @@ export type LangCode = (typeof LANGS)[number]['code']
 
 const mr: Record<string, string> = {
   /* ---- chrome ---------------------------------------------------- */
-  'app.name': 'शांताई महिला बाजार',
+  'app.name': 'शेतकऱ्यापासून थेट ग्राहकापर्यंत',
+  'app.nameShort': 'Farmers to Consumer',
   'app.admin': 'प्रशासन',
   'app.signOut': 'बाहेर पडा',
   'app.signOutConfirmTitle': 'बाहेर पडायचे का?',
@@ -32,14 +33,14 @@ const mr: Record<string, string> = {
   'nav.today': 'आज',
   'nav.home': 'मुख्यपृष्ठ',
   'nav.products': 'उत्पादने',
-  'nav.farmers': 'विक्रेत्या',
+  'nav.farmers': 'शेतकरी',
   'nav.orders': 'ऑर्डर',
   'nav.complaints': 'तक्रारी',
   'cm.title': 'तक्रारी',
   'cm.tab.OPEN': 'नवीन', 'cm.tab.RESOLVED': 'निकाली', 'cm.tab.ALL': 'सर्व',
   'cm.empty': 'एकही तक्रार नाही',
-  'cm.emptySub': 'विक्रेती किंवा ग्राहकाने तक्रार नोंदवली की ती इथे दिसेल.',
-  'cm.fromFarmer': 'विक्रेती', 'cm.fromCustomer': 'ग्राहक',
+  'cm.emptySub': 'शेतकरी किंवा ग्राहकाने तक्रार नोंदवली की ती इथे दिसेल.',
+  'cm.fromFarmer': 'शेतकरी', 'cm.fromCustomer': 'ग्राहक',
   'cm.call': 'फोन करा', 'cm.openFarmer': 'खाते उघडा',
   'cm.resolve': 'निकाली काढा',
   'cm.resolved': 'तक्रार निकाली काढली',
@@ -49,7 +50,7 @@ const mr: Record<string, string> = {
 
   // Feedback. अभिप्राय is masculine: अभिप्राय लपवला, हा अभिप्राय.
   'rv.title': 'ग्राहकांचे अभिप्राय',
-  'rv.intro': 'ग्राहक मिळालेल्या प्रत्येक उत्पादनाला तारे देतात. ज्या विक्रेतीच्या उत्पादनांना कमी तारे मिळतात, तिला आधी फोन करून मदत करा. अपमानास्पद मजकूर किंवा फोन नंबर असलेला अभिप्राय इथून लपवता येतो; त्यातील शब्द बदलता येत नाहीत.',
+  'rv.intro': 'ग्राहक मिळालेल्या प्रत्येक उत्पादनाला तारे देतात. ज्या शेतकऱ्याच्या उत्पादनांना कमी तारे मिळतात, त्यांना आधी फोन करून मदत करा. अपमानास्पद मजकूर किंवा फोन नंबर असलेला अभिप्राय इथून लपवता येतो; त्यातील शब्द बदलता येत नाहीत.',
   'rv.product': 'उत्पादन',
   'rv.filterAll': 'सर्व अभिप्राय',
   'rv.filterLow': 'कमी तारे (1 किंवा 2)',
@@ -111,7 +112,7 @@ const mr: Record<string, string> = {
 
   /* ---- today ----------------------------------------------------- */
   'home.greeting': 'नमस्कार',
-  'home.sub': 'शांताई महिला बाजार प्रशासन',
+  'home.sub': 'कार्यक्रम प्रशासन',
   'home.goto': 'विभाग',
   'home.queueEmpty': 'सध्या मंजुरीसाठी काहीही नाही',
   'home.sectionProducts': 'विक्रीतील माल पहा आणि तक्रार आलेला माल काढा',
@@ -123,8 +124,8 @@ const mr: Record<string, string> = {
   'today.allClear': 'सर्व काम पूर्ण झाले',
   'today.allClearSub': 'सध्या मंजुरीसाठी काहीही प्रलंबित नाही.',
   'today.stuckOrders': 'अडकलेले ऑर्डर',
-  'today.activeFarmers': 'सक्रिय विक्रेत्या',
-  'today.totalFarmers': 'एकूण विक्रेत्या',
+  'today.activeFarmers': 'सक्रिय शेतकरी',
+  'today.totalFarmers': 'एकूण शेतकरी',
   'today.newThisWeek': 'या आठवड्यात नवीन',
   'today.ordersToday': 'आजचे ऑर्डर',
   'today.ordersWeek': 'या आठवड्यातील ऑर्डर',
@@ -138,14 +139,13 @@ const mr: Record<string, string> = {
   'ok.signedIn': 'साइन इन झाले',
   'ok.signedOut': 'साइन आउट झाले',
   'ok.productRejected': 'उत्पादन नाकारले',
-  'ok.farmerUpdated': 'विक्रेतीची माहिती अपडेट झाली',
+  'ok.farmerUpdated': 'शेतकऱ्याची माहिती अपडेट झाली',
   'today.growth': 'वाढ आणि वापर',
   'today.earningSpread': 'कमाईची विभागणी',
-  'today.earningSpreadSub': 'प्रत्येक टप्प्यात किती विक्रेत्या आहेत',
+  'today.earningSpreadSub': 'प्रत्येक टप्प्यात किती शेतकरी आहेत',
   'today.readinessSpread': 'डिजिटल तयारी',
   'today.readinessSpreadSub': 'नोंदणीनंतर स्कोअर कसा वाढला',
-  'today.farmersLabel': 'विक्रेत्या',
-
+  'today.farmersLabel': 'शेतकरी',
 
   /* ---- products -------------------------------------------------- */
   'pr.title': 'उत्पादने',
@@ -163,16 +163,16 @@ const mr: Record<string, string> = {
   'report.reason.scam': 'फसवणूक वाटते',
   'report.reason.other': 'इतर कारण',
   'pr.rejectReason': 'काढण्याचे कारण',
-  'pr.rejectReasonHint': 'तिला काय दुरुस्त करायचे ते सांगा.',
+  'pr.rejectReasonHint': 'शेतकऱ्याला काय दुरुस्त करायचे ते सांगा.',
   'pr.rejectDeletes': 'काढल्यावर हे उत्पादन लगेच काढून टाकले जाईल आणि कारण शेतकऱ्याला कळवले जाईल.',
   'pr.takeDown': 'काढून टाका',
   'pr.food': 'खाद्यपदार्थ',
   'pr.empty': 'तपासण्यासाठी उत्पादन नाही',
-  'pr.emptySub': 'विक्रेत्यांनी नवीन उत्पादन टाकल्यावर इथे दिसेल.',
-  'pr.by': 'विक्रेती',
+  'pr.emptySub': 'शेतकऱ्यांनी नवीन उत्पादन टाकल्यावर इथे दिसेल.',
+  'pr.by': 'शेतकरी',
 
   /* ---- farmers --------------------------------------------------- */
-  'se.title': 'विक्रेत्या',
+  'se.title': 'शेतकरी',
   'se.searchHint': 'नाव, गाव किंवा फोन',
   'se.status': 'स्थिती',
   'se.village': 'गाव',
@@ -181,20 +181,20 @@ const mr: Record<string, string> = {
   'se.upi': 'UPI',
   'se.block': 'बंद करा',
   'se.unblock': 'पुन्हा सुरू करा',
-  'se.blockConfirm': 'ही विक्रेती बंद करायची? तिची उत्पादने ग्राहकांना दिसणार नाहीत.',
+  'se.blockConfirm': 'या शेतकऱ्याचे खाते बंद करायचे? त्यांची उत्पादने ग्राहकांना दिसणार नाहीत.',
   'se.empty': 'अजून कोणी नोंदणी केलेली नाही',
-  'se.emptySub': 'पहिली विक्रेती नोंदणी केल्यावर इथे दिसेल.',
+  'se.emptySub': 'पहिल्या शेतकऱ्याची नोंदणी झाल्यावर इथे दिसेल.',
   'se.products': 'उत्पादने',
-  'se.blockTitle': 'ही विक्रेती बंद करायची?',
-  'se.blockDesc': 'तिची उत्पादने ग्राहकांना दिसणार नाहीत आणि नवीन ऑर्डर येणार नाहीत. तिला तिच्या ॲपमध्ये हे कारण दिसेल.',
-  'se.blockReason': 'कारण (तिला दिसेल)',
+  'se.blockTitle': 'या शेतकऱ्याचे खाते बंद करायचे?',
+  'se.blockDesc': 'त्यांची उत्पादने ग्राहकांना दिसणार नाहीत आणि नवीन ऑर्डर येणार नाहीत. त्यांना त्यांच्या ॲपमध्ये हे कारण दिसेल.',
+  'se.blockReason': 'कारण (शेतकऱ्याला दिसेल)',
   'se.blockConfirmBtn': 'हो, बंद करा',
-  'se.unblockTitle': 'पुन्हा सुरू करायची?',
-  'se.unblockDesc': 'तिची उत्पादने पुन्हा ग्राहकांना दिसू लागतील आणि ती ऑर्डर घेऊ शकेल.',
+  'se.unblockTitle': 'पुन्हा सुरू करायचे?',
+  'se.unblockDesc': 'त्यांची उत्पादने पुन्हा ग्राहकांना दिसू लागतील आणि ते ऑर्डर घेऊ शकतील.',
   'se.unblockConfirmBtn': 'हो, सुरू करा',
   'se.waitingVerification': 'तपासणीची वाट पाहणारे',
-  'sel.verify': 'शेतकरी तपासला',
-  'sel.verifyConsequence': 'याचा विक्रीसाठी टाकलेला माल लगेच ग्राहकांना दिसेल.',
+  'sel.verify': 'तपासणी पूर्ण करा',
+  'sel.verifyConsequence': 'या शेतकऱ्याचा विक्रीसाठी टाकलेला माल लगेच ग्राहकांना दिसेल.',
 
   /* ---- farmer statuses ------------------------------------------- */
   'c.yes': 'होय',
@@ -202,8 +202,8 @@ const mr: Record<string, string> = {
 
   /* ---- one farmer's page ----------------------------------------- */
   'sd.open': 'तपशील',
-  'sd.back': 'विक्रेत्यांच्या यादीकडे',
-  'sd.notFound': 'ही विक्रेती सापडली नाही',
+  'sd.back': 'शेतकऱ्यांच्या यादीकडे',
+  'sd.notFound': 'हा शेतकरी सापडला नाही',
   'sd.joined': 'नोंदणी',
   'sd.shopClosed': 'दुकान बंद',
   'sd.upiVerified': 'UPI तपासले',
@@ -234,7 +234,7 @@ const mr: Record<string, string> = {
   'sd.dispatch': 'पाठवण्याची वेळ',
   'sd.fssai': 'FSSAI क्रमांक',
   'sd.serves': 'कोणत्या पिनकोडला',
-  'sd.selfReported': 'नोंदणीच्या वेळी तिने सांगितलेले',
+  'sd.selfReported': 'नोंदणीच्या वेळी त्यांनी सांगितलेले',
   'sd.measured': 'ॲपने मोजलेले',
   'sd.mBranding': 'दुकानाची ओळख लिहिली आहे',
   'sd.mPackaging': 'उत्पादनाची पूर्ण माहिती दिली आहे',
@@ -242,14 +242,14 @@ const mr: Record<string, string> = {
   'sd.mFinance': 'डिजिटल पैसे स्वीकारले आहेत',
   'sd.decisions': 'प्रशासनाचे निर्णय',
   'sd.noDecisions': 'अजून कोणताही निर्णय घेतलेला नाही.',
-  'sd.listings': 'तिची उत्पादने',
+  'sd.listings': 'त्यांची उत्पादने',
   'sd.noListings': 'अजून एकही उत्पादन नाही',
-  'sd.orders': 'तिचे ऑर्डर',
-  'sd.reviews': 'तिच्या उत्पादनांना मिळालेले अभिप्राय',
+  'sd.orders': 'त्यांचे ऑर्डर',
+  'sd.reviews': 'त्यांच्या उत्पादनांना मिळालेले अभिप्राय',
   'sd.payment': 'पैसे',
 
   /* ---- what an admin did to her account -------------------------- */
-  'nt.VERIFIED': 'शेतकरी तपासला',
+  'nt.VERIFIED': 'तपासणी पूर्ण झाली',
   'nt.BLOCKED': 'खाते बंद केले',
   'nt.UNBLOCKED': 'खाते सुरू केले',
   'nt.PRODUCT_REJECTED': 'उत्पादन बंद केले',
@@ -266,14 +266,14 @@ const mr: Record<string, string> = {
   'or.stuck': 'अडकलेले',
   'or.customerHidden': 'ग्राहक',
   'or.customerHiddenNote': 'ग्राहकाचे नाव, फोन आणि पत्ता ऑर्डर उघडल्यावरच दिसतात.',
-  'or.farmer': 'विक्रेती',
+  'or.farmer': 'शेतकरी',
   'or.placed': 'ऑर्डर वेळ',
   'or.total': 'रक्कम',
   'or.pincode': 'पिनकोड',
   'or.filterStatus': 'स्थिती',
   'or.filterPincode': 'पिनकोड',
   'or.open': 'उघडा',
-  'or.readOnly': 'ऑर्डर पुढे नेणे विक्रेतीचे काम आहे. इथून फक्त पाहता येते.',
+  'or.readOnly': 'ऑर्डर पुढे नेणे शेतकऱ्याचे काम आहे. इथून फक्त पाहता येते.',
   'or.customer': 'ग्राहक',
   'or.address': 'पत्ता',
   'or.items': 'वस्तू',
@@ -292,7 +292,7 @@ const mr: Record<string, string> = {
   'sort.priceLow': 'कमी किंमत आधी',
   'sort.amountHigh': 'जास्त रक्कम आधी',
   'sort.amountLow': 'कमी रक्कम आधी',
-  'or.endedByFarmer': 'विक्रेतीने थांबवले',
+  'or.endedByFarmer': 'शेतकऱ्याने थांबवले',
   'or.endedByCustomer': 'ग्राहकाने रद्द केले',
   'cancel.customer.changed_mind': 'विचार बदलला',
   'cancel.customer.wrong_items': 'चुकीची वस्तू किंवा संख्या निवडली',
@@ -311,9 +311,9 @@ const mr: Record<string, string> = {
   /* ---- impact ---------------------------------------------------- */
   'im.title': 'परिणाम',
   'im.sub': 'देणगीदार आणि CSR अहवालासाठी आकडे.',
-  'im.women': 'नोंदणी झालेल्या महिला',
-  'im.activeWomen': 'सक्रिय महिला',
-  'im.womenEarning': 'कमाई झालेल्या महिला',
+  'im.farmers': 'नोंदणी झालेले शेतकरी',
+  'im.activeFarmers': 'सक्रिय शेतकरी',
+  'im.farmersEarning': 'कमाई झालेले शेतकरी',
   'im.earned': 'एकूण कमाई',
   'im.orders': 'पूर्ण झालेले ऑर्डर',
   'im.villages': 'गावे',
@@ -324,7 +324,7 @@ const mr: Record<string, string> = {
   'im.readiness': 'डिजिटल तयारी',
 
   /* ---- server errors, mirrored from the API ---------------------- */
-  'err.farmerNotFound': 'ही विक्रेती सापडली नाही',
+  'err.farmerNotFound': 'हा शेतकरी सापडला नाही',
   'err.productNotFound': 'हे उत्पादन सापडले नाही',
   'err.alreadySettled': 'यावर आधीच निर्णय झाला आहे',
   'err.notAllowed': 'तुम्हाला परवानगी नाही',
@@ -333,7 +333,8 @@ const mr: Record<string, string> = {
 
 const en: Record<string, string> = {
   /* ---- chrome ---------------------------------------------------- */
-  'app.name': 'Shantai Mahila Bazar',
+  'app.name': 'शेतकऱ्यापासून थेट ग्राहकापर्यंत',
+  'app.nameShort': 'Farmers to Consumer',
   'app.admin': 'Admin',
   'app.signOut': 'Sign out',
   'app.signOutConfirmTitle': 'Sign out?',
@@ -352,7 +353,7 @@ const en: Record<string, string> = {
   'cm.empty': 'No complaints',
   'cm.emptySub': 'When a farmer or a buyer writes in, it appears here.',
   'cm.fromFarmer': 'Farmer', 'cm.fromCustomer': 'Buyer',
-  'cm.call': 'Call', 'cm.openFarmer': 'Open her account',
+  'cm.call': 'Call', 'cm.openFarmer': 'Open their account',
   'cm.resolve': 'Mark done',
   'cm.resolved': 'Complaint marked done',
   'cm.resolvedBy': 'Done by {who}',
@@ -422,7 +423,7 @@ const en: Record<string, string> = {
 
   /* ---- today ----------------------------------------------------- */
   'home.greeting': 'Welcome',
-  'home.sub': 'Shantai Mahila Bazar administration',
+  'home.sub': 'Programme administration',
   'home.goto': 'Sections',
   'home.queueEmpty': 'Nothing is waiting for approval',
   'home.sectionProducts': 'See what is on sale and take down reported listings',
@@ -443,7 +444,7 @@ const en: Record<string, string> = {
   'today.dbDocuments': 'Records in the database',
   'today.dbStarts': 'Server starts a day the free read limit covers',
   'today.earnedTotal': 'Earned in total',
-  'today.firstEarning': 'Women who have earned',
+  'today.firstEarning': 'Farmers who have earned',
   'today.health': 'Overall',
   'home.sectionToday': "Today's numbers at a glance",
   'ok.signedIn': 'Signed in',
@@ -456,7 +457,6 @@ const en: Record<string, string> = {
   'today.readinessSpread': 'Digital readiness',
   'today.readinessSpreadSub': 'Where farmers are on the index',
   'today.farmersLabel': 'farmers',
-
 
   /* ---- products -------------------------------------------------- */
   'pr.title': 'Products',
@@ -474,7 +474,7 @@ const en: Record<string, string> = {
   'report.reason.scam': 'Looks like a fraud',
   'report.reason.other': 'Another reason',
   'pr.rejectReason': 'Reason for taking it down',
-  'pr.rejectReasonHint': 'Tell her what to fix.',
+  'pr.rejectReasonHint': 'Tell the farmer what to fix.',
   'pr.rejectDeletes': 'Taking it down removes this product straight away, and he is told the reason.',
   'pr.takeDown': 'Take down',
   'pr.food': 'Food',
@@ -492,20 +492,20 @@ const en: Record<string, string> = {
   'se.upi': 'UPI',
   'se.block': 'Block',
   'se.unblock': 'Unblock',
-  'se.blockConfirm': 'Block this farmer? Her products stop showing to customers.',
+  'se.blockConfirm': 'Block this farmer? Their products stop showing to buyers.',
   'se.empty': 'No farmers yet',
   'se.emptySub': 'The first registration will appear here.',
   'se.products': 'Products',
   'se.blockTitle': 'Block this farmer?',
-  'se.blockDesc': 'Her products stop showing to customers and no new orders arrive. She sees this reason in her own app.',
-  'se.blockReason': 'Reason (she reads this)',
+  'se.blockDesc': 'Their products stop showing to buyers and no new orders arrive. They see this reason in their own app.',
+  'se.blockReason': 'Reason (the farmer reads this)',
   'se.blockConfirmBtn': 'Yes, block',
-  'se.unblockTitle': 'Unblock her?',
-  'se.unblockDesc': 'Her products become visible to customers again and she can take orders.',
+  'se.unblockTitle': 'Unblock this farmer?',
+  'se.unblockDesc': 'Their products become visible to buyers again and they can take orders.',
   'se.unblockConfirmBtn': 'Yes, unblock',
   'se.waitingVerification': 'Waiting for verification',
   'sel.verify': 'Verify farmer',
-  'sel.verifyConsequence': 'His live listings will be visible to buyers at once.',
+  'sel.verifyConsequence': 'Their live listings will be visible to buyers at once.',
 
   /* ---- farmer statuses ------------------------------------------- */
   'c.yes': 'Yes',
@@ -545,18 +545,18 @@ const en: Record<string, string> = {
   'sd.dispatch': 'Dispatch',
   'sd.fssai': 'FSSAI number',
   'sd.serves': 'Delivers to',
-  'sd.selfReported': 'What she reported at registration',
+  'sd.selfReported': 'What they reported at registration',
   'sd.measured': 'What the platform measured',
-  'sd.mBranding': 'Has written about her shop',
+  'sd.mBranding': 'Has written about the shop',
   'sd.mPackaging': 'Has listed a product in full',
   'sd.mOnlineOrders': 'Has completed an online order',
   'sd.mFinance': 'Has been paid digitally',
   'sd.decisions': 'Admin decisions',
   'sd.noDecisions': 'No decisions have been made yet.',
-  'sd.listings': 'Her listings',
+  'sd.listings': 'Their listings',
   'sd.noListings': 'No listings yet',
-  'sd.orders': 'Her orders',
-  'sd.reviews': 'Reviews of her products',
+  'sd.orders': 'Their orders',
+  'sd.reviews': 'Reviews of their products',
   'sd.payment': 'Payment',
 
   /* ---- what an admin did to her account -------------------------- */
@@ -568,7 +568,7 @@ const en: Record<string, string> = {
   'st.PENDING_VERIFICATION': 'Waiting for verification',
   'st.ACTIVE': 'Active',
   'st.BLOCKED': 'Blocked',
-  'st.CLOSED': 'Account deleted by her',
+  'st.CLOSED': 'Account deleted by the farmer',
 
   /* ---- orders ---------------------------------------------------- */
   'or.title': 'Orders',
@@ -620,9 +620,9 @@ const en: Record<string, string> = {
   /* ---- impact ---------------------------------------------------- */
   'im.title': 'Impact',
   'im.sub': 'The figures a funder or CSR report asks for.',
-  'im.women': 'Women registered',
-  'im.activeWomen': 'Active women',
-  'im.womenEarning': 'Women who have earned',
+  'im.farmers': 'Farmers registered',
+  'im.activeFarmers': 'Active farmers',
+  'im.farmersEarning': 'Farmers who have earned',
   'im.earned': 'Total earned',
   'im.orders': 'Orders delivered',
   'im.villages': 'Villages',
@@ -641,3 +641,14 @@ const en: Record<string, string> = {
 }
 
 export const dictionaries: Record<LangCode, Record<string, string>> = { mr, en }
+
+/**
+ * One lookup: the chosen language, then Marathi - the source text - then the
+ * key itself. Never English as the fallback; the parity test keeps gaps from
+ * shipping, and this decides what a reader sees if one slips through.
+ */
+export function translate(
+  dicts: Record<LangCode, Record<string, string>>, lang: LangCode, key: string,
+): string {
+  return dicts[lang][key] ?? dicts.mr[key] ?? key
+}

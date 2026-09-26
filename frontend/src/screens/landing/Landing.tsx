@@ -3,48 +3,27 @@ import { useNavigate } from 'react-router-dom'
 import type { Role } from '@shared/types.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { homeFor, useAuth } from '../../store/AuthContext.js'
-import { ConfirmSheet } from '../../components/ui.js'
+import { Card, ConfirmSheet } from '../../components/ui.js'
 import {
-  IconBuy, IconBuyers, IconCheck, IconQr, IconSafe, IconSell, IconFarmer,
+  IconBuy, IconCash, IconCheck, IconDelivery, IconFarmer, IconQr, IconSell, IconSend,
 } from '../../components/icons.js'
 import { clearRegisterTicket, liveTicket } from '../../lib/registerTicket.js'
 import { clearDraft, sessionStore } from '../auth/farmerDraft.js'
+import { SUPPORT_PHONE } from '../farmer/Misc.js'
 import CollegeCard from './CollegeCard.js'
-import PhotoRotator from './PhotoRotator.js'
+import HeroArt from './HeroArt.js'
 import logo from '../../assets/logo.png'
-import heroPapad from '../../assets/landing/papad.jpg'
-import heroPickle from '../../assets/landing/pickle-jar.jpg'
-import heroSpices from '../../assets/landing/spices.jpg'
-import heroWeaving from '../../assets/landing/weaving-loom.jpg'
-import phonePhoto from '../../assets/landing/phone-photo.jpg'
-import phoneVoice from '../../assets/landing/phone-voice.jpg'
-import phoneTogether from '../../assets/landing/phone-together.jpg'
-import phoneOrder from '../../assets/landing/phone-order.jpg'
-import catMasala from '../../assets/categories/masala.jpg'
-import catPickles from '../../assets/categories/pickles.jpg'
-import catPapad from '../../assets/categories/papad.jpg'
-import catSweets from '../../assets/categories/sweets.jpg'
-import catHandicrafts from '../../assets/categories/handicrafts.jpg'
-import catTextiles from '../../assets/categories/textiles.jpg'
-import catAgarbatti from '../../assets/categories/agarbatti.jpg'
-import catHomemade from '../../assets/categories/homemade.jpg'
 
-/* The hero shows what she makes. The "built for her" section shows her using
-   the app, because that is what the copy beside it actually claims. */
-/* Same order as the lede names them: पापड, लोणची, मसाले, हस्तकला. */
-const HERO_PHOTOS = [heroPapad, heroPickle, heroSpices, heroWeaving]
-const PHONE_PHOTOS = [phonePhoto, phoneVoice, phoneTogether, phoneOrder]
+type Mode = 'join' | 'login'
 
 /**
- * The public landing page — the only full-width surface in the app.
+ * The public landing page, laid out like the project poster: who it is for,
+ * why it is needed, how it works, what it offers, what it should change, and
+ * the college behind it.
  *
- * Its single job is to send two very different people through two different
- * doors: a woman who wants to sell, and a shopper who wants to buy. Both doors
- * appear above the fold and again at the bottom, because on a phone a long
- * page loses the top.
- *
- * Everything else exists to make a first-time visitor trust it, so the copy
- * leads with the problem in her own words rather than with platform features.
+ * Its practical job is the four entry buttons in the first card - farmer and
+ * buyer, each with sign-up and log-in. The feature list describes the whole
+ * programme, so it names parts that are still being built.
  */
 export default function Landing() {
   const t = useT()
@@ -52,80 +31,60 @@ export default function Landing() {
   const nav = useNavigate()
   const { session, signOut } = useAuth()
 
-  /** Set when a door needs the "end this session first?" decision. */
-  const [switchTo, setSwitchTo] = useState<Role | null>(null)
+  /** Set when a button needs the "end this session first?" decision. */
+  const [switchTo, setSwitchTo] = useState<{ role: Role; mode: Mode } | null>(null)
 
   /**
-   * BOTH DOORS GO THROUGH LOGIN. What differs is how much of it is left:
+   * EVERY BUTTON GOES THROUGH THE PHONE SCREEN. What differs is how much is left:
    *
-   *  - no session          -> the phone + OTP screen for that role;
-   *  - a session, same role -> straight in. She has already logged in, and
-   *    asking again would be the app forgetting her, which is what a back
-   *    press out of /farmer used to look like;
-   *  - a session, the OTHER role -> one account can only be in one section at
-   *    a time, so this genuinely needs the current session closed. That is a
-   *    consequence worth spelling out rather than doing silently, so it is a
-   *    confirmation with the consequence in the body and "लॉग आउट करा" on the
-   *    button - never a bare "are you sure?".
+   *  - no session          -> /join/<role> or /login/<role>;
+   *  - a session, same role -> straight in, rather than the app forgetting them;
+   *  - a session, the OTHER role -> one account is in one section at a time,
+   *    so this needs the current session closed, and says so first.
    */
-  function go(role: Role) {
+  function go(role: Role, mode: Mode) {
     if (session) {
       if (session.role === role) nav(homeFor(role))
-      else setSwitchTo(role)
+      else setSwitchTo({ role, mode })
       return
     }
-
-    /**
-     * HALF REGISTERED IS ALSO "IN THE SELLING SECTION", even though there is
-     * no session yet - she is holding a verified ticket and six screens of
-     * answers. Walking her silently into customer login would abandon both,
-     * and she would find out only when she came back to finish and was asked
-     * for a fresh OTP. So the buy door asks first, exactly like the
-     * session case, and only then ends the registration she had going.
-     */
+    // A half-finished farmer registration holds a verified ticket and several
+    // screens of answers; a buyer button would silently abandon both.
     if (role === 'customer' && liveTicket()) {
-      setSwitchTo('customer')
+      setSwitchTo({ role, mode })
       return
     }
-
-    nav(`/login/${role}`)
+    nav(`/${mode}/${role}`)
   }
 
   /** The confirmation is about a pending registration, not a live session. */
   const abandoning = switchTo !== null && !session
 
-  const goSell = () => go('farmer')
-  const goBuy = () => go('customer')
+  const workflow = [
+    [IconFarmer, t('lp.wf1')],
+    [IconSend, t('lp.wf2')],
+    [IconCash, t('lp.wf3')],
+    [IconBuy, t('lp.wf4')],
+    [IconQr, t('lp.wf5')],
+    [IconDelivery, t('lp.wf6')],
+  ] as const
 
   return (
     <div className="landing">
-      {/* ---------------------------------------------------------- */}
-      {/* 1. Header                                                    */}
-      {/* ---------------------------------------------------------- */}
       <header className="lnav">
         <div className="wrap lnav__in">
           <div className="brand">
-            {/* शांताबाई herself. The app is named after her, so the mark is
-                her portrait rather than the first letter of her name. */}
             <img className="brand__mark" src={logo} alt="" aria-hidden="true" />
-            <span>
-              <span className="brand__name">
-                शांताई <em>महिला बाजार</em>
-              </span>
-              <span className="brand__sub">Shantai Mahila Bazar</span>
+            <span style={{ minWidth: 0 }}>
+              <span className="brand__name">{t('app.name')}</span>
+              <span className="brand__sub">{t('app.nameShort')}</span>
             </span>
           </div>
-
           <div className="grow" />
-
           {/* Language sits in the header, never buried in settings. */}
           <div className="langswitch">
             {langs.map((l) => (
-              <button
-                key={l.code}
-                onClick={() => setLang(l.code)}
-                aria-pressed={lang === l.code}
-              >
+              <button key={l.code} onClick={() => setLang(l.code)} aria-pressed={lang === l.code}>
                 {l.label}
               </button>
             ))}
@@ -133,257 +92,130 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* ---------------------------------------------------------- */}
-      {/* 2. Hero                                                      */}
-      {/* ---------------------------------------------------------- */}
-      <section className="hero">
-        <div className="wrap hero__in">
-          <div>
-            <span className="hero__eyebrow">
-              <span aria-hidden="true">●</span> {t('lp.eyebrow')}
-            </span>
+      <main className="wrap lstack">
+        {/* 1. Hero: who we are, and the four ways in */}
+        <Card className="lhero">
+          <img className="lhero__logo" src={logo} alt="" aria-hidden="true" />
+          <h1 className="lhero__name">{t('app.name')}</h1>
+          <p className="lhero__short">{t('app.nameShort')}</p>
+          <p className="lhero__tag">{t('app.tagline')}</p>
+          <HeroArt />
+          <p className="lhero__mission">{t('lp.mission')}</p>
 
-            <h1>
-              {t('lp.heroA')}
-              <br />
-              <em>{t('lp.heroB')}</em>
-            </h1>
-
-            <p className="hero__lede">{t('lp.heroLede')}</p>
-
-            <div className="doors">
-              <button className="door door--primary" onClick={goSell}>
-                <span className="door__icon" aria-hidden="true"><IconSell /></span>
-                <span className="grow">
-                  <span className="door__t">{t('lp.ctaSell')}</span>
-                  {/* In Marathi the door and its sub-line are now the same
-                      sentence, so the second copy is dropped rather than
-                      printed twice. English still has two distinct lines. */}
-                  {t('lp.farmerDoorSub') !== t('lp.ctaSell') && (
-                    <span className="door__s">{t('lp.farmerDoorSub')}</span>
-                  )}
-                </span>
-              </button>
-
-              <button className="door" onClick={goBuy}>
-                <span className="door__icon" aria-hidden="true"><IconBuy /></span>
-                <span className="grow">
-                  <span className="door__t">{t('lp.ctaBuy')}</span>
-                  <span className="door__s">{t('lp.customerDoorSub')}</span>
-                </span>
-              </button>
-            </div>
+          <h2 className="lhero__who"><IconFarmer aria-hidden="true" /> {t('lp.farmers')}</h2>
+          <div className="doors doors--pair">
+            <button className="door door--primary" onClick={() => go('farmer', 'join')}>
+              <span className="door__icon" aria-hidden="true"><IconSell /></span>
+              <span className="door__t">{t('lp.register')}</span>
+            </button>
+            <button className="door door--primary" onClick={() => go('farmer', 'login')}>
+              <span className="door__icon" aria-hidden="true"><IconFarmer /></span>
+              <span className="door__t">{t('lp.login')}</span>
+            </button>
           </div>
 
-          <figure className="hero__art">
-            <PhotoRotator photos={HERO_PHOTOS} />
-            <figcaption>
-              <strong>{t('lp.artName')}</strong>
-              {t('lp.artCaption')}
-            </figcaption>
-          </figure>
-        </div>
-      </section>
-
-      {/* ---------------------------------------------------------- */}
-      {/* 3. How it works — two lanes, four steps each                 */}
-      {/* ---------------------------------------------------------- */}
-      <section className="lsection lsection--tint">
-        <div className="wrap">
-          <div className="lsection__head">
-            <h2>{t('lp.howTitle')}</h2>
-            <p>{t('lp.howLede')}</p>
+          <h2 className="lhero__who"><IconBuy aria-hidden="true" /> {t('lp.buyers')}</h2>
+          <div className="doors doors--pair">
+            <button className="door" onClick={() => go('customer', 'join')}>
+              <span className="door__icon" aria-hidden="true"><IconBuy /></span>
+              <span className="door__t">{t('lp.register')}</span>
+            </button>
+            <button className="door" onClick={() => go('customer', 'login')}>
+              <span className="door__icon" aria-hidden="true"><IconFarmer /></span>
+              <span className="door__t">{t('lp.login')}</span>
+            </button>
           </div>
+        </Card>
 
-          <div className="lanes">
-            <div className="lane">
-              <h3 className="lane__t">
-                <IconFarmer aria-hidden="true" /> {t('lp.forFarmers')}
-              </h3>
-              <ol className="steps">
-                {[t('lp.s1'), t('lp.s2'), t('lp.s3'), t('lp.s4')].map((step, i) => (
-                  <li key={step}>
-                    <b>{i + 1}</b>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            <div className="lane lane--buy">
-              <h3 className="lane__t">
-                <IconBuy aria-hidden="true" /> {t('lp.forCustomers')}
-              </h3>
-              <ol className="steps">
-                {[t('lp.c1'), t('lp.c2'), t('lp.c3'), t('lp.c4')].map((step, i) => (
-                  <li key={step}>
-                    <b>{i + 1}</b>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------------------------------------------------- */}
-      {/* 4. Why                                                       */}
-      {/* ---------------------------------------------------------- */}
-      <section className="lsection">
-        <div className="wrap">
-          <div className="lsection__head">
-            <h2>{t('lp.whyTitle')}</h2>
-          </div>
-
-          <div className="whys">
-            {([
-              [IconBuyers, t('lp.w1'), t('lp.w1b')],
-              [IconQr, t('lp.w2'), t('lp.w2b')],
-              [IconFarmer, t('lp.w3'), t('lp.w3b')],
-              [IconSafe, t('lp.w4'), t('lp.w4b')],
-            ] as const).map(([Icon, title, body]) => (
-              <article className="why" key={title}>
-                <div className="why__icon" aria-hidden="true"><Icon /></div>
-                <h3>{title}</h3>
-                <p>{body}</p>
-              </article>
+        {/* 2. Why the project is needed */}
+        <Card>
+          <div className="sec-head"><h2 className="sec-head__t">{t('lp.needTitle')}</h2></div>
+          <ul className="llist">
+            {['lp.need1', 'lp.need2', 'lp.need3', 'lp.need4', 'lp.need5'].map((k) => (
+              <li key={k}>{t(k)}</li>
             ))}
-          </div>
-        </div>
-      </section>
+          </ul>
+        </Card>
 
-      {/* ---------------------------------------------------------- */}
-      {/* 5. Categories — tapping one goes straight to shopping        */}
-      {/* ---------------------------------------------------------- */}
-      <section className="lsection lsection--tint">
-        <div className="wrap">
-          <div className="lsection__head">
-            <h2>{t('lp.catTitle')}</h2>
-            <p>{t('lp.catLede')}</p>
-          </div>
-
-          <div className="cats">
-            {[
-              [catMasala, 'मसाले', 'Masala'],
-              [catPickles, 'लोणची', 'Pickles'],
-              [catPapad, 'पापड', 'Papad'],
-              [catSweets, 'मिठाई', 'Sweets'],
-              [catHandicrafts, 'हस्तकला', 'Handicrafts'],
-              [catTextiles, 'कापड', 'Textiles'],
-              [catAgarbatti, 'अगरबत्ती', 'Agarbatti'],
-              [catHomemade, 'घरगुती पदार्थ', 'Homemade'],
-            ].map(([photo, mr, en]) => (
-              <button className="cat" key={en} onClick={goBuy}>
-                {/* The photo is decorative: the label under it names the
-                    category, so alt text would only repeat what is read next. */}
-                <img className="cat__i" src={photo} alt="" aria-hidden="true" />
-                <div className="cat__t">{lang === 'mr' ? mr : en}</div>
-              </button>
+        {/* 3. Workflow. The poster's "AI analysis" step is a price hint here:
+            this build has no AI (spec 5.8). */}
+        <Card>
+          <div className="sec-head"><h2 className="sec-head__t">{t('lp.workflowTitle')}</h2></div>
+          <ol className="lflow">
+            {workflow.map(([Icon, label], i) => (
+              <li key={label}>
+                <span className="lflow__i" aria-hidden="true"><Icon /></span>
+                <span><b className="num">{i + 1}.</b> {label}</span>
+              </li>
             ))}
-          </div>
-        </div>
-      </section>
+          </ol>
+        </Card>
 
-      {/* ---------------------------------------------------------- */}
-      {/* 6. Built for her                                             */}
-      {/* ---------------------------------------------------------- */}
-      <section className="lsection">
-        <div className="wrap women">
-          <figure className="hero__art" style={{ margin: 0 }}>
-            <PhotoRotator photos={PHONE_PHOTOS} />
-          </figure>
+        {/* 4. Features - the whole programme, including parts still being built */}
+        <Card>
+          <div className="sec-head"><h2 className="sec-head__t">{t('lp.featuresTitle')}</h2></div>
+          <ul className="llist llist--tick">
+            {['lp.feat1', 'lp.feat2', 'lp.feat3', 'lp.feat4', 'lp.feat5', 'lp.feat6', 'lp.feat7'].map((k) => (
+              <li key={k}><IconCheck aria-hidden="true" /> {t(k)}</li>
+            ))}
+          </ul>
+        </Card>
 
-          <div className="women__copy">
-            <h2>{t('lp.womenTitle')}</h2>
-            <p className="muted">{t('lp.womenLede')}</p>
-            <ul className="women__list">
-              {[t('lp.wl1'), t('lp.wl2'), t('lp.wl3'), t('lp.wl4')].map((line) => (
-                <li key={line}>
-                  <span aria-hidden="true"><IconCheck /></span>
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
+        {/* 5. Expected outcomes */}
+        <Card>
+          <div className="sec-head"><h2 className="sec-head__t">{t('lp.benefitsTitle')}</h2></div>
+          <ul className="llist llist--tick">
+            {['lp.ben1', 'lp.ben2', 'lp.ben3', 'lp.ben4', 'lp.ben5'].map((k) => (
+              <li key={k}><IconCheck aria-hidden="true" /> {t(k)}</li>
+            ))}
+          </ul>
+        </Card>
 
-      {/* ---------------------------------------------------------- */}
-      {/* 7. The college behind the project                            */}
-      {/* ---------------------------------------------------------- */}
-      <section className="lsection lsection--tint">
-        <div className="wrap">
-          <div className="lsection__head">
-            <h2>{t('lp.collegeTitle')}</h2>
-            <p>{t('lp.collegeLede')}</p>
-          </div>
+        {/* 6. The college behind the project */}
+        <Card>
+          <div className="sec-head"><h2 className="sec-head__t">{t('lp.collegeTitle')}</h2></div>
           <CollegeCard />
-        </div>
-      </section>
+        </Card>
+      </main>
 
-      {/* ---------------------------------------------------------- */}
-      {/* 8. Final call — the doors again                              */}
-      {/* ---------------------------------------------------------- */}
-      <section className="lsection">
-        <div className="wrap">
-          <div className="cta">
-            <h2>{t('lp.finalTitle')}</h2>
-            <p>{t('lp.finalLede')}</p>
-            <div className="cta__btns">
-              <button className="btn" onClick={goSell}>
-                <IconSell aria-hidden="true" /> {t('lp.finalSell')}
-              </button>
-              <button className="btn btn--ghost" onClick={goBuy}>
-                <IconBuy aria-hidden="true" /> {t('lp.finalBuy')}
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------------------------------------------------- */}
-      {/* 9. Footer                                                    */}
-      {/* ---------------------------------------------------------- */}
+      {/* 7. Footer */}
       <footer className="lfoot">
         <div className="wrap lfoot__in">
-          <div>
-            <strong style={{ color: 'var(--maroon)' }}>शांताई महिला बाजार</strong>
-            {' — '}
-            {t('lp.footer')}
+          <strong className="lfoot__quote">{t('lp.footerQuote')}</strong>
+          <a href={`tel:+91${SUPPORT_PHONE}`}>{t('lp.helpPhone', { phone: SUPPORT_PHONE })}</a>
+          <div className="row" style={{ gap: 'var(--s4)' }}>
+            {/* ponytail: no map screen yet, so the map link opens the shop,
+                where farmers are listed. Point it at /map when that exists. */}
+            <button className="linkbtn" onClick={() => go('customer', 'login')}>{t('lp.mapLink')}</button>
+            <a className="linkbtn" href={`tel:+91${SUPPORT_PHONE}`}>{t('common.help')}</a>
           </div>
-          <div>Shantai Mahila Bazar</div>
         </div>
       </footer>
 
-      {/* One account, one section at a time. Switching means ending the
-          session she is holding, so the body says so and the button says what
-          it does - never a bare "are you sure?". */}
       <ConfirmSheet
         open={switchTo !== null}
         title={abandoning ? t('lp.abandonTitle') : t('lp.switchTitle')}
         body={
           abandoning
             ? t('lp.abandonBody')
-            : switchTo === 'customer' ? t('lp.switchBuyBody') : t('lp.switchBody')
+            : switchTo?.role === 'customer' ? t('lp.switchBuyBody') : t('lp.switchBody')
         }
         confirmLabel={abandoning ? t('lp.abandonConfirm') : t('lp.switchConfirm')}
         tone="danger"
         onCancel={() => setSwitchTo(null)}
         onConfirm={() => {
-          const role = switchTo
+          const target = switchTo
           setSwitchTo(null)
           if (abandoning) {
-            // Her ticket AND her answers, together. Leaving the draft behind
-            // would put her name and village on the handset with nothing left
-            // that could ever submit them.
+            // The ticket AND the answers, together; a draft left behind would
+            // keep a name and village on the handset that nothing can submit.
             const pending = liveTicket()
             if (pending) clearDraft(sessionStore(), pending.phone)
             clearRegisterTicket()
           } else {
             signOut()
           }
-          if (role) nav(`/login/${role}`)
+          if (target) nav(`/${target.mode}/${target.role}`)
         }}
       />
     </div>

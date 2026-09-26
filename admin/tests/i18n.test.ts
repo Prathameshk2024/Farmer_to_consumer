@@ -2,13 +2,13 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { dictionaries, LANGS } from '../src/i18n/strings.js'
+import { dictionaries, LANGS, translate } from '../src/i18n/strings.js'
 
 /**
  * The console is bilingual, which is only true if BOTH dictionaries are
- * complete. A missing Marathi string does not crash - `t()` falls back to
- * English - so without this test the failure is invisible until a Marathi
- * speaker opens the screen and finds one English word sitting in the middle
+ * complete. A missing English string does not crash - `t()` falls back to
+ * Marathi - so without this test the failure is invisible until an English
+ * reader opens the screen and finds one Marathi phrase sitting in the middle
  * of it. That is exactly the bug that survives to production.
  */
 
@@ -93,10 +93,35 @@ test('every t() key a screen asks for exists in the dictionary', () => {
   const missing = new Set<string>()
   for (const file of sources(SRC)) {
     const src = readFileSync(file, 'utf8')
-    for (const m of src.matchAll(/t\(\s*'([a-zA-Z0-9_.]+)'/g)) {
+    for (const m of src.matchAll(/bt\(\s*'([a-zA-Z0-9_.]+)'/g)) {
       const key = m[1]!
       if (!(key in dictionaries.mr)) missing.add(`${key}  (${file.replace(SRC, 'src')})`)
     }
   }
   assert.deepEqual([...missing], [], 'these keys would render as their own name')
+})
+
+/* ------------------------------------------------------------------ */
+/* Marathi first                                                       */
+/* ------------------------------------------------------------------ */
+
+test('मराठी is the first language offered', () => {
+  // The picker order is the product's priority: Marathi first, English second.
+  assert.deepEqual(LANGS.map((l) => l.code), ['mr', 'en'])
+})
+
+test('a key missing from one language falls back to Marathi, not English', () => {
+  // Marathi is the source text. The parity test stops such a gap shipping;
+  // this pins what the reader sees if one ever slips through anyway.
+  const dicts = { mr: { only: 'फक्त मराठी' }, en: {} }
+  assert.equal(translate(dicts, 'en', 'only'), 'फक्त मराठी')
+  assert.equal(translate(dicts, 'en', 'nowhere'), 'nowhere')
+})
+
+test('no English copy assumes the reader is a woman', () => {
+  // Farmers are men and women; the old copy was written for women only.
+  const bad = Object.entries(dictionaries.en)
+    .filter(([, v]) => /\b(she|her|hers|herself|women|woman|Shantai|Mahila)\b/i.test(v))
+    .map(([k]) => k)
+  assert.deepEqual(bad, [])
 })

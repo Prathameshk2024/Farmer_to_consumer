@@ -12,7 +12,7 @@ import {
 } from '../components/ui.js'
 
 /**
- * The register of women on the programme.
+ * The register of farmers on the programme.
  *
  * A line each, and no more: it is read by scanning, so the row answers "who is
  * this and is anything wrong" and leaves everything else to her own page.

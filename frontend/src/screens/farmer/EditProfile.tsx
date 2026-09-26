@@ -26,7 +26,7 @@ import { IconBack } from '../../components/icons.js'
  *
  *  - her PHONE, because it is her account. Changing it is changing who you
  *    are signed in as, and that needs an OTP on the new number, not a text box;
- *  - her VILLAGE and her SMB ID, because the ID is printed on her packaging
+ *  - her VILLAGE and her farmer code, because the ID is printed on her packaging
  *    and her poster. Re-issuing it silently would leave the number on a jar in
  *    somebody's kitchen pointing at nothing;
  *  - her STATUS, which is the admin's to set. A form that could set it would

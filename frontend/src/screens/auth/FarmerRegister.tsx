@@ -29,7 +29,7 @@ import {
  * FARMER REGISTRATION WIZARD
  * ==========================
  * Six steps, one topic per screen, with progress dots so she can see the end
- * coming. Everything she is asked here comes from the Shantai Mahila Bazar survey design:
+ * coming. Everything she is asked here comes from the programme's survey design:
  * personal details, village (which becomes her ID), business, digital usage,
  * and where her money arrives.
  *
@@ -84,7 +84,7 @@ export default function FarmerRegister() {
    * The server refuses it - her number is taken - but she should never see six
    * screens of form before being told. Read once, at mount: the last thing
    * this wizard does is sign her in, and re-reading it after that would pull
-   * the screen showing her new SMB ID out from under her.
+   * the screen showing her new farmer code out from under her.
    */
   const alreadyRegistered = useState(
     () => session?.role === 'farmer' && !liveTicket(),
@@ -342,7 +342,7 @@ export default function FarmerRegister() {
           </>
         )}
 
-        {/* ---------- 2. village -> her Shantai Mahila Bazar ID --------------- */}
+        {/* ---------- 2. village -> the farmer code --------------- */}
         {step === 1 && (
           <>
             <Field label={t('reg.village')} error={errors.villagePreset} required>

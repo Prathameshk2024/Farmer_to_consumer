@@ -37,6 +37,9 @@ export default function CollegeCard() {
       <div className="college__body">
         <p className="college__mr" lang="mr">{t('lp.collegeMr')}</p>
         <p className="college__en" lang="en">{t('lp.collegeEn')}</p>
+        <p className="college__line">{t('lp.department')} · {t('lp.convention')}</p>
+        <p className="college__line"><b>{t('lp.researcherLabel')}:</b> {t('lp.researcher')}</p>
+        <p className="college__line"><b>{t('lp.guidesLabel')}:</b> {t('lp.guides')}</p>
       </div>
     </div>
   )

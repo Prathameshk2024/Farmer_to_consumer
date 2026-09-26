@@ -160,7 +160,7 @@ export function Explore() {
 
   return (
     <>
-      <AppBar brand title={t('app.name')} />
+      <AppBar brand title={t('app.name')} sub={t('app.nameShort')} />
       <div className="screen stack">
         <TextInput
           data-wt="ex-search"
@@ -530,7 +530,7 @@ export function FarmerShop() {
 /**
  * Who made this. Not a link any more - the public storefront it opened was
  * the landing page for the share QR, and that whole surface is gone. Her name,
- * her village and her SMB ID still belong on the product, because they are
+ * her village and her farmer code still belong on the product, because they are
  * what a buyer is choosing between.
  */
 function FarmerCard({ farmer }: { farmer: Partial<Farmer> }) {

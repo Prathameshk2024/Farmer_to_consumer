@@ -195,7 +195,7 @@ export type BusinessType = 'individual' | 'shg' | 'udyam'
 export type DispatchTime = 'same' | '1' | '23'
 
 /**
- * The six digital-usage answers behind the Shanta Mahila Bazar Digital Readiness Index.
+ * The six digital-usage answers behind the Digital Readiness Index.
  * Collected once at registration and re-measured after training, so the
  * before/after comparison the research design needs is possible at all.
  */
@@ -242,7 +242,7 @@ export interface AdminNotice {
 
 export interface Farmer {
   id: string
-  /** Shanta Mahila Bazar ID, e.g. F2C-ANADUR-001. Printed on packaging and posters. */
+  /** Farmer code, e.g. F2C-ANADUR-001. Printed on packaging and posters. */
   farmerCode: string
 
   // personal

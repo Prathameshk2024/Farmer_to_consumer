@@ -125,9 +125,9 @@ export function seed(): Db {
       name: 'सुनीता पाटील', photo: '👩🏽', phone: '9822011223', whatsapp: '9822011223',
       age: 38, education: 'secondary',
       village: 'आणदुर', villageCode: 'ANADUR', taluka: 'तुळजापूर', district: 'धाराशिव', pincode: '413601',
-      shopName: 'सुनीता गृहउद्योग', shopSlug: 'sunitagruhaudyoga-smb-anadur-01',
-      about: 'गेली 12 वर्षे मी घरी लोणची आणि मसाले बनवते. सर्व पदार्थ घरचेच.',
-      businessType: 'shg', shgName: 'जिजाऊ महिला बचत गट',
+      shopName: 'सुनीता गृहउद्योग', shopSlug: 'sunitagruhaudyoga-f2c-anadur-001',
+      about: 'गेली 12 वर्षे आम्ही घरी लोणची आणि मसाले बनवतो. सर्व पदार्थ घरचेच.',
+      businessType: 'shg', shgName: 'जिजाऊ बचत गट',
       yearsInBusiness: 12, monthlyCapacity: 120,
       sellsFood: true,
       upiId: 'sunita@ybl', upiVerified: true,
@@ -143,9 +143,9 @@ export function seed(): Db {
       name: 'मंगल जाधव', photo: '👩🏻', phone: '9764455661', whatsapp: '9764455661',
       age: 45, education: 'middle',
       village: 'जेवळी', villageCode: 'JEVALI', taluka: 'तुळजापूर', district: 'धाराशिव', pincode: '413603',
-      shopName: 'मंगल हातमाग', shopSlug: 'mangalahatamaga-smb-jevali-01',
+      shopName: 'मंगल हातमाग', shopSlug: 'mangalahatamaga-f2c-jevali-001',
       about: 'बचत गटातर्फे आम्ही हातमागाच्या साड्या आणि चादरी बनवतो.',
-      businessType: 'shg', shgName: 'सावित्री महिला बचत गट',
+      businessType: 'shg', shgName: 'सावित्री बचत गट',
       yearsInBusiness: 8, monthlyCapacity: 25,
       sellsFood: false,
       upiId: 'mangalj@okicici', upiVerified: true,
@@ -161,7 +161,7 @@ export function seed(): Db {
       name: 'कविता शिंदे', photo: '👩🏾', phone: '9890033441',
       age: 31, education: 'higher',
       village: 'भोसगा', villageCode: 'BHOSGA', taluka: 'तुळजापूर', district: 'धाराशिव', pincode: '413604',
-      shopName: 'कविता गृहउद्योग', shopSlug: 'kavitagruhaudyoga-smb-bhosga-01',
+      shopName: 'कविता गृहउद्योग', shopSlug: 'kavitagruhaudyoga-f2c-bhosga-001',
       about: 'सणासुदीला लागणारे सर्व घरगुती पदार्थ.',
       businessType: 'individual',
       yearsInBusiness: 3, monthlyCapacity: 60,
@@ -219,7 +219,7 @@ export function seed(): Db {
 
   const orders: Order[] = [
     {
-      id: 'SMB1043', farmerId: 's1', customerId: 'c1',
+      id: 'F2C1043', farmerId: 's1', customerId: 'c1',
       customerName: 'प्रिया देशमुख', customerPhone: '9011223344',
       address: 'फ्लॅट 302, शिवसागर अपार्टमेंट, विमाननगर, पुणे',
       landmark: 'सिम्बायोसिस कॉलेजजवळ', pincode: '413601',
@@ -233,7 +233,7 @@ export function seed(): Db {
       events: [{ to: 'PLACED', at: hoursAgo(1), by: 'customer' }],
     },
     {
-      id: 'SMB1042', farmerId: 's1', customerId: 'c2',
+      id: 'F2C1042', farmerId: 's1', customerId: 'c2',
       customerName: 'अनिता कुलकर्णी', customerPhone: '9922334455',
       address: 'घर क्र. 12, गणेश नगर, आणदुर', landmark: 'ग्रामपंचायत ऑफिससमोर', pincode: '413601',
       items: [{ productId: 'p3', name: 'तांदळाचे पापड', emoji: '🥟', qty: 3, price: 90 }],
@@ -247,7 +247,7 @@ export function seed(): Db {
       ],
     },
     {
-      id: 'SMB1039', farmerId: 's1', customerId: 'c3',
+      id: 'F2C1039', farmerId: 's1', customerId: 'c3',
       customerName: 'सविता मोरे', customerPhone: '9765544332',
       address: 'मु. पो. रांजणगाव, ता. तुळजापूर', landmark: 'शाळेजवळ', pincode: '413602',
       items: [{ productId: 'p1', name: 'आंब्याचे लोणचे', emoji: '🫙', qty: 2, price: 220 }],
@@ -262,7 +262,7 @@ export function seed(): Db {
       ],
     },
     {
-      id: 'SMB1031', farmerId: 's1', customerId: 'c4',
+      id: 'F2C1031', farmerId: 's1', customerId: 'c4',
       customerName: 'रेखा भोसले', customerPhone: '9834455667',
       address: 'सर्वे नं. 45, तुळजापूर रोड, आणदुर', pincode: '413601',
       items: [{ productId: 'p2', name: 'कांदा लसूण मसाला', emoji: '🌶️', qty: 1, price: 180 }],
@@ -278,7 +278,7 @@ export function seed(): Db {
       ],
     },
     {
-      id: 'SMB1044', farmerId: 's2', customerId: 'c1',
+      id: 'F2C1044', farmerId: 's2', customerId: 'c1',
       customerName: 'प्रिया देशमुख', customerPhone: '9011223344',
       address: 'फ्लॅट 302, शिवसागर अपार्टमेंट, विमाननगर, पुणे',
       landmark: 'सिम्बायोसिस कॉलेजजवळ', pincode: '413603',

@@ -14,7 +14,7 @@ import { deriveCustomersFromOrders, planBackfill } from '../src/db/customers.js'
  */
 function order(over: Partial<Order>): Order {
   return {
-    id: 'SMB0000',
+    id: 'F2C0000',
     farmerId: 's1',
     customerId: 'c1',
     customerName: 'कोणीतरी',
@@ -36,31 +36,31 @@ function order(over: Partial<Order>): Order {
 
 const LIVE_ORDERS: Order[] = [
   order({
-    id: 'SMB1043', customerId: 'c1', customerName: 'प्रिया देशमुख', customerPhone: '9011223344',
+    id: 'F2C1043', customerId: 'c1', customerName: 'प्रिया देशमुख', customerPhone: '9011223344',
     address: 'फ्लॅट 302, शिवसागर अपार्टमेंट, विमाननगर, पुणे',
     landmark: 'सिम्बायोसिस कॉलेजजवळ', pincode: '413601',
     placedAt: '2026-09-04T09:00:00.000Z',
   }),
   order({
-    id: 'SMB1042', customerId: 'c2', customerName: 'अनिता कुलकर्णी', customerPhone: '9922334455',
+    id: 'F2C1042', customerId: 'c2', customerName: 'अनिता कुलकर्णी', customerPhone: '9922334455',
     address: 'घर क्र. 12, गणेश नगर, आणदुर',
     landmark: 'ग्रामपंचायत ऑफिससमोर', pincode: '413601',
     placedAt: '2026-09-04T08:00:00.000Z',
   }),
   order({
-    id: 'SMB1031', customerId: 'c4', customerName: 'रेखा भोसले', customerPhone: '9834455667',
+    id: 'F2C1031', customerId: 'c4', customerName: 'रेखा भोसले', customerPhone: '9834455667',
     address: 'सर्वे नं. 45, तुळजापूर रोड, आणदुर',
     pincode: '413601',
     placedAt: '2026-09-03T10:00:00.000Z',
   }),
   order({
-    id: 'SMB1044', customerId: 'c1', customerName: 'प्रिया देशमुख', customerPhone: '9011223344',
+    id: 'F2C1044', customerId: 'c1', customerName: 'प्रिया देशमुख', customerPhone: '9011223344',
     address: 'फ्लॅट 302, शिवसागर अपार्टमेंट, विमाननगर, पुणे',
     landmark: 'सिम्बायोसिस कॉलेजजवळ', pincode: '413603',
     placedAt: '2026-09-03T09:00:00.000Z',
   }),
   order({
-    id: 'SMB1039', customerId: 'c3', customerName: 'सविता मोरे', customerPhone: '9765544332',
+    id: 'F2C1039', customerId: 'c3', customerName: 'सविता मोरे', customerPhone: '9765544332',
     address: 'मु. पो. रांजणगाव, ता. तुळजापूर',
     landmark: 'शाळेजवळ', pincode: '413602',
     placedAt: '2026-09-03T08:00:00.000Z',
@@ -89,7 +89,7 @@ test("प्रिया's two orders become one customer holding two addresses"
 test('the most recently used address is the default', () => {
   const priya = deriveCustomersFromOrders(LIVE_ORDERS).find((c) => c.id === 'c-9011223344')!
 
-  // SMB1043 (413601) is newer than SMB1044 (413603).
+  // F2C1043 (413601) is newer than F2C1044 (413603).
   assert.equal(priya.addresses.find((a) => a.isDefault)!.pincode, '413601')
 })
 
@@ -109,12 +109,12 @@ test('createdAt is the earliest order and updatedAt the latest', () => {
 })
 
 test('an order with no phone is reported, not silently dropped', () => {
-  const orders = [...LIVE_ORDERS, order({ id: 'SMB9999', customerPhone: '' })]
+  const orders = [...LIVE_ORDERS, order({ id: 'F2C9999', customerPhone: '' })]
 
   const plan = planBackfill(orders)
 
   assert.equal(plan.customers.length, 4, 'the phoneless order creates no customer')
-  assert.deepEqual(plan.skipped, ['SMB9999'])
+  assert.deepEqual(plan.skipped, ['F2C9999'])
 })
 
 test('the plan rewrites every mismatched order id', () => {
@@ -122,8 +122,8 @@ test('the plan rewrites every mismatched order id', () => {
 
   assert.equal(plan.orderUpdates.length, 5)
   assert.deepEqual(
-    plan.orderUpdates.find((u) => u.orderId === 'SMB1043'),
-    { orderId: 'SMB1043', from: 'c1', to: 'c-9011223344' },
+    plan.orderUpdates.find((u) => u.orderId === 'F2C1043'),
+    { orderId: 'F2C1043', from: 'c1', to: 'c-9011223344' },
   )
 })
 

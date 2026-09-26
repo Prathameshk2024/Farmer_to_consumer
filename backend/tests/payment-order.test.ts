@@ -20,7 +20,7 @@ import {
 
 function order(over: Partial<Order> = {}): Order {
   return {
-    id: 'SMB1234',
+    id: 'F2C1234',
     paymentMode: 'UPI',
     paymentStatus: 'UPI_PENDING',
     status: 'ACCEPTED',

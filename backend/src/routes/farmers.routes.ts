@@ -436,7 +436,7 @@ farmersRouter.get('/:id', (req, res) => {
   // Same rule as /slug/:slug. A farmer who has not been approved, or who has
   // been blocked, is not public - customers only ever see verified shops.
   if (!farmer || !canSellNow(farmer)) {
-    res.status(404).json({ error: 'Farmer not found', messageMr: 'ही विक्रेती सापडली नाही' })
+    res.status(404).json({ error: 'Farmer not found', messageMr: 'हा शेतकरी सापडला नाही' })
     return
   }
   // The same allow-listed card the catalogue sends. This used to strip seven

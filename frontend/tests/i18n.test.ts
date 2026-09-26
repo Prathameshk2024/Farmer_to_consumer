@@ -2,10 +2,10 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { dictionaries } from '../src/i18n/strings.js'
+import { dictionaries, LANGS, translate } from '../src/i18n/strings.js'
 
 /**
- * Marathi is the default and English is the fallback, which means the two
+ * Marathi is the default and the fallback, which means the two
  * dictionaries have to stay the same shape - a key present in one and missing
  * from the other silently serves the wrong language to whoever is reading.
  *
@@ -22,7 +22,7 @@ const { mr, en } = dictionaries
 test('both dictionaries carry exactly the same keys', () => {
   const missingEn = Object.keys(mr).filter((k) => !(k in en))
   const missingMr = Object.keys(en).filter((k) => !(k in mr))
-  assert.deepEqual(missingEn, [], 'these keys have no English fallback')
+  assert.deepEqual(missingEn, [], 'these keys have no English')
   assert.deepEqual(missingMr, [], 'these keys have no Marathi, which is the default')
 })
 
@@ -34,8 +34,9 @@ test('no dictionary value is left empty', () => {
 })
 
 /**
- * Two English entries are Devanagari on purpose and only two:
+ * Three English entries are Devanagari on purpose and only three:
  *
+ *  - the product name, a brand that reads Marathi first in both languages;
  *  - the college's name in Marathi, printed beside its English name;
  *  - the language chooser's subtitle, which deliberately shows the OTHER
  *    language so a Marathi speaker who lands on an English screen can find
@@ -43,7 +44,7 @@ test('no dictionary value is left empty', () => {
  *
  * Anything else in this list is a string somebody forgot to translate.
  */
-const ENGLISH_MAY_BE_MARATHI = new Set(['lp.collegeMr', 'onb.chooseLangSub'])
+const ENGLISH_MAY_BE_MARATHI = new Set(['app.name', 'lp.collegeMr', 'onb.chooseLangSub'])
 
 test('the English dictionary is English', () => {
   const untranslated = Object.entries(en)
@@ -54,7 +55,7 @@ test('the English dictionary is English', () => {
 
 /** The mirror of the above: proper nouns and UPI are Latin in both. */
 const MARATHI_MAY_BE_LATIN = new Set([
-  'app.nameEn', 'lp.collegeEn', 'onb.chooseLangSub', 'ord.paymentUpi',
+  'app.nameShort', 'lp.collegeEn', 'onb.chooseLangSub', 'ord.paymentUpi',
 ])
 
 test('the Marathi dictionary is Marathi', () => {
@@ -108,4 +109,29 @@ test('every t() key a component asks for exists in the dictionary', () => {
     }
   }
   assert.deepEqual([...missing], [], 'these keys would render as their own name')
+})
+
+/* ------------------------------------------------------------------ */
+/* Marathi first                                                       */
+/* ------------------------------------------------------------------ */
+
+test('मराठी is the first language offered', () => {
+  // The picker order is the product's priority: Marathi first, English second.
+  assert.deepEqual(LANGS.map((l) => l.code), ['mr', 'en'])
+})
+
+test('a key missing from one language falls back to Marathi, not English', () => {
+  // Marathi is the source text. The parity test stops such a gap shipping;
+  // this pins what the reader sees if one ever slips through anyway.
+  const dicts = { mr: { only: 'फक्त मराठी' }, en: {} }
+  assert.equal(translate(dicts, 'en', 'only'), 'फक्त मराठी')
+  assert.equal(translate(dicts, 'en', 'nowhere'), 'nowhere')
+})
+
+test('no English copy assumes the reader is a woman', () => {
+  // Farmers are men and women; the old copy was written for women only.
+  const bad = Object.entries(dictionaries.en)
+    .filter(([, v]) => /\b(she|her|hers|herself|women|woman|Shantai|Mahila)\b/i.test(v))
+    .map(([k]) => k)
+  assert.deepEqual(bad, [])
 })

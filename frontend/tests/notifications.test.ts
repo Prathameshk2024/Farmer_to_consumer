@@ -68,7 +68,7 @@ test('every line the feed can print exists in both languages', () => {
  */
 function order(events: Order['events'], status: Order['status'] = 'DELIVERED'): Order {
   return {
-    id: 'SMB5013',
+    id: 'F2C5013',
     status,
     total: 444,
     customerName: 'रेखा',
@@ -91,7 +91,7 @@ const WALK: Order['events'] = [
 test('four events on one order are one row, not four', () => {
   const feed = buildFeed([order(WALK)], 'customer')
   assert.equal(feed.length, 1)
-  assert.equal(feed[0]?.id, 'SMB5013', 'the order IS the row, so it keys on the order')
+  assert.equal(feed[0]?.id, 'F2C5013', 'the order IS the row, so it keys on the order')
 })
 
 test('the row shows where the order is NOW', () => {

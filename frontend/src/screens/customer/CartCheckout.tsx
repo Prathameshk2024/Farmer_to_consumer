@@ -665,7 +665,7 @@ export function TrackOrder() {
         upiId: farmer.upiId,
         name: farmer.shopName,
         amount: order.total,
-        note: `Shantai Mahila Bazar ${order.id}`,
+        note: `Farmers to Consumer ${order.id}`,
       })
     : ''
 

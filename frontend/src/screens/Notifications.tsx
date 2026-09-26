@@ -73,7 +73,7 @@ export default function Notifications() {
    * and when, then what happened to it, then whose it is and what it came to.
    *
    * The old row put the state pill inside the title and ran the rest together
-   * as "name · SMB5013 · 8/9/2026 11:01 pm", which is four facts printed as
+   * as "name · F2C5013 · 8/9/2026 11:01 pm", which is four facts printed as
    * one string. An order also says its sentence now ("तुम्हाला नवीन ऑर्डर आले
    * आहे") rather than making her read the tag and work out who did it - the
    * wording was already written for both sides, it was just not being shown
@@ -97,7 +97,7 @@ export default function Notifications() {
         <span className="notif__body">
           <span className="notif__head">
             {/* An order is named after what is in it - she recognises her
-                pickle order, not SMB5013 - and an admin decision has no
+                pickle order, not F2C5013 - and an admin decision has no
                 product, so it prints its sentence here instead. */}
             <span className="notif__title">{n.title ?? t(n.labelKey, n.vars)}</span>
             <span className="notif__when">{when(n.at, t)}</span>

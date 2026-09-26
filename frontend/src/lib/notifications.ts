@@ -49,7 +49,7 @@ export interface Notice {
   labelKey: string
   /**
    * What the row is called. An order names what is IN it - a woman recognises
-   * her pickle order, not SMB5013 - and an admin decision has no product, so
+   * her pickle order, not F2C5013 - and an admin decision has no product, so
    * it has none of this and prints its sentence instead.
    */
   title?: string

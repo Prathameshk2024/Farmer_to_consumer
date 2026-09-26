@@ -36,7 +36,7 @@ interface PincodeValue {
 }
 
 const PincodeContext = createContext<PincodeValue | null>(null)
-const KEY = 'smb.pincode'
+const KEY = 'f2c.pincode'
 
 export function PincodeProvider({ children }: { children: ReactNode }) {
   const [pincode, setPin] = useState<string | null>(() => {

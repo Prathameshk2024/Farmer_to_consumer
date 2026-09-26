@@ -149,7 +149,7 @@ export function parseCloudinaryUrl(url: string, folder: string): CloudinaryConfi
 }
 
 function readCloudinary(): CloudinaryConfig | null {
-  const folder = firstOf('CLOUDINARY_FOLDER') ?? 'shanta-mahila-bazar'
+  const folder = firstOf('CLOUDINARY_FOLDER') ?? 'f2c'
   const url = firstOf('CLOUDINARY_URL')
 
   if (url) {

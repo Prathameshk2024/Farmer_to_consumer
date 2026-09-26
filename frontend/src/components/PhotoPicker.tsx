@@ -123,7 +123,7 @@ export default function PhotoPicker({
             <div
               style={{
                 width: `${Math.round(progress * 100)}%`, height: '100%',
-                background: 'var(--maroon)', transition: 'width .2s',
+                background: 'var(--primary)', transition: 'width .2s',
               }}
             />
           </div>

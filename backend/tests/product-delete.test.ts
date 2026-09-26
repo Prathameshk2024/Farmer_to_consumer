@@ -20,7 +20,7 @@ import type { Order, Product } from '@shared/types.js'
 
 test('an order keeps what it needs after the product is gone', () => {
   const order = {
-    id: 'SMB1043',
+    id: 'F2C1043',
     items: [{ productId: 'p1', name: 'आंब्याचे लोणचे', emoji: '🫙', qty: 2, price: 220 }],
   } as Order
 

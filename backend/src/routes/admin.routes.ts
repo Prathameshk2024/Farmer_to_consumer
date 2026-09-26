@@ -232,7 +232,7 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
    */
   if (!reason) {
     res.status(400).json({
-      error: 'A rejection needs a reason - she reads it in her own app',
+      error: 'A rejection needs a reason - the farmer reads it in their own app',
       messageMr: 'नाकारण्याचे कारण लिहा',
       fields: { reason: 'required' },
     })
@@ -457,7 +457,7 @@ adminRouter.get('/farmers/:id', (req, res) => {
   const db = getDb()
   const farmer = db.farmers.find((s) => s.id === req.params.id)
   if (!farmer) {
-    res.status(404).json({ error: 'Farmer not found', messageMr: 'ही विक्रेती सापडली नाही' })
+    res.status(404).json({ error: 'Farmer not found', messageMr: 'हा शेतकरी सापडला नाही' })
     return
   }
 
@@ -499,7 +499,7 @@ adminRouter.post('/farmers/:id/block', (req, res) => {
   const db = getDb()
   const farmer = db.farmers.find((s) => s.id === req.params.id)
   if (!farmer) {
-    res.status(404).json({ error: 'Farmer not found', messageMr: 'ही विक्रेती सापडली नाही' })
+    res.status(404).json({ error: 'Farmer not found', messageMr: 'हा शेतकरी सापडला नाही' })
     return
   }
   const blocked = !!req.body?.blocked
@@ -525,7 +525,7 @@ adminRouter.post('/farmers/:id/block', (req, res) => {
 
 /**
  * Impact export. A programme like this has to show a funder or a government
- * department "N women, ₹X earned, Y villages" - build it once here rather than
+ * department "N farmers, ₹X earned, Y villages" - build it once here rather than
  * assembling the same numbers by hand every month.
  */
 adminRouter.get('/impact', (_req, res) => {
@@ -534,10 +534,10 @@ adminRouter.get('/impact', (_req, res) => {
     (o) => o.status === 'DELIVERED',
   )
 
-  const byVillage = new Map<string, { village: string; women: number; earned: number }>()
+  const byVillage = new Map<string, { village: string; farmers: number; earned: number }>()
   for (const s of db.farmers) {
-    const row = byVillage.get(s.villageCode) ?? { village: s.village, women: 0, earned: 0 }
-    row.women += 1
+    const row = byVillage.get(s.villageCode) ?? { village: s.village, farmers: 0, earned: 0 }
+    row.farmers += 1
     byVillage.set(s.villageCode, row)
   }
   for (const o of delivered) {
@@ -550,9 +550,9 @@ adminRouter.get('/impact', (_req, res) => {
   res.json({
     generatedAt: new Date().toISOString(),
     totals: {
-      women: db.farmers.length,
-      activeWomen: db.farmers.filter((s) => s.status === 'ACTIVE').length,
-      womenWithEarnings: new Set(delivered.map((o) => o.farmerId)).size,
+      farmers: db.farmers.length,
+      activeFarmers: db.farmers.filter((s) => s.status === 'ACTIVE').length,
+      farmersWithEarnings: new Set(delivered.map((o) => o.farmerId)).size,
       earned: delivered.reduce((n, o) => n + o.total, 0),
       orders: delivered.length,
       villages: byVillage.size,

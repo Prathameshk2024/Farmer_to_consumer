@@ -74,7 +74,7 @@ test('zero years is not mentioned as an achievement', () => {
 
 /**
  * The allow-list on PATCH /farmers/me decides WHICH fields can move - status
- * and her SMB ID are not on it. This decides whether the values are
+ * and her farmer code are not on it. This decides whether the values are
  * usable, and it runs on the server because the form is not the rule: anything
  * holding her token can send a delivery fee of -500.
  */

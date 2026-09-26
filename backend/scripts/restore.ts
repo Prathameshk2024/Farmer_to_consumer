@@ -195,7 +195,7 @@ async function main(): Promise<void> {
     console.log('  RESTORED.')
     if (file) {
       console.log('  Restart the API now, so it reads the restored data instead of writing its old copy back:')
-      console.log('    gcloud run services update shantai-api --region asia-south1 --update-env-vars RESTORED_AT=' +
+      console.log('    gcloud run services update f2c-api --region asia-south1 --update-env-vars RESTORED_AT=' +
         new Date().toISOString().slice(0, 16).replace(':', '-'))
     }
     console.log('  Re-enable the Backup workflow once the live project is right.')

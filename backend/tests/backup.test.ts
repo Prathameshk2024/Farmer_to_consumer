@@ -78,7 +78,7 @@ test('targets are read from the environment, with a mistake named rather than sk
       BACKUP_A_CLOUDINARY_URL: 'cloudinary://key:secret@smb-backup',
       BACKUP_B_CLOUDINARY_URL: 'not a url',
     },
-    'shanta-mahila-bazar',
+    'f2c',
   )
   assert.equal(targets[0]!.firestore!.projectId, 'smb-backup-a')
   assert.equal(targets[0]!.cloudinary!.cloudName, 'smb-backup')
@@ -161,15 +161,15 @@ test('a downloaded photo goes back under the public_id it was saved from', () =>
   assert.deepEqual(
     imagePublicIds(
       [
-        'shanta-mahila-bazar\\product\\abc123.jpg',
-        'shanta-mahila-bazar/payment/xyz.png',
+        'f2c\\product\\abc123.jpg',
+        'f2c/payment/xyz.png',
         'something-else/photo.jpg',
       ],
-      'shanta-mahila-bazar',
+      'f2c',
     ),
     [
-      { path: 'shanta-mahila-bazar\\product\\abc123.jpg', publicId: 'shanta-mahila-bazar/product/abc123' },
-      { path: 'shanta-mahila-bazar/payment/xyz.png', publicId: 'shanta-mahila-bazar/payment/xyz' },
+      { path: 'f2c\\product\\abc123.jpg', publicId: 'f2c/product/abc123' },
+      { path: 'f2c/payment/xyz.png', publicId: 'f2c/payment/xyz' },
     ],
   )
 })

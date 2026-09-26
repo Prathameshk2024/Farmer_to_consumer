@@ -18,7 +18,7 @@ import { cancelOrder } from '../src/db/orderCancel.js'
 
 function order(status: OrderStatus): Order {
   return {
-    id: 'SMB1234',
+    id: 'F2C1234',
     status,
     paymentMode: 'UPI',
     paymentStatus: 'UPI_PENDING',

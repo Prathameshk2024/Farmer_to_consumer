@@ -195,8 +195,8 @@ export function FarmerOrderDetail() {
 
         {/* Accepted, and the buyer has not paid yet. Nothing for the farmer to do
             but wait - and know that is what they are waiting for. The buyer is
-            named rather than called "she": farmers here are women, buyers are
-            anyone, and a pronoun guessed from nothing is wrong for half of them.
+            named rather than given a pronoun: buyers are anyone, and a pronoun
+            guessed from nothing is wrong for half of them.
             Without a name on record it falls back to "the customer". */}
         {waitingForBuyer && order.status === 'ACCEPTED' && (
           buyer
