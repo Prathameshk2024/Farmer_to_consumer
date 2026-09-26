@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import type { Order } from '@shared/types.js'
-import { BUYER_STAGES, buyerStageIndex, isCancelled } from '@shared/orderFlow.js'
+import { buyerStageIndex, buyerStages, isCancelled } from '@shared/orderFlow.js'
 import { useT } from '../i18n/I18nProvider.js'
-import { IconAllClear, IconChevron, StatusIcon } from './icons.js'
+import { IconAllClear, IconChevron, IconFarm, StatusIcon } from './icons.js'
+import { Pill } from './ui.js'
 
 /**
- * WHERE THE BUYER'S ORDER IS - four stages, one line each.
+ * WHERE THE BUYER'S ORDER IS - four stages (three for pickup), one line each.
  *
  * Order confirmed · Shipped · Out for delivery · Delivered: the bold title and
  * the day it happened, nothing else. A stage the order has reached gets a green
@@ -16,6 +17,16 @@ import { IconAllClear, IconChevron, StatusIcon } from './icons.js'
  * The farmer's screens keep all five states - see `Timeline` in
  * screens/farmer/Orders.tsx. This is the buyer's view only.
  */
+
+/**
+ * "Pickup" beside an order, icon and word. Nothing for delivery: that is
+ * every order before this existed, and a pill on all of them says nothing.
+ */
+export function FulfilmentPill({ order }: { order: Pick<Order, 'fulfilment'> }) {
+  const t = useT()
+  if (order.fulfilment !== 'pickup') return null
+  return <Pill tone="neutral" icon={<IconFarm />}>{t('ord.pickup')}</Pill>
+}
 
 /** "Sat, 23rd May '26" - the way a delivery app prints a day. Latin digits. */
 export function trackerDate(iso: string | undefined): string {
@@ -43,7 +54,8 @@ export function BuyerTracker({ order }: { order: Order }) {
   const reached = buyerStageIndex(order)
   const ended = isCancelled(order.status)
   // An order that ended shows only what it really got through.
-  const stages = ended ? BUYER_STAGES.slice(0, reached + 1) : BUYER_STAGES
+  const all = buyerStages(order.fulfilment)
+  const stages = ended ? all.slice(0, reached + 1) : all
 
   return (
     <ol className="track">
@@ -88,7 +100,7 @@ export function OrderStatusBox({ order }: { order: Order }) {
   const delivered = order.status === 'DELIVERED'
   const [open, setOpen] = useState(!delivered && !ended)
 
-  const stage = reached >= 0 ? BUYER_STAGES[reached]! : null
+  const stage = reached >= 0 ? buyerStages(order.fulfilment)[reached]! : null
   const label = ended
     ? (order.status === 'REJECTED' ? t('track.rejected') : t('track.cancelled'))
     : stage ? t(stage.key) : t('track.waiting')

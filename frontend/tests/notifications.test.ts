@@ -49,11 +49,20 @@ test('every line the feed can print exists in both languages', () => {
   const missing: string[] = []
   for (const role of ['farmer', 'customer'] as const) {
     for (const s of states) {
-      const key = noticeLabelKey(s, role)
-      if (!dictionaries.mr[key] || !dictionaries.en[key]) missing.push(`${role}/${s}: ${key}`)
+      for (const f of ['delivery', 'pickup'] as const) {
+        const key = noticeLabelKey(s, role, f)
+        if (!dictionaries.mr[key] || !dictionaries.en[key]) missing.push(`${role}/${s}/${f}: ${key}`)
+      }
     }
   }
   assert.deepEqual(missing, [])
+})
+
+/** Pickup is ready to collect, then collected - never "on its way". */
+test('a pickup order speaks of collecting, not delivering', () => {
+  assert.equal(dictionaries.en[noticeLabelKey('PACKED', 'customer', 'pickup')], 'Your order is ready to collect')
+  assert.equal(dictionaries.en[noticeLabelKey('DELIVERED', 'customer', 'pickup')], 'You collected your order')
+  assert.equal(noticeLabelKey('PACKED', 'farmer', 'pickup'), 'ord.status.PACKED_PICKUP')
 })
 
 /* ------------------------------------------------------------------ */

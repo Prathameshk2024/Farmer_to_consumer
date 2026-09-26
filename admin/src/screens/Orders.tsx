@@ -9,7 +9,7 @@ import { api, type OrderRow } from '../lib/api.js'
 import { isStuck, maskedLabel, rupees, when } from '../lib/format.js'
 import { TopBar } from '../components/Shell.js'
 import {
-  Button, Card, EmptyState, ErrorNote, Loading, Notice, Pill, useAsync,
+  Button, Card, EmptyState, ErrorNote, FulfilmentPill, Loading, Notice, Pill, useAsync,
 } from '../components/ui.js'
 import { ResetPassword } from '../components/ResetPassword.js'
 
@@ -98,6 +98,7 @@ export function Orders() {
                         <td>
                           <div className="row" style={{ gap: 6 }}>
                             <Pill>{o.status}</Pill>
+                            <FulfilmentPill fulfilment={o.fulfilment} />
                             {isStuck(o) && <Pill tone="danger">{t('or.stuck')}</Pill>}
                           </div>
                         </td>
@@ -162,6 +163,7 @@ function OrderDetail({ order, onClose }: { order: OrderRow; onClose: () => void 
         <div className="row" style={{ gap: 8 }}>
           <span className="strong mono">{order.id}</span>
           <Pill>{order.status}</Pill>
+          <FulfilmentPill fulfilment={order.fulfilment} />
           {isStuck(order) && <Pill tone="danger">{t('or.stuck')}</Pill>}
         </div>
         {/* Close, not Cancel: nothing is being abandoned, this panel only reads. */}
@@ -184,7 +186,8 @@ function OrderDetail({ order, onClose }: { order: OrderRow; onClose: () => void 
         </div>
 
         <div>
-          <div className="small dim-2">{t('or.address')}</div>
+          {/* On pickup this is the farmer's pickup place, not the buyer's home. */}
+          <div className="small dim-2">{t(order.fulfilment === 'pickup' ? 'or.pickupPlace' : 'or.address')}</div>
           <div className="small">{order.address}</div>
           {order.landmark && <div className="small dim">{order.landmark}</div>}
           <div className="small dim mono">{order.pincode}</div>

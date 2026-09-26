@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { Address, Farmer } from '@shared/types.js'
+import type { Address, Farmer, Fulfilment } from '@shared/types.js'
 import { OrderRatings } from '../../components/Reviews.js'
-import { OrderStatusBox } from '../../components/OrderTracker.js'
+import { FulfilmentPill, OrderStatusBox } from '../../components/OrderTracker.js'
 import {
   STATUS_STYLE, awaitingCustomerPayment, statusLabelKey,
 } from '@shared/orderFlow.js'
@@ -28,7 +28,7 @@ import {
 } from '../../components/ui.js'
 import { ProductCard } from './Browse.js'
 import {
-  IconAddressHome, IconAddressOther, IconAllClear, IconCall, IconCart, IconCash, IconChevron, IconNext, IconOrders, IconPlus, IconProduct, IconProfile, IconUpi, IconWhatsapp, StatusIcon,
+  IconAddressHome, IconAddressOther, IconAllClear, IconCall, IconCart, IconCash, IconChevron, IconDelivery, IconFarm, IconMap, IconNext, IconOrders, IconPlus, IconProduct, IconProfile, IconUpi, IconWhatsapp, StatusIcon,
 } from '../../components/icons.js'
 import { PageTour, TourMenu } from '../../components/Walkthrough.js'
 
@@ -337,6 +337,7 @@ export function Checkout() {
   const [addingAddress, setAddingAddress] = useState(false)
   const [savingAddress, setSavingAddress] = useState(false)
   const [mode, setMode] = useState<'COD' | 'UPI'>('COD')
+  const [picked, setPicked] = useState<Fulfilment | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
@@ -372,7 +373,18 @@ export function Checkout() {
     addresses.find((a) => a.pincode === savedPincode) ??
     addresses.find((a) => a.isDefault) ??
     addresses[0]
-  const grand = groups.reduce((n, g) => n + g.total, 0)
+
+  /**
+   * DELIVERY OR PICKUP. Offered only as far as the farmer offers it; a row
+   * from before the choice existed delivers. Pickup is one place, so a
+   * legacy two-farmer cart can only be delivered.
+   */
+  const canDeliver = groups.every((g) => g.farmer?.offersDelivery ?? true)
+  const pickupAt = groups.length === 1 ? groups[0]!.farmer?.pickup : undefined
+  const fulfilment: Fulfilment = picked ?? (canDeliver || !pickupAt?.place ? 'delivery' : 'pickup')
+  const pickup = fulfilment === 'pickup' && !!pickupAt?.place
+  const grand = groups.reduce((n, g) => n + (pickup ? g.itemsTotal : g.total), 0)
+  const noDeliveryTotal = pickup || groups.some((g) => g.deliveryToAsk)
 
   /**
    * Not in the customer's listed areas is a WARNING now, not a wall.
@@ -382,18 +394,20 @@ export function Checkout() {
    * Maharashtra the server refuses it, so the button does not pretend
    * otherwise.
    */
-  const outsideArea = groups.filter(
+  const outsideArea = pickup ? [] : groups.filter(
     (g) => address && !(g.farmer?.pincodes ?? []).includes(address.pincode),
   )
-  const outsideState = !!address && !isMaharashtraPincode(address.pincode)
+  const outsideState = !pickup && !!address && !isMaharashtraPincode(address.pincode)
 
   async function place() {
-    if (!address) return
+    if (!pickup && !address) return
     setBusy(true)
     setErr('')
     try {
       const res = await api.placeOrders({
-        address: { line: address.line, landmark: address.landmark, pincode: address.pincode },
+        ...(pickup
+          ? { fulfilment: 'pickup' as const }
+          : { address: { line: address!.line, landmark: address!.landmark, pincode: address!.pincode } }),
         groups,
         paymentMode: mode,
         // The customer's stored name first: the session falls back to the
@@ -415,6 +429,36 @@ export function Checkout() {
     <>
       <AppBar title={t('cus.checkout')} backTo="/shop/cart" />
       <div className="screen stack">
+        {/* Asked only when there is a choice to make. */}
+        {canDeliver && pickupAt?.place && (
+          <div>
+            <SectionTitle>{t('chk.fulfilment')}</SectionTitle>
+            <div className="stack-sm">
+              <Choice selected={!pickup} onSelect={() => setPicked('delivery')} icon={<IconDelivery />} title={t('ord.delivery')} />
+              <Choice selected={pickup} onSelect={() => setPicked('pickup')} icon={<IconFarm />} title={t('chk.pickupChoice')} />
+            </div>
+          </div>
+        )}
+
+        {pickup ? (
+          <Card>
+            <div className="stack-sm">
+              <div className="section-title">{t('ord.pickup')}</div>
+              <strong>{pickupAt!.place}</strong>
+              <a
+                className="btn btn--ghost btn--sm"
+                href={`https://maps.google.com/?q=${encodeURIComponent(
+                  pickupAt!.lat != null && pickupAt!.lng != null ? `${pickupAt!.lat},${pickupAt!.lng}` : pickupAt!.place,
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <IconMap aria-hidden="true" /> {t('ord.openMap')}
+              </a>
+              <p className="small dim">{t('chk.pickupNote')}</p>
+            </div>
+          </Card>
+        ) : (
         <div>
           <SectionTitle>
             {addresses.length === 0 ? t('cus.firstAddress') : t('cus.chooseAddress')}
@@ -455,6 +499,7 @@ export function Checkout() {
             </div>
           )}
         </div>
+        )}
 
         {outsideState && <Notice tone="danger">{t('cus.outsideState')}</Notice>}
 
@@ -486,12 +531,12 @@ export function Checkout() {
 
         <Card>
           <div className="row-between">
-            <strong>{t(groups.some((g) => g.deliveryToAsk) ? 'cus.grandTotalNoDelivery' : 'cus.grandTotal')}</strong>
+            <strong>{t(noDeliveryTotal ? 'cus.grandTotalNoDelivery' : 'cus.grandTotal')}</strong>
             <strong style={{ fontSize: 'var(--t-lg)' }}><Rupees value={grand} /></strong>
           </div>
           {/* Said again on the last screen before she commits: this total
               is not everything she may be asked for at the door. */}
-          {groups.some((g) => g.deliveryToAsk) && (
+          {!pickup && groups.some((g) => g.deliveryToAsk) && (
             <div className="small dim" style={{ marginTop: 6 }}>{t('cart.deliveryAskHint')}</div>
           )}
           {groups.length > 1 && (
@@ -507,7 +552,7 @@ export function Checkout() {
       <div className="actionbar">
         <Button
           onClick={() => void place()}
-          disabled={busy || !address || outsideState}
+          disabled={busy || (!pickup && !address) || outsideState}
         >
           {busy ? t('common.loading') : t('cus.placeOrder')}
         </Button>
@@ -616,8 +661,9 @@ export function CustomerOrders() {
                 <div className="tile__meta">{o.id}</div>
                 <div className="wrap-row" style={{ marginTop: 4 }}>
                   <Pill tone={STATUS_STYLE[o.status].tone} icon={<StatusIcon name={STATUS_STYLE[o.status].icon} />}>
-                    {t(statusLabelKey(o.status))}
+                    {t(statusLabelKey(o.status, o.fulfilment))}
                   </Pill>
+                  <FulfilmentPill order={o} />
                 </div>
               </div>
               <div className="tile__price"><Rupees value={o.total} /></div>
@@ -723,6 +769,11 @@ export function TrackOrder() {
         </div>
 
         <OrderStatusBox order={order} />
+
+        {/* On pickup the order's address is where she collects it. */}
+        {order.fulfilment === 'pickup' && (
+          <Notice tone="info" title={t('ord.pickup')}>{order.address}</Notice>
+        )}
 
         {/* What the farmer said it would take, in her own words, given at the
             moment she accepted. Directly under the status, because "when?"

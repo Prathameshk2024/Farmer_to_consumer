@@ -116,7 +116,7 @@ export default function Notifications() {
             <span className="notif__foot">
               {style && n.status && (
                 <Pill tone={style.tone} icon={<StatusIcon name={style.icon} />}>
-                  {t(statusLabelKey(n.status))}
+                  {t(statusLabelKey(n.status, n.fulfilment))}
                 </Pill>
               )}
               {n.total != null && (

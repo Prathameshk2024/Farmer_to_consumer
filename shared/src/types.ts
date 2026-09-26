@@ -46,6 +46,13 @@ export type OrderStatus =
 
 export type PaymentMode = 'COD' | 'UPI'
 
+/**
+ * How the goods reach the buyer. Pickup has no road trip: PACKED means "ready
+ * at the farm" and the next step is the buyer collecting it. Absent on an old
+ * order, which reads as delivery.
+ */
+export type Fulfilment = 'delivery' | 'pickup'
+
 export type PaymentStatus =
   | 'COD_PENDING'
   | 'COD_COLLECTED'
@@ -92,6 +99,8 @@ export interface Order {
   paymentMode: PaymentMode
   paymentStatus: PaymentStatus
   paymentUtr?: string
+  /** Absent reads as delivery. On pickup, `address` holds the pickup place. */
+  fulfilment?: Fulfilment
   status: OrderStatus
   placedAt: string
   /**
@@ -288,6 +297,16 @@ export interface Farmer {
   minOrder: number
   dispatch: DispatchTime
   pincodes: string[]
+  /**
+   * She brings it to the door. Registration sets true; an older row without
+   * it reads as true (`?? true`), because every farmer delivered before.
+   */
+  offersDelivery?: boolean
+  /**
+   * The buyer may collect it here. A spot she chose to publish, so the public
+   * card shows it without the home-location consent - still rounded.
+   */
+  pickup?: { place: string; lat?: number; lng?: number }
 
   // platform
   status: FarmerStatus
@@ -349,10 +368,13 @@ export type PublicFarmer = Pick<
   /** Rounded to two decimals, and only with her consent - `publicLocation`. */
   lat?: number
   lng?: number
+  offersDelivery: boolean
+  /** The place text and its point rounded to two decimals. */
+  pickup?: { place: string; lat?: number; lng?: number }
 }
 
 /* ------------------------------------------------------------------ */
-/* Products                                                            */
+/* Products                                                          */
 /* ------------------------------------------------------------------ */
 
 export type ProductStatus = 'DRAFT' | 'LIVE' | 'PAUSED'

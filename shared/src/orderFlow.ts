@@ -1,4 +1,4 @@
-import type { Order, OrderStatus, PaymentMode, PaymentStatus } from './types.js'
+import type { Fulfilment, Order, OrderStatus, PaymentMode, PaymentStatus } from './types.js'
 
 /**
  * THE ORDER STATE MACHINE
@@ -82,6 +82,20 @@ export const FARMER_ACTIONS: Record<OrderStatus, FarmerAction[]> = {
   CANCELLED: [],
 }
 
+/** At a pickup order's PACKED, the one step left is the buyer collecting it. */
+const PICKUP_PACKED: FarmerAction[] = [
+  { to: 'DELIVERED', labelKey: 'ord.markPickedUp', tone: 'primary' },
+]
+
+/**
+ * The farmer's buttons for this order. Every caller goes through here rather
+ * than FARMER_ACTIONS, so a pickup order never offers "out for delivery".
+ */
+export function actionsFor(status: OrderStatus, fulfilment: Fulfilment = 'delivery'): FarmerAction[] {
+  if (fulfilment === 'pickup' && status === 'PACKED') return PICKUP_PACKED
+  return FARMER_ACTIONS[status] || []
+}
+
 /**
  * Which line icon each app draws for a status. A NAME, not a glyph: emoji are
  * gone from every screen (only a tick and a cross survive, as icons), and each
@@ -124,19 +138,30 @@ export const BUYER_STAGES: { key: string; status: OrderStatus }[] = [
   { key: 'track.delivered', status: 'DELIVERED' },
 ]
 
-/** How far along the buyer's four stages this order is: -1 before the first. */
-export function buyerStageIndex(order: Pick<Order, 'status' | 'events'>): number {
+/** Pickup has no road trip: confirmed, ready for pickup, collected. */
+const PICKUP_STAGES: { key: string; status: OrderStatus }[] = [
+  { key: 'track.confirmed', status: 'ACCEPTED' },
+  { key: 'track.readyForPickup', status: 'PACKED' },
+  { key: 'track.pickedUp', status: 'DELIVERED' },
+]
+
+export function buyerStages(fulfilment: Fulfilment = 'delivery'): { key: string; status: OrderStatus }[] {
+  return fulfilment === 'pickup' ? PICKUP_STAGES : BUYER_STAGES
+}
+
+/** How far along the buyer's stages this order is: -1 before the first. */
+export function buyerStageIndex(order: Pick<Order, 'status' | 'events' | 'fulfilment'>): number {
   const reached = (s: OrderStatus) => order.events.some((e) => e.to === s)
   let last = -1
-  BUYER_STAGES.forEach((stage, i) => {
+  buyerStages(order.fulfilment).forEach((stage, i) => {
     // An order that stopped early still shows the stages it really passed.
     if (reached(stage.status) || stepIndex(order.status) >= stepIndex(stage.status)) last = i
   })
   return last
 }
 
-export function statusLabelKey(status: OrderStatus): string {
-  return `ord.status.${status}`
+export function statusLabelKey(status: OrderStatus, fulfilment?: Fulfilment): string {
+  return fulfilment === 'pickup' && status === 'PACKED' ? 'ord.status.PACKED_PICKUP' : `ord.status.${status}`
 }
 
 export function stepIndex(status: OrderStatus): number {
@@ -148,12 +173,12 @@ export function isCancelled(status: OrderStatus): boolean {
 }
 
 /** Server-side guard: is this transition legal from where the order is now? */
-export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
-  return (FARMER_ACTIONS[from] || []).some((a) => a.to === to)
+export function canTransition(from: OrderStatus, to: OrderStatus, fulfilment?: Fulfilment): boolean {
+  return actionsFor(from, fulfilment).some((a) => a.to === to)
 }
 
-export function actionFor(from: OrderStatus, to: OrderStatus): FarmerAction | undefined {
-  return (FARMER_ACTIONS[from] || []).find((a) => a.to === to)
+export function actionFor(from: OrderStatus, to: OrderStatus, fulfilment?: Fulfilment): FarmerAction | undefined {
+  return actionsFor(from, fulfilment).find((a) => a.to === to)
 }
 
 /**
@@ -163,7 +188,7 @@ export function actionFor(from: OrderStatus, to: OrderStatus): FarmerAction | un
 export function needsFarmerAction(order: Order): boolean {
   if (isCancelled(order.status)) return false
   if (order.paymentMode === 'UPI' && order.paymentStatus === 'UPI_SUBMITTED') return true
-  return (FARMER_ACTIONS[order.status] || []).length > 0
+  return actionsFor(order.status, order.fulfilment).length > 0
 }
 
 export function initialPaymentStatus(mode: PaymentMode): PaymentStatus {

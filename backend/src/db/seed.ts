@@ -119,7 +119,7 @@ export function seed(): Db {
   } as const
   const shop = {
     upiVerified: true, isOpen: true, deliveryFee: 20, freeDeliveryAbove: 500, minOrder: 100,
-    dispatch: 'same', pincodes: ['413603', '413601'], status: 'ACTIVE',
+    dispatch: 'same', pincodes: ['413603', '413601'], offersDelivery: true, status: 'ACTIVE',
     verifiedAt: daysAgo(60), verifiedBy: 'seed', rating: 0, ratingCount: 0, qrScans: 0, qrOrders: 0,
   } as const
   const farmers: Farmer[] = [
@@ -130,6 +130,8 @@ export function seed(): Db {
       ageGroup: '36-50', education: 'secondary', landholding: 'small',
       farmerTypes: ['vegetable'], sellingChannels: ['trader', 'weekly'], problems: ['lowPrice', 'middlemen'],
       crops: ['tomato'], lat: 17.9941, lng: 76.2329,
+      // Two of the four also let a buyer collect, so the demo shows both.
+      pickup: { place: 'अणदूर बस स्थानकाजवळ', lat: 17.9912, lng: 76.2318 },
       shopName: 'राजेश पाटील', shopSlug: 'rajesh-patil-f2c-anadur-001',
       about: 'राजेश पाटील - अणदूर येथून थेट शेतमाल. टोमॅटो.',
       upiId: 'rajeshpatil@ybl', ...fdriOf(5), createdAt: daysAgo(60),
@@ -141,6 +143,7 @@ export function seed(): Db {
       ageGroup: '25-35', education: 'higher', landholding: 'small',
       farmerTypes: ['vegetable'], sellingChannels: ['weekly', 'direct'], problems: ['transport'],
       crops: ['okra'], lat: 17.9918, lng: 76.2361,
+      pickup: { place: 'अणदूर आठवडी बाजार, महादेव मंदिरासमोर', lat: 17.9935, lng: 76.2347 },
       shopName: 'सविता कांबळे', shopSlug: 'savita-kamble-f2c-anadur-002',
       about: 'सविता कांबळे - अणदूर येथून थेट शेतमाल. भेंडी.',
       upiId: 'savitak@okicici', ...fdriOf(6), createdAt: daysAgo(50),

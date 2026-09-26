@@ -1,6 +1,6 @@
 import type {
   Address, Category, Customer, Order, Product,
-  ProductRatingInput, PublicReview, PublicFarmer, RatingSummary, Review, Farmer, FarmerGroup,
+  ProductRatingInput, PublicReview, PublicFarmer, RatingSummary, Review, Farmer, FarmerGroup, Fulfilment,
   FarmerWeek, Session,
 } from '@shared/types.js'
 import type { ReportReason, ReportTarget } from '@shared/report.js'
@@ -252,7 +252,8 @@ export const api = {
 
   me: () => get<{ farmer: Farmer }>('/farmers/me'),
 
-  updateMe: (patchBody: Partial<Farmer>) =>
+  /** `pickup: null` turns pickup off. */
+  updateMe: (patchBody: Partial<Omit<Farmer, 'pickup'>> & { pickup?: Farmer['pickup'] | null }) =>
     patch<{ farmer: Farmer }>('/farmers/me', patchBody),
   /** The farm on the map, set by an explicit tap, or cleared. */
   setMyLocation: (body: { lat: number; lng: number } | { clear: true }) =>
@@ -370,9 +371,11 @@ export const api = {
   myReviews: () => get<{ reviews: PublicReview[]; summary: RatingSummary }>('/farmers/me/reviews'),
 
   placeOrders: (body: {
-    address: { line: string; landmark?: string; pincode: string }
+    /** Left out for pickup: the farmer's pickup place is the address. */
+    address?: { line: string; landmark?: string; pincode: string }
     groups: FarmerGroup[]
     paymentMode: 'COD' | 'UPI'
+    fulfilment?: Fulfilment
     customerName?: string
   }) => post<{ orders: Order[]; groupId: string }>('/orders', body),
 

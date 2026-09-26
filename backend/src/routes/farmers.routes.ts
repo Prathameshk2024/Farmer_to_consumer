@@ -183,6 +183,8 @@ farmersRouter.post('/register', (req, res) => {
     minOrder: Number(b.minOrder ?? 0),
     dispatch: b.dispatch ?? 'same',
     pincodes: [b.pincode.trim()],
+    // Registration asks nothing more; she turns pickup on in her profile.
+    offersDelivery: true,
     status: 'PENDING_VERIFICATION',
     rating: 0,
     ratingCount: 0,
@@ -310,16 +312,31 @@ farmersRouter.patch('/me', requireRole('farmer'), (req, res) => {
     patch.upiVerified = false
   }
 
+  // How buyers get the goods. `pickup: null` turns pickup off; a point is
+  // kept only if it is a real one.
+  if (typeof req.body.offersDelivery === 'boolean') patch.offersDelivery = req.body.offersDelivery
+  const raw = req.body.pickup
+  if (raw && typeof raw === 'object') {
+    patch.pickup = {
+      place: typeof raw.place === 'string' ? raw.place.trim().replace(/\s+/g, ' ') : '',
+      ...(isValidLatLng(raw.lat, raw.lng) ? { lat: raw.lat, lng: raw.lng } : {}),
+    }
+  }
+  const next = { ...current, ...patch }
+  if (raw === null) delete next.pickup
+
   // The allow-list decides WHICH fields may move; this decides whether what
   // she sent makes sense. Same function the form runs, so the message under
-  // the box is the same message either way.
-  const fields = validateFarmerProfile(patch)
+  // the box is the same message either way. Delivery and pickup are judged on
+  // the result, so turning one off is refused only when the other is off too.
+  const fields = validateFarmerProfile({
+    ...patch, offersDelivery: next.offersDelivery ?? true, pickup: next.pickup,
+  })
   if (Object.keys(fields).length) {
     res.status(400).json({ error: 'Validation failed', messageMr: 'माहिती तपासा', fields })
     return
   }
 
-  const next = { ...current, ...patch }
   db.farmers[i] = next
   save()
   res.json({ farmer: next })

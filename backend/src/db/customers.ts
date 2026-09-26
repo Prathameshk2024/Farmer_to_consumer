@@ -240,7 +240,8 @@ export function recordOrderCustomer(db: Db, order: Order): Customer {
     order.customerName,
   )
 
-  if (order.address?.trim()) {
+  // A pickup order's address is the farmer's pickup place, not hers.
+  if (order.fulfilment !== 'pickup' && order.address?.trim()) {
     addAddress(db, customer.id, {
       line: order.address,
       landmark: order.landmark,
@@ -299,7 +300,7 @@ export function deriveCustomersFromOrders(orders: Order[]): Customer[] {
 
     const addresses: Address[] = []
     for (const o of sorted) {
-      if (!o.address?.trim()) continue
+      if (o.fulfilment === 'pickup' || !o.address?.trim()) continue
       const id = derivedAddressId(o.address, o.pincode)
       if (addresses.some((a) => a.id === id)) continue
       addresses.push({

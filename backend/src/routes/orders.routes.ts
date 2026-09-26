@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import type { Order, OrderStatus, PaymentMode, FarmerGroup } from '@shared/types.js'
+import type { Fulfilment, Order, OrderStatus, PaymentMode, FarmerGroup } from '@shared/types.js'
 import {
   actionFor, awaitingCustomerPayment, awaitingPaymentConfirmation, canTransition,
   cleanDeliveryEstimate, initialPaymentStatus,
@@ -100,9 +100,12 @@ ordersRouter.get('/:id', requireRole('farmer', 'customer'), (req, res) => {
 /* ------------------------------------------------------------------ */
 
 interface PlaceBody {
-  address: { line: string; landmark?: string; pincode: string }
+  /** Not needed for pickup: the farmer's pickup place is the address. */
+  address?: { line: string; landmark?: string; pincode: string }
   groups: FarmerGroup[]
   paymentMode: PaymentMode
+  /** Absent means delivery. */
+  fulfilment?: Fulfilment
   customerName?: string
   sourceShareCode?: string
 }
@@ -116,7 +119,7 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
     res.status(400).json({ error: 'Empty cart', messageMr: 'टोपली रिकामी आहे' })
     return
   }
-  if (!b.address?.pincode) {
+  if (b.fulfilment !== 'pickup' && !b.address?.pincode) {
     res.status(400).json({ error: 'Address required', messageMr: 'पत्ता निवडा' })
     return
   }
@@ -172,13 +175,20 @@ type BuildResult =
  */
 export function buildOrders(
   db: Db,
-  b: Pick<PlaceBody, 'address' | 'groups' | 'paymentMode' | 'customerName' | 'sourceShareCode'>,
+  b: Pick<PlaceBody, 'address' | 'groups' | 'paymentMode' | 'customerName' | 'sourceShareCode' | 'fulfilment'>,
   who: { customerId: string; phone: string },
 ): BuildResult {
   const groupId = `G${Date.now().toString(36).toUpperCase()}`
   const created: Order[] = []
   const refuse = (status: number, error: string, messageMr: string, productId?: string): BuildResult =>
     ({ ok: false, status, body: { error, messageMr, ...(productId ? { productId } : {}) } })
+
+  const fulfilment: Fulfilment = b.fulfilment ?? 'delivery'
+  if (fulfilment !== 'delivery' && fulfilment !== 'pickup') {
+    return refuse(400, 'Unknown fulfilment', 'घरपोच किंवा शेतावरून नेणे निवडा')
+  }
+  const pickup = fulfilment === 'pickup'
+  if (!pickup && !b.address?.pincode) return refuse(400, 'Address required', 'पत्ता निवडा')
 
   for (const g of b.groups) {
     const farmer = db.farmers.find((s) => s.id === g.farmerId)
@@ -187,6 +197,9 @@ export function buildOrders(
     if (!farmer || !canSellNow(farmer) || !farmer.isOpen) {
       return refuse(409, 'Farmer unavailable', 'हा शेतकरी सध्या ऑर्डर घेत नाही')
     }
+    // Only what she offers. A row from before offersDelivery existed delivered.
+    const offered = pickup ? !!farmer.pickup?.place : (farmer.offersDelivery ?? true)
+    if (!offered) return refuse(400, 'Fulfilment not offered', 'हा शेतकरी ही सोय देत नाही')
     /**
      * The farmer's listed areas are a hint now, not a gate.
      *
@@ -195,10 +208,11 @@ export function buildOrders(
      * because they typed 413004 threw away orders they would have taken.
      * Outside Maharashtra is still refused here, before them sees it.
      */
-    if (!isMaharashtraPincode(b.address.pincode)) {
+    // Pickup has no road trip, so none of the delivery-area rules apply.
+    if (!pickup && !isMaharashtraPincode(b.address!.pincode)) {
       return refuse(409, 'Outside Maharashtra', 'सध्या महाराष्ट्रातच पोहोचवले जाते')
     }
-    const outsideArea = !farmer.pincodes.includes(b.address.pincode)
+    const outsideArea = !pickup && !farmer.pincodes.includes(b.address!.pincode)
 
     const items: Order['items'] = []
     for (const i of g.items ?? []) {
@@ -226,7 +240,7 @@ export function buildOrders(
     }
 
     const deliveryFee =
-      farmer.freeDeliveryAbove > 0 && itemsTotal >= farmer.freeDeliveryAbove
+      pickup || (farmer.freeDeliveryAbove > 0 && itemsTotal >= farmer.freeDeliveryAbove)
         ? 0
         : farmer.deliveryFee
 
@@ -239,15 +253,18 @@ export function buildOrders(
       customerId: who.customerId,
       customerName: b.customerName ?? 'ग्राहक',
       customerPhone: who.phone,
-      address: b.address.line,
-      landmark: b.address.landmark,
-      pincode: b.address.pincode,
+      // On pickup the "address" is where the buyer collects it; the pincode
+      // is the farmer's own, the area the goods are in.
+      address: pickup ? farmer.pickup!.place : b.address!.line,
+      landmark: pickup ? undefined : b.address!.landmark,
+      pincode: pickup ? farmer.pincode : b.address!.pincode,
       items,
       itemsTotal,
       deliveryFee,
       total: itemsTotal + deliveryFee,
       paymentMode: b.paymentMode,
       paymentStatus: initialPaymentStatus(b.paymentMode),
+      ...(pickup ? { fulfilment } : {}),
       status: 'PLACED',
       placedAt: now,
       outsideArea: outsideArea || undefined,
@@ -273,7 +290,7 @@ ordersRouter.post('/:id/advance', requireRole('farmer'), (req, res) => {
   }
 
   const to = req.body?.to as OrderStatus
-  if (!canTransition(order.status, to)) {
+  if (!canTransition(order.status, to, order.fulfilment)) {
     res.status(409).json({
       error: `Cannot go ${order.status} -> ${to}`,
       messageMr: 'हा बदल करता येणार नाही',
@@ -281,7 +298,7 @@ ordersRouter.post('/:id/advance', requireRole('farmer'), (req, res) => {
     return
   }
 
-  const action = actionFor(order.status, to)
+  const action = actionFor(order.status, to, order.fulfilment)
 
   if (action?.needsReason && !req.body?.reason) {
     res.status(400).json({ error: 'Reason required', messageMr: 'कारण निवडा' })

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import type { Farmer } from '@shared/types.js'
 import { CROPS } from '@shared/crops.js'
 import { AGE_GROUPS, EDUCATION_LEVELS, FARMER_TYPES, LANDHOLDINGS } from '@shared/profile.js'
+import { PICKUP_PLACE_MAX, validateFarmerProfile } from '@shared/farmer.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
@@ -11,7 +12,7 @@ import {
   AppBar, Button, Card, Choice, Field, LocationButton, Loading, Notice, SectionTitle,
   TextInput, VoiceInput, useAsync,
 } from '../../components/ui.js'
-import { IconBack, IconCheck } from '../../components/icons.js'
+import { IconBack, IconCheck, IconDelivery, IconFarm } from '../../components/icons.js'
 
 /**
  * EDITING HER OWN DETAILS, AFTER REGISTRATION
@@ -63,6 +64,9 @@ export default function EditProfile() {
     crops: string[]
     upiId: string
     upiQrUrl: string
+    offersDelivery: boolean
+    pickupOn: boolean
+    pickupPlace: string
   }>(null)
 
   const [busy, setBusy] = useState(false)
@@ -91,6 +95,10 @@ export default function EditProfile() {
     crops: farmer.crops ?? [],
     upiId: farmer.upiId,
     upiQrUrl: farmer.upiQrUrl ?? '',
+    // A row from before the choice existed delivered.
+    offersDelivery: farmer.offersDelivery ?? true,
+    pickupOn: !!farmer.pickup,
+    pickupPlace: farmer.pickup?.place ?? '',
   }
 
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => {
@@ -104,6 +112,12 @@ export default function EditProfile() {
     if (!f.name.trim()) e.name = t('common.required')
     if (!f.shopName.trim()) e.shopName = t('common.required')
     if (f.crops.length === 0) e.crops = t('reg.cropsRequired')
+    // Kept from the record: the place text is hers to change here, the point is not.
+    const pickup = f.pickupOn
+      ? { place: f.pickupPlace.trim(), ...(farmer.pickup?.lat != null ? { lat: farmer.pickup.lat, lng: farmer.pickup.lng } : {}) }
+      : undefined
+    // The same rule the server runs, so she sees it under the box, not after Save.
+    Object.assign(e, validateFarmerProfile({ offersDelivery: f.offersDelivery, pickup }))
     setErrors(e)
     if (Object.keys(e).length) return
 
@@ -124,6 +138,8 @@ export default function EditProfile() {
         upiId: f.upiId.trim(),
         upiQrUrl: f.upiQrUrl || undefined,
         upiQrReady: !!f.upiQrUrl,
+        offersDelivery: f.offersDelivery,
+        pickup: pickup ?? null,
       })
       setSaved(true)
       toast(t('ok.profileSaved'))
@@ -224,6 +240,35 @@ export default function EditProfile() {
             <Field label={t('reg.crops')} hint={t('reg.pickMany')} error={errors.crops} required>
               {chips(CROP_OPTS, f.crops, 'crops')}
             </Field>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionTitle>{t('prof.fulfilment')}</SectionTitle>
+          <div className="stack-sm">
+            <Choice
+              selected={f.offersDelivery}
+              onSelect={() => set('offersDelivery', !f.offersDelivery)}
+              icon={<IconDelivery />}
+              title={t('prof.offersDelivery')}
+            />
+            <Choice
+              selected={f.pickupOn}
+              onSelect={() => set('pickupOn', !f.pickupOn)}
+              icon={<IconFarm />}
+              title={t('prof.offersPickup')}
+            />
+            {f.pickupOn && (
+              <Field label={t('prof.pickupPlace')} error={errors.pickupPlace} required>
+                <VoiceInput
+                  value={f.pickupPlace}
+                  onChange={(v) => set('pickupPlace', v.slice(0, PICKUP_PLACE_MAX))}
+                  placeholder={t('prof.pickupPlacePh')}
+                  error={!!errors.pickupPlace}
+                />
+              </Field>
+            )}
+            {errors.fulfilment && <Notice tone="danger">{errors.fulfilment}</Notice>}
           </div>
         </Card>
 

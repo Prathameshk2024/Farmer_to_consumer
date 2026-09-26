@@ -5,8 +5,9 @@ import {
 import { useI18n, useT } from '../i18n/I18nProvider.js'
 import { ApiError } from '../lib/api.js'
 import { useToast } from '../store/ToastContext.js'
-import { IconCopy, IconEmpty, IconImpact, IconWarn, IconYes, type IconType } from './icons.js'
+import { IconCopy, IconDelivery, IconEmpty, IconFarm, IconImpact, IconWarn, IconYes, type IconType } from './icons.js'
 import type { FdriBand } from '@shared/fdri.js'
+import type { Fulfilment } from '@shared/types.js'
 
 /* ------------------------------------------------------------------ */
 /* Primitives                                                          */
@@ -54,6 +55,14 @@ export function FdriBandPill({ band }: { band: FdriBand | undefined }) {
   if (!band || !FDRI_BAND_LOOK[band]) return null
   const { tone, Icon } = FDRI_BAND_LOOK[band]
   return <Pill tone={tone}><Icon aria-hidden="true" /> {t(`fdri.band.${band}`)}</Pill>
+}
+
+/** Delivery or pickup: icon and word. An order from before the choice was delivered. */
+export function FulfilmentPill({ fulfilment }: { fulfilment: Fulfilment | undefined }) {
+  const t = useT()
+  const pickup = fulfilment === 'pickup'
+  const Icon = pickup ? IconFarm : IconDelivery
+  return <Pill><Icon aria-hidden="true" /> {t(pickup ? 'or.pickup' : 'or.delivery')}</Pill>
 }
 
 export function Card({ children, flush }: { children: ReactNode; flush?: boolean }) {

@@ -27,6 +27,7 @@ function farmer(): Farmer {
     upiQrReady: true,
     fdri: cleanFdri({ smartphone: true, internet: true, whatsapp: true, digitalPayment: true }),
     fdriScore: 4, fdriBand: 'moderate',
+    offersDelivery: true, pickup: { place: 'अणदूर बस स्थानकाजवळ', lat: 17.99123, lng: 76.23187 },
     isOpen: true, deliveryFee: 30, freeDeliveryAbove: 500, minOrder: 100, dispatch: '1', pincodes: ['413603'],
     status: 'ACTIVE', blockedAt: undefined, blockReason: 'old reason', verifiedAt: '2026-08-02T00:00:00Z', verifiedBy: 'admin',
     notices: [{ id: 'n1', at: '2026-09-01T00:00:00Z', kind: 'BLOCKED', note: 'private' }],
@@ -41,7 +42,7 @@ function farmer(): Farmer {
 test('the public card carries exactly the allow-listed fields', () => {
   assert.deepEqual(Object.keys(publicFarmer(farmer(), NO_RATING)).sort(), [
     'crops', 'deliveryFee', 'farmerCode', 'freeDeliveryAbove', 'id', 'lat', 'lng', 'minOrder', 'name',
-    'photo', 'pincodes', 'rating', 'ratingCount', 'shopName', 'shopSlug', 'upiId', 'upiQrReady', 'upiQrUrl',
+    'offersDelivery', 'photo', 'pickup', 'pincodes', 'rating', 'ratingCount', 'shopName', 'shopSlug', 'upiId', 'upiQrReady', 'upiQrUrl',
     'village',
   ])
 })
@@ -63,6 +64,20 @@ test('the public point is rounded; the exact one never leaves', () => {
   assert.equal(card.lat, 17.99)
   assert.equal(card.lng, 76.23)
   assert.equal(JSON.stringify(card).includes('17.99364'), false)
+})
+
+/** The pickup spot is published by choice, so no consent is asked - but it is rounded all the same. */
+test('the pickup place is public with a rounded point, even without home-location consent', () => {
+  const card = publicFarmer({ ...farmer(), locationConsent: false }, NO_RATING)
+  assert.deepEqual(card.pickup, { place: 'अणदूर बस स्थानकाजवळ', lat: 17.99, lng: 76.23 })
+  assert.equal(JSON.stringify(card).includes('17.99123'), false)
+})
+
+test('no pickup, no pickup key; an old row without offersDelivery still delivers', () => {
+  const { pickup: _p, offersDelivery: _o, ...old } = farmer()
+  const card = publicFarmer(old, NO_RATING)
+  assert.equal('pickup' in card, false)
+  assert.equal(card.offersDelivery, true)
 })
 
 test('no consent, no point on the card', () => {

@@ -240,7 +240,7 @@ function ActionRow({ order, onOpen }: { order: Order; onOpen: () => void }) {
         <div className="tile__title">{todo}</div>
         <div className="tile__meta">{order.id} · {order.customerName}</div>
         <div className="wrap-row" style={{ marginTop: 2 }}>
-          <Pill tone={style.tone} icon={<StatusIcon name={style.icon} />}>{t(statusLabelKey(order.status))}</Pill>
+          <Pill tone={style.tone} icon={<StatusIcon name={style.icon} />}>{t(statusLabelKey(order.status, order.fulfilment))}</Pill>
           <Pill tone="neutral">
             {order.paymentMode === 'COD' ? t('ord.paymentCod') : t('ord.paymentUpi')}
           </Pill>

@@ -13,7 +13,7 @@ import {
   FiCircle,
 } from 'react-icons/fi'
 import { MdCurrencyRupee, MdQrCode2 } from 'react-icons/md'
-import { GiChemicalDrop, GiPlantSeed, GiSprout } from 'react-icons/gi'
+import { GiBarn, GiChemicalDrop, GiPlantSeed, GiSprout } from 'react-icons/gi'
 import { FaWhatsapp } from 'react-icons/fa'
 
 /**
@@ -110,6 +110,8 @@ export const IconCall: IconType = FiPhone
 export const IconWhatsapp: IconType = FaWhatsapp
 export const IconMap: IconType = FiMapPin
 export const IconDelivery: IconType = FiTruck
+/** Pickup at the farm: the buyer collects it. Beside the word, like every icon. */
+export const IconFarm: IconType = GiBarn
 export const IconCash: IconType = MdCurrencyRupee
 export const IconUpi: IconType = FiSmartphone
 

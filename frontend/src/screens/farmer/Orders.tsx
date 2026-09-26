@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Order, OrderStatus } from '@shared/types.js'
 import {
-  HAPPY_PATH, FARMER_ACTIONS, STATUS_STYLE, awaitingPaymentConfirmation,
-  statusLabelKey, stepIndex, type FarmerAction,
+  HAPPY_PATH, STATUS_STYLE, actionsFor, awaitingPaymentConfirmation,
+  statusLabelKey, type FarmerAction,
 } from '@shared/orderFlow.js'
 import { MAX_DELIVERY_ESTIMATE } from '@shared/orderFlow.js'
 import { farmerCanCancel } from '@shared/orderCancel.js'
 import { useT } from '../../i18n/I18nProvider.js'
+import { FulfilmentPill } from '../../components/OrderTracker.js'
 import { CancelOrderSheet, OrderEndedNotice, RefundNotice } from '../../components/OrderCancel.js'
 import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
@@ -40,7 +41,7 @@ export function FarmerOrders() {
   const list = orders.filter((o) => {
     if (tab === 'action') {
       return (
-        FARMER_ACTIONS[o.status].length > 0 ||
+        actionsFor(o.status, o.fulfilment).length > 0 ||
         (o.paymentMode === 'UPI' && o.paymentStatus === 'UPI_SUBMITTED')
       )
     }
@@ -76,8 +77,9 @@ export function FarmerOrders() {
                 <div className="tile__meta">{o.id} · {o.items.length} {t('ord.items')}</div>
                 <div className="wrap-row" style={{ marginTop: 2 }}>
                   <Pill tone={STATUS_STYLE[o.status].tone} icon={<StatusIcon name={STATUS_STYLE[o.status].icon} />}>
-                    {t(statusLabelKey(o.status))}
+                    {t(statusLabelKey(o.status, o.fulfilment))}
                   </Pill>
+                  <FulfilmentPill order={o} />
                 </div>
               </div>
               <div className="tile__price"><Rupees value={o.total} /></div>
@@ -122,7 +124,7 @@ export function FarmerOrderDetail() {
    * being told no.
    */
   const unpaid = awaitingPaymentConfirmation(order)
-  const actions = FARMER_ACTIONS[order.status].filter((a) => !(a.to === 'PACKED' && unpaid))
+  const actions = actionsFor(order.status, order.fulfilment).filter((a) => !(a.to === 'PACKED' && unpaid))
   const awaitingUpi = order.paymentMode === 'UPI' && order.paymentStatus === 'UPI_SUBMITTED'
   const waitingForBuyer = order.paymentMode === 'UPI' && order.paymentStatus === 'UPI_PENDING'
   const style = STATUS_STYLE[order.status]
@@ -136,7 +138,7 @@ export function FarmerOrderDetail() {
       setRejectOpen(false)
       // Names the state she just moved it to, not a generic "saved" - the
       // whole doubt on this screen is which step the order is on now.
-      toast(`${t('ok.orderUpdated')}: ${t(statusLabelKey(res.order.status))}`)
+      toast(`${t('ok.orderUpdated')}: ${t(statusLabelKey(res.order.status, res.order.fulfilment))}`)
     } catch (e) {
       if (e instanceof ApiError) setActionErr(e.messageMr ?? e.message)
     } finally {
@@ -163,7 +165,10 @@ export function FarmerOrderDetail() {
 
       <div className="screen stack">
         <div className="row-between">
-          <Pill tone={style.tone} icon={<StatusIcon name={style.icon} />}>{t(statusLabelKey(order.status))}</Pill>
+          <div className="wrap-row">
+            <Pill tone={style.tone} icon={<StatusIcon name={style.icon} />}>{t(statusLabelKey(order.status, order.fulfilment))}</Pill>
+            <FulfilmentPill order={order} />
+          </div>
           <strong style={{ fontSize: 'var(--t-lg)' }}><Rupees value={order.total} /></strong>
         </div>
 
@@ -254,7 +259,8 @@ export function FarmerOrderDetail() {
           <div className="stack-sm">
             <div className="section-title">{t('ord.customer')}</div>
             <strong>{order.customerName}</strong>
-            <div className="small muted">{order.address}</div>
+            {/* On pickup this is her own pickup place, labelled so. */}
+            <div className="small muted">{order.fulfilment === 'pickup' ? `${t('ord.pickup')}: ${order.address}` : order.address}</div>
             {order.landmark && <div className="small dim">{order.landmark}</div>}
             <div className="small dim num">{order.pincode}</div>
             <div className="btn-row" style={{ marginTop: 'var(--s2)' }}>
@@ -317,7 +323,7 @@ export function FarmerOrderDetail() {
         onClose={() => setCancelOpen(false)}
         onCancelled={(o) => {
           setData({ ...data!, order: o })
-          toast(`${t('ok.orderUpdated')}: ${t(statusLabelKey(o.status))}`)
+          toast(`${t('ok.orderUpdated')}: ${t(statusLabelKey(o.status, o.fulfilment))}`)
         }}
       />
 
@@ -385,14 +391,18 @@ export function FarmerOrderDetail() {
   )
 }
 
-/** Draws the locked six-state happy path with the order's real timestamps. */
+/**
+ * Draws the locked happy path with the order's real timestamps. A pickup
+ * order has no road trip, so it skips OUT_FOR_DELIVERY.
+ */
 export function Timeline({ order }: { order: Order }) {
   const t = useT()
-  const current = stepIndex(order.status)
+  const path = order.fulfilment === 'pickup' ? HAPPY_PATH.filter((s) => s !== 'OUT_FOR_DELIVERY') : HAPPY_PATH
+  const current = path.indexOf(order.status)
 
   return (
     <div className="timeline">
-      {HAPPY_PATH.map((s, i) => {
+      {path.map((s, i) => {
         const at = order.events.find((e) => e.to === s)?.at
         const cls = i < current ? 'tl--done' : i === current ? 'tl--now' : 'tl--todo'
         return (
@@ -401,7 +411,7 @@ export function Timeline({ order }: { order: Order }) {
               {i < current ? <IconCheck aria-hidden="true" /> : i === current ? <StatusIcon name={STATUS_STYLE[s].icon} /> : ''}
             </div>
             <div>
-              <div className="tl__label">{t(statusLabelKey(s))}</div>
+              <div className="tl__label">{t(statusLabelKey(s, order.fulfilment))}</div>
               {at && (
                 <div className="tl__time">
                   {new Date(at).toLocaleString('en-IN', {

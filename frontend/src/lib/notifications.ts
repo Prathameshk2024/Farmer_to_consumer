@@ -1,4 +1,4 @@
-import type { AdminNoticeKind, Order, OrderStatus, Role, Farmer } from '@shared/types.js'
+import type { AdminNoticeKind, Fulfilment, Order, OrderStatus, Role, Farmer } from '@shared/types.js'
 import { statusLabelKey } from '@shared/orderFlow.js'
 
 /** Where tapping an admin decision goes. */
@@ -61,6 +61,8 @@ export interface Notice {
    * forever, including ones she had packed and delivered herself.
    */
   status?: OrderStatus
+  /** So the tag reads "ready for pickup" rather than "packed" on a pickup order. */
+  fulfilment?: Fulfilment
   /**
    * Who it concerns, when we know. A FARMER's order list carries
    * `customerName`; a customer's carries only `farmerId`, so on her side this
@@ -115,9 +117,16 @@ const FARMER_LINE: Partial<Record<OrderStatus, string>> = {
   CANCELLED: 'notif.sel.CANCELLED',
 }
 
-export function noticeLabelKey(status: OrderStatus, role: Role): string {
-  const line = role === 'farmer' ? FARMER_LINE[status] : CUSTOMER_LINE[status]
-  return line ?? statusLabelKey(status)
+/** A pickup order is ready to collect, then collected - not packed, then delivered. */
+const CUSTOMER_PICKUP_LINE: Partial<Record<OrderStatus, string>> = {
+  PACKED: 'notif.cus.PACKED_PICKUP',
+  DELIVERED: 'notif.cus.PICKED_UP',
+}
+
+export function noticeLabelKey(status: OrderStatus, role: Role, fulfilment?: Fulfilment): string {
+  const pickupLine = role !== 'farmer' && fulfilment === 'pickup' ? CUSTOMER_PICKUP_LINE[status] : undefined
+  const line = pickupLine ?? (role === 'farmer' ? FARMER_LINE[status] : CUSTOMER_LINE[status])
+  return line ?? statusLabelKey(status, fulfilment)
 }
 
 /**
@@ -160,9 +169,10 @@ export function buildFeed(orders: Order[], role: Role): Notice[] {
       id: o.id,
       orderId: o.id,
       at: last.at,
-      labelKey: noticeLabelKey(last.to, role),
+      labelKey: noticeLabelKey(last.to, role, o.fulfilment),
       title: orderItemSummary(o),
       status: o.status,
+      fulfilment: o.fulfilment,
       who: mine === 'farmer' ? o.customerName : '',
       total: o.total,
     })

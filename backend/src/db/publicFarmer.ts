@@ -17,6 +17,8 @@ import { publicLocation } from '@shared/geo.js'
  *  - UPI ID, QR image and whether it is set up - the thing a buyer pays to.
  *  - crops and a point rounded to about a kilometre, only with her consent -
  *    enough to find the village, not the house (`publicLocation`).
+ *  - offersDelivery, and the pickup place with its point rounded - a spot
+ *    she chose to publish, so it needs no home-location consent.
  *  - rating: her products' ratings taken together, passed in by the caller
  *    from `ratingsByFarmer` / `farmerRating`. Buyers rate products, never
  *    her directly; the stored `Farmer.rating` fields are never used.
@@ -44,5 +46,11 @@ export function publicFarmer(s: Farmer, rating: RatingSummary): PublicFarmer {
     ratingCount: rating.count,
     crops: s.crops,
     ...publicLocation(s),
+    offersDelivery: s.offersDelivery ?? true,
+    // A spot she chose to publish, so it needs no home-location consent - but
+    // its point is still rounded like hers.
+    ...(s.pickup
+      ? { pickup: { place: s.pickup.place, ...publicLocation({ ...s.pickup, locationConsent: true }) } }
+      : {}),
   }
 }

@@ -153,6 +153,10 @@ export function buildUpiLink(opts: {
   return `upi://pay?${p.toString()}`
 }
 
+/** The pickup place is a phrase: "अणदूर बस स्थानकाजवळ". */
+export const PICKUP_PLACE_MIN = 3
+export const PICKUP_PLACE_MAX = 120
+
 /**
  * WHAT SHE MAY CHANGE ABOUT HERSELF, AND WHAT IT HAS TO LOOK LIKE.
  *
@@ -171,7 +175,7 @@ export function validateFarmerProfile(
   p: Partial<Pick<Farmer,
     | 'name' | 'shopName' | 'about' | 'whatsapp'
     | 'deliveryFee' | 'freeDeliveryAbove' | 'minOrder'
-    | 'upiId' | 'pincodes'
+    | 'upiId' | 'pincodes' | 'offersDelivery' | 'pickup'
   >>,
 ): Record<string, string> {
   const f: Record<string, string> = {}
@@ -204,6 +208,16 @@ export function validateFarmerProfile(
   // She delivers to pincodes, so a typo here is an order she never receives.
   if (p.pincodes && p.pincodes.some((code) => !isValidPincode(code))) {
     f.pincodes = '6 अंकी पिनकोड टाका'
+  }
+
+  if (p.pickup) {
+    const n = p.pickup.place.trim().length
+    if (n < PICKUP_PLACE_MIN || n > PICKUP_PLACE_MAX) f.pickupPlace = 'माल कुठून न्यायचा ते थोडक्यात लिहा'
+  }
+  // A shop that neither delivers nor lets anyone collect takes no orders.
+  // Judged only when both are in hand, so a partial edit is not refused.
+  if ('offersDelivery' in p && 'pickup' in p && p.offersDelivery === false && !p.pickup) {
+    f.fulfilment = 'घरपोच किंवा शेतावरून नेणे - किमान एक निवडा'
   }
 
   return f
