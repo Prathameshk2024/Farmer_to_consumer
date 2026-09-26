@@ -91,9 +91,11 @@ function sources(dir: string): string[] {
 
 test('every t() key a screen asks for exists in the dictionary', () => {
   const missing = new Set<string>()
-  for (const file of sources(SRC)) {
+  // The dictionaries themselves are not screens; `translate()` there takes a key
+  // argument, not a literal.
+  for (const file of sources(SRC).filter((f) => !f.includes(join('src', 'i18n')))) {
     const src = readFileSync(file, 'utf8')
-    for (const m of src.matchAll(/bt\(\s*'([a-zA-Z0-9_.]+)'/g)) {
+    for (const m of src.matchAll(/\bt\(\s*'([a-zA-Z0-9_.]+)'/g)) {
       const key = m[1]!
       if (!(key in dictionaries.mr)) missing.add(`${key}  (${file.replace(SRC, 'src')})`)
     }
@@ -118,10 +120,11 @@ test('a key missing from one language falls back to Marathi, not English', () =>
   assert.equal(translate(dicts, 'en', 'nowhere'), 'nowhere')
 })
 
-test('no English copy assumes the reader is a woman', () => {
-  // Farmers are men and women; the old copy was written for women only.
+test('no English copy gives the farmer a gendered pronoun', () => {
+  // Farmers are men and women; the old copy was written for women only, and a
+  // later pass wrote "he". Buyers are anyone, so no pronoun is safe for them either.
   const bad = Object.entries(dictionaries.en)
-    .filter(([, v]) => /\b(she|her|hers|herself|women|woman|Shantai|Mahila)\b/i.test(v))
+    .filter(([, v]) => /\b(she|her|hers|herself|he|his|him|himself|women|woman|Shantai|Mahila)\b/i.test(v))
     .map(([k]) => k)
   assert.deepEqual(bad, [])
 })

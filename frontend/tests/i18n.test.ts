@@ -128,10 +128,11 @@ test('a key missing from one language falls back to Marathi, not English', () =>
   assert.equal(translate(dicts, 'en', 'nowhere'), 'nowhere')
 })
 
-test('no English copy assumes the reader is a woman', () => {
-  // Farmers are men and women; the old copy was written for women only.
+test('no English copy gives the farmer a gendered pronoun', () => {
+  // Farmers are men and women; the old copy was written for women only, and a
+  // later pass wrote "he". Buyers are anyone, so no pronoun is safe for them either.
   const bad = Object.entries(dictionaries.en)
-    .filter(([, v]) => /\b(she|her|hers|herself|women|woman|Shantai|Mahila)\b/i.test(v))
+    .filter(([, v]) => /\b(she|her|hers|herself|he|his|him|himself|women|woman|Shantai|Mahila)\b/i.test(v))
     .map(([k]) => k)
   assert.deepEqual(bad, [])
 })

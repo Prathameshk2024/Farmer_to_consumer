@@ -77,7 +77,8 @@ skimming.
 | UPI address | `UPI आयडी` | `UPI ID` |
 | to view | `पहा` | `पाहा` (in imperatives) |
 | slot | `जागा` | `स्लॉट`, `पॅक` (पॅक is ours, not hers) |
-| product | `उत्पादन` | `प्रॉडक्ट`, `माल` |
+| product | `उत्पादन` | `प्रॉडक्ट`; `माल` only for farm produce (next row) |
+| farm produce | `शेतमाल` or `माल`, alongside `उत्पादन` | — (for what a farmer grows, `माल` is the ordinary word: `तुमचा माल ग्राहकांना दिसेल`) |
 | farmer | `शेतकरी` | `विक्रेती`, `विक्रेता`, `उद्योजिका` (farmers are men and women) |
 | cart | `टोपली` | `कार्ट` |
 | payment | `भरणा` | `पेमेंट` in admin-facing text |

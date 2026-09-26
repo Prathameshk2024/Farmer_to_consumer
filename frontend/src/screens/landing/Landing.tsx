@@ -5,7 +5,7 @@ import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { homeFor, useAuth } from '../../store/AuthContext.js'
 import { Card, ConfirmSheet } from '../../components/ui.js'
 import {
-  IconBuy, IconCash, IconCheck, IconDelivery, IconFarmer, IconQr, IconSell, IconSend,
+  IconBuy, IconCash, IconCheck, IconDelivery, IconFarmer, IconGrowth, IconQr, IconSell, IconSend,
 } from '../../components/icons.js'
 import { clearRegisterTicket, liveTicket } from '../../lib/registerTicket.js'
 import { clearDraft, sessionStore } from '../auth/farmerDraft.js'
@@ -98,9 +98,11 @@ export default function Landing() {
           <img className="lhero__logo" src={logo} alt="" aria-hidden="true" />
           <h1 className="lhero__name">{t('app.name')}</h1>
           <p className="lhero__short">{t('app.nameShort')}</p>
+          <p className="lhero__band">{t('lp.band')}</p>
           <p className="lhero__tag">{t('app.tagline')}</p>
           <HeroArt />
           <p className="lhero__mission">{t('lp.mission')}</p>
+          <p className="lhero__intro">{t('lp.intro')}</p>
 
           <h2 className="lhero__who"><IconFarmer aria-hidden="true" /> {t('lp.farmers')}</h2>
           <div className="doors doors--pair">
@@ -121,7 +123,7 @@ export default function Landing() {
               <span className="door__t">{t('lp.register')}</span>
             </button>
             <button className="door" onClick={() => go('customer', 'login')}>
-              <span className="door__icon" aria-hidden="true"><IconFarmer /></span>
+              <span className="door__icon" aria-hidden="true"><IconBuy /></span>
               <span className="door__t">{t('lp.login')}</span>
             </button>
           </div>
@@ -132,6 +134,18 @@ export default function Landing() {
           <div className="sec-head"><h2 className="sec-head__t">{t('lp.needTitle')}</h2></div>
           <ul className="llist">
             {['lp.need1', 'lp.need2', 'lp.need3', 'lp.need4', 'lp.need5'].map((k) => (
+              <li key={k}>{t(k)}</li>
+            ))}
+          </ul>
+        </Card>
+
+        {/* 2b. Aims. The poster's "analysis with AI" line has no AI here. */}
+        <Card>
+          <div className="sec-head">
+            <h2 className="sec-head__t"><IconGrowth aria-hidden="true" /> {t('lp.goalsTitle')}</h2>
+          </div>
+          <ul className="llist">
+            {['lp.goal1', 'lp.goal2', 'lp.goal3', 'lp.goal4', 'lp.goal5'].map((k) => (
               <li key={k}>{t(k)}</li>
             ))}
           </ul>
@@ -182,13 +196,10 @@ export default function Landing() {
       <footer className="lfoot">
         <div className="wrap lfoot__in">
           <strong className="lfoot__quote">{t('lp.footerQuote')}</strong>
+          <span className="lfoot__motto">{t('lp.footerMotto')}</span>
           <a href={`tel:+91${SUPPORT_PHONE}`}>{t('lp.helpPhone', { phone: SUPPORT_PHONE })}</a>
-          <div className="row" style={{ gap: 'var(--s4)' }}>
-            {/* ponytail: no map screen yet, so the map link opens the shop,
-                where farmers are listed. Point it at /map when that exists. */}
-            <button className="linkbtn" onClick={() => go('customer', 'login')}>{t('lp.mapLink')}</button>
-            <a className="linkbtn" href={`tel:+91${SUPPORT_PHONE}`}>{t('common.help')}</a>
-          </div>
+          {/* The farmer map link comes back with /shop/map (Task 10). */}
+          <a className="linkbtn" href={`tel:+91${SUPPORT_PHONE}`}>{t('common.help')}</a>
         </div>
       </footer>
 

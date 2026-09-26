@@ -834,7 +834,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   place-items: center;
   cursor: pointer;
 }
-.qtybar__btn:active { background: rgba(46, 125, 50, 0.12); }
+.qtybar__btn:active { background: var(--primary-soft); }
 .qtybar__btn:disabled { opacity: 0.35; cursor: default; }
 .qtybar__n { font-weight: 800; color: var(--primary); font-size: var(--t-base); }
 .pcard__img { aspect-ratio: 1; background: var(--gold-soft); display: grid; place-items: center; font-size: 2.4rem; }
@@ -1217,7 +1217,9 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .lhero__logo { width: 88px; height: 88px; border-radius: 50%; display: block; }
 .lhero__name { margin: 0; font-size: clamp(1.4rem, 6vw, 1.9rem); line-height: 1.25; color: var(--maroon); text-wrap: balance; }
 .lhero__short { margin: 0; font-size: var(--t-base); font-weight: 700; color: var(--ink-2); }
-.lhero__tag { margin: 0; font-size: var(--t-base); font-weight: 600; color: var(--primary-dark); }
+.lhero__tag { margin: 0; font-size: var(--t-base); font-weight: 600; color: var(--maroon); }
+.lhero__band { margin: 0; font-size: var(--t-base); font-weight: 600; color: var(--ink-2); text-wrap: balance; }
+.lhero__intro { margin: 0; font-size: var(--t-base); color: var(--ink-2); text-align: left; text-wrap: pretty; }
 .lhero__mission { margin: 0; font-size: var(--t-base); color: var(--ink); text-wrap: pretty; }
 .lhero__who {
   align-self: stretch; display: flex; align-items: center; gap: var(--s2);
@@ -1247,6 +1249,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 }
 .college__line { margin: 0; font-size: var(--t-base); color: var(--ink-2); }
 .lfoot__quote { color: var(--maroon); font-size: var(--t-base); }
+.lfoot__motto { color: var(--ink-2); font-size: var(--t-base); font-weight: 600; }
 
 /* Footer */
 .lfoot { border-top: 1px solid var(--line); padding: var(--s5) 0; color: var(--ink-3); font-size: var(--t-sm); background: var(--surface); }
