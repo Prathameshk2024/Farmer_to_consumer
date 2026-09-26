@@ -570,48 +570,7 @@ Run these across both apps.
 
 ---
 
-## 16. Suite P — Android APK (React Native WebView)
-
-Only if you are testing the packaged build. The APK loads the deployed site
-(`docs/DEPLOY.md` §6), so run this after the Vercel deploy you mean to check.
-
-| ID | What to do | What must happen |
-|---|---|---|
-| ☐ P1 | Install the APK and open it | The deployed site loads, the same build as the web |
-| ☐ P2 | Turn off the network and open it | No English error dialog and no raw `net::ERR_…` text. Nothing is bundled into the APK, so it cannot show the shop offline |
-| ☐ P3 | Deploy a visible change to `frontend/`, close the app fully and reopen it | The change is there without reinstalling the APK |
-| ☐ P4 | Android hardware Back on a seller screen | Same behaviour as browser Back, and it never signs her out |
-| ☐ P5 | The photo picker | Opens the **gallery**. There is no camera capture |
-| ☐ P6 | Press the mic on a text field | Android asks for the microphone once; what she says fills the field |
-| ☐ P7 | Marathi text | Renders from Android's Noto Sans Devanagari, with nothing downloaded |
-| ☐ P8 | Copy the UPI ID on a payment screen, switch to PhonePe, paste, come back | The paste is the exact ID. On return, the 12-digit UTR box is scrolled into view and focused |
-| ☐ P9 | Tap a call button and a WhatsApp help button | The phone dialler and WhatsApp open, not a web page inside the app |
-
-Deep links into a shop (App Links + the Play Install Referrer API) are not
-built yet, so there is nothing to test there.
-
----
-
-## 17. Suite Q — Push notifications (APK)
-
-Only on a real phone with a build that carries `expo-notifications` and
-`google-services.json` (`docs/DEPLOY.md` §6, "Push notifications"), against a
-backend deployment with `FIREBASE_*` credentials set — without them the boot
-banner prints `Push  off` and there is nothing here to see. A second phone or
-browser profile is needed to act as the other side of each order.
-
-| ID | What to do | What must happen |
-|---|---|---|
-| ☐ Q1 | Sign in as a seller or a buyer inside the APK | Android's permission prompt appears now, not earlier on the landing page |
-| ☐ Q2 | With that seller signed in, place an order for her from a second device or browser — once with the app in the foreground, once backgrounded, once fully closed (swiped away) | Each time, "नवीन ऑर्डर आले आहे" arrives in the notification tray, with sound |
-| ☐ Q3 | Tap the notification once from a fully closed app, and once from a running one | Both taps open that order's screen, `/seller/orders/:id` |
-| ☐ Q4 | As the buyer, have the seller walk the order through accept, pack, send out and deliver (or reject); then switch the app's language to English and repeat with another order | A notification arrives for every step, in Marathi first and in English after the switch |
-| ☐ Q5 | Log out on the phone, confirm nothing more arrives, then sign in as a different seller or buyer on the same phone | Nothing arrives to the logged-out session; only the newly signed-in person's notifications arrive afterward |
-| ☐ Q6 | Repeat Q2–Q3 on at least one Xiaomi, Oppo, Vivo or Realme phone, with Autostart allowed and battery use set to "No restrictions" | Notifications still arrive with the app fully closed |
-
----
-
-## 18. Cross-cutting regression matrix
+## 16. Cross-cutting regression matrix
 
 Re-run this short list after **any** change to auth, the store, or `shared/`.
 
@@ -628,7 +587,7 @@ Re-run this short list after **any** change to auth, the store, or `shared/`.
 
 ---
 
-## 19. Bug report template
+## 17. Bug report template
 
 ```
 ID:            (the test ID, e.g. H12)
@@ -649,7 +608,7 @@ Reproducible:  always / sometimes / once
 
 ---
 
-## 20. Documentation that is out of date
+## 18. Documentation that is out of date
 
 Two things in `CLAUDE.md` no longer match the code. Test the **code**, not the doc:
 

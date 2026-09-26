@@ -28,7 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 शांताई महिला बाजार / Shantai Mahila Bazar — a digital marketplace for rural women entrepreneurs in Maharashtra. Three user-facing surfaces, one API:
 
-- **frontend/** — the seller + customer app (React/Vite; the Android APK is a React Native WebView that loads it from Vercel — see *Deployment shape*)
+- **frontend/** — the seller + customer app (React/Vite)
 - **admin/** — the admin console (React/Vite, deployed separately)
 - **backend/** — Express API serving all three, including `/api/admin/*`
 - **shared/** — domain types and rules imported by all of the above
@@ -127,7 +127,7 @@ Firebase is **server-side only**, via `firebase-admin` with a service account. T
 
 ### Deleting an account
 
-Google Play requires that an app which lets people make an account lets them delete it — in the app **and** from a web page a browser can reach without it. `shared/src/accountClose.ts` is the rule, `backend/src/db/accountClose.ts` applies it, `backend/tests/account-close.test.ts` holds it, and `CloseAccountSheet` in `frontend/src/components/CloseAccount.tsx` is the screen. The public page is `/delete-account` (`screens/landing/DeleteAccount.tsx`), linked from the landing footer — **that URL is what goes in the Play Console data safety form**.
+`shared/src/accountClose.ts` is the rule, `backend/src/db/accountClose.ts` applies it, `backend/tests/account-close.test.ts` holds it, and `CloseAccountSheet` in `frontend/src/components/CloseAccount.tsx` is the screen.
 
 - **The row stays and the person is erased.** `scrubSeller()` empties every field that is her — phone, name, photo, village, UPI, the readiness answers, an admin's notices about her — and leaves the id, `status: 'CLOSED'`, the `womenBizId` printed on packaging, and the money. Three reasons it is not a row delete: a past order is the *buyer's* record and the ₹50 is the programme's accounts (both of which Play allows keeping, disclosed); `isBulkDelete()` refuses a persist that removes more than half a collection, and a seller with five listings in a small catalogue is more than half of it; and orders and the admin console look a seller up by id, so a dangling id is a blank shop name on somebody else's screen. `SELLER_PII_FIELDS` is the one list, walked by the test — a field added to `Seller` and forgotten there is a phone number surviving a deletion.
 - **Her phone goes back into circulation**, because registration's uniqueness check compares stored phones and hers is now blank. Closing is not a ban.
@@ -137,7 +137,6 @@ Google Play requires that an app which lets people make an account lets them del
 - **An order in flight refuses the close** (409 with `openOrders`), on both sides. The sheet names the orders instead of printing an error: a buyer waiting on a delivery cannot be left holding an order whose seller has vanished, and she already has the buttons to finish or cancel one.
 - **A closing buyer leaves the orders she placed**: `customerName` becomes the `ग्राहक` placeholder, `customerPhone` and `address` are emptied, her reviews keep their stars and lose her name. The pincode stays — it is a delivery area, not a doorstep.
 - Her Cloudinary images go too: the seller's bank QR by its stored public id, each payment screenshot by one parsed out of its URL (`publicIdFromUrl`), since a payment stores only the URL and an image nobody can name is one nobody can ever delete.
-- **Still missing for Play:** there is no privacy policy page in this app, and the retention above (orders, the ₹50 ledger) has to be written down in one before submission.
 
 ### Order state machine
 
@@ -448,24 +447,13 @@ A listing that still has no picture — an old one, or Cloudinary off — falls 
 
 ### The updates list
 
-`frontend/src/lib/notifications.ts` is **derived, never stored**. Every line comes from `OrderEvent`s already on the order, or from `seller.notices` written by the admin handler that made the change — both already fetched. A `notifications` collection would be a second copy of facts we hold, wrong the first time somebody forgot to write a row. This is not push; the app has to be open — see *Push notifications* below for the tray notification the same events also send.
+`frontend/src/lib/notifications.ts` is **derived, never stored**. Every line comes from `OrderEvent`s already on the order, or from `seller.notices` written by the admin handler that made the change — both already fetched. A `notifications` collection would be a second copy of facts we hold, wrong the first time somebody forgot to write a row. This is not push; the app has to be open.
 
 - **One row per ORDER, not per event.** An order that is accepted, packed, sent out and delivered is one row that changes, named after what is in it (`itemSummary`), wearing its state as a `Pill` drawn from `STATUS_STYLE` — the same colour and icon its order screen uses. Four rows repeating the same total, one per verb, is a history read back rather than an answer to "where is my order".
 - **The tag is the order's own `status`, not the last event the other side caused.** On the seller's side those are rarely the same thing — a customer only ever causes `PLACED` and `CANCELLED` — so a tag drawn from the buyer's last move said "new order" on every row for ever, including ones she had packed and delivered herself.
 - Timed by the **latest** other-side event, which is what the bell's count compares against, so an order that moves again after she looked counts once rather than once per step. There is no per-row "new" mark: the tag already says where the order is, and a badge beside it is two things competing to be the thing she reads.
 - **The other side's actions only** (`e.by !== mine`). A seller does not need telling she accepted an order two seconds ago.
 - An admin decision has no order and no product, so it carries no `title` and prints its own sentence instead. `noticeLabelKey` still writes those sentences per side — "Order placed" is a fact about a row, "You have a new order" is a thing to go and do.
-
-### Push notifications
-
-Phone notifications (tray, sound, app closed) for the APK, sent by the API through `firebase-admin/messaging`. Spec: `docs/superpowers/specs/2026-09-21-push-notifications-design.md`.
-
-- **The token lives on the session** (`SessionRecord.pushToken`, `pushLang`), not on the person and not in a collection of its own. So logging out or a 401 stops the notifications at once, and the boot read count is unchanged. `registerPushToken()` (`push/register.ts`) **takes the token off every other session**: one phone buzzes for whoever signed in on it last — the mother and daughter, the field coordinator's handset.
-- **Five triggers, each telling the other side only:** order created → seller; advance (accept, pack, send, deliver, reject) → buyer; cancel → whoever did not cancel; UTR submitted → seller; any `appendNotice()` → seller (through `onNotice()`, set in `index.ts`). The subscription reminder week is not sent: no code runs when it begins.
-- **The text is the updates list's text.** `shared/src/pushText.ts` copies the `notif.*` lines, and `frontend/tests/pushText.test.ts` holds them equal to the dictionary. The one new line ("buyer says I paid") is lifted word for word from `cancel.sel.q3Paid` / `refund.claimedBody`. It is sent in the app's language (`wb.lang`), not the phone's.
-- **A send never fails a route.** Routes call `void notify…()` after `save()`; `sendPush()` never rejects. Tokens FCM reports as unregistered (the app was uninstalled, or its data cleared) are cleared from their sessions; any other failure is logged with its FCM error code and the token is left alone. Without Firestore the transport is unset and every send is a no-op (`Push  off` in the banner).
-- **The handshake:** the page posts `{ type: 'push:enable' }` (`lib/pushBridge.ts`, only inside the APK and only when a seller or buyer is signed in); the wrapper asks Android's permission, gets the FCM token and calls `window.__smbPushToken(token)`; the page registers it with `POST /api/push/token`. A tap loads `data.path`, which the wrapper accepts only if it starts with `/` and not `//` or `/\`.
-- Tests must never call the real `save()`: push functions take `persist`, and tests pass a no-op.
 
 ### Slots and subscription
 
@@ -477,7 +465,7 @@ Phone notifications (tray, sound, app closed) for the APK, sent by the API throu
 
 - **Only one date is stored: `Seller.subscriptionEndsAt`.** Expiry writes nothing — no product flipped to `PAUSED`, her `isOpen` switch untouched, no slot released. Public routes ask `canSellNow()` (`ACTIVE` and not expired): `publiclyVisible`, serviceability, `GET /sellers/:id`, `POST /orders`, and submitting a listing. So renewal is the date moving, and "everything exactly as before" — same packs, same products, same slots — is true by construction. Orders already in progress carry on: she can still deliver, cancel and refund.
 - **Six calendar months from the admin's approval**, counted in IST, clamped at month end (`addMonths`). One date for the whole shop however many packs she has; a **flat ₹50 `RENEWAL`** renews all of them. A `PACK` bought mid-term adds slots and leaves the date alone. A renewal paid in the reminder week adds six months to the *current end*, so no paid days are lost. Any payment approved for an already-paused shop reopens it from the approval.
-- **What she may pay for is `payableKinds()`**, sent to her screen as `payable` and enforced on submit: a pack when her slots are full, a renewal from `RENEW_REMINDER_DAYS` (7) before the end, and *only* a renewal once paused. `SubscriptionPayment.kind` records which; a request with no `kind` (an older APK) means the most urgent open one.
+- **What she may pay for is `payableKinds()`**, sent to her screen as `payable` and enforced on submit: a pack when her slots are full, a renewal from `RENEW_REMINDER_DAYS` (7) before the end, and *only* a renewal once paused. `SubscriptionPayment.kind` records which; a request with no `kind` (an older client) means the most urgent open one.
 - **Every screen is told the state by the API** (`subscriptionView`, on `/sellers/me`, `/products/mine`, `/sellers/me/subscription`, `/admin/sellers[/:id]`) — the server's clock, never the phone's.
 - **The reminder is derived, like the rest of her updates list:** `subscriptionFeed()` turns the view into one row (the reminder week, then "paused — renew"); an approved renewal writes a `SUBSCRIPTION_RENEWED` notice carrying the new date. Her home and products screens show `SubscriptionNotice`; a paused shop's live listings read "paused" on her list while their stored status stays `LIVE`.
 - **Submitting a payment no longer sets `PAYMENT_SUBMITTED` on an `ACTIVE` seller.** It used to, which hid a paying seller's entire shop from the catalogue while her second pack waited in the queue. The waiting screen settles on her latest payment's status for the same reason.
@@ -503,8 +491,6 @@ wrong A/C under a QR is worse than none; the payee NAME is stored exactly as
 printed on the poster so she can check it against what her UPI app shows.
 
 Both payment screens (this one and the buyer's order screen) offer a QR, written steps, the UPI ID with a copy button, and a UTR box, in that order. **A phone cannot scan its own screen**, so the two routes that work from one handset are: take a screenshot of the QR, then scan it from the gallery inside PhonePe or Google Pay; or copy the UPI ID and paste it there. `PaySteps` in `components/PayFromPhone.tsx` writes the first route out one tap per line — screenshot (power + volume-down), open the app, scan, gallery icon, check name and amount, come back for the UTR.
-
-**There is no "Save QR to phone" button.** There was one: in a browser the page saved the PNG itself, and inside the APK's WebView — which drops a download made in the page and has no share sheet — it opened `GET /api/qr/upi.png?download=1&link=…` for the wrapper to hand to Android's downloader. It did not fit the WebView well enough to be trusted, and a screenshot is something every phone already does, so the button went and the steps say how to take one instead. `routes/qr.routes.ts` is still served but nothing in the app calls it now.
 
 **There is no "Pay" button on a `upi://pay` link, and it must not come back while payees are personal UPI IDs.** It existed twice. The second time it opened PhonePe and Google Pay correctly, and they refused the payment with "declined for security reasons": UPI apps treat a payment that *another app* starts, to a *personal* UPI ID, as the shape of a scam, and every payee here — sellers and the college — is one. Nothing in the link fixes that; the same code scanned from the gallery pays fine (tested on real phones, 14 September 2026). A pay link works again only for business UPI IDs (PhonePe Business, Paytm for Business…), and then only for those accounts. `buildUpiLink()` sends no `tr` for the same reason: a merchant field on a personal ID is one more thing the risk check reads as a fake shop.
 
@@ -556,8 +542,7 @@ existed has none, and its unit alone is still the honest answer.
 `shared/src/report.ts` holds the reasons; `POST /reports` (customer only)
 stores one row per buyer per thing — a second tap is a woman making sure it
 went, not a second complaint, and is answered as if it were the first. This is
-the in-app reporting Google Play requires of an app carrying what its users
-write, and the only moderation signal that arrives *after* a listing is live.
+the only moderation signal that arrives *after* a listing is live.
 
 - **A report changes nothing on its own.** The listing stays LIVE: one annoyed
   buyer must not be able to empty a woman's shop. It joins the admin console's
@@ -636,7 +621,7 @@ Both landing photo strips are one component, `PhotoRotator`, cross-fading every 
 
 ## Deployment shape
 
-One Cloud Run service (`shantai-api`, `asia-south1` — the API) and two Vercel projects from this same repo, distinguished only by Root Directory (`frontend` and `admin`), plus an Android APK that is not built from this repo at all (below). `VITE_API_URL` is read at **build** time, so changing it means redeploying.
+One Cloud Run service (`shantai-api`, `asia-south1` — the API) and two Vercel projects from this same repo, distinguished only by Root Directory (`frontend` and `admin`). `VITE_API_URL` is read at **build** time, so changing it means redeploying.
 
 **The app is the `prathamesh2` branch, and both Vercel projects must track it by name.** `main` holds only the initial commit and `prathamesh` — GitHub's default branch — is an older copy from 8 September with no `admin/` and a lockfile missing rollup's Linux binary, so every default Vercel reaches for builds the wrong code or fails outright. The two branches share nothing after the initial commit; do not merge `prathamesh` in.
 
@@ -651,20 +636,7 @@ How the container is built is not recorded in this repo: there is no Dockerfile 
 
 **Both apps route in the browser, so both need `vercel.json`** — one catch-all rewrite to `index.html`, already committed in each folder. Without it every URL but the home page 404s on reload, which is the first thing anyone does with a link they were sent.
 
-**Neither Vite config sets `base`, and neither should.** The default absolute `/assets/…` is the only path right at every route depth: a relative one under the SPA rewrite makes `/seller/orders` fetch `/seller/assets/index-xxx.js`, receive `index.html`, and render a blank page. A `--mode capacitor` build with `base: './'`, `cap:*` scripts, `capacitor.config.json` and the `offline.html` its `errorPath` named all existed for a Capacitor APK that never shipped, and were removed. Nothing in the repo is Capacitor now; do not add a file that only a Capacitor build would read. The last two came back once, in `e0801ab` ("Preserve Capacitor and offline support"), with nothing reading them, and were removed again on 21 September 2026 — a dropped connection is `components/OfflineScreen.tsx` once the site has loaded, and the wrapper's `renderError` before it has.
-
-**The Android APK is a React Native WebView, not a build of this repo.** It is an Expo project in its own repository, **`github.com/Prathameshk2024/Android_app`, branch `sub-main`**, where `app/index.tsx` is the whole app, and its one screen loads the production frontend, `https://shantai-mahila-bajar-app-frontend.vercel.app/`, over the network. `sub-main` is the only copy with both push and the navigation fixes; that repo's `main` and `ArpitaHanjagi/Android_App` are older and must not be built from. `docs/DEPLOY.md` §6 has the detail; what matters when changing code here:
-
-- **A Vercel deploy of `frontend/` is an APK update.** The APK is rebuilt only when the wrapper changes — or that URL does, because it is hard-coded there.
-- **It carries expo-notifications and google-services.json** for push; a change to either needs a rebuild, and phones on an older APK simply get no notifications.
-- **The APK needs the network to open at all.** Nothing is bundled into it, so "works offline in the APK" is never a reason for a choice in `frontend/`. A phone with no network at launch never reaches this site, so that screen is the wrapper's (`renderError` in `app/index.tsx`); once the site has loaded, `components/OfflineScreen.tsx` covers a connection that drops.
-- **Its origin is that Vercel URL**, so the `CORS_ORIGIN` entry and MSG91's allowed domain for the web app already cover it.
-- **It is Android System WebView, not Chrome.** A web API that works in the browser still has to be tried on a phone inside the APK — `navigator.share` is absent there. Voice input and the copy button were checked inside it on 15 September 2026.
-- **Back in the APK is `window.history.back()`, never native `goBack()`**, which loses `window.history.state` and with it the scroll memory in *Scroll position*. The wrapper also reopens on her last page (an allow-list of routes) and injects `overscroll-behavior-x: none`; a notification tap outranks the saved page.
-- **Permissions are declared in the wrapper, not here**, and several are declared that nothing uses — `DEPLOY.md` §6 *Permissions* has the table and what to remove before a Play submission. Two are load-bearing in ways that are not obvious: **`CAMERA` stays declared and never granted**, because that is what keeps `react-native-webview`'s picker to the gallery alone (removing it *adds* a camera option); and **the wrapper never requests `RECORD_AUDIO` at runtime**, so the mic on a fresh install is untested. A refused notification permission is currently invisible to her and to the page.
-- **The wrapper intercepts some links.** Any scheme other than `http(s)`, `data:`, `blob:` and `about:` (`tel:`, `upi:`, `whatsapp:`) is handed to Android to open another app, and any URL containing `.pdf`, `.csv`, `.xlsx`, `.doc`, `.txt`, `.zip`, `download=`, `export=` or `attachment=` goes to a native downloader instead of loading — so a page link that merely contains one of those never opens in the app.
-
-Do not use Firebase Dynamic Links — it shut down on 25 August 2025. Deferred deep linking, when it is built, will use Android App Links plus the Play Install Referrer API; the wrapper has neither yet.
+**Neither Vite config sets `base`, and neither should.** The default absolute `/assets/…` is the only path right at every route depth: a relative one under the SPA rewrite makes `/seller/orders` fetch `/seller/assets/index-xxx.js`, receive `index.html`, and render a blank page. A `--mode capacitor` build with `base: './'`, `cap:*` scripts, `capacitor.config.json` and the `offline.html` its `errorPath` named all existed for a Capacitor APK that never shipped, and were removed. Nothing in the repo is Capacitor now; do not add a file that only a Capacitor build would read. The last two came back once, in `e0801ab` ("Preserve Capacitor and offline support"), with nothing reading them, and were removed again on 21 September 2026 — a dropped connection is `components/OfflineScreen.tsx`.
 
 ## Not built yet
 

@@ -7,7 +7,7 @@ subscription payments.
 ## Layout
 
 ```
-frontend/   seller + customer app  (React + Vite, also shipped inside an Android APK)
+frontend/   seller + customer app  (React + Vite)
 admin/      admin console          (React + Vite, deployed as its own site)
 backend/    Express API for both   (includes /api/admin/*)
 shared/     types and domain rules imported by all three
@@ -63,16 +63,6 @@ secret such as `MSG91_AUTH_KEY` in one.
 The API runs on Cloud Run. `frontend/` and `admin/` are two Vercel projects
 built from the `prathamesh2` branch. Follow [`docs/DEPLOY.md`](docs/DEPLOY.md);
 several required settings are not the platform defaults.
-
-## Android APK
-
-The APK is not built from this repo. It is a separate Expo project, a React
-Native WebView whose one screen loads the deployed `frontend/` from Vercel, so
-deploying `frontend/` updates the app on every phone. Rebuild the APK only when
-the wrapper itself changes. Its source is
-[`Prathameshk2024/Android_app`](https://github.com/Prathameshk2024/Android_app),
-branch `sub-main`. See
-[`docs/DEPLOY.md`](docs/DEPLOY.md#6-the-android-build).
 
 ## Further reading
 

@@ -15,18 +15,6 @@ import type { AdminNotice, AdminNoticeKind, Seller } from '@shared/types.js'
  */
 export const NOTICE_LIMIT = 30
 
-type NoticeListener = (seller: Seller, notice: AdminNotice) => void
-let listener: NoticeListener | null = null
-
-/**
- * Hear every notice as it is written. index.ts sets this once at boot, to send
- * the phone notification; tests leave it unset. A listener that throws never
- * stops the notice itself being recorded.
- */
-export function onNotice(fn: NoticeListener | null): void {
-  listener = fn
-}
-
 export function appendNotice(
   seller: Seller,
   kind: AdminNoticeKind,
@@ -35,10 +23,5 @@ export function appendNotice(
 ): AdminNotice[] {
   const notice: AdminNotice = { id: `${kind}:${at}`, at, kind, ...extra }
   seller.notices = [...(seller.notices ?? []), notice].slice(-NOTICE_LIMIT)
-  try {
-    listener?.(seller, notice)
-  } catch (err) {
-    console.warn('[notices] listener failed:', err instanceof Error ? err.message : err)
-  }
   return seller.notices
 }

@@ -216,7 +216,7 @@ export function closeCustomer(db: Db, customerId: string, phone: string, now = D
  * Sign her out everywhere and take her number and phone off the session rows.
  *
  * Revoked rows are kept a week for auditing (`pruneSessions`), and each one
- * carried her full phone and FCM token all that week. Worse, a seller who
+ * carried her full phone all that week. Worse, a seller who
  * signed in during her seven days to look at the notice, and neither restored
  * nor logged out, held a LIVE session into an erased shop. Blanking rather
  * than deleting the rows keeps this clear of `isBulkDelete`.
@@ -226,8 +226,6 @@ function forgetSessions(db: Db, userId: string, now: number): void {
   for (const session of db.sessions) {
     if (session.userId !== userId) continue
     session.phone = ''
-    delete session.pushToken
-    delete session.pushLang
   }
 }
 

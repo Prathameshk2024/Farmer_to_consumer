@@ -1603,18 +1603,6 @@ pre, code { overflow-x: auto; max-width: 100%; }
   gap: var(--s2);
   pointer-events: none;
 }
-/* Notifications refused (components/PushBridge.tsx). Sits where the toasts
-   do, above the bottom nav, and under them so a toast still reads. */
-.pushoff {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(var(--nav-h) + var(--safe-b) + var(--s3));
-  z-index: 135;
-  width: min(calc(100% - var(--s5)), 480px);
-  box-shadow: var(--shadow);
-}
-.pushoff__actions { display: flex; gap: var(--s2); margin-top: var(--s2); }
 .toast {
   display: flex;
   align-items: center;

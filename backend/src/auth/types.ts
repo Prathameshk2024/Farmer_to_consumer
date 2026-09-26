@@ -33,14 +33,6 @@ export interface SessionRecord {
   revokedReason?: 'logout' | 'admin' | 'evicted' | 'password-change'
   /** A coarse device label, so "sign out my other phone" means something. */
   client?: string
-  /**
-   * The phone's FCM token, set by POST /api/push/token. It lives on the
-   * session, not on the person, so logging out stops the notifications, and
-   * the next woman to sign in on the same phone takes it over (push/register.ts).
-   */
-  pushToken?: string
-  /** The language she reads notifications in: the app's choice, not the phone's. */
-  pushLang?: 'mr' | 'en'
 }
 
 /**

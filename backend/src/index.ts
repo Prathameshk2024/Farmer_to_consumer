@@ -16,20 +16,15 @@ import { reportsRouter } from './routes/reports.routes.js'
 import { adminRouter } from './routes/admin.routes.js'
 import { flush, getDb, initStore, resetDb, save } from './db/store.js'
 import { uploadsRouter } from './routes/uploads.routes.js'
-import { qrRouter } from './routes/qr.routes.js'
 import { customersRouter } from './routes/customers.routes.js'
-import { pushRouter } from './routes/push.routes.js'
 import {
-  ALLOW_DEV_RESET, CORS_ORIGIN, describeConfig, PORT as CONFIG_PORT, usingFirestore,
+  ALLOW_DEV_RESET, CORS_ORIGIN, describeConfig, PORT as CONFIG_PORT,
 } from './config.js'
 import { sellerWeek } from './db/analytics.js'
 import { purgeArchived, purgeRejected } from './db/moderation.js'
 import { sweepClosedAccounts } from './db/accountClose.js'
 import { backfillSubscriptionTerms } from './db/subscription.js'
 import { splitOrderReviews } from './db/reviews.js'
-import { onNotice } from './db/notices.js'
-import { fcmTransport, setPushTransport } from './push/send.js'
-import { notifyAdminNotice } from './push/notify.js'
 
 const app = express()
 const PORT = CONFIG_PORT
@@ -110,9 +105,7 @@ app.use('/api/customers', customersRouter)
 app.use('/api/orders', ordersRouter)
 app.use('/api/reports', reportsRouter)
 app.use('/api/complaints', complaintsRouter)
-app.use('/api/push', pushRouter)
 app.use('/api/uploads', uploadsRouter)
-app.use('/api/qr', qrRouter)
 
 // Admin has no frontend in this repo by design - the admin site is separate.
 app.use('/api/admin', adminRouter)
@@ -200,14 +193,6 @@ function startHousekeeping(): void {
 
 async function main() {
   await initStore()
-  // Phone notifications go through the same Firebase project as the database.
-  // Without Firestore (local development) the transport stays unset and every
-  // send is a no-op.
-  if (usingFirestore) setPushTransport(fcmTransport())
-  // Admin decisions are written from six handlers; hearing them here means
-  // none of them can forget to tell her. setImmediate runs it after the
-  // handler has saved and replied.
-  onNotice((seller, notice) => setImmediate(() => void notifyAdminNotice(getDb(), seller.id, notice)))
   // Listings rejected under the old 48-hour rule go now, before the first
   // request can be served one that should not exist. The archived rows are
   // tombstones from when deleting a product only stamped it:

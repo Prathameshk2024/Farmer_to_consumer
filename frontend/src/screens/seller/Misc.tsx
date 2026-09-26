@@ -278,12 +278,6 @@ export function SellerHelp() {
             <div>• {t('help.faq3')}</div>
           </div>
         </Card>
-
-        {/* Phones that kill closed apps to save battery also kill their notifications. */}
-        <Card>
-          <SectionTitle>{t('help.pushTitle')}</SectionTitle>
-          <div className="small">{t('help.pushBody')}</div>
-        </Card>
       </div>
 
       <PageTour id="seller.help" />

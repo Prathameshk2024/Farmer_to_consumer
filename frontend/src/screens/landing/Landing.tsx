@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import type { Role } from '@shared/types.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { homeFor, useAuth } from '../../store/AuthContext.js'
@@ -353,11 +353,6 @@ export default function Landing() {
             {t('lp.footer')}
           </div>
           <div>Shantai Mahila Bazar</div>
-          {/* Google Play wants the deletion page reachable in a browser by
-              somebody who no longer has the app. A link nobody can find is
-              a URL in a form, so it is on the one page that is always
-              public. */}
-          <div><Link to="/delete-account">{t('del.title')}</Link></div>
         </div>
       </footer>
 

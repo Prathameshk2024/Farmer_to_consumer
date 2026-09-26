@@ -1,9 +1,34 @@
-import type { Order, OrderStatus, Role, Seller } from '@shared/types.js'
+import type { AdminNoticeKind, Order, OrderStatus, Role, Seller } from '@shared/types.js'
 import type { SubscriptionView } from '@shared/subscription.js'
 import { statusLabelKey } from '@shared/orderFlow.js'
-import { ADMIN_NOTICE_PATH, orderItemSummary, shortDate } from '@shared/pushText.js'
 
-export { shortDate }
+/** Where tapping an admin decision goes. */
+const ADMIN_NOTICE_PATH: Record<AdminNoticeKind, string | undefined> = {
+  SLOTS_GRANTED: '/seller/products',
+  SLOTS_REVOKED: '/seller/subscription',
+  PAYMENT_APPROVED: '/seller/products',
+  PAYMENT_REJECTED: '/seller/subscription',
+  BLOCKED: undefined,
+  UNBLOCKED: undefined,
+  PRODUCT_APPROVED: '/seller/products',
+  PRODUCT_REJECTED: '/seller/products',
+  SUBSCRIPTION_RENEWED: '/seller',
+}
+
+/** What the order is, in the words on the listing. "+2" counts the rest. */
+function orderItemSummary(o: Pick<Order, 'id' | 'items'>): string {
+  const [first, ...rest] = o.items ?? []
+  if (!first) return o.id
+  return rest.length ? `${first.name} +${rest.length}` : first.name
+}
+
+/** "15 Mar 2027" - Latin digits, the way every other date in the app is printed. */
+export function shortDate(iso: string | undefined): string {
+  const d = new Date(iso ?? '')
+  return Number.isNaN(d.getTime())
+    ? ''
+    : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })
+}
 
 /**
  * WHAT CHANGED SINCE SHE LAST LOOKED
@@ -18,12 +43,6 @@ export { shortDate }
  * A `notifications` collection would be a second copy of facts we hold, kept
  * in step by hand, and wrong the first time somebody forgot to write a row.
  * Nothing here needs a new endpoint or a new table.
- *
- * Phone notifications exist now too (see CLAUDE.md "Push notifications") -
- * the tray, sound and vibration for a phone that is closed or asleep. This
- * list is still the in-app view: what she sees once she opens it, kept for as
- * long as `visibleFeed` below says a row stays relevant, not just the instant
- * a tray notification arrives and is dismissed.
  */
 
 export interface Notice {
@@ -289,9 +308,7 @@ export function unreadCount(feed: Notice[], userId: string, now = Date.now()): n
  * approved by hand deserves to be told rather than to check. These come off
  * her own seller record (`seller.notices`), written by the admin handler that
  * made the change, so this needs no new endpoint: `api.me()` already carries
- * them. The path each kind opens (`ADMIN_NOTICE_PATH`) lives in
- * `shared/src/pushText.ts`, alongside the FCM notification the same decision
- * sends, so a tap on the tray and a tap on this row land in the same place.
+ * them. The path each kind opens is `ADMIN_NOTICE_PATH` above.
  */
 export function adminFeed(seller: Seller | null | undefined): Notice[] {
   return (seller?.notices ?? []).map((n): Notice => {

@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { Seller } from '@shared/types.js'
-import { NOTICE_LIMIT, appendNotice, onNotice } from '../src/db/notices.js'
+import { NOTICE_LIMIT, appendNotice } from '../src/db/notices.js'
 
 /**
  * An admin approves her ₹50 and five slots appear. Nothing told her: she had
@@ -51,22 +51,3 @@ test('the trail is trimmed to the newest few', () => {
   assert.equal(s.notices?.at(-1)?.n, NOTICE_LIMIT + 4)
 })
 
-/**
- * The phone notification rides on the same moment the notice is written, so
- * no admin handler can record a decision and forget to tell her.
- */
-test('every appended notice is handed to the listener', () => {
-  const heard: string[] = []
-  onNotice((_seller, notice) => heard.push(notice.kind))
-  appendNotice({ id: 's1', notices: [] } as unknown as Seller, 'SLOTS_GRANTED', { n: 5 })
-  onNotice(null)
-  assert.deepEqual(heard, ['SLOTS_GRANTED'])
-})
-
-test('a listener that throws does not stop the notice being written', () => {
-  onNotice(() => { throw new Error('boom') })
-  const seller = { id: 's1', notices: [] } as unknown as Seller
-  appendNotice(seller, 'UNBLOCKED')
-  onNotice(null)
-  assert.equal(seller.notices?.length, 1)
-})

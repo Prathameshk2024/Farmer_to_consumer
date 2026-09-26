@@ -194,7 +194,7 @@ test('no session outlives the erasing, and none keeps her number', () => {
   const now = Date.now()
   const session = (id: string, revokedAt?: string) => ({
     id, role: 'seller' as const, userId: 's1', sellerId: 's1', phone: '9822011223',
-    pushToken: 'fcm-her-phone', createdAt: '', lastSeenAt: new Date(now).toISOString(),
+    createdAt: '', lastSeenAt: new Date(now).toISOString(),
     expiresAt: new Date(now + 90 * DAY).toISOString(), revokedAt,
   })
   // One revoked when she asked; one from signing in during the week to look
@@ -206,7 +206,6 @@ test('no session outlives the erasing, and none keeps her number', () => {
   for (const x of db.sessions) {
     assert.ok(x.revokedAt, `session ${x.id} still signs somebody in as an erased shop`)
     assert.equal(x.phone ?? '', '', `session ${x.id} kept her phone number`)
-    assert.equal(x.pushToken, undefined, `session ${x.id} would still buzz her phone`)
   }
 })
 
@@ -214,7 +213,7 @@ test('a closing buyer leaves no phone number on her sessions either', () => {
   const db = emptyDb()
   db.sessions.push({
     id: 'b1', role: 'customer', userId: 'c-9876543210', customerId: 'c-9876543210',
-    phone: '9876543210', pushToken: 'fcm-buyer', createdAt: '', lastSeenAt: new Date().toISOString(),
+    phone: '9876543210', createdAt: '', lastSeenAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 90 * DAY).toISOString(),
   })
 
@@ -222,7 +221,6 @@ test('a closing buyer leaves no phone number on her sessions either', () => {
 
   assert.ok(db.sessions[0].revokedAt)
   assert.equal(db.sessions[0].phone ?? '', '')
-  assert.equal(db.sessions[0].pushToken, undefined)
 })
 
 test('her phone number goes back into circulation', () => {
