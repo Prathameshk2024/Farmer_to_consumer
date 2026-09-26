@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import {
-  FiAlertTriangle, FiBarChart2, FiCheck, FiCheckCircle, FiChevronLeft,
+  FiAlertTriangle, FiBarChart2, FiTrendingUp, FiCheck, FiCheckCircle, FiChevronLeft,
   FiChevronRight, FiClipboard, FiCopy,
   FiFileText, FiHelpCircle, FiTruck, FiHome, FiInbox, FiKey, FiPackage, FiShoppingBag, FiStar, FiUsers, FiX,
 } from 'react-icons/fi'
@@ -35,6 +35,7 @@ export const IconFarmers: IconType = FiUsers
 export const IconOrders: IconType = FiFileText
 export const IconReviews: IconType = FiStar
 export const IconImpact: IconType = FiBarChart2
+export const IconDemand: IconType = FiTrendingUp
 export const IconComplaints: IconType = FiHelpCircle
 export const IconPasswords: IconType = FiKey
 export const IconBuyer: IconType = FiShoppingBag

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { LangCode } from '../i18n/strings.js'
 
 /**
  * VOICE TYPING
@@ -16,6 +17,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * declares RECORD_AUDIO (its app.json); without that, onerror fires with
  * 'not-allowed'.
  */
+
+/** The recogniser listens in the language the app is shown in. */
+export const RECOGNITION_LANG: Record<LangCode, string> = { mr: 'mr-IN', en: 'en-IN' }
 
 export type VoiceError = 'denied' | 'no-speech' | 'network' | 'other' | null
 

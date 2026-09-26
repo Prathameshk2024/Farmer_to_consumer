@@ -11,7 +11,7 @@ import { ReportLink, ReportSheet } from '../../components/ReportSheet.js'
 import { categoryPhoto } from '../../lib/categoryPhoto.js'
 import {
   AppBar, Button, Card, EmptyState, Loading, Notice, Pill,
-  Rupees, SectionTitle, TextInput, useAsync,
+  Rupees, SectionTitle, VoiceInput, useAsync,
 } from '../../components/ui.js'
 import {
   IconCart, IconCheck, IconMinus, IconNext, IconPlus, IconProduct, IconSearch,
@@ -170,10 +170,10 @@ export function Explore() {
     <>
       <AppBar brand title={t('app.name')} sub={t('app.nameShort')} />
       <div className="screen stack">
-        <TextInput
+        <VoiceInput
           data-wt="ex-search"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={setQ}
           placeholder={t('cus.searchPlaceholder')}
           aria-label={t('common.search')}
         />

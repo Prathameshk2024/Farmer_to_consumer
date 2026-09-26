@@ -192,6 +192,13 @@ export interface FarmerDetail {
   rating: RatingSummary
 }
 
+export interface DemandRow {
+  cropId: string
+  unit: string
+  ordered: number
+  listed: number
+}
+
 export interface ImpactReport {
   generatedAt: string
   totals: {
@@ -279,6 +286,9 @@ export const api = {
   },
 
   impact: () => get<ImpactReport>('/admin/impact'),
+
+  /** Ordered in the last `days` against what is listed now, per crop and unit. */
+  demand: (days: number) => get<{ rows: DemandRow[] }>(`/admin/demand?days=${days}`),
 
   /** Every review, hidden ones included. `maxRating: 2` is the low-ratings view. */
   reviews: (

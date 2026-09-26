@@ -429,6 +429,17 @@ export const api = {
   /* ---------------- analytics ---------------- */
 
   farmerWeek: (id: string) => get<{ week: FarmerWeek | null }>(`/analytics/farmer/${id}/week`),
+
+  /* ---------------- insights ---------------- */
+
+  priceHint: (cropId: string, unit: string) =>
+    get<PriceHint>(`/insights/price?cropId=${encodeURIComponent(cropId)}&unit=${encodeURIComponent(unit)}`),
+}
+
+/** What others here ask, and (with a data.gov.in key) the latest mandi price, both per listing unit. */
+export interface PriceHint {
+  platform: { median?: number; listings: number; orders: number }
+  mandi?: { market: string; date: string; price: number }
 }
 
 /** A product as the catalogue sends it: its farmer's public card and its own stars. */

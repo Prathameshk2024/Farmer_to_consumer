@@ -797,6 +797,11 @@ const mr: Record<string, string> = {
   'trace.map': 'गाव नकाशावर पहा',
   'trace.order': 'हा माल मागवा',
   'trace.gone': 'हा माल आता विक्रीसाठी नाही.',
+
+  // ---- price hint under the price box: advice, never a default ----------
+  'hint.platform': 'इथे इतर शेतकरी: ₹{price} / {unit} ({n} जाहिराती)',
+  'hint.mandi': '{market} बाजार समिती, {date}: ₹{price} / {unit}',
+  'hint.note': 'हा फक्त अंदाज आहे. किंमत तुम्हीच ठरवा.',
 }
 
 const en: Record<string, string> = {
@@ -1543,6 +1548,11 @@ const en: Record<string, string> = {
   'trace.map': 'See the village on a map',
   'trace.order': 'Order this produce',
   'trace.gone': 'This produce is no longer on sale.',
+
+  // ---- price hint under the price box ----------------------------------
+  'hint.platform': 'Others here ask ₹{price} / {unit} ({n} listings)',
+  'hint.mandi': '{market} APMC, {date}: ₹{price} / {unit}',
+  'hint.note': 'This is only a guide. You set the price.',
 }
 
 export const dictionaries: Record<LangCode, Record<string, string>> = { mr, en }

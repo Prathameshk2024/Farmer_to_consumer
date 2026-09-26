@@ -14,6 +14,7 @@ import {
   TextInput, VoiceInput, useAsync,
 } from '../../components/ui.js'
 import { IconProduct } from '../../components/icons.js'
+import { PriceHint } from '../../components/PriceHint.js'
 
 /**
  * Editing a listing he has already added.
@@ -208,6 +209,7 @@ export default function EditProduct() {
             <TextInput id="price" inputMode="numeric" value={form.price} error={!!errors.price} onChange={numeric('price')} />
             <strong style={{ flex: 'none' }}>/ {unitWord}</strong>
           </div>
+          <PriceHint cropId={form.cropId} unit={form.unit} />
         </Field>
 
         <Field label={t('prod.stock')} error={errors.stock} required htmlFor="stock">
