@@ -111,3 +111,15 @@ test('a farmer phone is taken by a farmer row or by a farmer credential', async 
   setCredential(db, { role: 'customer', userId: 'c1', phone: '9822099999', password: '482913' })
   assert.equal(farmerPhoneTaken(db, '9822099999'), false, 'a buyer password is a different account')
 })
+
+/*
+ * Fix round 2: a session with no phone on it must not reach the limiter, or
+ * every such session would share the one key "login:phone:" and one person's
+ * typos would lock out all the others.
+ */
+test('a session with no phone is refused at once and spends no shared budget', async () => {
+  const { changeOwnPassword } = await import('../src/auth/credentials.js')
+  const auth = { role: 'farmer' as const, userId: 'f1', sessionId: 's1' }
+  for (let i = 0; i < 7; i++) assert.equal(changeOwnPassword(db, auth, { current: '000000', next: '777777' }).status, 401)
+  assert.equal(hit('login:phone:', LIMITS.loginPerPhone).remaining, LIMITS.loginPerPhone.max - 1)
+})

@@ -110,9 +110,10 @@ export function registerCustomer(db: Db, body: Record<string, unknown> | undefin
   // a call to that number. An empty row carries nothing and may be adopted.
   const id = customerIdFor(phone)
   const existing = findCustomer(db, id)
-  const hasHistory = !!existing && (existing.addresses.length > 0 || db.orders.some(
+  // Orders count with or without a row: old orders carry the phone and nothing else.
+  const hasHistory = (existing?.addresses.length ?? 0) > 0 || db.orders.some(
     (o) => o.customerId === id || normalizePhone(o.customerPhone) === phone,
-  ))
+  )
   if (hasHistory) {
     return {
       status: 409,

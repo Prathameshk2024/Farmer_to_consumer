@@ -104,3 +104,18 @@ test('an empty row with no password may still be adopted', () => {
   assert.equal(registerCustomer(db, body()).status, 201)
   assert.equal(db.customers[0]!.name, 'प्रिया देशमुख')
 })
+
+/*
+ * Fix round 2: the history check used to run only when a customer ROW existed.
+ * Orders placed before rows existed carry the phone but have no row behind
+ * them, so that number was still free to register - and its orders, with the
+ * delivery address, came with it. Orders are history whether or not a row is.
+ */
+test('orders on the phone with no customer row are still history', () => {
+  const db = emptyDb()
+  db.orders.push({ id: 'o1', customerId: 'c1', customerPhone: '+91 90112 23344' } as unknown as Order)
+  const r = registerCustomer(db, body())
+  assert.equal(r.status, 409)
+  assert.ok(r.status === 409 && r.body.code === 'CLAIM_VIA_ADMIN')
+  assert.equal(db.credentials.length, 0)
+})

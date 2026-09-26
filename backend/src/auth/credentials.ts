@@ -77,14 +77,15 @@ export function changeOwnPassword(
   if (problem) return { status: 400, body: { error: 'Weak password', messageMr: problem, fields: { next: problem } } }
 
   const phone = normalizePhone(auth.phone ?? '')
+  const bad = { status: 401 as const, body: { error: 'Bad credentials', messageMr: 'जुना पासवर्ड चुकीचा आहे' } }
+  // No phone on the session: answer now, or every such session would share the key "login:phone:".
+  if (!phone) return bad
   const key = `login:phone:${phone}`
   const budget = hit(key, LIMITS.loginPerPhone, now)
   if (!budget.ok) return { status: 429, retryAfterSec: budget.retryAfterSec }
 
   const cred = checkPassword(db, auth.role, phone, String(body?.current ?? ''))
-  if (!cred || cred.userId !== auth.userId) {
-    return { status: 401, body: { error: 'Bad credentials', messageMr: 'जुना पासवर्ड चुकीचा आहे' } }
-  }
+  if (!cred || cred.userId !== auth.userId) return bad
   clearLimit(key)
 
   setCredential(db, { role: auth.role, userId: cred.userId, phone: cred.phone, password: next }, now)
