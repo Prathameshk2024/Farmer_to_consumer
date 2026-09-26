@@ -3,18 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import type { Order } from '@shared/types.js'
 import { daysUntilScrub } from '@shared/accountClose.js'
 import { needsSellerAction, STATUS_STYLE, statusLabelKey } from '@shared/orderFlow.js'
-import { slotInfo } from '@shared/seller.js'
 import { useT } from '../../i18n/I18nProvider.js'
 import { useToast } from '../../store/ToastContext.js'
 import { api } from '../../lib/api.js'
 import {
   AppBar, Button, Card, EmptyState, Loading, Notice,
-  Pill, Rupees, SectionTitle, SlotMeter, useAsync,
+  Pill, Rupees, SectionTitle, useAsync,
 } from '../../components/ui.js'
 import {
   IconAllClear, IconBuyers, IconChevron, IconGrowth, IconOrders, IconPause, IconPlay, IconProduct, StatusIcon, type IconType,
 } from '../../components/icons.js'
-import { SubscriptionLine, SubscriptionNotice } from '../../components/SubscriptionNotice.js'
 import { RatingLine } from '../../components/Reviews.js'
 import { PageTour } from '../../components/Walkthrough.js'
 
@@ -28,13 +26,12 @@ export default function MyBusiness() {
 
   const [me, loadingMe, setMe] = useAsync(() => api.me(), [])
   const [orderData, loadingOrders] = useAsync(() => api.myOrders(), [], 'seller:orders')
-  const [productData, loadingProducts] = useAsync(() => api.myProducts(), [], 'seller:products')
   // Not waited on: reviews are not what she opened this screen to act on.
   const [reviewData] = useAsync(() => api.myReviews(), [])
   const { toast } = useToast()
   const [restoring, setRestoring] = useState(false)
 
-  if (loadingMe || loadingOrders || loadingProducts) {
+  if (loadingMe || loadingOrders) {
     return (
       <>
         <AppBar brand title={t('biz.title')} />
@@ -53,8 +50,6 @@ export default function MyBusiness() {
 
   const seller = me.seller
   const orders = orderData?.orders ?? []
-  const products = productData?.products ?? []
-  const slots = slotInfo(seller, products)
   const actionable = orders.filter(needsSellerAction)
 
   // Earned today = orders actually DELIVERED today, read off the event trail
@@ -68,8 +63,6 @@ export default function MyBusiness() {
     .reduce((n, o) => n + o.total, 0)
 
   const todayOrders = orders.filter((o) => isToday(o.placedAt)).length
-
-  const expired = me.subscription?.state === 'expired'
 
   async function toggleShop() {
     const res = await api.updateMe({ isOpen: !seller.isOpen })
@@ -126,56 +119,23 @@ export default function MyBusiness() {
           </Notice>
         )}
 
-        {/* The renewal reminder and the paused shop, above everything they
-            affect. Nothing at all while the six months are comfortably open. */}
-        <SubscriptionNotice view={me.subscription} />
-
-        {/* Shop open toggle: one tap, right at the top. While the subscription
-            has run out the shop is closed whatever the switch says, so the
-            card says that instead and the switch waits: flipping it would
-            change nothing a buyer can see, and her own choice is kept for the
-            day she renews. */}
-        {expired ? (
-          <Card className="notice--warn" data-wt="biz-shop">
-            <div className="stack-sm" style={{ gap: 2 }}>
-              <strong>{t('sub.shopPaused')}</strong>
-              <span className="small dim">{t('sub.shopPausedHint')}</span>
-            </div>
-          </Card>
-        ) : (
-          <Card className={seller.isOpen ? '' : 'notice--warn'} data-wt="biz-shop">
-            <div className="row-between">
-              <div className="stack-sm" style={{ gap: 2 }}>
-                <strong>{seller.isOpen ? t('biz.shopOpen') : t('biz.shopClosed')}</strong>
-                <span className="small dim">{t('biz.shopOpenHint')}</span>
-              </div>
-              <Button variant={seller.isOpen ? 'quiet' : 'primary'} size="sm" onClick={toggleShop}>
-                {seller.isOpen ? <IconPause aria-hidden="true" /> : <IconPlay aria-hidden="true" />}
-              </Button>
-            </div>
-          </Card>
+        {/* Registered and waiting for the one check. Nothing he lists is
+            public until then, so he is told why rather than left guessing. */}
+        {seller.status === 'PENDING_VERIFICATION' && (
+          <Notice tone="warn">{t('biz.pendingVerification')}</Notice>
         )}
 
-        <Card data-wt="biz-slots">
-          <SlotMeter
-            used={slots.used}
-            total={slots.total}
-            hint={slots.isFull ? t('biz.slotsFull') : t('biz.slotsLeft', { n: slots.left })}
-          />
-          <div style={{ marginTop: 'var(--s2)' }}><SubscriptionLine view={me.subscription} /></div>
-          {slots.almostFull && (
-            <div style={{ marginTop: 'var(--s3)' }}>
-              <Notice tone="warn">{t('biz.oneSlotLeft')}</Notice>
+        {/* Shop open toggle: one tap, right at the top. */}
+        <Card className={seller.isOpen ? '' : 'notice--warn'} data-wt="biz-shop">
+          <div className="row-between">
+            <div className="stack-sm" style={{ gap: 2 }}>
+              <strong>{seller.isOpen ? t('biz.shopOpen') : t('biz.shopClosed')}</strong>
+              <span className="small dim">{t('biz.shopOpenHint')}</span>
             </div>
-          )}
-          {/* Buying slots waits for the renewal - see payableKinds. */}
-          {!expired && (slots.isFull || slots.total === 0) && (
-            <div style={{ marginTop: 'var(--s3)' }}>
-              <Button size="sm" onClick={() => nav('/seller/subscription')}>
-                {t('biz.addSlots')}
-              </Button>
-            </div>
-          )}
+            <Button variant={seller.isOpen ? 'quiet' : 'primary'} size="sm" onClick={toggleShop}>
+              {seller.isOpen ? <IconPause aria-hidden="true" /> : <IconPlay aria-hidden="true" />}
+            </Button>
+          </div>
         </Card>
 
         <div className="stat-row">
@@ -235,10 +195,6 @@ export default function MyBusiness() {
           <QuickLink icon={IconGrowth} label={t('biz.myGrowth')} to="/seller/growth" />
           <QuickLink icon={IconBuyers} label={t('buy.tile')} to="/seller/buyers" />
         </div>
-
-        {seller.status !== 'ACTIVE' && seller.status !== 'BLOCKED' && (
-          <Notice tone="warn" title={t('wait.sub')}>{t('wait.canDoMeanwhile')}</Notice>
-        )}
       </div>
 
       <PageTour id="seller.business" />

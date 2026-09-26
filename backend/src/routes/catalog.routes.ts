@@ -6,7 +6,7 @@ import {
   NO_RATING, productReviewsFor, ratingsByProduct, ratingsBySeller, sellerRating,
 } from '../db/reviews.js'
 import { publicSeller } from '../db/publicSeller.js'
-import { canSellNow } from '@shared/subscription.js'
+import { canSellNow } from '@shared/seller.js'
 import { requireRole } from '../middleware/auth.js'
 
 /** Public, unauthenticated. This is what a shopper and a scanned QR both hit. */
@@ -17,8 +17,7 @@ export const catalogRouter: Router = Router()
  *
  * The list and the by-id lookup each decided this for themselves, and a
  * listing hidden from one but readable from the other is not hidden - it is
- * findable by anyone who tries the id. A draft, a rejected product and a
- * paused one are all things a seller has chosen not to show, and a blocked or
+ * findable by anyone who tries the id. A draft and a paused one are all things a seller has chosen not to show, and a blocked or
  * closed shop is a decision about the whole shop.
  *
  * Both conditions matter. A LIVE product under a BLOCKED seller is still off
@@ -27,14 +26,12 @@ export const catalogRouter: Router = Router()
  */
 export function publiclyVisible(
   product: Pick<Product, 'status'> | undefined,
-  seller: Pick<Seller, 'status' | 'isOpen' | 'subscriptionEndsAt'> | undefined,
-  now = Date.now(),
+  seller: Pick<Seller, 'status' | 'isOpen'> | undefined,
 ): boolean {
   if (!product || !seller) return false
-  // `canSellNow` is the account and the six months together: a shop whose
-  // subscription ran out comes off the shelf the moment the date passes, with
-  // nothing about her products or her open/closed switch rewritten.
-  return product.status === 'LIVE' && canSellNow(seller, now) && !!seller.isOpen
+  // `canSellNow` is the verification: an unverified farmer's live listing
+  // stays off the shelf until an admin has checked him once.
+  return product.status === 'LIVE' && canSellNow(seller) && !!seller.isOpen
 }
 
 catalogRouter.get('/categories', (_req, res) => {

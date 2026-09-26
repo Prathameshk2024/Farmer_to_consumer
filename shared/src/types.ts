@@ -184,12 +184,10 @@ export interface RatingSummary {
 /* ------------------------------------------------------------------ */
 
 export type SellerStatus =
-  | 'REGISTERED'
-  | 'PAYMENT_SUBMITTED'
+  | 'PENDING_VERIFICATION'
   | 'ACTIVE'
-  | 'PAYMENT_REJECTED'
   | 'BLOCKED'
-  /** She asked for her account to be deleted. See shared/src/accountClose.ts. */
+  /** He asked for his account to be deleted. See shared/src/accountClose.ts. */
   | 'CLOSED'
 
 export type BusinessType = 'individual' | 'shg' | 'udyam'
@@ -215,28 +213,17 @@ export interface DigitalProfile {
  *
  * Every other line in her updates list is derived from an order, because the
  * order already records what happened and when. An admin decision leaves no
- * such trail: a granted pack is a number that is simply larger than it was, so
- * "you were given 5 more slots, on Tuesday" cannot be reconstructed after the
- * fact. This is the smallest thing that can be: an append-only list on her own
+ * such trail: a verified account is just a status that changed, so "you were
+ * verified, on Tuesday" cannot be reconstructed after the fact. This is the smallest thing that can be: an append-only list on her own
  * record, trimmed, written by the same handler that made the change.
  */
-export type AdminNoticeKind =
-  | 'SLOTS_GRANTED'
-  | 'SLOTS_REVOKED'
-  | 'PAYMENT_APPROVED'
-  | 'PAYMENT_REJECTED'
-  | 'BLOCKED'
-  | 'UNBLOCKED'
-  | 'PRODUCT_APPROVED'
-  | 'PRODUCT_REJECTED'
-  /** Her shop is open for another six months. `note` carries the new end date (ISO). */
-  | 'SUBSCRIPTION_RENEWED'
+export type AdminNoticeKind = 'VERIFIED' | 'BLOCKED' | 'UNBLOCKED' | 'PRODUCT_REJECTED'
 
 export interface AdminNotice {
   id: string
   at: string
   kind: AdminNoticeKind
-  /** Slots, where the sentence carries a number. Slots, not packs - a pack is our word. */
+  /** A number the sentence carries. Legacy rows only; nothing writes it now. */
   n?: number
   /**
    * WHAT the decision was about - the product's name. Kept apart from the
@@ -337,19 +324,9 @@ export interface Seller {
   /** Why she left, as a code from CLOSE_REASONS; `closeNote` has words only for "other". */
   closeReason?: string
   closeNote?: string
-  /**
-   * When her shop pauses unless she renews. Six months from the approval that
-   * started or renewed it; absent until her first payment is approved. The
-   * only stored piece of the subscription - see shared/src/subscription.ts.
-   */
-  subscriptionEndsAt?: string
-  packsApproved: number
-  /**
-   * Legacy and no longer written. It fed a lifetime cap on listings per pack
-   * that existed only because a seller could delete a listing to free its
-   * slot; she cannot any more, so the cap is gone. Old rows still carry it.
-   */
-  listingsPublished?: number
+  /** When an admin checked this farmer, and who. Absent until then. */
+  verifiedAt?: string
+  verifiedBy?: string
   /** Admin decisions about her account, newest last. Trimmed on write. */
   notices?: AdminNotice[]
   /**
@@ -388,13 +365,7 @@ export type ReadinessBand = 'starter' | 'basic' | 'advanced' | 'digital'
 /* Products                                                            */
 /* ------------------------------------------------------------------ */
 
-export type ProductStatus =
-  | 'DRAFT'
-  | 'PENDING'
-  | 'LIVE'
-  | 'REJECTED'
-  | 'PAUSED'
-  | 'ARCHIVED'
+export type ProductStatus = 'DRAFT' | 'LIVE' | 'PAUSED'
 
 export type Unit = 'kg' | 'g' | 'piece' | 'dozen' | 'litre' | 'ml' | 'set'
 
@@ -450,20 +421,7 @@ export interface Product {
   madeToOrder?: boolean
 
   status: ProductStatus
-  rejectReason?: string
-  /**
-   * When an admin rejected it. A rejected listing is removed automatically
-   * 48 hours later (see shared/src/moderation.ts) - the stamp is what that
-   * clock counts from, and what her app counts down to.
-   */
-  rejectedAt?: string
   views: number
-  /**
-   * How many of MAX_EDITS the seller has spent on this listing. Absent on
-   * anything published before the rule existed, which reads as none used -
-   * nobody loses an edit to a change they made when editing was free.
-   */
-  editCount?: number
   createdAt: string
 }
 
@@ -479,56 +437,6 @@ export interface Category {
    * list forgot.
    */
   food?: boolean
-}
-
-/* ------------------------------------------------------------------ */
-/* Subscription                                                        */
-/* ------------------------------------------------------------------ */
-
-export type PaymentApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
-
-export interface SubscriptionPayment {
-  id: string
-  /**
-   * What the ₹50 was for: five more slots, or six more months. Absent on
-   * everything submitted before renewals existed, which were all packs.
-   */
-  kind?: 'PACK' | 'RENEWAL'
-  /** The shop's end date this approval left her with - the renewal history an admin reads. */
-  termEndsAt?: string
-  sellerId: string
-  sellerName: string
-  womenBizId: string
-  phone: string
-  amount: number
-  utr: string
-  payerUpi: string
-  /**
-   * Her UPI app's success screen. Required on every submission made while
-   * uploads are switched on; absent only on older rows and when they are off.
-   */
-  screenshotUrl?: string
-  /** When she says she paid - read off that screen, and checked against it. */
-  paidAt?: string
-  submittedAt: string
-  status: PaymentApprovalStatus
-  /** Set when the same reference number was already used by someone else. */
-  duplicateUtr: boolean
-  verifiedAt?: string
-  verifiedBy?: string
-  rejectReason?: string
-}
-
-export interface AdminPaymentAccount {
-  label: string
-  upiId: string
-  bankName: string
-  /**
-   * Optional, and absent in practice: she pays by UPI, and a wrong account
-   * number printed under a QR code is worse than no account number.
-   */
-  accountNo?: string
-  ifsc?: string
 }
 
 /* ------------------------------------------------------------------ */
@@ -631,26 +539,17 @@ export interface AdminStats {
   gmvMonth: number
   ordersToday: number
   ordersWeek: number
-  /** Approved, not blocked, and inside their subscription - sellers anyone can buy from today. */
+  /** Verified and not blocked - sellers anyone can buy from today. */
   activeSellers: number
-  /** Open, and pausing within RENEW_REMINDER_DAYS unless they renew. */
-  subscriptionsExpiring: number
-  /** Paused: the six months ran out and they have not renewed. */
-  subscriptionsExpired: number
   totalSellers: number
   newRegistrations: number
-  pendingPayments: number
-  /** Listings waiting for an admin to publish them. */
-  pendingProducts: number
+  /** Registered and waiting for an admin to verify them once. */
+  pendingVerification: number
   stuckOrders: number
   openDisputes: number
   womenEarnedTotal: number
   womenEarnedMonth: number
   womenWithFirstEarning: number
-  /** Summed from APPROVED payment records, never from the plan price times a count. */
-  subscriptionRevenue: number
-  /** How many payments that total is made of. */
-  approvedPaymentCount: number
   repurchaseRate: number
   /** Every document the server holds - and so reads from Firestore at each start. */
   databaseDocuments: number
@@ -707,7 +606,7 @@ export interface Report {
  * A complaint somebody raised from Help & Training.
  *
  * Stored with who wrote it, because that is the whole difference between
- * this and a WhatsApp message: an admin can open her account, see the ₹50 she
+ * this and a WhatsApp message: an admin can open his account, see the order he
  * is asking about, and answer. Her name and number are copied in so the queue
  * can be read and she can be rung back without a lookup per row.
  */

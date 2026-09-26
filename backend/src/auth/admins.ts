@@ -15,10 +15,10 @@ import type { AdminUser } from './types.js'
  *  - the password sat in an environment variable in plaintext, defaulted to
  *    `changeme`, and was compared with `!==`;
  *  - the EMAIL was never checked at all, so any string plus the right password
- *    logged in - and that string was written into `verifiedBy` on approved
- *    payments, making the audit trail attacker-controlled;
- *  - one identity for the whole team meant "who approved this ₹50?" had the
- *    same answer whoever clicked it.
+ *    logged in - and that string was written into `verifiedBy` on admin
+ *    decisions, making the audit trail attacker-controlled;
+ *  - one identity for the whole team meant "who verified this farmer?" had
+ *    the same answer whoever clicked it.
  *
  * Emails are normalised to lower case for lookup but stored as typed, so a
  * coordinator sees her own capitalisation and still cannot create a second

@@ -8,7 +8,7 @@ import {
  * WHEN SOMETHING HAS GONE WRONG AND SHE NEEDS A PERSON.
  *
  * Help & Training answers the questions that have answers; a complaint is the
- * other kind - the ₹50 that was never approved, the buyer who will not pay.
+ * other kind - the order that never arrived, the buyer who will not pay.
  * Those need somebody to open HER account, so it is recorded against it
  * rather than left as a message on one person's phone. WhatsApp is still
  * offered beside it for the thing that cannot wait for a queue.
@@ -19,7 +19,7 @@ test('a complaint says what it is about', () => {
   // says "problem" cannot be worked through by the one person answering it.
   assert.equal('subject' in complaintProblems({ message: 'काहीतरी झाले आहे इथे' }), true)
   assert.equal('subject' in complaintProblems({ subject: 'nonsense', message: 'काहीतरी झाले आहे' }), true)
-  assert.deepEqual(complaintProblems({ subject: 'payment', message: '₹50 भरले, मंजूर नाही' }), {})
+  assert.deepEqual(complaintProblems({ subject: 'payment', message: 'ग्राहकाने पैसे दिले नाहीत' }), {})
 })
 
 test('every subject on the list is one the server takes', () => {

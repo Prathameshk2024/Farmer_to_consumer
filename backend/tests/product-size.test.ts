@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { EDIT_COUNTED_FIELDS, needsPieceCount, sizeProblems } from '@shared/seller.js'
+import { needsPieceCount, sizeProblems } from '@shared/seller.js'
 
 /**
  * A PRICE WITHOUT A SIZE IS NOT A PRICE.
@@ -27,18 +27,4 @@ test('a set says how many are inside it', () => {
 
   assert.equal('piecesPerPack' in sizeProblems({ unit: 'set', packSize: 1 }), true)
   assert.deepEqual(sizeProblems({ unit: 'set', packSize: 1, piecesPerPack: 6 }), {})
-})
-
-/**
- * Changing 500g to 250g at the same price is a different product, not a
- * correction - so the size is counted like the unit beside it. The PRICE
- * stays free to change, for the reason it always was: a seller who cannot
- * correct a price stops keeping it honest.
- */
-test('the size counts as a change to what the product is', () => {
-  const counted: readonly string[] = EDIT_COUNTED_FIELDS
-  assert.ok(counted.includes('packSize'))
-  assert.ok(counted.includes('piecesPerPack'))
-  assert.ok(!counted.includes('price'))
-  assert.ok(!counted.includes('stock'))
 })

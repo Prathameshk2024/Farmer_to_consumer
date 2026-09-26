@@ -24,7 +24,7 @@
   --maroon-mid: #98304a;
   --maroon-soft: #f8e9e8;     /* tinted surface */
 
-  --gold: #b6851b;            /* highlights, slot meter, stars */
+  --gold: #b6851b;            /* highlights, stars */
   --gold-deep: #8a6310;
   --gold-soft: #faefd3;
   --gold-band: #f3e3ba;       /* the striped shop banner */
@@ -591,14 +591,6 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .notice--danger { background: var(--danger-soft); border-left-color: var(--danger); }
 .notice--info { background: var(--info-soft); border-left-color: var(--info); }
 .notice__title { font-weight: 700; font-size: var(--t-base); display: block; margin-bottom: 2px; color: var(--ink); }
-
-/* ============================================================
-   Slot meter
-   ============================================================ */
-.slotmeter { display: flex; flex-direction: column; gap: var(--s2); }
-.slotmeter__bars { display: grid; gap: 4px; }
-.slotmeter__bar { height: 10px; border-radius: 3px; background: var(--bg-2); border: 1px solid var(--line); }
-.slotmeter__bar--on { background: var(--gold); border-color: var(--gold); }
 
 /* ============================================================
    Empty & loading states

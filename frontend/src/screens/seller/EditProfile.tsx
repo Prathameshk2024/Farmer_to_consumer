@@ -29,8 +29,8 @@ import { IconBack } from '../../components/icons.js'
  *  - her VILLAGE and her SMB ID, because the ID is printed on her packaging
  *    and her poster. Re-issuing it silently would leave the number on a jar in
  *    somebody's kitchen pointing at nothing;
- *  - her STATUS and her SLOTS, which are the admin's to grant. A form that
- *    could set those would be a form that grants itself a subscription.
+ *  - her STATUS, which is the admin's to set. A form that could set it would
+ *    be a form that verifies itself.
  *
  * Her UPI id is editable, and the server clears `upiVerified` when it changes.
  */

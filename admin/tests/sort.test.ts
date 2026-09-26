@@ -1,25 +1,24 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import type { SubscriptionPayment } from '@shared/types.js'
 import type { OrderRow, ProductRow, SellerRow } from '../src/lib/api.js'
 import {
-  ORDER_SORTS, PAYMENT_SORTS, PRODUCT_SORTS, SELLER_SORTS, sortRows,
+  ORDER_SORTS, PRODUCT_SORTS, SELLER_SORTS, sortRows,
 } from '../src/lib/sort.js'
 
 /**
  * Every list in the console can be reordered: newest or oldest, by name, and
  * by whichever number "highest" means on that list. These hold the orderings
- * an admin will actually rely on - the queue read oldest-first, the woman who
+ * an admin will actually rely on - the woman who
  * has earned most at the top - and the two ways sorting quietly goes wrong:
  * mixed-script names, and reordering the fetched array in place.
  */
 
 const seller = (id: string, over: Partial<SellerRow>) =>
-  ({ id, name: id, createdAt: '2026-01-01T00:00:00Z', packsApproved: 0, earned: 0, ...over }) as SellerRow
+  ({ id, name: id, createdAt: '2026-01-01T00:00:00Z', earned: 0, ...over }) as SellerRow
 const ids = (rows: { id: string }[]) => rows.map((r) => r.id)
 
 test('every list offers newest and oldest first, newest by default', () => {
-  for (const list of [SELLER_SORTS, PRODUCT_SORTS, ORDER_SORTS, PAYMENT_SORTS]) {
+  for (const list of [SELLER_SORTS, PRODUCT_SORTS, ORDER_SORTS]) {
     assert.equal(list[0]?.id, 'newest')
     assert.ok(list.some((o) => o.id === 'oldest'))
   }
@@ -52,14 +51,13 @@ test('names sort alphabetically, ignoring case, in both scripts', () => {
   assert.deepEqual(sortRows(marathi, SELLER_SORTS, 'nameAZ').map((s) => s.name), ['अनिता', 'कविता', 'सुनीता'])
 })
 
-test('sellers: highest earnings first, and most packs first', () => {
+test('sellers: highest earnings first', () => {
   const rows = [
-    seller('low', { earned: 100, packsApproved: 3 }),
-    seller('high', { earned: 5000, packsApproved: 1 }),
-    seller('none', { earned: undefined, packsApproved: 0 }),
+    seller('low', { earned: 100 }),
+    seller('high', { earned: 5000 }),
+    seller('none', { earned: undefined }),
   ]
   assert.deepEqual(ids(sortRows(rows, SELLER_SORTS, 'earnedHigh')), ['high', 'low', 'none'])
-  assert.deepEqual(ids(sortRows(rows, SELLER_SORTS, 'packsHigh')), ['low', 'high', 'none'])
 })
 
 test('products: by price both ways', () => {
@@ -78,15 +76,6 @@ test('orders: by amount, and by shop name', () => {
   ] as OrderRow[]
   assert.deepEqual(ids(sortRows(rows, ORDER_SORTS, 'amountHigh')), ['o2', 'o1', 'o3'])
   assert.deepEqual(ids(sortRows(rows, ORDER_SORTS, 'nameAZ')).slice(-2), ['o2', 'o1'])
-})
-
-/** The payment queue read as a queue: whoever has waited longest. */
-test('payments: oldest first puts the longest wait at the top', () => {
-  const rows = [
-    { id: 'today', submittedAt: '2026-09-15T09:00:00Z' },
-    { id: 'monday', submittedAt: '2026-09-13T09:00:00Z' },
-  ] as SubscriptionPayment[]
-  assert.deepEqual(ids(sortRows(rows, PAYMENT_SORTS, 'oldest')), ['monday', 'today'])
 })
 
 test('sorting returns a copy and leaves the fetched list as it was', () => {

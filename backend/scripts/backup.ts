@@ -16,7 +16,7 @@
  *   3. Copies every photo the backup Cloudinary account does not have yet,
  *      Cloudinary to Cloudinary, keeping the same public_id, and downloads new
  *      ones to backend/data/backups/images/. Photos are never deleted from
- *      either copy: the payment screenshots are the proof behind approvals.
+ *      either copy: a backup that forgets is not one.
  *
  * The live project is only ever READ. Its free plan allows 50,000 reads a
  * day and one run costs one read per document - the same as one API start -

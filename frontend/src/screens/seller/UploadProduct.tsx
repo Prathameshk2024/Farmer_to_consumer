@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Category, Unit } from '@shared/types.js'
-import { needsPieceCount, slotInfo } from '@shared/seller.js'
+import { canSellNow, needsPieceCount } from '@shared/seller.js'
 import { sizeLabel } from '../../lib/productSize.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { useAuth } from '../../store/AuthContext.js'
@@ -17,7 +17,7 @@ import {
   Loading, Notice, Rupees, TextInput, VoiceInput, useAsync,
 } from '../../components/ui.js'
 import {
-  IconBack, IconFood, IconLock, IconNext, IconProduct, IconWaiting, VegMark,
+  IconBack, IconFood, IconNext, IconProduct, IconWaiting, VegMark,
 } from '../../components/icons.js'
 import { PageTour } from '../../components/Walkthrough.js'
 
@@ -42,7 +42,6 @@ export default function UploadProduct() {
   const { session } = useAuth()
 
   const [me, loadingMe] = useAsync(() => api.me(), [])
-  const [productData, loadingProducts] = useAsync(() => api.myProducts(), [])
   const [catData] = useAsync(() => api.categories(), [])
 
   /* The draft belongs to ONE seller. Read it from the session rather than
@@ -79,7 +78,7 @@ export default function UploadProduct() {
     setErrors((e) => ({ ...e, [k]: '' }))
   }
 
-  if (loadingMe || loadingProducts) {
+  if (loadingMe) {
     return <><AppBar title={t('prod.add')} /><div className="screen"><Loading /></div></>
   }
   if (!me) {
@@ -87,70 +86,18 @@ export default function UploadProduct() {
   }
 
   const seller = me.seller
-  const products = productData?.products ?? []
-  const slots = slotInfo(seller, products)
 
-  /* Gate 1: not approved yet. */
-  if (seller.status !== 'ACTIVE') {
+  /* Not verified yet (or blocked): the server would refuse to put anything
+     on sale, so he is told here rather than at the last step. */
+  if (!canSellNow(seller)) {
     return (
       <>
         <AppBar title={t('prod.add')} />
-        <div className="screen">
-          <Card>
-            <EmptyState
-              icon={IconWaiting}
-              title={t('wait.sub')}
-              body={t('wait.canDoMeanwhile')}
-              action={<Button onClick={() => nav('/seller/subscription')}>{t('pay.title')}</Button>}
-            />
-          </Card>
-        </div>
-      </>
-    )
-  }
-
-  /* Gate 1b: the six months ran out. Sending a listing in waits for the
-     renewal, like everything else a buyer would see - the server refuses it
-     too, so she is told here rather than at the last step. */
-  if (me.subscription?.state === 'expired') {
-    return (
-      <>
-        <AppBar title={t('prod.add')} />
-        <div className="screen">
-          <Card>
-            <EmptyState
-              icon={IconLock}
-              title={t('sub.uploadBlocked')}
-              body={t('sub.uploadBlockedSub')}
-              action={<Button onClick={() => nav('/seller/subscription')}>{t('sub.renewButton')}</Button>}
-            />
-          </Card>
-        </div>
-      </>
-    )
-  }
-
-  /* Gate 2: slots full. An opportunity, never an error. */
-  if (slots.isFull) {
-    return (
-      <>
-        <AppBar title={t('prod.add')} />
-        <div className="screen">
-          <Card>
-            <EmptyState
-              icon={IconLock}
-              title={t('prod.slotsFullTitle')}
-              body={t('prod.slotsFullBody')}
-              action={
-                <div className="stack-sm" style={{ width: '100%' }}>
-                  <Button onClick={() => nav('/seller/subscription')}>{t('prof.buyMore')}</Button>
-                  <Button variant="ghost" onClick={() => nav('/seller/products')}>
-                    {t('biz.myProducts')}
-                  </Button>
-                </div>
-              }
-            />
-          </Card>
+        <div className="screen stack">
+          {seller.status === 'BLOCKED'
+            ? <Notice tone="danger">{t('biz.blockedTitle')}</Notice>
+            : <Notice tone="warn">{t('biz.pendingVerification')}</Notice>}
+          <Button variant="ghost" onClick={() => nav('/seller/products')}>{t('biz.myProducts')}</Button>
         </div>
       </>
     )
@@ -557,9 +504,7 @@ export default function UploadProduct() {
               )}
             </Card>
 
-            <Notice tone="ok" title={t('prod.liveNow')}>
-              {t('prod.willUseSlot', { used: slots.used + 1, total: slots.total })}
-            </Notice>
+            <Notice tone="ok">{t('prod.liveNow')}</Notice>
 
             {/* Said at the moment she commits, not buried in a policy page.
                 Publishing is hers now; this is the other half of that. */}
@@ -582,12 +527,8 @@ export default function UploadProduct() {
           </div>
         ) : (
           <>
-            {/* An admin publishes it, not this button. Saying so here stops
-                her refreshing the shop looking for a listing nobody has
-                approved yet. */}
-            <div className="small dim" style={{ textAlign: 'center' }}>{t('prod.reviewNote')}</div>
             <Button onClick={() => void publish(false)} disabled={busy}>
-              {busy ? t('common.loading') : t('prod.publish')}
+              {busy ? t('common.loading') : t('upl.publish')}
             </Button>
             <div className="btn-row">
               <Button variant="quiet" onClick={back}>

@@ -1,5 +1,5 @@
 import type {
-  Category, Complaint, Customer, Order, Product, Report, Review, Seller, SubscriptionPayment,
+  Category, Complaint, Customer, Order, Product, Report, Review, Seller,
 } from '@shared/types.js'
 import { computeReadiness, readinessBand } from '@shared/readiness.js'
 import type { DigitalProfile } from '@shared/types.js'
@@ -10,7 +10,6 @@ export interface Db {
   sellers: Seller[]
   products: Product[]
   orders: Order[]
-  payments: SubscriptionPayment[]
   customers: Customer[]
   /** Buyers' feedback on delivered orders. Never seeded - see `seed()`. */
   reviews: Review[]
@@ -43,7 +42,7 @@ export interface Db {
 /** A database with nothing in it. What a live install starts from. */
 export function emptyDb(): Db {
   return {
-    sellers: [], products: [], orders: [], payments: [], customers: [], reviews: [],
+    sellers: [], products: [], orders: [], customers: [], reviews: [],
     reports: [], complaints: [], sessions: [], admins: [], authEvents: [],
   }
 }
@@ -53,7 +52,6 @@ export function withDefaults(raw: Partial<Db>): Db {
     sellers: raw.sellers ?? [],
     products: raw.products ?? [],
     orders: raw.orders ?? [],
-    payments: raw.payments ?? [],
     customers: raw.customers ?? [],
     reviews: raw.reviews ?? [],
     reports: raw.reports ?? [],
@@ -136,7 +134,7 @@ export function seed(): Db {
       digital: d1, ...scored(d1, [true, true, true, true]),
       isOpen: true, deliveryFee: 20, freeDeliveryAbove: 500, minOrder: 100,
       dispatch: 'same', pincodes: ['413601', '413602', '413604'],
-      status: 'ACTIVE', packsApproved: 1, rating: 4.6, ratingCount: 38,
+      status: 'ACTIVE', verifiedAt: daysAgo(90), verifiedBy: 'seed', rating: 4.6, ratingCount: 38,
       qrScans: 41, qrOrders: 7, createdAt: daysAgo(90),
     },
     {
@@ -154,7 +152,7 @@ export function seed(): Db {
       digital: d2, ...scored(d2, [true, true, true, true]),
       isOpen: true, deliveryFee: 40, freeDeliveryAbove: 1500, minOrder: 0,
       dispatch: '23', pincodes: ['413603', '413601'],
-      status: 'ACTIVE', packsApproved: 2, rating: 4.8, ratingCount: 21,
+      status: 'ACTIVE', verifiedAt: daysAgo(90), verifiedBy: 'seed', rating: 4.8, ratingCount: 21,
       qrScans: 12, qrOrders: 2, createdAt: daysAgo(60),
     },
     {
@@ -172,7 +170,7 @@ export function seed(): Db {
       digital: d3, ...scored(d3, [false, true, false, false]),
       isOpen: true, deliveryFee: 0, freeDeliveryAbove: 0, minOrder: 150,
       dispatch: '1', pincodes: ['413604', '413601'],
-      status: 'ACTIVE', packsApproved: 1, rating: 4.4, ratingCount: 12,
+      status: 'ACTIVE', verifiedAt: daysAgo(90), verifiedBy: 'seed', rating: 4.4, ratingCount: 12,
       qrScans: 5, qrOrders: 0, createdAt: daysAgo(20),
     },
   ]
@@ -193,7 +191,7 @@ export function seed(): Db {
     { id: 'p4', sellerId: 's1', emoji: '🍯', name: 'घरगुती तूप', nameEn: 'Homemade Ghee',
       categoryId: 'food', isFood: true,
       ingredients: 'गाईचे दूध', vegType: 'veg',
-      price: 650, mrp: 700, unit: 'litre', stock: 4, status: 'PENDING', views: 0, createdAt: hoursAgo(20) },
+      price: 650, mrp: 700, unit: 'litre', stock: 4, status: 'LIVE', views: 0, createdAt: hoursAgo(20) },
     { id: 'p5', sellerId: 's2', emoji: '🥻', name: 'पैठणी साडी', nameEn: 'Paithani Saree',
       categoryId: 'textile', isFood: false, material: 'रेशीम, जरी',
       price: 8500, mrp: 11000, unit: 'piece', stock: 2, status: 'LIVE', views: 312, createdAt: daysAgo(55) },
@@ -295,21 +293,6 @@ export function seed(): Db {
     },
   ]
 
-  const payments: SubscriptionPayment[] = [
-    { id: 'sp1', sellerId: 's4', sellerName: 'शोभा गायकवाड', womenBizId: 'SMB-CHIVARI-01',
-      phone: '9764112233', amount: 50, utr: '512309887711', payerUpi: 'shobha@ybl',
-      submittedAt: hoursAgo(4), status: 'PENDING', duplicateUtr: false },
-    { id: 'sp2', sellerId: 's5', sellerName: 'वैशाली पवार', womenBizId: 'SMB-RUDRAWADI-01',
-      phone: '9822556677', amount: 50, utr: '431209887654', payerUpi: 'vaishali@okhdfcbank',
-      submittedAt: hoursAgo(19), status: 'PENDING', duplicateUtr: true },
-    { id: 'sp3', sellerId: 's6', sellerName: 'लता कांबळे', womenBizId: 'SMB-ANADUR-02',
-      phone: '9011778899', amount: 50, utr: '509911223344', payerUpi: 'lata.k@paytm',
-      submittedAt: hoursAgo(50), status: 'PENDING', duplicateUtr: false },
-    { id: 'sp4', sellerId: 's1', sellerName: 'सुनीता पाटील', womenBizId: 'SMB-ANADUR-01',
-      phone: '9822011223', amount: 50, utr: '401122334455', payerUpi: 'sunita@ybl',
-      submittedAt: daysAgo(30), status: 'APPROVED', duplicateUtr: false, verifiedAt: daysAgo(30) },
-  ]
-
   // Customers are not written by hand. They are derived from the orders above
   // by exactly the same code the backfill script runs against live data, so a
   // fresh install and a migrated database end up with identical records.
@@ -322,7 +305,7 @@ export function seed(): Db {
   // No seeded reviews either: invented praise in front of real customers is
   // the one thing feedback exists to rule out.
   return {
-    sellers, products, orders, payments, customers, reviews: [], reports: [], complaints: [],
+    sellers, products, orders, customers, reviews: [], reports: [], complaints: [],
     sessions: [], admins: [], authEvents: [],
   }
 }

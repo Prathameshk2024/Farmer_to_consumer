@@ -7,10 +7,9 @@ import { api } from '../../lib/api.js'
 import { sizeLabel } from '../../lib/productSize.js'
 import { useToast } from '../../store/ToastContext.js'
 import ProductImage from '../../components/ProductImage.js'
-import { SubscriptionNotice } from '../../components/SubscriptionNotice.js'
 import {
-  AppBar, Button, Card, ConfirmSheet, EmptyState, Loading, Notice,
-  Pill, Rupees, SlotMeter, useAsync,
+  AppBar, Button, Card, ConfirmSheet, EmptyState, Loading,
+  Pill, Rupees, useAsync,
 } from '../../components/ui.js'
 import {
   IconEdit, IconPause, IconPlay, IconPlus, IconProduct, IconTrash, ProductStatusIcon,
@@ -30,8 +29,7 @@ export default function MyProducts() {
     return <><AppBar title={t('biz.myProducts')} backTo="/seller" /><div className="screen"><EmptyState title="—" /></div></>
   }
 
-  const { products, slots } = data
-  const expired = data.subscription?.state === 'expired'
+  const { products } = data
 
   async function togglePause(p: Product) {
     const res = await api.updateProduct(p.id, {
@@ -43,8 +41,8 @@ export default function MyProducts() {
 
   async function doDelete() {
     if (!toDelete) return
-    const res = await api.deleteDraft(toDelete.id)
-    setData({ ...data!, products: products.filter((x) => x.id !== toDelete.id), slots: res.slots })
+    await api.deleteProduct(toDelete.id)
+    setData({ ...data!, products: products.filter((x) => x.id !== toDelete.id) })
     setToDelete(null)
     toast(t('ok.draftRemoved'))
   }
@@ -53,16 +51,6 @@ export default function MyProducts() {
     <>
       <AppBar title={t('biz.myProducts')} backTo="/seller" />
       <div className="screen stack">
-        <SubscriptionNotice view={data.subscription} />
-
-        <Card>
-          <SlotMeter
-            used={slots.used}
-            total={slots.total}
-            hint={slots.isFull ? t('biz.slotsFull') : t('biz.slotsLeft', { n: slots.left })}
-          />
-        </Card>
-
         {products.length === 0 ? (
           <Card>
             {/* No action here: the same button sits in the bar below, on every
@@ -77,7 +65,7 @@ export default function MyProducts() {
         ) : (
           <div className="stack-sm">
             {products.map((p) => {
-              const style = p.status !== 'ARCHIVED' ? PRODUCT_STATUS_STYLE[p.status] : null
+              const style = PRODUCT_STATUS_STYLE[p.status]
               const outOfStock = !p.madeToOrder && p.stock === 0
               return (
                 <Card key={p.id}>
@@ -102,14 +90,7 @@ export default function MyProducts() {
                         <span className="small dim">/ {sizeLabel(p, t)}</span>
                       </div>
                       <div className="wrap-row" style={{ marginTop: 4 }}>
-                        {/* While the shop is paused a LIVE listing is not live
-                            to anyone, so it does not say it is. Its own status
-                            is untouched - it reads LIVE again on renewal. */}
-                        {expired && p.status === 'LIVE' ? (
-                          <Pill tone="warn" icon={<ProductStatusIcon name="paused" />}>{t('sub.pausedPill')}</Pill>
-                        ) : (
-                          style && <Pill tone={style.tone} icon={<ProductStatusIcon name={style.icon} />}>{t(style.labelKey)}</Pill>
-                        )}
+                        <Pill tone={style.tone} icon={<ProductStatusIcon name={style.icon} />}>{t(style.labelKey)}</Pill>
                         <Pill tone={outOfStock ? 'danger' : 'neutral'}>
                           {outOfStock
                             ? t('prod.outOfStock')
@@ -135,9 +116,7 @@ export default function MyProducts() {
                     >
                       <IconEdit aria-hidden="true" /> {t('common.edit')}
                     </Button>
-                    {/* No Remove on a submitted listing: it keeps its slot
-                        until an admin rejects it or takes it down. A draft
-                        holds no slot, so that one she can still throw away. */}
+                    {/* A sold-out crop is his to take down himself. */}
                     {sellerMayDelete(p.status) && (
                       <Button variant="ghost" size="sm" onClick={() => setToDelete(p)}>
                         <IconTrash aria-hidden="true" /> {t('prod.deleteDraft')}
@@ -150,12 +129,9 @@ export default function MyProducts() {
           </div>
         )}
 
-        <Button onClick={() => nav('/seller/upload')} disabled={slots.isFull}>
+        <Button onClick={() => nav('/seller/upload')}>
           <IconPlus aria-hidden="true" /> {t('prod.add')}
         </Button>
-        {slots.isFull && (
-          <Notice tone="warn" title={t('prod.slotsFullTitle')}>{t('prod.slotsFullBody')}</Notice>
-        )}
       </div>
 
       {/* Spells out the consequence, never a bare "Are you sure?" */}

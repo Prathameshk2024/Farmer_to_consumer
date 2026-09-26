@@ -6,7 +6,7 @@ import { useAuth } from '../store/AuthContext.js'
 import { TopBar } from '../components/Shell.js'
 import { Card, ErrorNote, Loading, SectionTitle, useAsync } from '../components/ui.js'
 import {
-  IconAllClear, IconGo, IconImpact, IconOrders, IconPayments, IconProducts,
+  IconAllClear, IconGo, IconImpact, IconOrders, IconProducts,
   IconSellers, IconToday,
 } from '../components/icons.js'
 
@@ -14,8 +14,8 @@ import {
  * Where an admin lands after signing in.
  *
  * Two jobs, in this order: say whether anything needs doing, then get her to
- * the right section in one click. The queue comes first because a woman who
- * has paid ₹50 cannot sell anything until somebody clears it - that is a
+ * the right section in one click. The queue comes first because a farmer who
+ * has registered cannot sell anything until somebody verifies him - that is a
  * person waiting, not a metric.
  *
  * The numbers underneath are context, not the point. The full dashboard lives
@@ -28,12 +28,11 @@ export function Home() {
   const [data, loading, error] = useAsync(() => api.stats(), [])
 
   const s = data?.stats
-  const queue = s ? s.pendingPayments + s.pendingProducts + s.stuckOrders : 0
+  const queue = s ? s.pendingVerification + s.stuckOrders : 0
 
   const sections = [
-    { to: '/payments', icon: IconPayments, label: t('nav.payments'), body: t('home.sectionPayments'), badge: s?.pendingPayments },
-    { to: '/products', icon: IconProducts, label: t('nav.products'), body: t('home.sectionProducts'), badge: s?.pendingProducts },
-    { to: '/sellers', icon: IconSellers, label: t('nav.sellers'), body: t('home.sectionSellers') },
+    { to: '/products', icon: IconProducts, label: t('nav.products'), body: t('home.sectionProducts') },
+    { to: '/sellers', icon: IconSellers, label: t('nav.sellers'), body: t('home.sectionSellers'), badge: s?.pendingVerification },
     { to: '/orders', icon: IconOrders, label: t('nav.orders'), body: t('home.sectionOrders'), badge: s?.stuckOrders },
     { to: '/impact', icon: IconImpact, label: t('nav.impact'), body: t('home.sectionImpact') },
     { to: '/today', icon: IconToday, label: t('nav.today'), body: t('home.sectionToday') },
@@ -62,8 +61,7 @@ export function Home() {
             </Card>
           ) : (
             <div className="tiles">
-              <QueueTile n={s!.pendingPayments} label={t('today.pendingPayments')} onClick={() => nav('/payments')} />
-              <QueueTile n={s!.pendingProducts} label={t('today.pendingProducts')} onClick={() => nav('/products')} />
+              <QueueTile n={s!.pendingVerification} label={t('se.waitingVerification')} onClick={() => nav('/sellers')} />
               <QueueTile n={s!.stuckOrders} label={t('today.stuckOrders')} onClick={() => nav('/orders')} />
             </div>
           )}
@@ -74,11 +72,6 @@ export function Home() {
             <SectionTitle>{t('today.health')}</SectionTitle>
             <div className="tiles">
               <MiniStat n={s.activeSellers} label={t('today.activeSellers')} />
-              {/* Renewals are hers to pay, not ours to approve, so these are not
-                  in the queue above - but a woman whose shop is about to pause,
-                  or has, is the call a coordinator should be making. */}
-              <MiniStat n={s.subscriptionsExpiring} label={t('today.subsExpiring')} />
-              <MiniStat n={s.subscriptionsExpired} label={t('today.subsExpired')} />
               <MiniStat n={s.newRegistrations} label={t('today.newThisWeek')} />
               <MiniStat n={s.ordersWeek} label={t('today.ordersWeek')} />
               <MiniStat n={rupees(s.womenEarnedMonth)} label={t('today.earnedMonth')} />

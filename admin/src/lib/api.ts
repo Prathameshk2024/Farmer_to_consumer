@@ -1,8 +1,6 @@
 import type {
   AdminStats, Complaint, Order, Product, RatingSummary, ReadinessBand, Report, Review, Seller,
-  SubscriptionPayment,
 } from '@shared/types.js'
-import type { SubscriptionView } from '@shared/subscription.js'
 
 /**
  * The one seam between the console and the API.
@@ -157,14 +155,12 @@ const post = <T,>(p: string, body?: unknown) =>
 export interface AdminSession {
   token: string
   role: 'admin'
-  /** The administrator's record id. What `verifiedBy` on a payment points at. */
+  /** The administrator's record id. What `verifiedBy` on a farmer points at. */
   userId: string
   name: string
   email: string
 }
 
-/** The waiting time is computed from `submittedAt` here, so it can tick. */
-export type PaymentRow = SubscriptionPayment
 /** /admin/orders decorates each order with the seller's shop name and id. */
 export type OrderRow = Order & { seller?: string; womenBizId?: string }
 /** /admin/products decorates each listing with its seller and any open reports. */
@@ -175,9 +171,6 @@ export type SellerRow = Seller & {
   productCount: number
   /** Delivered orders only, summed on the server. */
   earned?: number
-  slots: { used: number; total: number }
-  /** Where her six months stand, on the server's clock. */
-  subscription?: SubscriptionView
 }
 
 /**
@@ -191,7 +184,6 @@ export interface SellerDetail {
   seller: SellerRow
   products: ProductRow[]
   orders: OrderRow[]
-  payments: SubscriptionPayment[]
   earned: number
   /** Hidden ones included and marked. */
   reviews: Review[]
@@ -220,7 +212,7 @@ export const api = {
   /**
    * End the session on the server.
    *
-   * An admin token approves payments and can read every buyer's home address,
+   * An admin token verifies farmers and can read every buyer's home address,
    * and it is used on shared desks. Clearing localStorage alone left it valid
    * for the rest of its window.
    */
@@ -229,19 +221,8 @@ export const api = {
   stats: () =>
     get<{ stats: AdminStats; bandLabels: Record<string, unknown> }>('/admin/stats'),
 
-  /** status: PENDING (default) | APPROVED | REJECTED | ALL */
-  payments: (status = 'PENDING') =>
-    get<{ payments: PaymentRow[] }>(`/admin/payments?status=${encodeURIComponent(status)}`),
-
-  /** `checks` is what the admin compared; the server refuses an approval without all of them. */
-  approvePayment: (id: string, checks: string[]) =>
-    post<{ payment: SubscriptionPayment; seller?: Seller }>(`/admin/payments/${id}/approve`, { checks }),
-
-  rejectPayment: (id: string, reason: string) =>
-    post<{ payment: SubscriptionPayment }>(`/admin/payments/${id}/reject`, { reason }),
-
-  /** status: PENDING (default) | LIVE | REJECTED | ALL */
-  products: (status = 'PENDING') =>
+  /** status: ALL (default) | LIVE | PAUSED | DRAFT | REPORTED */
+  products: (status = 'ALL') =>
     get<{ products: ProductRow[]; reportedCount: number }>(
       `/admin/products?status=${encodeURIComponent(status)}`,
     ),
@@ -249,8 +230,9 @@ export const api = {
   /** Looked at, and the listing stays up. The reports close; the row does not. */
   clearReports: (id: string) => post<{ ok: true }>(`/admin/products/${id}/clear-reports`, {}),
 
-  moderateProduct: (id: string, approve: boolean, reason?: string) =>
-    post<{ product: Product }>(`/admin/products/${id}/moderate`, { approve, reason }),
+  /** Take a listing down: deletes it, and he is told the reason. */
+  takeDownProduct: (id: string, reason: string) =>
+    post<{ product: Product }>(`/admin/products/${id}/moderate`, { approve: false, reason }),
 
   /** What sellers and buyers wrote from Help & Training. A queue to empty. */
   complaints: (status = 'OPEN') =>
@@ -265,13 +247,8 @@ export const api = {
 
   sellerDetail: (id: string) => get<SellerDetail>(`/admin/sellers/${id}`),
 
-  grantSlots: (id: string, packs: number) =>
-    post<{ seller: Seller }>(`/admin/sellers/${id}/grant-slots`, { packs }),
-
-  /** Takes packs back. Refused by the server if it would drop her below the
-   *  slots she is already using. */
-  revokeSlots: (id: string, packs: number) =>
-    post<{ seller: Seller }>(`/admin/sellers/${id}/revoke-slots`, { packs }),
+  /** Checked once, by a person; his live listings go public at once. */
+  verifySeller: (id: string) => post<{ seller: Seller }>(`/admin/sellers/${id}/verify`, {}),
 
   /** The reason is shown to her in her own app, so it is not optional noise. */
   blockSeller: (id: string, blocked: boolean, reason?: string) =>

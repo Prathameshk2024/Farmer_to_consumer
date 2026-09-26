@@ -12,9 +12,9 @@ import { useI18n } from '../i18n/I18nProvider.js'
  * backend's environment.
  *
  * The limitation, stated so nobody discovers it during an argument: every
- * action is recorded against that one identity, so `verifiedBy` on an approved
- * payment says "admin@shantabazar.in" no matter which member of staff clicked
- * it. The moment two people share the login, "who approved this?" has one
+ * action is recorded against that one identity, so `verifiedBy` on a verified
+ * farmer says "admin@shantabazar.in" no matter which member of staff clicked
+ * it. The moment two people share the login, "who verified him?" has one
  * answer for everybody. Per-person accounts is a backend change.
  */
 
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * The console is used on shared machines with several tabs open, and every
    * tab holds its own copy of this state. `storage` fires in the OTHER tabs
    * when a key changes, so signing out in one reaches the rest; without it the
-   * second tab kept a live admin session - approving payments and reading
+   * second tab kept a live admin session - verifying farmers and reading
    * every buyer's address - after somebody had signed out and walked away.
    *
    * The token is re-derived from what storage now holds rather than trusted

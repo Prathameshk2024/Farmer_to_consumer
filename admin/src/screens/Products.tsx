@@ -19,21 +19,19 @@ import {
  * is always empty. What an admin needs instead is the listings BUYERS have
  * flagged - the only moderation signal that arrives after a listing is live.
  */
-type Tab = 'PENDING' | 'LIVE' | 'REPORTED'
+type Tab = 'LIVE' | 'REPORTED'
 
 /**
  * Moderation is mostly looking, so the photo leads.
  *
- * There is no review queue here, and that is deliberate. A seller publishes her
- * own listing the moment she finishes the wizard - nothing is ever created
- * PENDING - so a "to review" tab was permanently empty and a Publish button
- * had nothing it could ever apply to. What this screen does is the other
- * direction: take a live listing down, with a reason she reads, and put one
- * back if it was taken down in error.
+ * There is no review queue here, and that is deliberate. A verified farmer's
+ * listing goes on sale the moment he sends it - produce changes daily, and a
+ * queue per listing would sell yesterday's tomatoes. What this screen does is
+ * the other direction: take a live listing down, with a reason he reads.
  */
 export function Products() {
   const t = useT()
-  const [tab, setTab] = useState<Tab>('PENDING')
+  const [tab, setTab] = useState<Tab>('LIVE')
   const [data, loading, error, reload] = useAsync(() => api.products(tab), [tab])
   const [sort, setSort] = useSort('products', PRODUCT_SORTS)
 
@@ -44,9 +42,6 @@ export function Products() {
       <TopBar title={t('pr.title')} />
       <div className="body stack">
         <div className="row wrap">
-          <Button small variant={tab === 'PENDING' ? 'primary' : 'quiet'} onClick={() => setTab('PENDING')}>
-            {t('pr.pendingTab')}
-          </Button>
           <Button small variant={tab === 'LIVE' ? 'primary' : 'quiet'} onClick={() => setTab('LIVE')}>
             {t('pr.liveTab')}
           </Button>
@@ -77,8 +72,7 @@ export function Products() {
  * One listing, with whatever action its status allows.
  *
  * Exported because her own page shows the same listings, and the take-down
- * flow - a reason she reads, and 48 hours in which it can be undone - must be
- * the same one in both places. A second copy is a second thing to keep in
+ * flow - a reason he reads - must be the same one in both places. A second copy is a second thing to keep in
  * step, and the half that falls behind is the half that stops explaining
  * itself.
  */
@@ -93,17 +87,8 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
   const [err, setErr] = useState('')
 
   /**
-   * Taking a live listing down IS a rejection: it carries a reason she can
-   * read and it removes itself 48 hours later. That replaced the delete
-   * button, which removed the product on the spot and told her nothing.
+   * Taking a listing down deletes it; the reason reaches him as a notice.
    */
-  /**
-   * Nothing a seller writes reaches a shopper until it is published here. She
-   * submits, this screen decides - and a refusal carries a reason she reads in
-   * her own app, because "it never appeared" is the one outcome she cannot act
-   * on.
-   */
-  const pending = product.status === 'PENDING'
   const live = product.status === 'LIVE'
 
   async function run(action: () => Promise<unknown>) {
@@ -124,7 +109,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
       setReasonErr(t('c.required'))
       return
     }
-    void run(() => api.moderateProduct(product.id, false, reason.trim()))
+    void run(() => api.takeDownProduct(product.id, reason.trim()))
   }
 
   return (
@@ -137,9 +122,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
             {/* Her words, rendered exactly as she wrote them. */}
             <span className="strong">{product.name}</span>
             {product.isFood && <Pill tone="info">{t('pr.food')}</Pill>}
-            {pending && <Pill tone="warn">{t('pr.pendingTab')}</Pill>}
-            {product.status === 'LIVE' && <Pill tone="ok">{t('pr.liveTab')}</Pill>}
-            {product.status === 'REJECTED' && <Pill tone="danger">{t('pr.rejectedTab')}</Pill>}
+            {live && <Pill tone="ok">{t('pr.liveTab')}</Pill>}
           </div>
 
           <div className="small dim">
@@ -167,15 +150,9 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
               </ul>
             </div>
           )}
-
-          {product.rejectReason && (
-            <div className="small" style={{ color: 'var(--danger)' }}>
-              {t('c.reason')}: {product.rejectReason}
-            </div>
-          )}
         </div>
 
-        {(pending || live) && !rejecting && (
+        {!rejecting && (
           <div className="row">
             {/* Looked at, and it stays up. One annoyed buyer must not be able
                 to empty a woman's shop, so closing the reports is a decision
@@ -190,18 +167,8 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
                 {t('pr.clearReports')}
               </Button>
             )}
-            {pending && (
-              <Button
-                variant="ok"
-                small
-                disabled={busy}
-                onClick={() => void run(() => api.moderateProduct(product.id, true))}
-              >
-                {t('pr.publish')}
-              </Button>
-            )}
             <Button variant="danger" small disabled={busy} onClick={() => setRejecting(true)}>
-              {pending ? t('pr.reject') : t('pr.takeDown')}
+              {t('pr.takeDown')}
             </Button>
           </div>
         )}
@@ -223,7 +190,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
           {/* The consequence, spelled out at the moment of the decision. */}
           <div className="small dim-2">{t('pr.rejectDeletes')}</div>
           <div className="row">
-            <Button variant="danger" small disabled={busy} onClick={reject}>{t('pr.reject')}</Button>
+            <Button variant="danger" small disabled={busy} onClick={reject}>{t('pr.takeDown')}</Button>
             <Button variant="quiet" small disabled={busy} onClick={() => setRejecting(false)}>
               {t('c.cancel')}
             </Button>

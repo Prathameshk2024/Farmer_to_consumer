@@ -76,7 +76,7 @@ test('garbage is refused without throwing', () => {
  * The admin login used to be `password !== process.env.ADMIN_PASSWORD`, with a
  * default of `changeme`, and the EMAIL was never checked at all - so any string
  * plus the right password got in, and that string was written into `verifiedBy`
- * on approved payments. The audit trail was attacker-controlled.
+ * on admin decisions. The audit trail was attacker-controlled.
  */
 
 test('a password verifies against its own hash and nothing else', () => {

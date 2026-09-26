@@ -12,7 +12,7 @@ import { IconWhatsapp } from './icons.js'
  * "SOMETHING HAS GONE WRONG AND I NEED A PERSON."
  *
  * Two ways out of the same sheet, on purpose. The form RECORDS the complaint
- * against her account, so an admin can open it, see the ₹50 she is asking
+ * against her account, so an admin can open it, see the order she is asking
  * about and answer - a WhatsApp message lives on one phone and cannot be
  * counted, assigned or found again next month. WhatsApp is still offered
  * underneath, because when the order is at her door and the buyer is on the

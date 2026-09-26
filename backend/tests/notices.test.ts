@@ -4,35 +4,33 @@ import type { Seller } from '@shared/types.js'
 import { NOTICE_LIMIT, appendNotice } from '../src/db/notices.js'
 
 /**
- * An admin approves her ₹50 and five slots appear. Nothing told her: she had
- * to notice the meter herself, having been promised a message. The decision
- * has to be written down as it is made, because afterwards there is nothing to
- * reconstruct it from - `packsApproved` is a number that is simply larger.
+ * An admin verifies him and his produce goes on sale. Nothing tells him unless
+ * the decision is written down as it is made, because afterwards there is
+ * nothing to reconstruct it from - `status` is simply a different word.
  */
 
 function seller(over: Partial<Seller> = {}): Seller {
-  return { id: 's1', packsApproved: 0, ...over } as Seller
+  return { id: 's1', ...over } as Seller
 }
 
-test('a decision is recorded with its number, in slots', () => {
+test('a decision is recorded as it is made', () => {
   const s = seller()
-  appendNotice(s, 'SLOTS_GRANTED', { n: 5 }, '2026-09-08T10:00:00.000Z')
+  appendNotice(s, 'VERIFIED', {}, '2026-09-08T10:00:00.000Z')
 
   assert.deepEqual(s.notices, [{
-    id: 'SLOTS_GRANTED:2026-09-08T10:00:00.000Z',
+    id: 'VERIFIED:2026-09-08T10:00:00.000Z',
     at: '2026-09-08T10:00:00.000Z',
-    kind: 'SLOTS_GRANTED',
-    n: 5,
+    kind: 'VERIFIED',
   }])
 })
 
 /** She reads them newest-first, but they are appended, so order matters. */
 test('decisions accumulate in the order they were made', () => {
   const s = seller()
-  appendNotice(s, 'PAYMENT_APPROVED', { n: 5 }, '2026-09-01T00:00:00.000Z')
+  appendNotice(s, 'VERIFIED', {}, '2026-09-01T00:00:00.000Z')
   appendNotice(s, 'BLOCKED', { note: 'Wrong photos' }, '2026-09-02T00:00:00.000Z')
 
-  assert.deepEqual(s.notices?.map((n) => n.kind), ['PAYMENT_APPROVED', 'BLOCKED'])
+  assert.deepEqual(s.notices?.map((n) => n.kind), ['VERIFIED', 'BLOCKED'])
   assert.equal(s.notices?.[1]?.note, 'Wrong photos')
 })
 
@@ -43,11 +41,10 @@ test('decisions accumulate in the order they were made', () => {
 test('the trail is trimmed to the newest few', () => {
   const s = seller()
   for (let i = 0; i < NOTICE_LIMIT + 5; i++) {
-    appendNotice(s, 'SLOTS_GRANTED', { n: i }, `2026-09-08T10:00:${String(i).padStart(2, '0')}.000Z`)
+    appendNotice(s, 'PRODUCT_REJECTED', { n: i }, `2026-09-08T10:00:${String(i).padStart(2, '0')}.000Z`)
   }
 
   assert.equal(s.notices?.length, NOTICE_LIMIT)
   assert.equal(s.notices?.[0]?.n, 5, 'the first five were dropped')
   assert.equal(s.notices?.at(-1)?.n, NOTICE_LIMIT + 4)
 })
-

@@ -1,15 +1,15 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import type { Order, Review, Seller, SubscriptionPayment } from '@shared/types.js'
+import type { Order, Review, Seller } from '@shared/types.js'
 import {
   SELLER_PII_FIELDS, UNDO_DAYS, closeReasonProblem, confirmProblem, daysUntilScrub, openOrders,
 } from '@shared/accountClose.js'
 import {
-  closeCustomer, openOrdersForSeller, publicIdFromUrl, requestSellerClose, restoreSeller,
+  closeCustomer, openOrdersForSeller, requestSellerClose, restoreSeller,
   scrubSeller, sweepClosedAccounts,
 } from '../src/db/accountClose.js'
 import { emptyDb, type Db } from '../src/db/seed.js'
-import { canSellNow } from '@shared/subscription.js'
+import { canSellNow } from '@shared/seller.js'
 
 /**
  * DELETING AN ACCOUNT.
@@ -65,8 +65,7 @@ function seller(over: Partial<Seller> = {}): Seller {
     dispatch: '1',
     pincodes: ['413601'],
     status: 'ACTIVE',
-    subscriptionEndsAt: new Date(Date.now() + 100 * DAY).toISOString(),
-    packsApproved: 1,
+    verifiedAt: '2026-01-02T00:00:00.000Z',
     notices: [{ id: 'n1', kind: 'BLOCKED', at: '2026-01-01T00:00:00.000Z' }],
     rating: 0,
     ratingCount: 0,
@@ -113,7 +112,7 @@ test('asking closes the shop today and erases her in seven days', () => {
   requestSellerClose(db, s, { reason: 'not_selling' }, now)
 
   assert.equal(s.status, 'CLOSED')
-  assert.equal(canSellNow(s, now), false, 'her shop leaves the catalogue at once')
+  assert.equal(canSellNow(s), false, 'her shop leaves the catalogue at once')
   assert.equal(s.phone, '9822011223', 'but she is still here, for a week')
   assert.equal(daysUntilScrub(s.closingAt!, now), UNDO_DAYS)
   assert.equal(sweepClosedAccounts(db, now + 6 * DAY, () => true), 0, 'nothing on day six')
@@ -129,12 +128,19 @@ test('signing in inside the week puts everything back', () => {
 
   assert.equal(s.status, 'ACTIVE')
   assert.equal(s.closingAt, undefined)
-  assert.equal(canSellNow(s, now), true, 'the shop is exactly as it was')
+  assert.equal(canSellNow(s), true, 'the shop is exactly as it was')
   // canSellNow does not read the open/closed switch, but the catalogue does.
   // Closing used to flip it off and restoring never flipped it back, so a
   // woman who came back found her shop still missing from every buyer's list.
   assert.equal(s.isOpen, true, 'her open/closed switch is untouched')
   assert.equal(sweepClosedAccounts(db, now + 30 * DAY, () => true), 0, 'and the sweep forgets her')
+})
+
+test('restoring never skips the verification', () => {
+  const s = seller({ status: 'PENDING_VERIFICATION', verifiedAt: undefined })
+  requestSellerClose(dbWith(s), s, { reason: 'too_hard' })
+  restoreSeller(s)
+  assert.equal(s.status, 'PENDING_VERIFICATION')
 })
 
 /* ------------------------------------------------------------------ */
@@ -233,39 +239,11 @@ test('her phone number goes back into circulation', () => {
   assert.equal(db.sellers.some((x) => x.phone === '9822011223'), false)
 })
 
-test('the money trail stays, the payer does not', () => {
+test('her bank QR is destroyed, not merely unlinked', () => {
   const s = seller()
-  const db = dbWith(s)
-  db.payments.push({
-    id: 'sp1', sellerId: 's1', sellerName: 'सुनीता पाटील', womenBizId: 'SMB-ANADUR-01',
-    phone: '9822011223', amount: 50, utr: '123456789012', payerUpi: '9822011223@ybl',
-    screenshotUrl: 'https://res.cloudinary.com/x/image/upload/v1/smb/payment/proof.jpg',
-    submittedAt: '2026-02-01T00:00:00.000Z', status: 'APPROVED', duplicateUtr: false,
-  } as SubscriptionPayment)
-
   const destroyed: (string | undefined)[] = []
-  scrubSeller(db, s, Date.now(), (id) => destroyed.push(id))
-
-  const p = db.payments[0]!
-  assert.equal(p.amount, 50, 'the college still has to account for the money')
-  assert.equal(p.utr, '123456789012', 'and for the reference it arrived under')
-  assert.equal(p.phone, '')
-  assert.equal(p.payerUpi, '')
-  assert.equal(p.screenshotUrl, undefined)
-  assert.ok(
-    destroyed.includes('smb/payment/proof'),
-    'the screenshot of her UPI app is destroyed, not merely unlinked',
-  )
-  assert.ok(destroyed.includes('smb/qr/her'), 'so is her bank QR')
-})
-
-test('a Cloudinary URL yields the id the delete needs', () => {
-  assert.equal(
-    publicIdFromUrl('https://res.cloudinary.com/demo/image/upload/v1699/smb/payment/a1.jpg'),
-    'smb/payment/a1',
-  )
-  assert.equal(publicIdFromUrl(undefined), undefined)
-  assert.equal(publicIdFromUrl('not a url'), undefined, 'and nonsense names nothing')
+  scrubSeller(dbWith(s), s, Date.now(), (id) => destroyed.push(id))
+  assert.ok(destroyed.includes('smb/qr/her'))
 })
 
 /* ------------------------------------------------------------------ */

@@ -5,13 +5,14 @@ import { Button, Notice } from './ui.js'
 /**
  * A confirmation step that explains what is about to happen.
  *
- * Every action it guards changes what a real woman can do tomorrow - her slot
- * allowance, whether her shop is visible at all. A native `confirm()` cannot
+ * Every action it guards changes what a real farmer can do tomorrow - whether
+ * his produce is on sale, whether his shop is visible at all. A native `confirm()` cannot
  * say any of that, and cannot be translated, so this replaces it wherever the
  * consequence needs describing.
  *
- * The description is not decoration. "Grant slots" means nothing on its own;
- * "she will be able to publish 5 more products" is the thing being decided.
+ * The description is not decoration. "Verify" means nothing on its own;
+ * "his live listings will be visible to buyers at once" is the thing being
+ * decided.
  */
 export function Confirm({
   open,
@@ -53,30 +54,6 @@ export function Confirm({
           {t('c.cancel')}
         </Button>
       </div>
-    </div>
-  )
-}
-
-/** A small number picker, so packs are chosen rather than typed blindly. */
-export function PackPicker({
-  value, onChange, max,
-}: {
-  value: number
-  onChange: (n: number) => void
-  max?: number
-}) {
-  return (
-    <div className="row" style={{ marginTop: 10, gap: 6 }}>
-      {[1, 2, 3].filter((n) => max === undefined || n <= max).map((n) => (
-        <button
-          key={n}
-          type="button"
-          className={`packbtn ${value === n ? 'packbtn--on' : ''}`}
-          onClick={() => onChange(n)}
-        >
-          {n}
-        </button>
-      ))}
     </div>
   )
 }

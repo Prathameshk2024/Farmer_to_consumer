@@ -10,7 +10,7 @@ const shared = path.resolve(here, '../shared/src')
  * The admin console is a separate deployment from the seller app - its own
  * Vercel project, pointed at the same Cloud Run API - but it lives in this repo so
  * it imports `shared/src/types.ts` directly. A copied type would drift the
- * first time Seller or SubscriptionPayment changed, and drift silently.
+ * first time Seller or Product changed, and drift silently.
  */
 export default defineConfig({
   plugins: [react()],

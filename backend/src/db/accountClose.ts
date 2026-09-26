@@ -1,4 +1,4 @@
-import type { Order, Seller, SubscriptionPayment } from '@shared/types.js'
+import type { Order, Seller } from '@shared/types.js'
 import { openOrders, scrubDueAt } from '@shared/accountClose.js'
 import type { Db } from './seed.js'
 import { destroyImage } from '../routes/uploads.routes.js'
@@ -48,7 +48,7 @@ export function openOrdersForCustomer(db: Db, customerId: string, phone: string)
  *
  * CLOSED is not in `canSellNow`, so her listings leave the catalogue, her shop
  * page stops answering and `POST /orders` refuses - all of it from the status
- * alone, with no product touched and no slot released. If she comes back
+ * alone, with no product touched. If she comes back
  * inside the week, `restoreSeller` puts the status back and nothing else has
  * to be undone.
  */
@@ -75,10 +75,9 @@ export function requestSellerClose(
 
 /** She changed her mind inside the week. */
 export function restoreSeller(seller: Seller): Seller {
-  // ACTIVE, not whatever she was before: a seller only reaches the profile
-  // screen that offers this once she is selling, and her subscription date is
-  // untouched, so `canSellNow` decides for itself whether the shop is open.
-  seller.status = 'ACTIVE'
+  // Back to what the verification says, not whatever she was before: a
+  // farmer who closed before an admin checked him must not come back verified.
+  seller.status = seller.verifiedAt ? 'ACTIVE' : 'PENDING_VERIFICATION'
   delete seller.closingAt
   delete seller.closeReason
   delete seller.closeNote
@@ -138,44 +137,8 @@ export function scrubSeller(
   seller.closedAt = new Date(now).toISOString()
   delete seller.closingAt
 
-  for (const payment of db.payments.filter((p) => p.sellerId === seller.id)) {
-    scrubPayment(payment, destroy)
-  }
   forgetSessions(db, seller.id, now)
   return seller
-}
-
-/**
- * The ₹50 ledger keeps what the college has to account for - amount, date,
- * UTR, which pack - and loses the payer. The screenshot goes altogether: it is
- * a photograph of her UPI app, with her name and her balance on it.
- */
-function scrubPayment(
-  payment: SubscriptionPayment,
-  destroy: (publicId: string | undefined) => unknown,
-): void {
-  void destroy(publicIdFromUrl(payment.screenshotUrl))
-  payment.sellerName = CLOSED_SHOP_NAME
-  payment.phone = ''
-  payment.payerUpi = ''
-  delete payment.screenshotUrl
-}
-
-/**
- * The public id inside a Cloudinary delivery URL.
- *
- * A payment screenshot is stored as a URL and nothing else, so this is the
- * only way to name the asset for deletion. `destroyImage` refuses anything
- * outside this account's folder, so a mangled parse deletes nothing rather
- * than something belonging to someone else.
- */
-export function publicIdFromUrl(url: string | undefined): string | undefined {
-  if (!url) return undefined
-  const after = url.split('/image/upload/')[1]
-  if (!after) return undefined
-  const path = after.replace(/^v\d+\//, '')
-  const dot = path.lastIndexOf('.')
-  return dot > 0 ? path.slice(0, dot) : path
 }
 
 /**
@@ -233,7 +196,7 @@ function forgetSessions(db: Db, userId: string, now: number): void {
  * The other half of the seven days: something has to do the erasing when they
  * are up.
  *
- * A sweep rather than a timer, for the reason `purgeRejected` is one:
+ * A sweep rather than a timer, for the reason the old boot sweeps were:
  * timers do not survive the deploy that happens halfway through the week.
  * Called at boot and hourly, and correct however long the server was down.
  * Returns how many rows it emptied so the caller can decide to `save()`.

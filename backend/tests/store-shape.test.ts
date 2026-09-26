@@ -14,7 +14,6 @@ test('a database file saved before customers existed still loads', () => {
     sellers: [],
     products: [],
     orders: [],
-    payments: [],
     addresses: [{ id: 'a1', label: 'घर', line: 'x', city: 'पुणे', pincode: '413601', isDefault: true }],
   }
 
@@ -26,7 +25,7 @@ test('a database file saved before customers existed still loads', () => {
 test('a completely empty object still yields every collection', () => {
   const db = withDefaults({} as never)
 
-  for (const key of ['sellers', 'products', 'orders', 'payments', 'customers'] as const) {
+  for (const key of ['sellers', 'products', 'orders', 'customers'] as const) {
     assert.ok(Array.isArray(db[key]), `${key} should be an array`)
   }
 })
@@ -36,7 +35,6 @@ test('existing data is preserved untouched', () => {
     sellers: [],
     products: [],
     orders: [],
-    payments: [],
     customers: [
       {
         id: 'c-9011223344', phone: '9011223344', name: 'प्रिया देशमुख',

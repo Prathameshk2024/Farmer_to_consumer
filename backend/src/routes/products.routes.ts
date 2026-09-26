@@ -1,13 +1,10 @@
 import { Router } from 'express'
 import type { Product } from '@shared/types.js'
 import {
-  MAX_EDITS, countsAsEdit, editsAreLimited, editsLeft, initialListingStatus,
-  fssaiProblem, normalizeFssai, sellerMayDelete, sizeProblems, slotInfo,
+  canSellNow, initialListingStatus, fssaiProblem, normalizeFssai, sizeProblems,
 } from '@shared/seller.js'
 import { getDb, newId, save } from '../db/store.js'
 import { requireRole } from '../middleware/auth.js'
-import { purgeArchived, purgeRejected } from '../db/moderation.js'
-import { isExpired, subscriptionView } from '@shared/subscription.js'
 import { destroyImage } from './uploads.routes.js'
 
 export const productsRouter: Router = Router()
@@ -41,24 +38,14 @@ function listingProblems(b: Partial<Product>): Record<string, string> {
   return fields
 }
 
-/** Her own products, including drafts and rejected ones. */
+/** Her own products, drafts included. */
 productsRouter.get('/mine', requireRole('seller'), (req, res) => {
-  const db = getDb()
-  // A rejection she has already had 48 hours to read is gone by now. Swept on
-  // read as well as on the timer, so her list and the server never disagree.
-  // `purgeArchived` clears tombstones from before deleting meant deleting.
-  if (purgeRejected(db.products) + purgeArchived(db.products)) save()
   const sellerId = req.auth!.sellerId!
-  const products = db.products.filter((p) => p.sellerId === sellerId)
-  const seller = db.sellers.find((s) => s.id === sellerId)!
-  // Her list shows live products as paused while the shop is, so it needs the
-  // state - on the server's clock, not the phone's.
-  res.json({ products, slots: slotInfo(seller, products), subscription: subscriptionView(seller) })
+  res.json({ products: getDb().products.filter((p) => p.sellerId === sellerId) })
 })
 
-const EXPIRED_MR = 'तुमची वर्गणी संपली आहे. ₹50 भरून नूतनीकरण केल्यावर उत्पादने पाठवता येतील.'
-
-
+/** Why an unverified farmer's listing cannot go on sale yet. */
+const NOT_VERIFIED_MR = 'तुमची तपासणी झाल्यावर माल विक्रीसाठी जाईल'
 
 productsRouter.post('/', requireRole('seller'), (req, res) => {
   const db = getDb()
@@ -72,31 +59,9 @@ productsRouter.post('/', requireRole('seller'), (req, res) => {
   const b = req.body as Partial<Product> & { asDraft?: boolean }
   const asDraft = !!b.asDraft
 
-  // She cannot publish until the 50 rupees is approved.
-  if (!asDraft && seller.status !== 'ACTIVE') {
-    res.status(403).json({
-      error: 'Not active',
-      messageMr: 'प्रशासकाच्या मंजुरीची वाट पहा',
-    })
-    return
-  }
-  // Drafts are still hers to write while the shop is paused; sending one in
-  // waits for the renewal, like everything else a buyer would see.
-  if (!asDraft && isExpired(seller)) {
-    res.status(403).json({ error: 'Subscription expired', messageMr: EXPIRED_MR })
-    return
-  }
-
-  // THE SLOT GATE. Enforced here, not just by the disabled button in the UI -
-  // the button is a courtesy, this is the rule.
-  const existing = db.products.filter((p) => p.sellerId === sellerId)
-  const slots = slotInfo(seller, existing)
-  if (!asDraft && slots.isFull) {
-    res.status(402).json({
-      error: 'No slots left',
-      messageMr: 'सर्व जागा भरल्या आहेत. आणखी 5 जागांसाठी 50 रुपये भरा.',
-      slots,
-    })
+  // Drafts are his to write before the check; putting one on sale waits for it.
+  if (!asDraft && !canSellNow(seller)) {
+    res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
     return
   }
 
@@ -129,7 +94,7 @@ productsRouter.post('/', requireRole('seller'), (req, res) => {
     piecesPerPack: Number(b.piecesPerPack) > 0 ? Number(b.piecesPerPack) : undefined,
     stock: b.madeToOrder ? 0 : Number(b.stock ?? 0),
     madeToOrder: !!b.madeToOrder,
-    // PENDING, never LIVE - see initialListingStatus. An admin publishes it.
+    // LIVE at once for a verified farmer - see initialListingStatus.
     status: initialListingStatus(asDraft),
     views: 0,
     createdAt: new Date().toISOString(),
@@ -190,95 +155,32 @@ productsRouter.patch('/:id', requireRole('seller'), (req, res) => {
   }
 
   /**
-   * Sending a draft - or a rejected listing she has since fixed - back to the
-   * moderation queue. It goes to PENDING, never straight to LIVE: a seller
-   * cannot approve her own listing, and skipping the queue here would make
-   * "save as draft" the way around it.
-   *
-   * Neither a draft nor a rejected listing holds a slot, so sending one in
-   * takes one, which is why the slot gate has to run here too and not only on
-   * create.
+   * Putting a draft on sale. The same checks as a new listing, so "save as
+   * draft" is never a way round them.
    */
-  if (req.body.status === 'LIVE' && (current.status === 'DRAFT' || current.status === 'REJECTED')) {
+  if (req.body.status === 'LIVE' && current.status === 'DRAFT') {
     const seller = db.sellers.find((s) => s.id === req.auth!.sellerId)!
-    if (seller.status !== 'ACTIVE') {
-      res.status(403).json({ error: 'Not active', messageMr: 'प्रशासकाच्या मंजुरीची वाट पहा' })
+    if (!canSellNow(seller)) {
+      res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
       return
     }
-    if (isExpired(seller)) {
-      res.status(403).json({ error: 'Subscription expired', messageMr: EXPIRED_MR })
-      return
-    }
-
-    const merged = { ...current, ...patch } as Product
-    const fields = listingProblems(merged)
+    const fields = listingProblems({ ...current, ...patch } as Product)
     if (Object.keys(fields).length) {
       res.status(400).json({ error: 'Validation failed', messageMr: 'माहिती तपासा', fields })
       return
     }
-
-    const others = db.products.filter(
-      (p) => p.sellerId === seller.id && p.id !== current.id,
-    )
-    const slots = slotInfo(seller, others)
-    if (slots.isFull) {
-      res.status(402).json({
-        error: 'No slots left',
-        messageMr: 'सर्व जागा भरल्या आहेत. आणखी 5 जागांसाठी 50 रुपये भरा.',
-        slots,
-      })
-      return
-    }
-
-    // Publishing a draft is submitting it, exactly like a new listing: the
-    // slot is spent now, and an admin decides whether it goes live.
     patch.status = initialListingStatus(false)
   }
 
-  // Editing a live listing no longer knocks it back into a queue. She can fix
-  // a price or a photo and have the change go live, which is what editing
-  // means everywhere else she has ever used a phone.
-
-  /**
-   * THE EDIT LIMIT. Two changes to what the listing IS, then no more.
-   *
-   * `countsAsEdit` compares values rather than keys, because this form posts
-   * the whole product on every save: opening the screen, changing nothing and
-   * pressing save must not cost her one. Price and stock are outside the
-   * count entirely - see EDIT_COUNTED_FIELDS for why.
-   *
-   * The client disables the button at zero, which is a courtesy. This is the
-   * rule.
-   */
   const merged = { ...current, ...patch } as Product
-  const spendsAnEdit = editsAreLimited(current.status) && countsAsEdit(current, merged)
-
-  if (spendsAnEdit && editsLeft(current) <= 0) {
-    res.status(409).json({
-      error: 'No edits left',
-      messageMr: `या उत्पादनात ${MAX_EDITS} वेळा बदल करून झाले आहेत. किंमत आणि साठा मात्र कधीही बदलता येतो.`,
-      editsLeft: 0,
-    })
-    return
-  }
-
-  if (spendsAnEdit) merged.editCount = (current.editCount ?? 0) + 1
-
   db.products[i] = merged
   save()
   res.json({ product: db.products[i] })
 })
 
 /**
- * A SELLER DELETES DRAFTS, AND NOTHING ELSE.
- *
- * Deleting a submitted listing used to free its slot, so one ₹50 pack of five
- * became a rotating shop of as many products as she cared to upload. Now a
- * listing keeps its slot until an admin rejects it or takes it down - see
- * SLOT_CONSUMING. The button is gone from her screen; this is the rule.
- *
- * A draft holds no slot and nobody else has seen it, so that one she may
- * still throw away. It is a real delete, not an `ARCHIVED` tombstone.
+ * A farmer removes any listing of his own - a sold-out crop is his to take
+ * down. A real delete, not a tombstone.
  */
 productsRouter.delete('/:id', requireRole('seller'), (req, res) => {
   const db = getDb()
@@ -287,14 +189,6 @@ productsRouter.delete('/:id', requireRole('seller'), (req, res) => {
   )
   if (i < 0) {
     res.status(404).json({ error: 'Product not found' })
-    return
-  }
-
-  if (!sellerMayDelete(db.products[i]!.status)) {
-    res.status(403).json({
-      error: 'Only a draft can be deleted by the seller',
-      messageMr: 'पाठवलेले उत्पादन काढता येत नाही. ते काढायचे असल्यास प्रशासकाशी संपर्क करा.',
-    })
     return
   }
 
@@ -307,7 +201,5 @@ productsRouter.delete('/:id', requireRole('seller'), (req, res) => {
   // still know the public id, so it is now or never.
   void destroyImage(gone?.imagePublicId)
 
-  const seller = db.sellers.find((s) => s.id === req.auth!.sellerId)!
-  const remaining = db.products.filter((p) => p.sellerId === seller.id)
-  res.json({ ok: true, slots: slotInfo(seller, remaining) })
+  res.json({ ok: true })
 })

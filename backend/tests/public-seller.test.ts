@@ -26,7 +26,7 @@ function seller(): Seller {
     digital: { smartphone: true, internet: true, upi: true, whatsappBusiness: false, socialMedia: false, digitalMarketing: false },
     readinessScore: 4, readinessBand: 'basic',
     isOpen: true, deliveryFee: 30, freeDeliveryAbove: 500, minOrder: 100, dispatch: '1', pincodes: ['413603'],
-    status: 'ACTIVE', blockedAt: undefined, blockReason: 'old reason', packsApproved: 2, listingsPublished: 7,
+    status: 'ACTIVE', blockedAt: undefined, blockReason: 'old reason', verifiedAt: '2026-08-02T00:00:00Z', verifiedBy: 'admin',
     notices: [{ id: 'n1', at: '2026-09-01T00:00:00Z', kind: 'BLOCKED', note: 'private' }],
     rating: 4.9, ratingCount: 99, qrScans: 12, qrOrders: 3, createdAt: '2026-08-01T00:00:00Z',
   }

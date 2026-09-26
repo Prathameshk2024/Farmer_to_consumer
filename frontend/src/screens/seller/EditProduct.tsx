@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Category, Product, Unit } from '@shared/types.js'
-import {
-  countsAsEdit, editsAreLimited, editsLeft, needsPieceCount,
-} from '@shared/seller.js'
+import { needsPieceCount } from '@shared/seller.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
@@ -151,7 +149,7 @@ export default function EditProduct() {
   }
 
   /**
-   * `submit` is what turns a draft into a listing awaiting review. Saving on
+   * `submit` is what puts a draft on sale. Saving on
    * its own never moves the status, so she can fix a typo on a draft without
    * it leaving her hands.
    */
@@ -191,35 +189,7 @@ export default function EditProduct() {
     }
   }
 
-  const canSubmit = p.status === 'DRAFT' || p.status === 'REJECTED'
-
-  /**
-   * Two changes to what the listing IS, then the description is settled.
-   *
-   * Price and stock are never counted, so the fields she touches weekly stay
-   * open for ever - and the ones that would turn this listing into a different
-   * product are the ones that run out. `locked` disables those rather than
-   * letting her retype a name the server is going to refuse.
-   */
-  const limited = editsAreLimited(p.status)
-  const left = editsLeft(p)
-  const locked = limited && left <= 0
-
-  /** Does what is on screen right now spend one? Price-only saves do not. */
-  const spends = limited && countsAsEdit(p, {
-    name: form.name.trim(),
-    categoryId: form.categoryId,
-    imageUrl: form.imageUrl || undefined,
-    imagePublicId: form.imagePublicId || undefined,
-    ingredients: p.isFood ? form.ingredients : undefined,
-    vegType: p.isFood && form.vegType ? form.vegType : undefined,
-    material: p.isFood ? undefined : form.material,
-    unit: form.unit,
-    packSize: Number(form.packSize) || undefined,
-    piecesPerPack: needsPieceCount(form.unit) ? Number(form.piecesPerPack) || undefined : undefined,
-    mrp: Number(form.mrp) || 0,
-    madeToOrder: form.madeToOrder,
-  })
+  const canSubmit = p.status === 'DRAFT'
 
   return (
     <>
@@ -228,22 +198,8 @@ export default function EditProduct() {
       <div className="screen stack">
         {serverError && <Notice tone="danger">{serverError}</Notice>}
 
-        {/* How many changes are left, said before she starts typing rather
-            than after she taps Save. The second line is the important one:
-            running out does not freeze her prices. */}
-        {limited && (
-          <Notice tone={locked ? 'danger' : left === 1 ? 'warn' : 'info'}>
-            {locked ? t('prod.editsNone') : t('prod.editsLeft', { n: left })}
-            {' '}{t('prod.editsPriceFree')}
-          </Notice>
-        )}
-
-        {/* The one warning that has to arrive before the tap, not after. */}
-        {spends && left === 1 && <Notice tone="warn">{t('prod.editsLastWarn')}</Notice>}
-
         <Field label={t('prod.photos')} hint={t('prod.photosHint')}>
           <PhotoPicker
-            locked={locked}
             imageUrl={form.imageUrl || undefined}
             onUploaded={(img) =>
               setD((cur) => (cur ? { ...cur, imageUrl: img.url, imagePublicId: img.publicId } : cur))
@@ -259,7 +215,6 @@ export default function EditProduct() {
             value={form.name}
             onChange={(v) => set('name', v)}
             error={!!errors.name}
-            disabled={locked}
             placeholder={t('prod.namePlaceholder')}
           />
         </Field>
@@ -270,7 +225,6 @@ export default function EditProduct() {
               <button
                 key={c.id}
                 className={`chip ${form.categoryId === c.id ? 'chip--on' : ''}`}
-                disabled={locked}
                 onClick={() => set('categoryId', c.id)}
               >
                 {lang === 'mr' ? c.mr : c.en}
@@ -291,7 +245,6 @@ export default function EditProduct() {
                 value={form.ingredients}
                 onChange={(v) => set('ingredients', v)}
                 error={!!errors.ingredients}
-                disabled={locked}
                 multiline
               />
             </Field>
@@ -324,7 +277,6 @@ export default function EditProduct() {
               value={form.material}
               onChange={(v) => set('material', v)}
               error={!!errors.material}
-              disabled={locked}
               multiline
             />
           </Field>
@@ -345,7 +297,6 @@ export default function EditProduct() {
             id="mrp"
             inputMode="numeric"
             value={form.mrp}
-            disabled={locked}
             onChange={(e) => set('mrp', e.target.value.replace(/[^0-9]/g, ''))}
           />
         </Field>
@@ -356,7 +307,6 @@ export default function EditProduct() {
               <button
                 key={u}
                 className={`chip ${form.unit === u ? 'chip--on' : ''}`}
-                disabled={locked}
                 onClick={() => set('unit', u)}
               >
                 {t(`unit.${u}`)}
@@ -380,7 +330,6 @@ export default function EditProduct() {
               inputMode="numeric"
               value={form.packSize}
               error={!!errors.packSize}
-              disabled={locked}
               onChange={(e) => set('packSize', e.target.value.replace(/[^0-9]/g, ''))}
               placeholder="500"
             />
@@ -401,7 +350,6 @@ export default function EditProduct() {
               inputMode="numeric"
               value={form.piecesPerPack}
               error={!!errors.piecesPerPack}
-              disabled={locked}
               onChange={(e) => set('piecesPerPack', e.target.value.replace(/[^0-9]/g, ''))}
               placeholder="6"
             />
@@ -432,7 +380,7 @@ export default function EditProduct() {
 
         {canSubmit && (
           <Button variant="ghost" onClick={() => void save(true)} disabled={busy}>
-            {t('prod.publish')}
+            {t('upl.publish')}
           </Button>
         )}
       </div>

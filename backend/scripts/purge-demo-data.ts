@@ -6,12 +6,11 @@
  * showing up in the customer catalogue beside them, which is not acceptable.
  *
  * This deletes them and everything hanging off them - their products, the
- * orders placed against them, the customers those orders created, and their
- * subscription payments. Real sellers and anything belonging to them are left
+ * orders placed against them and the customers those orders created. Real sellers and anything belonging to them are left
  * exactly as they are.
  *
  * A seed record is identified by the id shapes seed.ts hard-codes (s1, p3, o2,
- * sp1, c1...). Registered records get generated ids from newId(), which are
+ * c1...). Registered records get generated ids from newId(), which are
  * long and carry a timestamp, so the two can never be confused.
  *
  * Reports and changes nothing unless `--commit` is passed.
@@ -56,9 +55,6 @@ async function main(): Promise<void> {
   )
   const doomedOrders = db.orders.filter(
     (o) => seedSellerIds.has(o.sellerId) || isSeedId(o.id),
-  )
-  const doomedPayments = db.payments.filter(
-    (p) => seedSellerIds.has(p.sellerId) || isSeedId(p.id) || !db.sellers.some((s) => s.id === p.sellerId),
   )
 
   // A customer is demo data only if she exists BECAUSE of a demo order: she
@@ -105,9 +101,6 @@ async function main(): Promise<void> {
   show('DELETING - customers', doomedCustomers.map(
     (c) => `${c.id.padEnd(16)} ${c.name || '(no name)'}`,
   ))
-  show('DELETING - payments', doomedPayments.map(
-    (p) => `${p.id.padEnd(16)} seller=${p.sellerId.padEnd(14)} ${p.status}`,
-  ))
   show('DELETING - reviews', doomedReviews.map(
     (r) => `${r.id.padEnd(16)} order=${r.orderId.padEnd(10)} ${r.rating}★`,
   ))
@@ -115,7 +108,7 @@ async function main(): Promise<void> {
   console.log(
     `  SUMMARY  ${seedSellers.length} sellers, ${doomedProducts.length} products, ` +
       `${doomedOrders.length} orders, ${doomedCustomers.length} customers, ` +
-      `${doomedPayments.length} payments, ${doomedReviews.length} reviews`,
+      `${doomedReviews.length} reviews`,
   )
   console.log(`           ${realSellers.length} registered seller(s) kept`)
 
@@ -131,7 +124,6 @@ async function main(): Promise<void> {
   db.products = db.products.filter((p) => !doomedProducts.includes(p))
   db.orders = db.orders.filter((o) => !doomedOrders.includes(o))
   db.customers = db.customers.filter((c) => !doomedCustomers.includes(c))
-  db.payments = db.payments.filter((p) => !doomedPayments.includes(p))
   db.reviews = db.reviews.filter((r) => !doomedReviews.includes(r))
 
   await flush()

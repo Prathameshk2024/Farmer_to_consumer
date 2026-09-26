@@ -1,13 +1,10 @@
 import type {
-  Address, AdminPaymentAccount, Category, Customer, DigitalProfile, Order, Product,
+  Address, Category, Customer, DigitalProfile, Order, Product,
   ProductRatingInput, PublicReview, PublicSeller, RatingSummary, Review, Seller, SellerGroup,
   SellerWeek, Session,
-  SubscriptionPayment,
 } from '@shared/types.js'
-import type { SlotInfo } from '@shared/seller.js'
 import type { ReportReason, ReportTarget } from '@shared/report.js'
 import type { ComplaintSubject } from '@shared/complaint.js'
-import type { PaymentKind, SubscriptionView } from '@shared/subscription.js'
 
 /**
  * The single seam between the app and the server.
@@ -248,8 +245,7 @@ export const api = {
   registerSeller: (body: SellerRegistration) =>
     post<{ seller: Seller; session: Session }>('/sellers/register', body),
 
-  /** `subscription` is decided on the server's clock - never work it out from the phone's. */
-  me: () => get<{ seller: Seller; slots: SlotInfo; subscription: SubscriptionView }>('/sellers/me'),
+  me: () => get<{ seller: Seller }>('/sellers/me'),
 
   updateMe: (patchBody: Partial<Seller>) =>
     patch<{ seller: Seller }>('/sellers/me', patchBody),
@@ -259,30 +255,10 @@ export const api = {
 
   sellerById: (id: string) => get<{ seller: PublicSeller }>(`/sellers/${id}`),
 
-  subscription: () =>
-    get<{
-      plan: { price: number; slotsPerPack: number; months: number }
-      account: AdminPaymentAccount
-      slots: SlotInfo
-      status: Seller['status']
-      subscription: SubscriptionView
-      /** What she may pay for now, most urgent first. Empty means nothing is due. */
-      payable: PaymentKind[]
-      /** False only when the server has uploads switched off. */
-      screenshotRequired: boolean
-      payments: SubscriptionPayment[]
-    }>('/sellers/me/subscription'),
-
-  submitPayment: (kind: PaymentKind, utr: string, paidAt: string, screenshotUrl?: string) =>
-    post<{ payment: SubscriptionPayment; status: Seller['status'] }>(
-      '/sellers/me/subscription/payment',
-      { kind, utr, paidAt, screenshotUrl },
-    ),
-
   /* ---------------- products ---------------- */
 
   myProducts: () =>
-    get<{ products: Product[]; slots: SlotInfo; subscription: SubscriptionView }>('/products/mine'),
+    get<{ products: Product[] }>('/products/mine'),
 
   createProduct: (body: Partial<Product> & { asDraft?: boolean }) =>
     post<{ product: Product }>('/products', body),
@@ -290,8 +266,8 @@ export const api = {
   updateProduct: (id: string, body: Partial<Product>) =>
     patch<{ product: Product }>(`/products/${id}`, body),
 
-  /** Drafts only - the server refuses a submitted listing. */
-  deleteDraft: (id: string) => del<{ ok: true; slots: SlotInfo }>(`/products/${id}`),
+  /** Any of his own listings - a sold-out crop is his to take down. */
+  deleteProduct: (id: string) => del<{ ok: true }>(`/products/${id}`),
 
   /* ---------------- catalog (public) ---------------- */
 

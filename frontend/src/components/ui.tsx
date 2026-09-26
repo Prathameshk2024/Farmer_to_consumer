@@ -470,27 +470,8 @@ export function Stepper({
 }
 
 /* ================================================================== */
-/* Slot meter / dots / OTP / money                                     */
+/* Dots / OTP / money                                                  */
 /* ================================================================== */
-
-export function SlotMeter({ used, total, hint }: { used: number; total: number; hint?: ReactNode }) {
-  const t = useT()
-  const n = Math.max(total, 1)
-  return (
-    <div className="slotmeter">
-      <div className="row-between">
-        <strong>{t('biz.myProducts')}</strong>
-        <span className="num dim">{used} / {total}</span>
-      </div>
-      <div className="slotmeter__bars" style={{ gridTemplateColumns: `repeat(${n}, 1fr)` }}>
-        {Array.from({ length: n }).map((_, i) => (
-          <div key={i} className={`slotmeter__bar ${i < used ? 'slotmeter__bar--on' : ''}`} />
-        ))}
-      </div>
-      {hint && <div className="small dim">{hint}</div>}
-    </div>
-  )
-}
 
 export function Dots({ step, total }: { step: number; total: number }) {
   return (
@@ -547,7 +528,7 @@ export function Rupees({ value, className = '' }: { value: number; className?: s
 
 /**
  * Confirmation sheet. The body always spells out the consequence -
- * "removing this frees one slot" - never a bare "Are you sure?".
+ * "removing this takes it off sale" - never a bare "Are you sure?".
  */
 export function ConfirmSheet({
   open, title, body, confirmLabel, tone = 'primary', onConfirm, onCancel,

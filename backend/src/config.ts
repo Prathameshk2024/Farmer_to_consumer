@@ -10,7 +10,6 @@
  * should be able to clone this repo and run it without any accounts at all.
  */
 
-import type { AdminPaymentAccount } from '@shared/types.js'
 import {
   demoProvider, msg91Provider, msg91WidgetProvider,
   type Msg91Config, type Msg91WidgetConfig, type OtpProvider,
@@ -396,30 +395,6 @@ export const ALLOW_DEV_RESET =
  * that guard exists at all.
  */
 export const ALLOW_BULK_DELETE = /^(1|true|yes)$/i.test(firstOf('ALLOW_BULK_DELETE') ?? '')
-
-/**
- * WHERE THE ₹50 GOES.
- *
- * Read from the environment, defaulting to the programme's own account,
- * because this is the one string in the app that moves real money and it can
- * be wrong in a way nothing downstream can catch: the QR is generated FROM it,
- * so a typo makes a perfectly scannable code that pays a stranger, and the
- * woman who paid holds a valid UTR for a transaction the programme never saw.
- *
- * It used to live in `db/seed.ts`, invented alongside three invented sellers.
- * Env-readable so the account can be changed on the host without a deploy -
- * a college treasurer changing banks is not a code change.
- *
- * No account number or IFSC: she pays by UPI, those two lines were never used,
- * and a wrong A/C number printed under a QR is worse than none.
- */
-export const ADMIN_PAYMENT_ACCOUNT: AdminPaymentAccount = {
-  // As PRINTED on the poster in her hand, so she can check it against the name
-  // her own UPI app shows after scanning.
-  label: firstOf('ADMIN_UPI_NAME') ?? 'PRIN.JAWAHAR ARTS.SC.COM.',
-  upiId: firstOf('ADMIN_UPI_ID') ?? 'jasccollegeandur@sbi',
-  bankName: firstOf('ADMIN_BANK_NAME') ?? 'State Bank of India',
-}
 
 export function describeConfig(): string {
   const lines = [

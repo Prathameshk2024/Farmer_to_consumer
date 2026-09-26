@@ -21,7 +21,7 @@ import {
  */
 
 function emptyDb(): Db {
-  return { sellers: [], products: [], orders: [], payments: [], customers: [] } as unknown as Db
+  return { sellers: [], products: [], orders: [], customers: [] } as unknown as Db
 }
 
 const PHONE = '9011223344'

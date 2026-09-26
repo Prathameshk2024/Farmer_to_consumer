@@ -55,7 +55,7 @@ test('every seller status the API can return has a label', () => {
   // shared/src/types.ts SellerStatus - if a status is added there and not
   // here, the console would print the raw enum at a woman's account.
   for (const status of [
-    'REGISTERED', 'PAYMENT_SUBMITTED', 'ACTIVE', 'PAYMENT_REJECTED', 'BLOCKED',
+    'PENDING_VERIFICATION', 'ACTIVE', 'BLOCKED', 'CLOSED',
   ]) {
     assert.ok(dictionaries.mr[`st.${status}`], `no Marathi label for ${status}`)
     assert.ok(dictionaries.en[`st.${status}`], `no English label for ${status}`)
@@ -65,11 +65,8 @@ test('every seller status the API can return has a label', () => {
 test('every admin decision she can be shown has a label', () => {
   // shared/src/types.ts AdminNoticeKind. Her page reads these through a
   // template string, so the usage test below cannot see them - and an
-  // unlabelled one prints "nt.SLOTS_GRANTED" in her decision history.
-  for (const kind of [
-    'SLOTS_GRANTED', 'SLOTS_REVOKED', 'PAYMENT_APPROVED', 'PAYMENT_REJECTED',
-    'BLOCKED', 'UNBLOCKED', 'PRODUCT_APPROVED', 'PRODUCT_REJECTED',
-  ]) {
+  // unlabelled one prints "nt.VERIFIED" in his decision history.
+  for (const kind of ['VERIFIED', 'BLOCKED', 'UNBLOCKED', 'PRODUCT_REJECTED']) {
     assert.ok(dictionaries.mr[`nt.${kind}`], `no Marathi label for ${kind}`)
     assert.ok(dictionaries.en[`nt.${kind}`], `no English label for ${kind}`)
   }

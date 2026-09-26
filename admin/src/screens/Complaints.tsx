@@ -19,7 +19,7 @@ type Tab = 'OPEN' | 'RESOLVED' | 'ALL'
  * SMB id, so the answer to most of these is a phone call made from this page
  * rather than a hunt through the seller list.
  *
- * Marking one done records WHO did it, for the same reason a payment does:
+ * Marking one done records WHO did it, for the same reason a verification does:
  * "who answered this woman?" has to be answerable months later.
  */
 export function Complaints() {

@@ -27,7 +27,6 @@ import UploadProduct from './screens/seller/UploadProduct.js'
 import EditProduct from './screens/seller/EditProduct.js'
 import EditProfile from './screens/seller/EditProfile.js'
 import { SellerOrderDetail, SellerOrders } from './screens/seller/Orders.js'
-import { PaymentWaiting, Subscription } from './screens/seller/Subscription.js'
 import { SellerGrowth, SellerHelp, SellerProfile } from './screens/seller/Misc.js'
 import { MyBuyers } from './screens/seller/MyBuyers.js'
 import { SellerReviews } from './screens/seller/Reviews.js'
@@ -221,12 +220,6 @@ export default function App() {
                 element={<Require role="customer"><CustomerRegister /></Require>}
               />
 
-              {/* ---- seller: standalone screens (no bottom nav) ----- */}
-              <Route
-                path="/seller/waiting"
-                element={<Require role="seller"><PaymentWaiting /></Require>}
-              />
-
               {/* ---- seller app ------------------------------------ */}
               <Route path="/seller" element={<Require role="seller"><SellerLayout /></Require>}>
                 <Route index element={<MyBusiness />} />
@@ -235,7 +228,6 @@ export default function App() {
                 <Route path="products" element={<MyProducts />} />
                 <Route path="products/:productId/edit" element={<EditProduct />} />
                 <Route path="upload" element={<UploadProduct />} />
-                <Route path="subscription" element={<Subscription />} />
                 <Route path="profile" element={<SellerProfile />} />
                 <Route path="profile/edit" element={<EditProfile />} />
                 <Route path="notifications" element={<Notifications />} />

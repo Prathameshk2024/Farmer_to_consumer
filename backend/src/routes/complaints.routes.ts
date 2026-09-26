@@ -8,8 +8,8 @@ import { requireRole } from '../middleware/auth.js'
  * COMPLAINTS FROM INSIDE THE APP.
  *
  * Help & Training answers the questions that have answers; this is for the
- * ones that need a person to open her account - the ₹50 that was never
- * approved, the order that never arrived. She can also reach the desk on
+ * ones that need a person to open her account - the order that never
+ * arrived, the buyer who will not pay. She can also reach the desk on
  * WhatsApp, and that is offered beside this, but a WhatsApp message lives on
  * one phone: it cannot be counted, assigned or found again next month. This
  * one is a record.

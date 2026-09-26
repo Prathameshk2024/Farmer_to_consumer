@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { Order } from '@shared/types.js'
-import { isStuck, maskCustomer, maskedLabel, rupees, waited, when } from '../src/lib/format.js'
+import { isStuck, maskCustomer, maskedLabel, rupees, when } from '../src/lib/format.js'
 
 function order(over: Partial<Order> = {}): Order {
   return {
@@ -56,41 +56,6 @@ test('masking survives a missing name or phone without throwing', () => {
 test('a Devanagari initial is one character, not one byte', () => {
   // 'प्रिया'[0] would slice a combining mark off and render broken.
   assert.equal(maskCustomer(order({ customerName: 'अर्पिता' })).initial, 'अ')
-})
-
-/* ---------------- waiting time ---------------- */
-
-test('waiting is shown in hours for the first two days', () => {
-  const now = new Date('2026-09-04T18:00:00.000Z').getTime()
-  assert.deepEqual(waited('2026-09-04T00:00:00.000Z', now), { value: 18, unit: 'h' })
-})
-
-test('past two days it switches to days, so a bad delay reads as one', () => {
-  const now = new Date('2026-09-07T02:00:00.000Z').getTime()
-  assert.deepEqual(waited('2026-09-04T00:00:00.000Z', now), { value: 3, unit: 'd' })
-})
-
-test('a future timestamp does not produce a negative wait', () => {
-  const now = new Date('2026-09-04T00:00:00.000Z').getTime()
-  assert.deepEqual(waited('2026-09-05T00:00:00.000Z', now), { value: 0, unit: 'm' })
-})
-
-/**
- * Under the hour it counts minutes.
- *
- * Flooring a twenty-minute wait to "0 h" told an admin that nothing had
- * happened yet, on the one screen whose job is to say that a woman has paid
- * ₹50 and is waiting to be let in.
- */
-test('a wait under an hour is counted in minutes, not floored to zero', () => {
-  const now = new Date('2026-09-04T00:20:00.000Z').getTime()
-  assert.deepEqual(waited('2026-09-04T00:00:00.000Z', now), { value: 20, unit: 'm' })
-})
-
-test('the hour is the boundary between minutes and hours', () => {
-  const at = '2026-09-04T00:00:00.000Z'
-  assert.deepEqual(waited(at, new Date('2026-09-04T00:59:00.000Z').getTime()), { value: 59, unit: 'm' })
-  assert.deepEqual(waited(at, new Date('2026-09-04T01:00:00.000Z').getTime()), { value: 1, unit: 'h' })
 })
 
 /* ---------------- stuck orders ---------------- */

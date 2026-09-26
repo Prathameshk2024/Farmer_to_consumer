@@ -19,7 +19,7 @@ import { Button, Choice, Field, Notice, TextInput, VoiceInput } from './ui.js'
  * the same shape as cancelling an order, where each step states something the
  * last one did not:
  *
- *   1. What it costs: her listings, her shop, the ₹50 that is not refunded.
+ *   1. What it costs: her listings and her shop.
  *   2. Why she is leaving - a reason from a list, as everywhere else.
  *   3. The last four digits of her own number, typed. Not a word to copy
  *      (that is a literacy test) and not a second OTP (an SMS against a

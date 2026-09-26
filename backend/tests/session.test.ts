@@ -10,8 +10,8 @@ const { signToken, verifyToken, shouldRefresh, SESSION_IDLE_MS } =
 /**
  * Sessions expire on inactivity.
  *
- * The window differs by role because the risk does. An admin token approves
- * payments, blocks sellers and reads every buyer's address, and it is used at
+ * The window differs by role because the risk does. An admin token verifies
+ * farmers, blocks sellers and reads every buyer's address, and it is used at
  * a desk where signing in again costs nothing - so it is short. A seller's
  * token is on a phone in a village, and re-issuing it costs an SMS and a
  * literacy hurdle, so it lives longer.

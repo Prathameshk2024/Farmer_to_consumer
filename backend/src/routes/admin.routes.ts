@@ -1,16 +1,10 @@
 import { Router, type Request } from 'express'
 import type { AdminStats, ReadinessBand } from '@shared/types.js'
-import { PLAN, countUsedSlots, slotInfo } from '@shared/seller.js'
-import { allChecksDone } from '@shared/payment.js'
+import { canSellNow } from '@shared/seller.js'
 import { BAND_LABEL } from '@shared/readiness.js'
 import { summarizeReviews } from '@shared/review.js'
-import {
-  SUBSCRIPTION_MONTHS, addMonths, canSellNow, subscriptionState, subscriptionView,
-} from '@shared/subscription.js'
-import { applyApprovedPayment } from '../db/subscription.js'
 import { getDb, save } from '../db/store.js'
 import { documentCount, startsWithinFreeReads } from '../db/firestore.js'
-import { sellerStatusAfterReject } from '../db/payments.js'
 import { appendNotice as notifySeller } from '../db/notices.js'
 import { requireRole } from '../middleware/auth.js'
 import { destroyImage } from './uploads.routes.js'
@@ -39,8 +33,7 @@ adminRouter.use(requireRole('admin'))
  * Who to record against a decision.
  *
  * `req.auth.userId` is now an administrator's record id, which is correct for
- * scoping and useless on a screen. Payments are money, and "who approved
- * this?" has to be answerable months later by someone reading the record - so
+ * scoping and useless on a screen. "Who verified this farmer?" has to be answerable months later by someone reading the record - so
  * the readable name is stored, and the id only if the account has since been
  * removed. Before per-person accounts existed this said the same thing for
  * everybody, whoever clicked it.
@@ -102,12 +95,10 @@ adminRouter.get('/stats', (_req, res) => {
     earningBandCounts.set(label, (earningBandCounts.get(label) ?? 0) + 1)
   }
 
-  const approvedPayments = db.payments.filter((p) => p.status === 'APPROVED')
-  const packsBySeller = new Map<string, number>()
-  for (const p of approvedPayments) {
-    packsBySeller.set(p.sellerId, (packsBySeller.get(p.sellerId) ?? 0) + 1)
-  }
-  const repurchasers = [...packsBySeller.values()].filter((n) => n > 1).length
+  // Buyers who came back: a phone with more than one order.
+  const ordersByPhone = new Map<string, number>()
+  for (const o of db.orders) ordersByPhone.set(o.customerPhone, (ordersByPhone.get(o.customerPhone) ?? 0) + 1)
+  const repeatBuyers = [...ordersByPhone.values()].filter((n) => n > 1).length
 
   const stats: AdminStats = {
     gmvMonth: earnedMonth,
@@ -115,33 +106,20 @@ adminRouter.get('/stats', (_req, res) => {
     ordersWeek: db.orders.filter(
       (o) => Date.now() - new Date(o.placedAt).getTime() < 7 * 86_400_000,
     ).length,
-    // "Active" means a buyer can reach her today, so a paused shop is not one.
+    // "Active" means a buyer can reach him today.
     activeSellers: db.sellers.filter((s) => canSellNow(s)).length,
-    subscriptionsExpiring: db.sellers.filter(
-      (s) => s.status === 'ACTIVE' && subscriptionState(s) === 'expiring',
-    ).length,
-    subscriptionsExpired: db.sellers.filter(
-      (s) => s.status === 'ACTIVE' && subscriptionState(s) === 'expired',
-    ).length,
     totalSellers: db.sellers.length,
     newRegistrations: db.sellers.filter(
       (s) => Date.now() - new Date(s.createdAt).getTime() < 7 * 86_400_000,
     ).length,
-    pendingPayments: db.payments.filter((p) => p.status === 'PENDING').length,
-    pendingProducts: db.products.filter((p) => p.status === 'PENDING').length,
+    pendingVerification: db.sellers.filter((s) => s.status === 'PENDING_VERIFICATION').length,
     stuckOrders: stuck.length,
     openDisputes: 0,
     womenEarnedTotal: earnedTotal,
     womenEarnedMonth: earnedMonth,
     // The most truthful single measure of whether the platform works.
     womenWithFirstEarning: sellersWithEarnings.size,
-    // Summed from the approved records, not `count * PLAN.price`. The plan
-    // price is what we charge TODAY: multiplying by it restates every payment
-    // ever taken at today's price, so the day the ₹50 changes, last year's
-    // income silently changes with it. A payment stores what was actually paid.
-    subscriptionRevenue: approvedPayments.reduce((n, p) => n + (Number(p.amount) || 0), 0),
-    approvedPaymentCount: approvedPayments.length,
-    repurchaseRate: db.sellers.length ? repurchasers / db.sellers.length : 0,
+    repurchaseRate: ordersByPhone.size ? repeatBuyers / ordersByPhone.size : 0,
     // On the dashboard because the boot log is the one place nobody reads.
     // docs/CAPACITY.md §4: on Spark, this size decides how many starts a day
     // the free reads cover before a start is refused and the API goes down.
@@ -160,151 +138,17 @@ adminRouter.get('/stats', (_req, res) => {
   res.json({ stats, bandLabels: BAND_LABEL })
 })
 
-/* ------------------------------------------------------------------ */
-/* Payment approvals - the highest-traffic admin screen                */
-/* ------------------------------------------------------------------ */
-
-adminRouter.get('/payments', (req, res) => {
-  const db = getDb()
-  const status = (req.query.status as string) ?? 'PENDING'
-  // The waiting time is an SLA on somebody's livelihood, and the console draws
-  // it from `submittedAt` itself - a number computed here is frozen at the
-  // moment of the response, and this console sits open on a desk for hours.
-  const list = db.payments.filter((p) => (status === 'ALL' ? true : p.status === status))
-  res.json({ payments: list })
-})
-
-adminRouter.post('/payments/:id/approve', (req, res) => {
-  const db = getDb()
-  const payment = db.payments.find((p) => p.id === req.params.id)
-  if (!payment) {
-    res.status(404).json({ error: 'Payment not found', messageMr: 'हा भरणा सापडला नाही' })
-    return
-  }
-  if (payment.status !== 'PENDING') {
-    res.status(409).json({
-      error: `Already ${payment.status}`,
-      messageMr: 'यावर आधीच निर्णय झाला आहे',
-    })
-    return
-  }
-
-  /**
-   * Approval grants five slots, so it is not one click. The admin confirms
-   * the UTR and the date and time against the screenshot, and that the money
-   * actually reached the account - and the request says so, or it is refused.
-   * The checklist in the console is this rule, drawn.
-   */
-  if (!allChecksDone(req.body?.checks)) {
-    res.status(400).json({
-      error: 'Verify the UTR, date and time, and receipt before approving',
-      messageMr: 'मंजूर करण्याआधी UTR, तारीख-वेळ आणि पैसे जमा झाल्याची खात्री करा',
-    })
-    return
-  }
-
-  payment.status = 'APPROVED'
-  payment.verifiedAt = new Date().toISOString()
-  payment.verifiedBy = verifierName(db, req)
-
-  // A pack adds five slots; either kind can start, reopen or extend her six
-  // months. The rules, and what she is told, are in db/subscription.ts.
-  const seller = db.sellers.find((s) => s.id === payment.sellerId)
-  if (seller) applyApprovedPayment(seller, payment, payment.verifiedAt)
-  save()
-
-  // No SMS goes out on approval, and the waiting screen no longer promises
-  // one. `notifySeller` above is the whole notification: she sees it in her
-  // own app the next time she opens it. Adding an SMS here means adding it to
-  // that screen's copy in the same change, or the promise outlives the send.
-  res.json({ payment, seller })
-})
-
-adminRouter.post('/payments/:id/reject', (req, res) => {
-  const db = getDb()
-  const payment = db.payments.find((p) => p.id === req.params.id)
-  if (!payment) {
-    res.status(404).json({ error: 'Payment not found', messageMr: 'हा भरणा सापडला नाही' })
-    return
-  }
-  payment.status = 'REJECTED'
-  payment.rejectReason = String(req.body?.reason ?? 'UTR did not match the bank statement')
-  payment.verifiedAt = new Date().toISOString()
-  payment.verifiedBy = verifierName(db, req)
-
-  // Not unconditionally PAYMENT_REJECTED: clearing a duplicate submission off
-  // the queue must not revoke an account another payment already paid for.
-  const seller = db.sellers.find((s) => s.id === payment.sellerId)
-  if (seller) {
-    seller.status = sellerStatusAfterReject(seller, db.payments, payment.id)
-    notifySeller(seller, 'PAYMENT_REJECTED', { note: payment.rejectReason })
-  }
-  save()
-  res.json({ payment })
-})
-
-/** Goodwill, a trainee batch, a demo account. */
-adminRouter.post('/sellers/:id/grant-slots', (req, res) => {
+adminRouter.post('/sellers/:id/verify', (req, res) => {
   const db = getDb()
   const seller = db.sellers.find((s) => s.id === req.params.id)
-  if (!seller) {
-    res.status(404).json({ error: 'Seller not found', messageMr: 'ही विक्रेती सापडली नाही' })
-    return
+  if (!seller) { res.status(404).json({ error: 'Not found', messageMr: 'शेतकरी सापडला नाही' }); return }
+  if (seller.status !== 'PENDING_VERIFICATION') {
+    res.status(409).json({ error: 'Not pending', messageMr: 'हा शेतकरी आधीच तपासलेला आहे' }); return
   }
-  const granted = Math.max(1, Number(req.body?.packs ?? 1))
-  seller.packsApproved += granted
-  if (seller.status === 'REGISTERED' || seller.status === 'PAYMENT_SUBMITTED') {
-    seller.status = 'ACTIVE'
-  }
-  // A seller given her first slots needs a term to sell in. Granted slots do
-  // not extend or reopen an existing one: goodwill is slots, and time is paid.
-  if (!seller.subscriptionEndsAt) {
-    seller.subscriptionEndsAt = addMonths(new Date().toISOString(), SUBSCRIPTION_MONTHS)
-  }
-  // In slots, not packs. A pack is our unit; what she counts is the number of
-  // products she can now put up.
-  notifySeller(seller, 'SLOTS_GRANTED', { n: granted * PLAN.slotsPerPack })
-  save()
-  res.json({ seller })
-})
-
-/**
- * Take slot packs back.
- *
- * The counterpart to grant-slots, for a pack granted in error. It refuses to
- * drop her allowance below what she is already using: silently un-publishing
- * products she has live is not something an admin should be able to do by
- * mistyping a number.
- */
-adminRouter.post('/sellers/:id/revoke-slots', (req, res) => {
-  const db = getDb()
-  const seller = db.sellers.find((s) => s.id === req.params.id)
-  if (!seller) {
-    res.status(404).json({ error: 'Seller not found', messageMr: 'ही विक्रेती सापडली नाही' })
-    return
-  }
-
-  const packs = Math.max(1, Number(req.body?.packs ?? 1))
-  // Slots in use by the same rule her meter shows. Counting every row would
-  // include drafts and rejected listings, which hold no slot, and refuse a
-  // revoke the console says is possible.
-  const used = countUsedSlots(db.products.filter((p) => p.sellerId === seller.id))
-  const remaining = Math.max(0, seller.packsApproved - packs)
-
-  if (remaining * PLAN.slotsPerPack < used) {
-    res.status(409).json({
-      error: `She is using ${used} slots; that would leave ${remaining * PLAN.slotsPerPack}`,
-      messageMr: `ती सध्या ${used} जागा वापरत आहे. इतक्या जागा काढता येणार नाहीत.`,
-    })
-    return
-  }
-
-  seller.packsApproved = remaining
-  // No packs left means she cannot sell, so the status has to say so - leaving
-  // her ACTIVE with zero slots would look like a broken account to her.
-  if (remaining === 0 && seller.status === 'ACTIVE') seller.status = 'REGISTERED'
-  notifySeller(seller, 'SLOTS_REVOKED', { n: packs * PLAN.slotsPerPack })
-
+  seller.status = 'ACTIVE'
+  seller.verifiedAt = new Date().toISOString()
+  seller.verifiedBy = verifierName(db, req)
+  notifySeller(seller, 'VERIFIED')
   save()
   res.json({ seller })
 })
@@ -315,7 +159,7 @@ adminRouter.post('/sellers/:id/revoke-slots', (req, res) => {
 
 adminRouter.get('/products', (req, res) => {
   const db = getDb()
-  const status = (req.query.status as string) ?? 'PENDING'
+  const status = (req.query.status as string) ?? 'ALL'
 
   const open = db.reports.filter((r) => !r.reviewedAt)
   const reportsFor = (id: string) => open.filter((r) => r.targetId === id)
@@ -369,7 +213,13 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
     return
   }
 
-  const approve = !!req.body?.approve
+  // Listings are not approved one by one any more; the farmer is verified
+  // once. Only taking a listing down is left, and an old client asking to
+  // approve must not be read as a take-down.
+  if (req.body?.approve) {
+    res.status(400).json({ error: 'Listings are not approved', messageMr: 'माल एकेक करून मंजूर होत नाही' })
+    return
+  }
   const reason = String(req.body?.reason ?? '').trim()
 
   /**
@@ -380,7 +230,7 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
    * product that vanishes for no stated cause. The console asks for one; this
    * is what makes the console's rule real rather than polite.
    */
-  if (!approve && !reason) {
+  if (!reason) {
     res.status(400).json({
       error: 'A rejection needs a reason - she reads it in her own app',
       messageMr: 'नाकारण्याचे कारण लिहा',
@@ -392,44 +242,24 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
   /**
    * A REJECTION IS A REMOVAL, THE MOMENT IT IS MADE.
    *
-   * A rejected listing used to sit in her app for 48 hours before a sweeper
-   * took it, so that she could read the reason on the row itself. Since a
-   * rejection frees her slot immediately, that left a dead listing occupying
-   * her screen - and next to it the new one she had already put in its place.
-   * Two listings for one slot, one of them refused, is not a grace period; it
-   * is clutter she cannot clear.
-   *
-   * The reason still reaches her, on the notice below, which is where she
-   * reads every other admin decision. It is not lost with the row.
+   * The row, its photo and its reports go at once. The reason still reaches
+   * him, on the notice below, which is where he reads every other admin
+   * decision. It is not lost with the row.
    */
   const owner = db.sellers.find((s) => s.id === product.sellerId)
 
-  if (!approve) {
-    db.products.splice(db.products.indexOf(product), 1)
-    // Its reports go with it: they are about a listing that no longer exists.
-    for (let i = db.reports.length - 1; i >= 0; i--) {
-      if (db.reports[i]!.targetId === product.id) db.reports.splice(i, 1)
-    }
-    // Best effort and not awaited: the record is already gone and an image
-    // left behind is a smaller problem than a decision that appears to hang.
-    // This is the last moment we know the public id.
-    void destroyImage(product.imagePublicId)
-    if (owner) {
-      notifySeller(owner, 'PRODUCT_REJECTED', { subject: product.name, note: reason })
-    }
-    save()
-    res.json({ product: { ...product, status: 'REJECTED', rejectReason: reason } })
-    return
+  db.products.splice(db.products.indexOf(product), 1)
+  // Its reports go with it: they are about a listing that no longer exists.
+  for (let i = db.reports.length - 1; i >= 0; i--) {
+    if (db.reports[i]!.targetId === product.id) db.reports.splice(i, 1)
   }
-
-  product.status = 'LIVE'
-  product.rejectReason = undefined
-  product.rejectedAt = undefined
-
-  // She is told about her own product by name: "which one?" is the first
-  // thing she asks, and the id on the row means nothing to her.
-  if (owner) notifySeller(owner, 'PRODUCT_APPROVED', { subject: product.name })
-
+  // Best effort and not awaited: the record is already gone and an image
+  // left behind is a smaller problem than a decision that appears to hang.
+  // This is the last moment we know the public id.
+  void destroyImage(product.imagePublicId)
+  if (owner) {
+    notifySeller(owner, 'PRODUCT_REJECTED', { subject: product.name, note: reason })
+  }
   save()
   res.json({ product })
 })
@@ -452,7 +282,7 @@ adminRouter.get('/complaints', (req, res) => {
 })
 
 /**
- * Dealt with. Who did it is stored for the same reason it is on a payment:
+ * Dealt with. Who did it is stored for the same reason it is on a verification:
  * "who answered this woman?" has to be answerable months later.
  */
 adminRouter.post('/complaints/:id/resolve', (req, res) => {
@@ -608,11 +438,8 @@ adminRouter.get('/sellers', (_req, res) => {
       )
       return {
         ...s,
-        slots: slotInfo(s, products),
         productCount: products.length,
         earned: earned.get(s.id) ?? 0,
-        // On the server's clock, like every other answer about the date.
-        subscription: subscriptionView(s),
       }
     }),
   })
@@ -623,8 +450,8 @@ adminRouter.get('/sellers', (_req, res) => {
  *
  * The register lists everybody and shows a line each; this is the page an
  * admin opens before deciding something about her, so it answers in one
- * request what would otherwise be four - her record, her listings, her orders
- * and every subscription payment she has ever submitted.
+ * request what would otherwise be three - her record, her listings and her
+ * orders.
  */
 adminRouter.get('/sellers/:id', (req, res) => {
   const db = getDb()
@@ -634,8 +461,8 @@ adminRouter.get('/sellers/:id', (req, res) => {
     return
   }
 
-  // Archived listings are excluded exactly as they are in the register, so
-  // "3 products" means the same number on both screens.
+  // Counted exactly as the register counts them, so "3 products" means the
+  // same number on both screens.
   const products = db.products.filter(
     (p) => p.sellerId === seller.id,
   )
@@ -650,18 +477,13 @@ adminRouter.get('/sellers/:id', (req, res) => {
   res.json({
     seller: {
       ...seller,
-      slots: slotInfo(seller, products),
       productCount: products.length,
-      subscription: subscriptionView(seller),
     },
     products,
     orders,
     // Hidden ones included and marked: the admin is the person who hid them.
     reviews,
     rating: summarizeReviews(reviews),
-    payments: db.payments
-      .filter((p) => p.sellerId === seller.id)
-      .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)),
     /**
      * What she has earned, counted the way /admin/impact counts it: delivered
      * orders and nothing else. Two screens answering "how much has she made"
@@ -681,7 +503,9 @@ adminRouter.post('/sellers/:id/block', (req, res) => {
     return
   }
   const blocked = !!req.body?.blocked
-  seller.status = blocked ? 'BLOCKED' : 'ACTIVE'
+  // Unblocking goes back to what the verification says: blocking and
+  // unblocking an unverified farmer must not verify him.
+  seller.status = blocked ? 'BLOCKED' : seller.verifiedAt ? 'ACTIVE' : 'PENDING_VERIFICATION'
 
   if (blocked) {
     // Stamped so her own screens can tell her she has been blocked, and why.

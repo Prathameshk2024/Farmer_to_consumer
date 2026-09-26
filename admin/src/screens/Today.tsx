@@ -13,9 +13,9 @@ import { Donut, RAMP_GREEN, RAMP_MAROON } from '../components/Donut.js'
  * Opens on the queue, not the dashboard.
  *
  * Nobody signs into an admin console to admire a GMV figure. What needs doing
- * is gold and clickable; what is merely true sits quiet underneath. A woman
- * who has paid ₹50 cannot sell anything until one of these tiles is cleared,
- * which is why they come first.
+ * is gold and clickable; what is merely true sits quiet underneath. A farmer
+ * who has registered cannot sell anything until he is verified, which is why
+ * these come first.
  */
 export function Today() {
   const t = useT()
@@ -38,7 +38,7 @@ export function Today() {
   const bandLabel = (band: string) =>
     (lang === 'mr' ? labels[band]?.mr : labels[band]?.en) ?? band
 
-  const queue = s.pendingPayments + s.pendingProducts + s.stuckOrders
+  const queue = s.pendingVerification + s.stuckOrders
 
   return (
     <>
@@ -54,14 +54,9 @@ export function Today() {
           ) : (
             <div className="tiles">
               <ActionTile
-                n={s.pendingPayments}
-                label={t('today.pendingPayments')}
-                onClick={() => nav('/payments')}
-              />
-              <ActionTile
-                n={s.pendingProducts}
-                label={t('today.pendingProducts')}
-                onClick={() => nav('/products')}
+                n={s.pendingVerification}
+                label={t('se.waitingVerification')}
+                onClick={() => nav('/sellers')}
               />
               <ActionTile
                 n={s.stuckOrders}
@@ -83,10 +78,6 @@ export function Today() {
             <Stat n={rupees(s.womenEarnedMonth)} label={t('today.earnedMonth')} />
             <Stat n={rupees(s.womenEarnedTotal)} label={t('today.earnedTotal')} />
             <Stat n={s.womenWithFirstEarning} label={t('today.firstEarning')} />
-            {/* Admin income. Summed from APPROVED payment records, so it is
-                what was actually taken - not a count times today's price. */}
-            <Stat n={rupees(s.subscriptionRevenue)} label={t('today.income')} />
-            <Stat n={s.approvedPaymentCount} label={t('today.paymentsApproved')} />
           </div>
         </section>
 

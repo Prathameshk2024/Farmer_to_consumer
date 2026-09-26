@@ -267,11 +267,8 @@ export default function SellerRegister() {
             <p className="small dim" style={{ marginBottom: 0 }}>{t('reg.readinessNote')}</p>
           </Card>
 
-          <Notice tone="warn">{t('reg.doneNext')}</Notice>
-          <Button onClick={() => nav('/seller/subscription', { replace: true })}>
-            {t('reg.payNow')}
-          </Button>
-          <Button variant="quiet" onClick={() => nav('/seller', { replace: true })}>
+          <Notice tone="warn">{t('biz.pendingVerification')}</Notice>
+          <Button onClick={() => nav('/seller', { replace: true })}>
             {t('biz.title')}
           </Button>
         </div>

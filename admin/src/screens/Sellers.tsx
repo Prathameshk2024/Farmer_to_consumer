@@ -7,7 +7,6 @@ import { TopBar } from '../components/Shell.js'
 import { SortSelect, useSort } from '../components/SortSelect.js'
 import { SELLER_SORTS, sortRows } from '../lib/sort.js'
 import { SellerActions, StatusPill } from '../components/SellerActions.js'
-import { SubscriptionPill } from '../components/Subscription.js'
 import {
   Button, Card, CopyValue, EmptyState, ErrorNote, Loading, useAsync,
 } from '../components/ui.js'
@@ -19,20 +18,20 @@ import {
  * this and is anything wrong" and leaves everything else to her own page.
  *
  * Nothing here deletes anybody, and nothing here happens on a single click.
- * Every action changes what a real woman can do tomorrow - her slot
- * allowance, or whether her shop is visible at all - so each one states its
+ * Every action changes what a real farmer can do tomorrow - whether his shop
+ * is visible at all - so each one states its
  * consequence and waits for a second confirmation.
  */
 export function Sellers() {
   const t = useT()
   const [q, setQ] = useState('')
-  /** '' for everyone, or one subscription state - who to ring this week. */
-  const [sub, setSub] = useState<'' | 'expiring' | 'expired'>('')
+  /** Everyone, or only those waiting for their one verification. */
+  const [waiting, setWaiting] = useState(false)
   const [data, loading, error, reload] = useAsync(() => api.sellers(), [])
   const [sort, setSort] = useSort('sellers', SELLER_SORTS)
 
   const rows = useMemo(() => {
-    const all = (data?.sellers ?? []).filter((s) => !sub || s.subscription?.state === sub)
+    const all = (data?.sellers ?? []).filter((s) => !waiting || s.status === 'PENDING_VERIFICATION')
     const needle = q.trim().toLowerCase()
     const found = !needle
       ? all
@@ -42,7 +41,7 @@ export function Sellers() {
             .some((v) => String(v).toLowerCase().includes(needle)),
         )
     return sortRows(found, SELLER_SORTS, sort)
-  }, [data, q, sort, sub])
+  }, [data, q, sort, waiting])
 
   return (
     <>
@@ -59,13 +58,12 @@ export function Sellers() {
           <select
             className="select"
             style={{ maxWidth: 240 }}
-            value={sub}
-            onChange={(e) => setSub(e.target.value as typeof sub)}
-            aria-label={t('se.filterSub')}
+            value={waiting ? 'waiting' : ''}
+            onChange={(e) => setWaiting(e.target.value === 'waiting')}
+            aria-label={t('se.status')}
           >
-            <option value="">{t('se.subAll')}</option>
-            <option value="expiring">{t('se.subExpiring')}</option>
-            <option value="expired">{t('se.subExpired')}</option>
+            <option value="">{t('c.all')}</option>
+            <option value="waiting">{t('se.waitingVerification')}</option>
           </select>
           <SortSelect options={SELLER_SORTS} value={sort} onChange={setSort} />
         </div>
@@ -88,7 +86,6 @@ export function Sellers() {
 
 function SellerCard({ seller, onDone }: { seller: SellerRow; onDone: () => void }) {
   const t = useT()
-  const used = seller.slots?.used ?? 0
 
   return (
     <Card>
@@ -99,9 +96,6 @@ function SellerCard({ seller, onDone }: { seller: SellerRow; onDone: () => void 
             <span className="strong">{seller.name}</span>
             <span className="dim">{seller.shopName}</span>
             <StatusPill status={seller.status} />
-            {/* Only for a seller who is selling: a registered woman who has
-                never paid has no six months to show. */}
-            {seller.status === 'ACTIVE' && <SubscriptionPill view={seller.subscription} />}
           </div>
           <div className="small dim">
             <span className="mono">{seller.womenBizId}</span>
@@ -109,9 +103,7 @@ function SellerCard({ seller, onDone }: { seller: SellerRow; onDone: () => void 
             {' · '}<span className="mono">{seller.phone}</span>
           </div>
           <div className="small dim-2">
-            {t('se.slots')}: <span className="num">{used}/{seller.slots?.total ?? 0}</span>
-            {' · '}{seller.packsApproved} {t('se.packs')}
-            {' · '}{t('se.products')}: <span className="num">{seller.productCount}</span>
+            {t('se.products')}: <span className="num">{seller.productCount}</span>
             {' · '}{t('se.readiness')}: <span className="num">{seller.readinessScore}</span>
           </div>
 

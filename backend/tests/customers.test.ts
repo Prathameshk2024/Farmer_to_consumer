@@ -20,7 +20,7 @@ import {
  */
 
 function emptyDb(): Db {
-  return { sellers: [], products: [], orders: [], payments: [], customers: [] } as unknown as Db
+  return { sellers: [], products: [], orders: [], customers: [] } as unknown as Db
 }
 
 const PRIYA = 'c-9011223344'

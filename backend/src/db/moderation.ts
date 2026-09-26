@@ -1,56 +1,44 @@
-import type { Product } from '@shared/types.js'
+import type { Db } from './seed.js'
 import { destroyImage } from '../routes/uploads.routes.js'
 
 /**
- * A REJECTED ROW SHOULD NOT EXIST, SO SWEEP THE ONES THAT DO.
+ * ROWS STORED UNDER RULES THAT NO LONGER EXIST.
  *
- * A rejection used to leave the listing in place for 48 hours so she could
- * read the reason on the row. It now deletes the product on the spot (see
- * `POST /admin/products/:id/moderate`), because the slot frees at the same
- * moment: the grace period meant a refused listing sitting next to the new
- * one she had already put in its place.
+ * Listings used to wait in a queue (PENDING), be refused (REJECTED) or be
+ * archived instead of deleted (ARCHIVED); sellers used to pay before selling
+ * (REGISTERED, PAYMENT_SUBMITTED, PAYMENT_REJECTED). None of those are in the
+ * types any more, so a row still carrying one would be read as something it
+ * is not. Run once at boot, in place - `db.products` is the live array every
+ * route holds - and a no-op once the data is clean.
  *
- * This clears the rows rejected under the old rule - at boot and on the
- * housekeeping timer - and is a no-op once they are gone.
+ * A waiting listing goes on sale (its farmer still has to be verified before
+ * anyone sees it); a refused or archived one is removed with its photo; an
+ * unpaid seller waits for verification.
  */
-export function purgeRejected(
-  products: Product[],
+export function normalizeLegacyRows(
+  db: Pick<Db, 'products' | 'sellers'>,
   // A parameter only so a test can see what would be destroyed.
   destroy: (publicId: string | undefined) => unknown = destroyImage,
 ): number {
-  let removed = 0
-  for (let i = products.length - 1; i >= 0; i--) {
-    if (products[i]!.status !== 'REJECTED') continue
-    // Its photo goes with it. The row was the only record of the image's
-    // public id, so one left behind here is a photo nobody can ever find to
-    // delete - Cloudinary storage paid for ever. Safe because nothing else
-    // points at it: an order copies name and price, never the picture.
-    void destroy(products[i]!.imagePublicId)
-    products.splice(i, 1)
-    removed++
-  }
-  return removed
-}
-
-/**
- * Clear out rows left behind by the old "archive" delete.
- *
- * Deleting a product used to stamp it `ARCHIVED` and keep it. Nothing has
- * ever read one since - every list, count and slot calculation filtered them
- * straight back out - so they are tombstones, and a database that only grows
- * is what made the Firebase console unreadable. Swept on read, like an expired
- * rejection, because there is no other moment that reliably arrives.
- *
- * In place, for the same reason `purgeRejected` is: `db.products` is
- * the live array every route holds a reference to.
- */
-export function purgeArchived(products: Product[]): number {
-  let removed = 0
-  for (let i = products.length - 1; i >= 0; i--) {
-    if (products[i]!.status === 'ARCHIVED') {
-      products.splice(i, 1)
-      removed++
+  let changed = 0
+  for (let i = db.products.length - 1; i >= 0; i--) {
+    const p = db.products[i]!
+    const status = p.status as string
+    if (status === 'PENDING') {
+      p.status = 'LIVE'
+      changed++
+    } else if (status === 'REJECTED' || status === 'ARCHIVED') {
+      // The row is the only record of the photo's public id.
+      void destroy(p.imagePublicId)
+      db.products.splice(i, 1)
+      changed++
     }
   }
-  return removed
+  for (const s of db.sellers) {
+    if (['REGISTERED', 'PAYMENT_SUBMITTED', 'PAYMENT_REJECTED'].includes(s.status as string)) {
+      s.status = 'PENDING_VERIFICATION'
+      changed++
+    }
+  }
+  return changed
 }

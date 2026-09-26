@@ -5,7 +5,7 @@ import type { SortOption } from '../lib/sort.js'
 /**
  * The chosen order for one list, remembered in this browser.
  *
- * Remembered because an admin who works the payment queue oldest-first does
+ * Remembered because an admin who reads the register oldest-first does
  * so every time, and resetting it on each visit is a click she makes forty
  * times a week. Per browser rather than per account, and wrapped in try/catch,
  * because blocked site data must cost nothing but the memory.

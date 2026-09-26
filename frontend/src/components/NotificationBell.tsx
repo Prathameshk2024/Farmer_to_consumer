@@ -4,7 +4,7 @@ import { useT } from '../i18n/I18nProvider.js'
 import { useAuth } from '../store/AuthContext.js'
 import { api } from '../lib/api.js'
 import {
-  adminFeed, buildFeed, mergeFeeds, subscriptionFeed, unreadCount,
+  adminFeed, buildFeed, mergeFeeds, unreadCount,
 } from '../lib/notifications.js'
 import { IconBell } from './icons.js'
 
@@ -38,7 +38,7 @@ export default function NotificationBell() {
       .then(([{ orders }, me]) => {
         if (!alive) return
         const feed = mergeFeeds(
-          buildFeed(orders, session.role), adminFeed(me?.seller), subscriptionFeed(me?.subscription),
+          buildFeed(orders, session.role), adminFeed(me?.seller),
         )
         setUnread(unreadCount(feed, session.userId))
       })

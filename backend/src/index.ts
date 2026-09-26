@@ -21,9 +21,8 @@ import {
   ALLOW_DEV_RESET, CORS_ORIGIN, describeConfig, PORT as CONFIG_PORT,
 } from './config.js'
 import { sellerWeek } from './db/analytics.js'
-import { purgeArchived, purgeRejected } from './db/moderation.js'
+import { normalizeLegacyRows } from './db/moderation.js'
 import { sweepClosedAccounts } from './db/accountClose.js'
-import { backfillSubscriptionTerms } from './db/subscription.js'
 import { splitOrderReviews } from './db/reviews.js'
 
 const app = express()
@@ -180,10 +179,6 @@ function startHousekeeping(): void {
   const timer = setInterval(() => {
     sweepLimits()
     if (pruneSessions(getDb()) > 0) save()
-    // Rejecting deletes the listing, so this only clears rows left by the
-    // old 48-hour rule. A sweep, not a timer per product: timers do not
-    // survive the next deploy.
-    if (purgeRejected(getDb().products) > 0) save()
     // A closed account is erased a week after she asked, and the same
     // reasoning applies: the week almost always contains a deploy.
     if (sweepClosedAccounts(getDb()) > 0) save()
@@ -193,26 +188,15 @@ function startHousekeeping(): void {
 
 async function main() {
   await initStore()
-  // Listings rejected under the old 48-hour rule go now, before the first
-  // request can be served one that should not exist. The archived rows are
-  // tombstones from when deleting a product only stamped it:
-  // nothing has read one since, and a collection that only grows is what makes
-  // the database unreadable to the people who have to audit it.
-  if (purgeRejected(getDb().products) + purgeArchived(getDb().products) > 0) save()
+  // Rows stored under the old queue-and-pay statuses are brought into the
+  // current ones before the first request can read them.
+  if (normalizeLegacyRows(getDb()) > 0) save()
   // Accounts whose seven days ran out while the server was off are erased
   // before the first request, for the same reason: the promise was a date,
   // not an uptime.
   const closed = sweepClosedAccounts(getDb())
   if (closed > 0) {
     console.log(`[account] erased ${closed} closed account(s)`)
-    save()
-  }
-  // Sellers from before the six-month rule have no end date; they get one
-  // once, here, before the first request asks whether their shop is open.
-  // Nothing is swept on a timer after that - expiry is read off the date.
-  const terms = backfillSubscriptionTerms(getDb())
-  if (terms > 0) {
-    console.log(`[subscription] gave ${terms} existing seller(s) a six-month term`)
     save()
   }
   // Reviews from when a whole order got one rating become one per product.

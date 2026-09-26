@@ -102,7 +102,7 @@ Consequences that matter when changing anything in `backend/src/`:
 - A Firestore connection failure at boot **falls back to the JSON file** and says so loudly. Reads and writes track the same `firestoreLive` flag so they can never disagree.
 - An empty database stays empty unless `SEED_DEMO_DATA` is set. Never make seeding automatic — it would put invented sellers in front of real customers.
 
-Firebase is **server-side only**, via `firebase-admin` with a service account. There is no Firebase Web SDK anywhere, and adding one would be an architectural change, not a convenience: `firestore.rules` denies all client-SDK access because every business rule (slot limits, legal order transitions, who may edit what) lives in the API.
+Firebase is **server-side only**, via `firebase-admin` with a service account. There is no Firebase Web SDK anywhere, and adding one would be an architectural change, not a convenience: `firestore.rules` denies all client-SDK access because every business rule (legal order transitions, who may edit what) lives in the API.
 
 ### Sessions
 
@@ -129,14 +129,14 @@ Firebase is **server-side only**, via `firebase-admin` with a service account. T
 
 `shared/src/accountClose.ts` is the rule, `backend/src/db/accountClose.ts` applies it, `backend/tests/account-close.test.ts` holds it, and `CloseAccountSheet` in `frontend/src/components/CloseAccount.tsx` is the screen.
 
-- **The row stays and the person is erased.** `scrubSeller()` empties every field that is her — phone, name, photo, village, UPI, the readiness answers, an admin's notices about her — and leaves the id, `status: 'CLOSED'`, the `womenBizId` printed on packaging, and the money. Three reasons it is not a row delete: a past order is the *buyer's* record and the ₹50 is the programme's accounts (both of which Play allows keeping, disclosed); `isBulkDelete()` refuses a persist that removes more than half a collection, and a seller with five listings in a small catalogue is more than half of it; and orders and the admin console look a seller up by id, so a dangling id is a blank shop name on somebody else's screen. `SELLER_PII_FIELDS` is the one list, walked by the test — a field added to `Seller` and forgotten there is a phone number surviving a deletion.
+- **The row stays and the person is erased.** `scrubSeller()` empties every field that is her — phone, name, photo, village, UPI, the readiness answers, an admin's notices about her — and leaves the id, `status: 'CLOSED'`, the `womenBizId` printed on packaging, and the money. Three reasons it is not a row delete: a past order is the *buyer's* record as much as the seller's (kept, and disclosed); `isBulkDelete()` refuses a persist that removes more than half a collection, and a seller with five listings in a small catalogue is more than half of it; and orders and the admin console look a seller up by id, so a dangling id is a blank shop name on somebody else's screen. `SELLER_PII_FIELDS` is the one list, walked by the test — a field added to `Seller` and forgotten there is a phone number surviving a deletion.
 - **Her phone goes back into circulation**, because registration's uniqueness check compares stored phones and hers is now blank. Closing is not a ban.
-- **CLOSED is not in `canSellNow()`**, so the shop leaves the catalogue, `GET /sellers/:id` 404s and `POST /orders` refuses — from the status alone, with no product touched and no slot released. That is also what makes the undo a one-line restore.
-- **Seven days between asking and erasing** (`UNDO_DAYS`). The shop closes and every session is revoked the moment she asks; `sweepClosedAccounts()` does the erasing later, at boot and on the 15-minute timer, the same sweep pattern as `purgeExpiredRejections()` and for the same reason — the week almost always contains a deploy. Signing in during it puts a "your account is closing" notice at the top of My Business with one button (`POST /sellers/me/restore`). **A buyer gets no window**: what she loses is an address book, and her account is her phone number, so signing in again gives her a new empty one rather than this one back.
-- **Two screens and four digits stop a stray tap.** The entry point is deliberately nowhere near Log out — its own card at the very bottom of the profile, a quiet line rather than a red button — and the sheet walks the `CancelOrderSheet` shape: what it costs (her own listing count, and that the ₹50 is not refunded), why she is leaving, then **the last four digits of her own number, typed**. Not a word to copy, which is a literacy test, and not a second OTP, which is an SMS against a three-a-day ceiling proving possession of a phone she is already signed in on. The server re-checks all of it.
+- **CLOSED is not in `canSellNow()`**, so the shop leaves the catalogue, `GET /sellers/:id` 404s and `POST /orders` refuses — from the status alone, with no product touched. That is also what makes the undo a one-line restore.
+- **Seven days between asking and erasing** (`UNDO_DAYS`). The shop closes and every session is revoked the moment she asks; `sweepClosedAccounts()` does the erasing later, at boot and on the 15-minute timer, a sweep rather than a timer because the week almost always contains a deploy. Restoring goes back to `ACTIVE` only if he was verified (`verifiedAt`), otherwise to `PENDING_VERIFICATION` — closing and restoring must not skip the check. Signing in during it puts a "your account is closing" notice at the top of My Business with one button (`POST /sellers/me/restore`). **A buyer gets no window**: what she loses is an address book, and her account is her phone number, so signing in again gives her a new empty one rather than this one back.
+- **Two screens and four digits stop a stray tap.** The entry point is deliberately nowhere near Log out — its own card at the very bottom of the profile, a quiet line rather than a red button — and the sheet walks the `CancelOrderSheet` shape: what it costs (her own listing count), why she is leaving, then **the last four digits of her own number, typed**. Not a word to copy, which is a literacy test, and not a second OTP, which is an SMS against a three-a-day ceiling proving possession of a phone she is already signed in on. The server re-checks all of it.
 - **An order in flight refuses the close** (409 with `openOrders`), on both sides. The sheet names the orders instead of printing an error: a buyer waiting on a delivery cannot be left holding an order whose seller has vanished, and she already has the buttons to finish or cancel one.
 - **A closing buyer leaves the orders she placed**: `customerName` becomes the `ग्राहक` placeholder, `customerPhone` and `address` are emptied, her reviews keep their stars and lose her name. The pincode stays — it is a delivery area, not a doorstep.
-- Her Cloudinary images go too: the seller's bank QR by its stored public id, each payment screenshot by one parsed out of its URL (`publicIdFromUrl`), since a payment stores only the URL and an image nobody can name is one nobody can ever delete.
+- Her bank QR image goes too, by its stored public id.
 
 ### Order state machine
 
@@ -188,8 +188,7 @@ both flows, was `length < 6`.
   perfect and matches no line anywhere. Wrong input has to stay wrong to be
   reportable.
 - **The same UTR may not be claimed on a second order.** One transaction has
-  one RRN. Subscription payments flag duplicates for the admin; an order has no
-  admin in the loop, so `POST /orders/:id/pay` refuses it outright — re-posting
+  one RRN. An order has no admin in the loop, so `POST /orders/:id/pay` refuses it outright — re-posting
   it on the *same* order is a woman correcting a digit and is left alone.
 - **`upiProblem()` is not an allow-list, on purpose.** `KNOWN_UPI_HANDLES`
   exists to catch a typo in the half of the address she cannot proofread: she
@@ -262,25 +261,17 @@ the whole catalogue on rural 4G.
 
 **Inside it, her `pincodes` list is a hint, not a gate.** That list is usually one pincode typed at registration, and refusing 413002 because she wrote 413004 threw away orders she would have taken. The order reaches her with `outsideArea: true`, her order screen says so, and Accept means "yes, I can get there". The checkout and `PincodeBar` warn rather than block, for the same reason.
 
-### Nothing goes live until an admin publishes it
+### Verification, once
 
-`initialListingStatus()` in `shared/src/seller.ts` is the rule, and it never
-returns `LIVE`. `POST /products` and `DRAFT`/`REJECTED → LIVE` both land on
-`PENDING`; `POST /admin/products/:id/moderate` is the only path to `LIVE`.
+A farmer is checked once, by a person, and after that his produce goes straight on sale. Produce changes daily; a queue per listing would sell yesterday's tomatoes. The check that remains is on the farmer.
 
-Listings published themselves for a while, on the argument that a queue puts a
-desk between a seller and her first customer. It does — and that is outweighed
-by what a listing carries: a photograph, a price, and on food an ingredients
-claim that goes out under this market's name.
-
-What did **not** change: she writes the listing, the slot is spent at
-submission (so "save as draft" is not a way round either), a refusal carries
-a reason she reads in her own app, and a live listing she edits stays live
-rather than going back into the queue.
-
-Her side says "send for checking" rather than "publish", on the button and
-under it, because a woman refreshing the shop for a listing nobody has
-approved yet has been told nothing by a screen that said "published".
+- **Registering makes him `PENDING_VERIFICATION`.** `POST /admin/sellers/:id/verify` (the *Verify farmer* button on his page in the console, behind `Confirm`) makes him `ACTIVE` and stamps `verifiedAt` and `verifiedBy`, and writes a `VERIFIED` notice he reads in his updates. It answers 409 for anyone not pending.
+- **`canSellNow(s)` in `shared/src/seller.ts` is `status === 'ACTIVE'`**, and every public path asks it: `publiclyVisible`, serviceability, `GET /sellers/:id`, `POST /orders`, and putting a listing on sale. An unverified farmer's `LIVE` listing is not public.
+- **`initialListingStatus(asDraft)`** is `DRAFT` or `LIVE`. `POST /products` and `DRAFT → LIVE` refuse with 403 (`तुमची तपासणी झाल्यावर माल विक्रीसाठी जाईल`) while `!canSellNow`; drafts are his to write before the check.
+- **Unblocking and restoring a closed account go back to what the verification says** — `ACTIVE` only when `verifiedAt` is set — so neither is a way round the check.
+- **Free.** No packs, slots, edit limits or payment proof. He removes any of his own listings himself (`sellerMayDelete` is always true), and edits every field of a live one.
+- A listing that turns out wrong is reported and taken down (below). `backend/tests/verification.test.ts` holds the rule.
+- **Rows from the old statuses are normalised at boot** by `normalizeLegacyRows()` in `db/moderation.ts`: a `PENDING` product becomes `LIVE`, a `REJECTED` or `ARCHIVED` one is removed with its photo, and a `REGISTERED`, `PAYMENT_SUBMITTED` or `PAYMENT_REJECTED` seller becomes `PENDING_VERIFICATION`.
 
 ### What the public may see
 
@@ -290,49 +281,14 @@ A hidden listing answers **404, not 403**, and the same 404 as an id that never 
 
 **A seller leaves the API unauthenticated only as `PublicSeller`**, built by `publicSeller()` in `backend/src/db/publicSeller.ts` and used by the catalogue list, `GET /catalog/products/:id` and `GET /sellers/:id`. It is an **allow-list**: name, photo, shop, SMB ID, village, delivery terms, pincodes, UPI ID/QR, and the rating derived from reviews. It replaced a deny-list (`publicView`) that stripped seven named fields, and the product route, which sent her whole record — phone, admin notices, block reason, readiness answers — to anyone with a product id. Her phone reaches a buyer only on their own order. `backend/tests/public-seller.test.ts` asserts the exact key set, so a new field on the card is a decision, not an accident.
 
-### Editing a published product
-
-`PATCH /products/:id` is the only way a seller changes a listing after it
-exists, and **a live listing may be changed twice**. `MAX_EDITS`,
-`EDIT_COUNTED_FIELDS`, `countsAsEdit()` and `editsLeft()` in
-`shared/src/seller.ts` are the rule; the server enforces it, the edit screen
-disables the fields that have run out, and both read the same functions.
-
-A slot is one listing live at a time, so editing never wins a seller a second
-listing — but without a limit one paid pack becomes a different product every
-season: mango pickle in summer, lemon in winter, for ever. Two edits is the
-line between fixing a listing and replacing it.
-
-**Price and stock are outside the count, permanently.** They move with input
-costs and with what is left on the shelf, and a seller who cannot correct a
-price stops keeping either number honest — which costs the buyer more than a
-rotated listing ever costs the platform. `EDIT_COUNTED_FIELDS` is the list:
-name, picture, category, ingredients, veg/non-veg, material, unit, MRP,
-made-to-order. `countsAsEdit()` compares **values**, because the edit form
-posts the whole product on every save and a save that changed nothing must
-cost nothing.
-
-`editsAreLimited()` covers `LIVE` and `PAUSED` only. A `DRAFT` has not been
-published, and a `REJECTED` listing is being *fixed* — charging an edit to
-answer a take-down could leave her unable to repair the very thing she was
-told to repair.
-
-The edit limit holds because **she cannot delete a submitted listing** (see
-*Slots and subscription*): there is no taking a listing down and putting a
-fresh one up in its slot. A lifetime cap on listings per pack
-(`publishAllowance`, counted on `seller.listingsPublished`) existed only to
-close that route while deleting was allowed, and went with it —
-`listingsPublished` is no longer written and old rows still carry it.
-
-`editCount` is optional and reads as zero when absent, so nothing published
-before the rule loses an edit to a change made when editing was free.
+### Editing a listing
 
 The screen is `frontend/src/screens/seller/EditProduct.tsx`, and it is
 deliberately **not** the wizard: one question per screen is right when the job
 is teaching a seller what a listing needs, and wrong when the seller came to
 fix one number. `isFood` is immutable — it picks the category set and
 which half of the fields apply (ingredients and veg/non-veg, or material), so
-changing it would leave an approved listing carrying claims nobody reviewed.
+changing it would leave a listing carrying claims that no longer fit it.
 
 ### Scroll position
 
@@ -455,56 +411,23 @@ A listing that still has no picture — an old one, or Cloudinary off — falls 
 - **The other side's actions only** (`e.by !== mine`). A seller does not need telling she accepted an order two seconds ago.
 - An admin decision has no order and no product, so it carries no `title` and prints its own sentence instead. `noticeLabelKey` still writes those sentences per side — "Order placed" is a fact about a row, "You have a new order" is a thing to go and do.
 
-### Slots and subscription
+### Taking a listing down, and deleting one
 
-`shared/src/seller.ts`. ₹50 = one pack = 5 product slots, no payment gateway — the seller pays the admin's UPI and admin approves by hand. `SLOT_CONSUMING` deliberately excludes `DRAFT`, so a seller can experiment before paying. Validation functions here run on **both** sides: the client for a fast friendly message, the server because the client can lie.
+Validation functions in `shared/src/seller.ts` run on **both** sides: the client for a fast friendly message, the server because the client can lie.
 
-**One product, one slot — and only an admin gives one back.** `SLOT_CONSUMING` is `PENDING`, `LIVE`, `PAUSED`. A seller cannot delete a submitted listing: My Products has no Remove button on one, and `DELETE /products/:id` answers 403 unless `sellerMayDelete()` — a `DRAFT`, which holds no slot and nobody else has seen. Deleting used to free the slot, which made a pack of five a rotating shop of as many products as she liked. The slot comes back when an admin **rejects** a listing or **takes a live one down** — and that rejection now **deletes the product on the spot**, so the slot and the row go together: five slots, three sent in, the third refused, leaves three free. The reason reaches her as a `PRODUCT_REJECTED` notice, which is where she reads every other admin decision. A woman stuck with a listing she regrets asks an admin to take it down. `backend/tests/slots.test.ts` holds this; `revoke-slots` counts in-use slots by the same rule.
+**A take-down is a removal, the moment it is made.** `POST /admin/products/:id/moderate` with `approve: false` and a reason splices the row, destroys its photo, deletes its reports, and writes a `PRODUCT_REJECTED` notice that carries the reason — which is where he reads every other admin decision. `approve: true` is refused with 400: listings are not approved one by one any more.
 
-**The ₹50 lasts six months.** `shared/src/subscription.ts` is the rule, `backend/src/db/subscription.ts` applies approvals, `backend/tests/subscription.test.ts` holds both.
+**Deleting a listing deletes the document.** `DELETE /products/:id` takes any of his own listings, splices the row and destroys its Cloudinary image (best effort, not awaited — the record is already gone and the farmer is waiting on a phone).
 
-- **Only one date is stored: `Seller.subscriptionEndsAt`.** Expiry writes nothing — no product flipped to `PAUSED`, her `isOpen` switch untouched, no slot released. Public routes ask `canSellNow()` (`ACTIVE` and not expired): `publiclyVisible`, serviceability, `GET /sellers/:id`, `POST /orders`, and submitting a listing. So renewal is the date moving, and "everything exactly as before" — same packs, same products, same slots — is true by construction. Orders already in progress carry on: she can still deliver, cancel and refund.
-- **Six calendar months from the admin's approval**, counted in IST, clamped at month end (`addMonths`). One date for the whole shop however many packs she has; a **flat ₹50 `RENEWAL`** renews all of them. A `PACK` bought mid-term adds slots and leaves the date alone. A renewal paid in the reminder week adds six months to the *current end*, so no paid days are lost. Any payment approved for an already-paused shop reopens it from the approval.
-- **What she may pay for is `payableKinds()`**, sent to her screen as `payable` and enforced on submit: a pack when her slots are full, a renewal from `RENEW_REMINDER_DAYS` (7) before the end, and *only* a renewal once paused. `SubscriptionPayment.kind` records which; a request with no `kind` (an older client) means the most urgent open one.
-- **Every screen is told the state by the API** (`subscriptionView`, on `/sellers/me`, `/products/mine`, `/sellers/me/subscription`, `/admin/sellers[/:id]`) — the server's clock, never the phone's.
-- **The reminder is derived, like the rest of her updates list:** `subscriptionFeed()` turns the view into one row (the reminder week, then "paused — renew"); an approved renewal writes a `SUBSCRIPTION_RENEWED` notice carrying the new date. Her home and products screens show `SubscriptionNotice`; a paused shop's live listings read "paused" on her list while their stored status stays `LIVE`.
-- **Submitting a payment no longer sets `PAYMENT_SUBMITTED` on an `ACTIVE` seller.** It used to, which hid a paying seller's entire shop from the catalogue while her second pack waited in the queue. The waiting screen settles on her latest payment's status for the same reason.
-- **Admin:** a subscription pill (with the date) on every selling seller in the register and on her page, a filter for ending-this-week and expired, the kind and resulting end date on each payment, and `subscriptionsExpiring` / `subscriptionsExpired` on the dashboard. `activeSellers` counts only shops a buyer can reach today. Granted slots start a term for a seller who has none, but never extend one — time is paid.
-- **Existing sellers** were given a term once at boot by `backfillSubscriptionTerms`: six months from their last approved payment (or from the deploy, for granted packs), and never fewer than seven days, so no shop closes the morning after the deploy without warning.
+This is safe because **an order copies what it needs**: `OrderItem` carries the name, emoji, quantity and price from checkout, and nothing dereferences `productId` to draw an order. `backend/tests/product-delete.test.ts` holds that contract — normalising those fields away would quietly empty a year of order history the first time a listing is deleted.
 
-**A rejection is a removal, the moment it is made.** `POST /admin/products/:id/moderate` with `approve: false` splices the row, destroys its photo and deletes its reports. A rejected listing used to stay for 48 hours so she could read the reason on the row (`REJECT_GRACE_HOURS`, `shared/src/moderation.ts` — both gone). That made sense while a rejected listing still held her slot; since the slot frees at the decision, the grace period only left a dead listing beside the new one she had already put in its place. `purgeRejected()` in `db/moderation.ts` sweeps rows rejected under the old rule, at boot and hourly, and is a no-op afterwards. `backend/tests/moderation.test.ts` holds it.
+### Paying a seller by UPI
 
-**Deleting a draft deletes the document.** `DELETE /products/:id` splices the row and destroys its Cloudinary image (best effort, not awaited — the record is already gone and the seller is waiting on a phone). It used to stamp `ARCHIVED` and keep the row, which nothing ever read again: forty product documents of which eight were visible is what that looks like from the Firebase console. `purgeArchived()` in `db/moderation.ts` clears the tombstones already written, at boot and on `GET /products/mine`, the same way expired rejections are swept.
+The buyer's order screen offers a QR, written steps, the UPI ID with a copy button, and a UTR box, in that order. **A phone cannot scan its own screen**, so the two routes that work from one handset are: take a screenshot of the QR, then scan it from the gallery inside PhonePe or Google Pay; or copy the UPI ID and paste it there. `PaySteps` in `components/PayFromPhone.tsx` writes the first route out one tap per line — screenshot (power + volume-down), open the app, scan, gallery icon, check name and amount, come back for the UTR.
 
-This is safe because **an order copies what it needs**: `OrderItem` carries the name, emoji, quantity and price from checkout, and nothing dereferences `productId` to draw an order. `backend/tests/product-delete.test.ts` holds that contract — normalising those fields away would quietly empty a year of order history the day listings become deletable again, by her or by an admin.
-
-**Where the ₹50 goes is `ADMIN_PAYMENT_ACCOUNT` in `config.ts`**, env-readable
-(`ADMIN_UPI_ID`, `ADMIN_UPI_NAME`, `ADMIN_BANK_NAME`), defaulting to the
-college's own account. It used to sit in `db/seed.ts` beside three invented
-sellers — the last place a real payee belongs. It is the one string in the app
-that moves real money and nothing downstream can catch it being wrong: the QR
-is generated FROM it, so a typo makes a perfectly scannable code that pays a
-stranger and leaves the seller holding a valid UTR for a payment the programme
-never saw. `backend/tests/payment-account.test.ts` asserts it is payable and
-is not the old placeholder. No account number or IFSC — she pays by UPI, and a
-wrong A/C under a QR is worse than none; the payee NAME is stored exactly as
-printed on the poster so she can check it against what her UPI app shows.
-
-Both payment screens (this one and the buyer's order screen) offer a QR, written steps, the UPI ID with a copy button, and a UTR box, in that order. **A phone cannot scan its own screen**, so the two routes that work from one handset are: take a screenshot of the QR, then scan it from the gallery inside PhonePe or Google Pay; or copy the UPI ID and paste it there. `PaySteps` in `components/PayFromPhone.tsx` writes the first route out one tap per line — screenshot (power + volume-down), open the app, scan, gallery icon, check name and amount, come back for the UTR.
-
-**There is no "Pay" button on a `upi://pay` link, and it must not come back while payees are personal UPI IDs.** It existed twice. The second time it opened PhonePe and Google Pay correctly, and they refused the payment with "declined for security reasons": UPI apps treat a payment that *another app* starts, to a *personal* UPI ID, as the shape of a scam, and every payee here — sellers and the college — is one. Nothing in the link fixes that; the same code scanned from the gallery pays fine (tested on real phones, 14 September 2026). A pay link works again only for business UPI IDs (PhonePe Business, Paytm for Business…), and then only for those accounts. `buildUpiLink()` sends no `tr` for the same reason: a merchant field on a personal ID is one more thing the risk check reads as a fake shop.
+**There is no "Pay" button on a `upi://pay` link, and it must not come back while payees are personal UPI IDs.** It existed twice. The second time it opened PhonePe and Google Pay correctly, and they refused the payment with "declined for security reasons": UPI apps treat a payment that *another app* starts, to a *personal* UPI ID, as the shape of a scam, and every payee here is one. Nothing in the link fixes that; the same code scanned from the gallery pays fine (tested on real phones, 14 September 2026). A pay link works again only for business UPI IDs (PhonePe Business, Paytm for Business…), and then only for those accounts. `buildUpiLink()` sends no `tr` for the same reason: a merchant field on a personal ID is one more thing the risk check reads as a fake shop.
 
 The tap after paying is Back, so `lib/useReturnFromApp.ts` is armed when she copies the ID (a screenshot fires no event the page can hear, so that route does not arm it), and on her return (hidden, then visible — never `focus` alone) the screen scrolls the UTR box into view and focuses it, once per arming.
-
-**The ₹50 needs proof, not twelve digits.** Anybody can type a UTR, and approving one grants five slots. So a subscription payment carries three things an admin holds against each other:
-
-- **A screenshot of her UPI app's success screen — required.** A `PhotoPicker` upload (`kind: 'payment'`) into its own signed Cloudinary folder. `screenshotProblem()` in `backend/src/db/payments.ts` accepts only a URL in *this* account's `…/payment/` folder, so a pasted link or a product photo cannot stand in for it. With Cloudinary off there is no way to attach one, so nothing is required, and `/sellers/me/subscription` says so as `screenshotRequired`.
-- **When she paid** — `paidAt`, a `datetime-local` pre-filled with now. `paidAtProblem()` in `shared/src/payment.ts` refuses a time in the future (10 minutes' slack for phone clocks) or older than 7 days.
-- **The UTR**, as before.
-
-The admin queue shows the screenshot inline and opens it large beside the UTR, the stated time and the amount. **Approve stays disabled until three checks are ticked** — the UTR matches, the date and time match, the money is on the bank statement — and `POST /admin/payments/:id/approve` refuses any request whose `checks` lack one of `PAYMENT_CHECKS`, so the checklist is the rule and not decoration. The CLI takes `approve <id> --verified` and no longer offers `approve all`. Rejecting needs no checklist: refusing an unproven payment is always safe. `backend/tests/payment-proof.test.ts` holds all of it.
-
-Because approval is by hand, **how long she has been waiting is the number that makes somebody act on it**, and the console owns it: `waited()` in `admin/src/lib/format.ts` computes it from `submittedAt` — minutes under the hour, hours to two days, then days — and `Payments.tsx` re-reads the clock every 30 minutes so a console left open on a desk stops showing the age it had at page load. `/admin/payments` deliberately sends no `waitingHours`: a number computed on the server is frozen at the moment of the response, and two sources for one figure is how an admin stops trusting either.
 
 ### How long the delivery will take
 
@@ -546,9 +469,9 @@ the only moderation signal that arrives *after* a listing is live.
 
 - **A report changes nothing on its own.** The listing stays LIVE: one annoyed
   buyer must not be able to empty a woman's shop. It joins the admin console's
-  **Reported** tab (`GET /admin/products?status=REPORTED`), which replaced the
-  Rejected tab — that one can no longer hold anything now that rejecting
-  deletes. A reported REVIEW joins the console's Reviews screen under its
+  **Reported** tab (`GET /admin/products?status=REPORTED`), beside the Live
+  tab — there is no review queue, since listings are not approved one by
+  one. A reported REVIEW joins the console's Reviews screen under its
   **Reported** filter (`?reported=true`), with `clear-reports` beside Hide.
 - **Either side may flag a review.** `POST /reports` takes `customer` or
   `seller` (`byRole`), because the person an abusive review is written about
@@ -567,7 +490,7 @@ the only moderation signal that arrives *after* a listing is live.
 
 ### Sorting the admin lists
 
-Sellers, Products, Orders and Payments each have a **Sort by** menu. `admin/src/lib/sort.ts` holds one option table per list, because "highest" is a different number on each: what she has earned (delivered orders, added to `/admin/sellers` as `earned`), what a product costs, what an order or payment came to. Sorting is client-side, since every list already arrives whole. Names go through an `Intl.Collator` for Marathi and English, so Devanagari and Latin names each sort properly and case is ignored. The choice is remembered per list in `localStorage`, and newest-first is the default everywhere. `admin/tests/sort.test.ts` holds it.
+Sellers, Products and Orders each have a **Sort by** menu. `admin/src/lib/sort.ts` holds one option table per list, because "highest" is a different number on each: what she has earned (delivered orders, added to `/admin/sellers` as `earned`), what a product costs, what an order came to. Sorting is client-side, since every list already arrives whole. Names go through an `Intl.Collator` for Marathi and English, so Devanagari and Latin names each sort properly and case is ignored. The choice is remembered per list in `localStorage`, and newest-first is the default everywhere. `admin/tests/sort.test.ts` holds it.
 
 ### Other shared modules
 

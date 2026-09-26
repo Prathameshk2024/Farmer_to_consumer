@@ -12,13 +12,13 @@ import { publiclyVisible } from '../src/routes/catalog.routes.js'
  * id, and ids are short and sequential enough to try.
  *
  * This matters most for the states a seller chose: a DRAFT she has not
- * finished, a REJECTED listing she is still fixing, a PAUSED one she has taken
+ * finished, a PAUSED one she has taken
  * down for the week. Those are her decisions about her own shop, and a
  * stranger reading them out of the API is the same failure whichever way round
  * it happens.
  */
 
-const HIDDEN_STATES: ProductStatus[] = ['DRAFT', 'PENDING', 'REJECTED', 'PAUSED', 'ARCHIVED']
+const HIDDEN_STATES: ProductStatus[] = ['DRAFT', 'PAUSED']
 
 function product(status: ProductStatus): Product {
   return { id: 'p4', sellerId: 's1', status } as Product
@@ -43,8 +43,8 @@ test('nothing but LIVE is readable, however the id was come by', () => {
  * off the shelf even though each one still says LIVE - otherwise blocking
  * removes her from the list and leaves her whole catalogue readable by id.
  */
-test('a blocked or unapproved shop takes its live listings with it', () => {
-  const states: SellerStatus[] = ['REGISTERED', 'PAYMENT_SUBMITTED', 'BLOCKED']
+test('a blocked or unverified shop takes its live listings with it', () => {
+  const states: SellerStatus[] = ['PENDING_VERIFICATION', 'BLOCKED', 'CLOSED']
   for (const status of states) {
     assert.equal(publiclyVisible(product('LIVE'), seller({ status })), false, status)
   }

@@ -36,7 +36,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = lang
   }, [lang])
 
-  /** t('biz.slotsUsed', { used: 3, total: 5 }) */
+  /** t('some.key', { n: 3 }) fills {n} in the string. */
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>) => {
       const raw = dictionaries[lang][key] ?? dictionaries.en[key] ?? key

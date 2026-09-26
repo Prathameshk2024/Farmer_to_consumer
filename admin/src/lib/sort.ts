@@ -1,4 +1,3 @@
-import type { SubscriptionPayment } from '@shared/types.js'
 import type { OrderRow, ProductRow, SellerRow } from './api.js'
 
 /**
@@ -10,8 +9,7 @@ import type { OrderRow, ProductRow, SellerRow } from './api.js'
  * same rows.
  *
  * One table per list, because "highest" means a different number on each -
- * what she has earned, what a product costs, what an order came to, what a
- * payment was for - and a generic "sort by field" menu would make an admin
+ * what she has earned, what a product costs, what an order came to - and a generic "sort by field" menu would make an admin
  * learn the data model to use it.
  */
 
@@ -60,8 +58,6 @@ export const SELLER_SORTS: SortOption<SellerRow>[] = [
   // Delivered orders only - the same definition her own page and the impact
   // report use, computed on the server.
   highest('earnedHigh', 'sort.earnedHigh', (s) => s.earned),
-  // The plan she is on: how many ₹50 packs have been approved for her.
-  highest('packsHigh', 'sort.packsHigh', (s) => s.packsApproved),
 ]
 
 export const PRODUCT_SORTS: SortOption<ProductRow>[] = [
@@ -81,16 +77,6 @@ export const ORDER_SORTS: SortOption<OrderRow>[] = [
   // The buyer is masked in this list, so the name to sort by is the shop's.
   nameAZ((o) => o.seller, 'sort.shopAZ'),
   nameZA((o) => o.seller, 'sort.shopZA'),
-]
-
-export const PAYMENT_SORTS: SortOption<SubscriptionPayment>[] = [
-  newestFirst((p) => p.submittedAt),
-  // Oldest first is the queue read as a queue: whoever has waited longest.
-  oldestFirst((p) => p.submittedAt),
-  highest('amountHigh', 'sort.amountHigh', (p) => p.amount),
-  lowest('amountLow', 'sort.amountLow', (p) => p.amount),
-  nameAZ((p) => p.sellerName, 'sort.sellerAZ'),
-  nameZA((p) => p.sellerName, 'sort.sellerZA'),
 ]
 
 /**

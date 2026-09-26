@@ -11,7 +11,7 @@ import { recordOrderCustomer } from '../db/customers.js'
 import { cancelOrder } from '../db/orderCancel.js'
 import { ordersToRate, writeRatings } from '../db/reviews.js'
 import { toPublicReview } from '@shared/review.js'
-import { canSellNow } from '@shared/subscription.js'
+import { canSellNow } from '@shared/seller.js'
 import { newShortId } from '../db/ids.js'
 import { requireRole } from '../middleware/auth.js'
 
@@ -138,7 +138,7 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
 
   for (const g of b.groups) {
     const seller = db.sellers.find((s) => s.id === g.sellerId)
-    // A shop paused for an unpaid subscription takes no new orders. Orders it
+    // A blocked, closed or unverified shop takes no new orders. Orders it
     // already has carry on: she can still deliver them, or cancel and refund.
     if (!seller || !canSellNow(seller) || !seller.isOpen) {
       res.status(409).json({
@@ -375,9 +375,8 @@ ordersRouter.post('/:id/pay', requireRole('customer'), (req, res) => {
    *
    * A seller confirms payments by eye, against a statement that shows each
    * reference once, and duplicates are exactly what that check cannot catch:
-   * the line is there, it just is not for this order. Subscription payments
-   * already flag this for the admin; an order has no admin in the loop, so
-   * here it is refused outright. The same UTR on THIS order is left alone -
+   * the line is there, it just is not for this order. An order has no admin
+   * in the loop, so here it is refused outright. The same UTR on THIS order is left alone -
    * that is a woman correcting a digit, not a second claim.
    */
   const usedElsewhere = db.orders.some((o) => o.id !== order.id && o.paymentUtr === utr)

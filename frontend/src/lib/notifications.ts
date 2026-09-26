@@ -1,18 +1,12 @@
 import type { AdminNoticeKind, Order, OrderStatus, Role, Seller } from '@shared/types.js'
-import type { SubscriptionView } from '@shared/subscription.js'
 import { statusLabelKey } from '@shared/orderFlow.js'
 
 /** Where tapping an admin decision goes. */
 const ADMIN_NOTICE_PATH: Record<AdminNoticeKind, string | undefined> = {
-  SLOTS_GRANTED: '/seller/products',
-  SLOTS_REVOKED: '/seller/subscription',
-  PAYMENT_APPROVED: '/seller/products',
-  PAYMENT_REJECTED: '/seller/subscription',
+  VERIFIED: '/seller/products',
   BLOCKED: undefined,
   UNBLOCKED: undefined,
-  PRODUCT_APPROVED: '/seller/products',
   PRODUCT_REJECTED: '/seller/products',
-  SUBSCRIPTION_RENEWED: '/seller',
 }
 
 /** What the order is, in the words on the listing. "+2" counts the rest. */
@@ -74,7 +68,7 @@ export interface Notice {
    * fill it would be one request per order for a subtitle.
    */
   who: string
-  /** Numbers the line needs, e.g. how many slots. */
+  /** Numbers the line needs. */
   vars?: Record<string, string | number>
   /** Only order lines carry money. */
   total?: number
@@ -303,27 +297,17 @@ export function unreadCount(feed: Notice[], userId: string, now = Date.now()): n
 /**
  * The other half of "what happened while she was not looking".
  *
- * Her slots grew by five and nothing on any screen said so - she had to
- * notice the meter herself, and a woman who has just paid ₹50 and been
- * approved by hand deserves to be told rather than to check. These come off
+ * A farmer verified by hand deserves to be told rather than to check. These come off
  * her own seller record (`seller.notices`), written by the admin handler that
  * made the change, so this needs no new endpoint: `api.me()` already carries
  * them. The path each kind opens is `ADMIN_NOTICE_PATH` above.
  */
 export function adminFeed(seller: Seller | null | undefined): Notice[] {
   return (seller?.notices ?? []).map((n): Notice => {
-    // A renewal's note is the new end date, which belongs IN the sentence
-    // ("open until 15 Mar 2027") rather than printed raw beneath it.
-    if (n.kind === 'SUBSCRIPTION_RENEWED') {
-      return {
-        id: n.id, at: n.at, labelKey: 'notif.adm.SUBSCRIPTION_RENEWED',
-        vars: { date: shortDate(n.note) }, who: '', to: ADMIN_NOTICE_PATH[n.kind],
-      }
-    }
     return {
       id: n.id,
       at: n.at,
-      labelKey: `notif.adm.${n.kind}`,
+      labelKey: n.kind === 'VERIFIED' ? 'notif.verified' : `notif.adm.${n.kind}`,
       vars: n.n == null ? undefined : { n: n.n },
       // What it was about. An older row has no `subject` and carries the name
       // and the reason joined in `note`; it prints as it always did.
@@ -332,43 +316,6 @@ export function adminFeed(seller: Seller | null | undefined): Notice[] {
       to: ADMIN_NOTICE_PATH[n.kind],
     }
   })
-}
-
-/* ------------------------------------------------------------------ */
-/* Her six months                                                      */
-/* ------------------------------------------------------------------ */
-
-/**
- * The renewal reminder, derived from her end date like everything else here.
- *
- * Nothing is written when the reminder week starts or when the shop pauses -
- * no job runs at that moment to write it. The server says where she stands
- * (on its clock, not the phone's) and this turns that into one row:
- *
- * - the reminder week: "your shop pauses on 15 Mar", timed from the day the
- *   week began, so it counts once on the bell when it appears;
- * - once paused: "your shop is paused - renew", timed at the end date.
- *
- * The row id carries the end date, so after a renewal the next term's
- * reminder is a new row rather than one she already marked as read.
- */
-export function subscriptionFeed(view: SubscriptionView | null | undefined): Notice[] {
-  if (!view?.endsAt) return []
-  const vars = { date: shortDate(view.endsAt), n: view.daysLeft ?? 0 }
-  if (view.state === 'expiring' && view.remindFrom) {
-    return [{
-      id: `sub-expiring:${view.endsAt}`, at: view.remindFrom, labelKey: 'notif.sub.expiring',
-      vars, who: '', to: '/seller/subscription',
-    }]
-  }
-  if (view.state === 'expired') {
-    return [{
-      id: `sub-expired:${view.endsAt}`, at: view.endsAt, labelKey: 'notif.sub.expired',
-      // Her shop is shut to buyers until she renews. That does not get old.
-      vars, who: '', to: '/seller/subscription', standing: true,
-    }]
-  }
-  return []
 }
 
 /** Both halves, newest first. The list she reads does not care where a line came from. */

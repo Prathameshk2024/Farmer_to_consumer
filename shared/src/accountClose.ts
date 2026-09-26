@@ -10,10 +10,8 @@ import type { Order, OrderStatus } from './types.js'
  * WHAT "DELETED" MEANS HERE. The row stays and the person is erased. Three
  * reasons, in order of weight:
  *
- * 1. A past order is the BUYER's record as much as the seller's, and the ₹50
- *    payments are the programme's accounts. Both outlive her account, and
- *    Play allows keeping what accounting and the other party need as long as
- *    the privacy policy says so.
+ * 1. A past order is the BUYER's record as much as the seller's, so it
+ *    outlives her account; the privacy policy says so.
  * 2. Removing rows can be REFUSED. A single persist may not delete more than
  *    half a collection (`isBulkDelete`), and a seller with five listings in a
  *    small catalogue is more than half of it. A delete that sometimes does not

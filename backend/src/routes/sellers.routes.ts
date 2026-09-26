@@ -1,23 +1,18 @@
 import { Router } from 'express'
-import type { DigitalProfile, Seller, SubscriptionPayment } from '@shared/types.js'
+import type { DigitalProfile, Seller } from '@shared/types.js'
 import {
   defaultAbout, fssaiProblem, isValidPhone, isValidPincode, normalizeFssai,
-  normalizePhone, PLAN, samePhone, slotInfo, validateSellerProfile,
+  normalizePhone, samePhone, validateSellerProfile, canSellNow,
 } from '@shared/seller.js'
-import { normalizeUtr, paidAtProblem, upiProblem, utrProblem } from '@shared/payment.js'
+import { upiProblem } from '@shared/payment.js'
 import { closeReasonProblem, confirmProblem } from '@shared/accountClose.js'
 import { openOrdersForSeller, requestSellerClose, restoreSeller } from '../db/accountClose.js'
-import { screenshotProblem } from '../db/payments.js'
 import { makeShopSlug, makeWomenBizId, villageCode } from '@shared/womenbiz.js'
 import { computeReadiness, readinessBand, recomputeForSeller } from '@shared/readiness.js'
 import { getDb, newId, save } from '../db/store.js'
 import { buyersForSeller } from '../db/customers.js'
 import { sellerProductReviews, sellerRating } from '../db/reviews.js'
 import { publicSeller } from '../db/publicSeller.js'
-import {
-  type PaymentKind, canSellNow, payableKinds, paymentKindProblem, subscriptionView,
-} from '@shared/subscription.js'
-import { ADMIN_PAYMENT_ACCOUNT, cloudinary, usingCloudinary } from '../config.js'
 import { callerIp, requireRole } from '../middleware/auth.js'
 import { signToken } from '../auth/tokens.js'
 import { createSession, describeClient } from '../auth/sessions.js'
@@ -67,9 +62,9 @@ interface RegisterBody {
 }
 
 /**
- * Create the seller record. She is REGISTERED at this point, not ACTIVE - she
- * still has to pay the 50 rupees and have admin approve it before she can
- * publish anything.
+ * Create the seller record. He is PENDING_VERIFICATION at this point, not
+ * ACTIVE - an admin checks him once (POST /admin/sellers/:id/verify) before
+ * buyers see anything he lists.
  *
  * Everything is validated here even though the client validates too. The client
  * validation exists to give her a fast message in Marathi; this exists because
@@ -205,8 +200,7 @@ sellersRouter.post('/register', (req, res) => {
     minOrder: Number(b.minOrder ?? 0),
     dispatch: b.dispatch ?? 'same',
     pincodes: [b.pincode.trim()],
-    status: 'REGISTERED',
-    packsApproved: 0,
+    status: 'PENDING_VERIFICATION',
     rating: 0,
     ratingCount: 0,
     qrScans: 0,
@@ -259,8 +253,7 @@ sellersRouter.get('/me', requireRole('seller'), (req, res) => {
     res.status(404).json({ error: 'Seller not found' })
     return
   }
-  const products = db.products.filter((p) => p.sellerId === seller.id)
-  res.json({ seller, slots: slotInfo(seller, products), subscription: subscriptionView(seller) })
+  res.json({ seller })
 })
 
 /**
@@ -295,7 +288,7 @@ sellersRouter.patch('/me', requireRole('seller'), (req, res) => {
   }
 
   // Allow-list. Never spread req.body into a stored record - that is how a
-  // seller sets her own status to ACTIVE or grants herself slots.
+  // seller sets her own status to ACTIVE.
   const allowed = [
     'name', 'photo', 'whatsapp', 'about', 'shopName', 'isOpen', 'deliveryFee',
     'freeDeliveryAbove', 'minOrder', 'dispatch', 'pincodes', 'monthlyCapacity',
@@ -441,8 +434,7 @@ sellersRouter.post('/me/restore', requireRole('seller'), (req, res) => {
 sellersRouter.get('/:id', (req, res) => {
   const seller = getDb().sellers.find((s) => s.id === req.params.id)
   // Same rule as /slug/:slug. A seller who has not been approved, or who has
-  // been blocked, is not public - customers only ever see approved shops.
-  // A paused shop is not public either, until she renews.
+  // been blocked, is not public - customers only ever see verified shops.
   if (!seller || !canSellNow(seller)) {
     res.status(404).json({ error: 'Seller not found', messageMr: 'ही विक्रेती सापडली नाही' })
     return
@@ -450,148 +442,4 @@ sellersRouter.get('/:id', (req, res) => {
   // The same allow-listed card the catalogue sends. This used to strip seven
   // named fields and pass everything else, including her admin notices.
   res.json({ seller: publicSeller(seller, sellerRating(getDb(), seller.id)) })
-})
-
-/* ------------------------------------------------------------------ */
-/* Subscription: the 50 rupees                                         */
-/* ------------------------------------------------------------------ */
-
-sellersRouter.get('/me/subscription', requireRole('seller'), (req, res) => {
-  const db = getDb()
-  const sellerId = req.auth!.sellerId!
-  const seller = db.sellers.find((s) => s.id === sellerId)
-  if (!seller) {
-    res.status(404).json({ error: 'Seller not found' })
-    return
-  }
-  const products = db.products.filter((p) => p.sellerId === sellerId)
-  const slots = slotInfo(seller, products)
-  res.json({
-    plan: PLAN,
-    account: ADMIN_PAYMENT_ACCOUNT,
-    slots,
-    status: seller.status,
-    subscription: subscriptionView(seller),
-    // What she may pay for right now, most urgent first. The screen draws
-    // exactly this and the submit below refuses anything else.
-    payable: payableKinds(seller, slots.left),
-    // The screen asks for exactly what the submit below will insist on.
-    screenshotRequired: usingCloudinary,
-    payments: db.payments
-      .filter((p) => p.sellerId === sellerId)
-      .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)),
-  })
-})
-
-/** She has paid and is submitting the reference number. */
-sellersRouter.post('/me/subscription/payment', requireRole('seller'), (req, res) => {
-  const db = getDb()
-  const sellerId = req.auth!.sellerId!
-  const seller = db.sellers.find((s) => s.id === sellerId)
-  if (!seller) {
-    res.status(404).json({ error: 'Seller not found' })
-    return
-  }
-
-  /**
-   * ONE PENDING PAYMENT AT A TIME.
-   *
-   * Her app hides the pay button once something is waiting, but the button is
-   * not the rule - a second tap on a slow connection, a back press onto the
-   * form, or anything that is not the app would otherwise put a second ₹50 row
-   * in the admin queue for the same money, and an admin who approves both
-   * grants two packs for one payment.
-   */
-  const waiting = db.payments.find(
-    (p) => p.sellerId === sellerId && p.status === 'PENDING',
-  )
-  if (waiting) {
-    res.status(409).json({
-      error: 'A payment is already waiting to be checked',
-      messageMr: 'तुमचा भरणा आधीच तपासणीसाठी पाठवला आहे.',
-    })
-    return
-  }
-
-  /**
-   * And only for something she actually needs.
-   *
-   * A PACK when her slots are full - taking ₹50 for five slots while she still
-   * has empty ones is selling her something she already has. A RENEWAL from
-   * the reminder onwards. An expired shop may only renew.
-   *
-   * `kind` is absent from app builds older than renewals. Such a build is only
-   * ever paying because it was asked to, so an open renewal is what it means.
-   */
-  const products = db.products.filter(
-    (p) => p.sellerId === sellerId,
-  )
-  const slots = slotInfo(seller, products)
-  const kinds = payableKinds(seller, slots.left)
-  const kind: PaymentKind =
-    req.body?.kind === 'RENEWAL' || req.body?.kind === 'PACK'
-      ? req.body.kind
-      : (kinds[0] ?? 'PACK')
-  const kindFault = paymentKindProblem(kind, seller, slots.left)
-  if (kindFault) {
-    res.status(409).json({ error: `Nothing to pay for as ${kind}`, messageMr: kindFault })
-    return
-  }
-
-  const utr = normalizeUtr(req.body?.utr)
-  const utrFault = utrProblem(utr)
-  if (utrFault) {
-    res.status(400).json({ error: 'Invalid UTR', messageMr: utrFault, fields: { utr: utrFault } })
-    return
-  }
-
-  /**
-   * Twelve digits alone prove nothing - anybody can type them. The screenshot
-   * and the time she paid are what an admin holds the UTR against, so a
-   * submission without them never reaches the queue.
-   */
-  const shotFault = screenshotProblem(req.body?.screenshotUrl, cloudinary)
-  if (shotFault) {
-    res.status(400).json({
-      error: 'Payment screenshot required',
-      messageMr: shotFault,
-      fields: { screenshot: shotFault },
-    })
-    return
-  }
-  const paidAtFault = paidAtProblem(req.body?.paidAt)
-  if (paidAtFault) {
-    res.status(400).json({ error: 'Invalid payment time', messageMr: paidAtFault, fields: { paidAt: paidAtFault } })
-    return
-  }
-
-  // Reusing one reference number across accounts is the obvious attack on
-  // manual verification, so flag it here rather than hoping admin spots it.
-  const duplicateUtr = db.payments.some((p) => p.utr === utr && p.sellerId !== sellerId)
-
-  const payment: SubscriptionPayment = {
-    id: newId('sp'),
-    kind,
-    sellerId,
-    sellerName: seller.name,
-    womenBizId: seller.womenBizId,
-    phone: seller.phone,
-    amount: PLAN.price,
-    utr,
-    payerUpi: String(req.body?.payerUpi ?? seller.upiId),
-    screenshotUrl: req.body?.screenshotUrl || undefined,
-    paidAt: new Date(req.body.paidAt).toISOString(),
-    submittedAt: new Date().toISOString(),
-    status: 'PENDING',
-    duplicateUtr,
-  }
-
-  db.payments.unshift(payment)
-  // Only a seller who is not selling yet is "waiting for approval". An ACTIVE
-  // seller buying another pack, or renewing, keeps her status: flipping it hid
-  // her whole shop from the catalogue for as long as the payment sat in the
-  // queue - which is exactly backwards for a renewal paid before the date.
-  if (seller.status !== 'ACTIVE' && seller.status !== 'BLOCKED') seller.status = 'PAYMENT_SUBMITTED'
-  save()
-  res.status(201).json({ payment, status: seller.status })
 })

@@ -1,18 +1,19 @@
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
-import type { AdminNotice, DigitalProfile, SubscriptionPayment } from '@shared/types.js'
+import type { AdminNotice, DigitalProfile } from '@shared/types.js'
 import { BAND_LABEL, MAX_SCORE, SELF_REPORTED_FACTORS } from '@shared/readiness.js'
 import { useI18n, useT } from '../i18n/I18nProvider.js'
 import { api, type SellerDetail as Detail } from '../lib/api.js'
-import { dateOnly, isStuck, maskedLabel, rupees, when } from '../lib/format.js'
-import { PaymentKindPill, SubscriptionPill } from '../components/Subscription.js'
+import { isStuck, maskedLabel, rupees, when } from '../lib/format.js'
 import { TopBar } from '../components/Shell.js'
 import { SellerActions, StatusPill } from '../components/SellerActions.js'
+import { Confirm, useConfirm } from '../components/Confirm.js'
 import { ProductCard } from './Products.js'
 import { ReviewTable, SummaryText } from './Reviews.js'
 import { IconNo, IconProducts, IconYes } from '../components/icons.js'
 import {
-  Card, CopyValue, EmptyState, ErrorNote, Loading, Notice, Pill, SectionTitle, useAsync,
+  Button, Card, CopyValue, EmptyState, ErrorNote, Loading, Notice, Pill, SectionTitle, useAsync,
+  useErrorText,
 } from '../components/ui.js'
 
 /**
@@ -21,10 +22,10 @@ import {
  * The register answers "who is this"; everything here answers the questions
  * that come next - what she sells, what she has earned, what she was given and
  * by whom. Registration collects some forty fields and the row showed eight of
- * them, so an admin deciding whether to grant her a pack was deciding on a
- * name and a village.
+ * them, so an admin deciding whether to verify him was deciding on a name
+ * and a village.
  *
- * READ-ONLY apart from the three account actions. Her name, her shop, her UPI
+ * READ-ONLY apart from verifying and blocking. Her name, her shop, her UPI
  * and her prices are hers to change in her own app; an admin editing them from
  * here would leave her looking at a shop she did not write.
  */
@@ -76,7 +77,7 @@ export function SellerDetail() {
           <Business detail={data} />
           <Readiness detail={data} />
           <ShopSettings detail={data} />
-          <Decisions notices={seller.notices ?? []} payments={data.payments} />
+          <Decisions notices={seller.notices ?? []} />
         </div>
 
         <Listings detail={data} onDone={reload} />
@@ -93,7 +94,23 @@ export function SellerDetail() {
 
 function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
   const t = useT()
+  const errorText = useErrorText()
+  const verify = useConfirm()
   const { seller } = detail
+
+  async function doVerify() {
+    verify.setBusy(true)
+    verify.setError('')
+    try {
+      await api.verifySeller(seller.id)
+      verify.close()
+      onDone()
+    } catch (e) {
+      verify.setError(errorText(e))
+    } finally {
+      verify.setBusy(false)
+    }
+  }
 
   return (
     <Card>
@@ -104,7 +121,6 @@ function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
           <div className="row wrap" style={{ gap: 8 }}>
             <span className="strong" style={{ fontSize: 17 }}>{seller.name}</span>
             <StatusPill status={seller.status} />
-            {seller.status === 'ACTIVE' && <SubscriptionPill view={seller.subscription} />}
             {!seller.isOpen && <Pill tone="warn">{t('sd.shopClosed')}</Pill>}
           </div>
 
@@ -146,6 +162,24 @@ function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
         </div>
       )}
 
+      {/* The one check a farmer gets. Once he is verified, what he lists goes
+          on sale without anyone looking at each listing. */}
+      {seller.status === 'PENDING_VERIFICATION' && (
+        <div style={{ marginTop: 12 }}>
+          <Button disabled={verify.open} onClick={verify.ask}>{t('sel.verify')}</Button>
+          <Confirm
+            open={verify.open}
+            title={t('sel.verify')}
+            description={t('sel.verifyConsequence')}
+            confirmLabel={t('sel.verify')}
+            busy={verify.busy}
+            error={verify.error}
+            onCancel={verify.close}
+            onConfirm={() => void doVerify()}
+          />
+        </div>
+      )}
+
       <div style={{ marginTop: 12 }}>
         <SellerActions seller={seller} onDone={onDone} />
       </div>
@@ -178,7 +212,6 @@ function Numbers({ detail }: { detail: Detail }) {
 
   return (
     <div className="tiles">
-      <Tile n={`${seller.slots?.used ?? 0}/${seller.slots?.total ?? 0}`} label={t('se.slots')} />
       <Tile n={live} label={t('sd.liveListings')} />
       <Tile n={orders.length} label={t('sd.ordersAll')} />
       <Tile n={delivered} label={t('sd.delivered')} />
@@ -340,18 +373,13 @@ function Check({ on, children }: { on: boolean; children: ReactNode }) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Grants, revokes, blocks and payment decisions, newest first.
+ * Verification, blocks and take-downs, newest first.
  *
- * A granted pack is a number that is simply larger than it was, so without
- * this list "who gave her five slots, and when" cannot be answered after the
- * fact - which is exactly the question asked when something looks wrong.
+ * A verification only changes a status, so without this list "who verified
+ * him, and when" cannot be answered after the fact - which is exactly the
+ * question asked when something looks wrong.
  */
-function Decisions({
-  notices, payments,
-}: {
-  notices: AdminNotice[]
-  payments: SubscriptionPayment[]
-}) {
+function Decisions({ notices }: { notices: AdminNotice[] }) {
   const t = useT()
   const rows = [...notices].reverse()
 
@@ -370,47 +398,12 @@ function Decisions({
                 {n.n != null && <span className="num small dim">{n.n}</span>}
                 <span className="small dim-2">{when(n.at)}</span>
               </div>
-              {/* A renewal's note is the date it now runs to, stored as ISO. */}
-              {n.note && (
-                <div className="small dim">
-                  {n.kind === 'SUBSCRIPTION_RENEWED' ? t('pay.termUntil', { date: dateOnly(n.note) }) : n.note}
-                </div>
-              )}
+              {n.note && <div className="small dim">{n.note}</div>}
             </li>
           ))}
         </ul>
       )}
 
-      {/* Every ₹50 pack she has ever paid for, decided or still waiting. */}
-      <div className="small dim-2" style={{ marginTop: 12 }}>{t('sd.payments')}</div>
-      {payments.length === 0 ? (
-        <div className="small dim-2">{t('sd.noPayments')}</div>
-      ) : (
-        <ul className="timeline">
-          {payments.map((p) => (
-            <li key={p.id}>
-              <div className="row" style={{ gap: 8 }}>
-                <span className="num small">{rupees(p.amount)}</span>
-                <PaymentKindPill kind={p.kind} />
-                <Pill tone={p.status === 'APPROVED' ? 'ok' : p.status === 'REJECTED' ? 'danger' : 'warn'}>
-                  {p.status}
-                </Pill>
-                <span className="small dim-2">{when(p.submittedAt)}</span>
-              </div>
-              {/* The renewal history: what date each approval left her shop open until. */}
-              {p.termEndsAt && (
-                <div className="small dim">{t('pay.termUntil', { date: dateOnly(p.termEndsAt) })}</div>
-              )}
-              {p.utr && <div className="small dim mono">UTR {p.utr}</div>}
-              {p.rejectReason && (
-                <div className="small" style={{ color: 'var(--danger)' }}>
-                  {t('c.reason')}: {p.rejectReason}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
     </Card>
   )
 }
@@ -431,7 +424,7 @@ function Listings({ detail, onDone }: { detail: Detail; onDone: () => void }) {
       ) : (
         <div className="stack-sm">
           {/* The same card the moderation screen uses, so taking a listing
-              down works identically from here - reason, and 48 hours to undo. */}
+              down works identically from here. */}
           {products.map((p) => <ProductCard key={p.id} product={p} onDone={onDone} />)}
         </div>
       )}

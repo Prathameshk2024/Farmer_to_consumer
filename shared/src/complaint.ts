@@ -2,7 +2,7 @@
  * WHEN SOMETHING HAS GONE WRONG AND SHE NEEDS A PERSON.
  *
  * Help & Training answers the questions that have answers. This is the other
- * kind: the ₹50 that was never approved, the order that never arrived, the
+ * kind: the order that never arrived, the
  * buyer who will not pay. Those need somebody to look at HER account, so a
  * complaint is recorded with who wrote it rather than left as a conversation
  * on somebody's phone.

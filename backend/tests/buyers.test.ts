@@ -33,7 +33,7 @@ function order(over: Partial<Order>): Order {
 }
 
 function dbWith(orders: Order[], customers: Db['customers'] = []): Db {
-  return { sellers: [], products: [], orders, payments: [], customers } as unknown as Db
+  return { sellers: [], products: [], orders, customers } as unknown as Db
 }
 
 test('a seller sees only buyers who ordered from her', () => {

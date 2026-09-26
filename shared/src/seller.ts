@@ -1,164 +1,14 @@
 import type { Product, ProductStatus, Seller, Unit } from './types.js'
 import { upiProblem } from './payment.js'
-import { SUBSCRIPTION_MONTHS } from './subscription.js'
 
 /**
- * SUBSCRIPTION + PRODUCT SLOTS
- * 50 rupees buys one PACK = 5 product slots. A 6th product means a second pack.
- * No gateway: she pays the admin's account and admin approves by hand.
- *
- * The shop stays open for SUBSCRIPTION_MONTHS from approval, and a flat ₹50
- * renews every pack she has - see shared/src/subscription.ts.
+ * Selling is free. There are no packs, slots or edit limits: a farmer who can
+ * sell may list, change and remove his produce as often as the day needs.
  */
-
-export const PLAN = {
-  price: 50,
-  slotsPerPack: 5,
-  /** How long one approval keeps the shop open. Sent to her subscription screen. */
-  months: SUBSCRIPTION_MONTHS,
+export function sellerMayDelete(_status: ProductStatus): boolean {
+  return true
 }
 
-/**
- * Which product states consume a slot. ONE PRODUCT, ONE SLOT, FOR GOOD.
- *
- * A slot is spent when she submits a listing and stays spent while it is
- * waiting, live or paused. She cannot give it back herself: a seller who could
- * delete a listing and put up another had a pack of five that was really a
- * pack of as many as she liked.
- *
- * Only an admin frees one, by rejecting a listing or taking a live one down.
- * REJECTED is therefore absent - the slot comes back the moment the decision
- * is made, not when the rejected row is swept 48 hours later. That is also
- * what stops a woman with a bad listing being stuck: she asks, and an admin
- * takes it down.
- *
- * DRAFT does not consume one either, so she can experiment before paying.
- */
-export const SLOT_CONSUMING: ProductStatus[] = ['PENDING', 'LIVE', 'PAUSED']
-
-/**
- * The only listing a seller may delete herself: a draft. It holds no slot and
- * nobody but her has seen it, so removing it frees nothing and hides nothing.
- */
-export function sellerMayDelete(status: ProductStatus): boolean {
-  return status === 'DRAFT'
-}
-
-export function countUsedSlots(products: Pick<Product, 'status'>[]): number {
-  return products.filter((p) => SLOT_CONSUMING.includes(p.status)).length
-}
-
-export interface SlotInfo {
-  total: number
-  used: number
-  left: number
-  isFull: boolean
-  almostFull: boolean
-}
-
-export function slotInfo(
-  seller: Pick<Seller, 'packsApproved'>,
-  products: Pick<Product, 'status'>[],
-): SlotInfo {
-  const total = (seller.packsApproved || 0) * PLAN.slotsPerPack
-  const used = countUsedSlots(products)
-  return {
-    total,
-    used,
-    left: Math.max(0, total - used),
-    isFull: total > 0 && used >= total,
-    almostFull: total > 0 && total - used === 1,
-  }
-}
-
-/**
- * EDITING A PUBLISHED LISTING IS LIMITED. WHY.
- *
- * A slot is one listing live at a time, so editing never wins a seller a
- * second listing - but it does let one paid slot become an endless stream of
- * different products: mango pickle in summer, lemon pickle in winter, out of
- * one ₹50 pack for ever. Two edits is the line between fixing a listing and
- * replacing it.
- *
- * PRICE AND STOCK ARE DELIBERATELY EXEMPT. They change with the market and
- * with what is left on the shelf, and a seller who has spent her two edits
- * cannot be left unable to correct a price - she would stop keeping either
- * number honest, which costs the buyer and the platform more than a rotated
- * listing ever could.
- */
-export const MAX_EDITS = 2
-
-/**
- * The fields that spend an edit. Everything absent from this list - price,
- * stock, pausing, unpausing - stays free for the life of the listing.
- */
-export const EDIT_COUNTED_FIELDS = [
-  'name', 'nameEn', 'categoryId', 'imageUrl', 'imagePublicId', 'emoji',
-  'ingredients', 'vegType', 'material', 'unit', 'mrp', 'madeToOrder',
-  // The size is what the price MEANS. Moving 500g to 250g at the same price
-  // is a different product, not a correction, so it is counted like the unit
-  // beside it - and like the unit, the price itself stays free to change.
-  'packSize', 'piecesPerPack',
-] as const
-
-/**
- * Did this save change anything an edit is counted for?
- *
- * Compares VALUES, not keys: the edit form posts the whole product on every
- * save, so a seller who opens the screen, changes her mind and saves would
- * otherwise lose an edit to a save that changed nothing.
- */
-export function countsAsEdit(
-  before: Partial<Product>,
-  after: Partial<Product>,
-): boolean {
-  return EDIT_COUNTED_FIELDS.some((f) => (f in after) && !sameValue(before[f], after[f]))
-}
-
-/**
- * Equal for the purpose of spending an edit.
- *
- * Blank is blank however it is spelled. A listing from before MRP was
- * optional carries `undefined` where the form now posts `0`, and whitespace
- * round a name is not a change to the name - counting either would take an
- * edit from a seller who changed nothing she can see.
- */
-function sameValue(a: unknown, b: unknown): boolean {
-  const blank = (v: unknown) =>
-    v === undefined || v === null || v === '' || v === 0 || v === false
-  if (blank(a) || blank(b)) return blank(a) && blank(b)
-  if (typeof a === 'string' && typeof b === 'string') return a.trim() === b.trim()
-  if (typeof a === 'number' || typeof b === 'number') return Number(a) === Number(b)
-  return a === b
-}
-
-/** Edits still available. Listings that predate this rule start with all of them. */
-export function editsLeft(product: Pick<Product, 'editCount'>): number {
-  return Math.max(0, MAX_EDITS - (product.editCount ?? 0))
-}
-
-/**
- * Only a listing the public can see is rationed.
- *
- * A DRAFT is not published yet, and a REJECTED listing is being FIXED - an
- * admin took it down and told her why, so charging her an edit to answer that
- * could leave her unable to repair the very thing she was told to repair.
- */
-export function editsAreLimited(status: ProductStatus): boolean {
-  return status === 'LIVE' || status === 'PAUSED'
-}
-
-/**
- * WHERE A LISTING LANDS WHEN SHE PRESSES PUBLISH.
- *
- * Never `LIVE`. Listings published themselves for a while, on the grounds that
- * a moderation queue puts a desk between a seller and her first customer -
- * true, and outweighed by what is on a listing: a photograph, a price, and on
- * food an ingredients claim that carries this market's name. Somebody looks
- * before a shopper does.
- *
- * A draft is not a submission, so it lands where she left it.
- */
 /**
  * WHAT SIZE IS IT? The one question a price cannot answer on its own.
  *
@@ -211,23 +61,33 @@ export function fssaiProblem(raw: unknown): string | null {
   return /^\d{14}$/.test(value) ? null : `FSSAI क्रमांक ${FSSAI_DIGITS} अंकांचा असतो`
 }
 
+
+/**
+ * A verified farmer's listing is on sale the moment he sends it. The person
+ * check happens once, on the farmer (POST /admin/sellers/:id/verify), and
+ * a listing that turns out wrong is reported and taken down.
+ */
 export function initialListingStatus(asDraft: boolean): ProductStatus {
-  return asDraft ? 'DRAFT' : 'PENDING'
+  return asDraft ? 'DRAFT' : 'LIVE'
+}
+
+/** May buyers see and order from this farmer right now? */
+export function canSellNow(s: Pick<Seller, 'status'>): boolean {
+  return s.status === 'ACTIVE'
 }
 
 /** A listing's state, drawn as a line icon the app names - never an emoji. */
-export type ProductStatusIconName = 'live' | 'draft' | 'pending' | 'rejected' | 'paused'
+export type ProductStatusIconName = 'live' | 'draft' | 'paused'
 
 export const PRODUCT_STATUS_STYLE: Record<
-  Exclude<ProductStatus, 'ARCHIVED'>,
+  ProductStatus,
   { tone: 'neutral' | 'info' | 'warn' | 'ok' | 'danger'; icon: ProductStatusIconName; labelKey: string }
 > = {
   LIVE: { tone: 'ok', icon: 'live', labelKey: 'prod.live' },
   DRAFT: { tone: 'neutral', icon: 'draft', labelKey: 'prod.draft' },
-  PENDING: { tone: 'warn', icon: 'pending', labelKey: 'prod.pending' },
-  REJECTED: { tone: 'danger', icon: 'rejected', labelKey: 'prod.rejected' },
   PAUSED: { tone: 'neutral', icon: 'paused', labelKey: 'prod.paused' },
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Validation - used by BOTH sides. The client validates for a fast,   */
@@ -377,7 +237,7 @@ export const EDUCATION_LEVELS: { value: string; mr: string; en: string }[] = [
  * WHAT SHE MAY CHANGE ABOUT HERSELF, AND WHAT IT HAS TO LOOK LIKE.
  *
  * The allow-list on `PATCH /sellers/me` decides WHICH fields can move - her
- * status, her slots and her SMB ID are not on it and never will be. This
+ * status and her SMB ID are not on it and never will be. This
  * decides whether the values she sent make sense, and it runs on both sides
  * for the usual two reasons: the form can say "18 to 90" the instant she types
  * it, and the server can refuse a delivery fee of -500 typed by something that

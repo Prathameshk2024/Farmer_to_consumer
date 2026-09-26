@@ -14,7 +14,7 @@ import { emptyDb, seed } from '../src/db/seed.js'
 test('an empty database has every collection, all of them empty', () => {
   const db = emptyDb()
 
-  for (const key of ['sellers', 'products', 'orders', 'payments', 'customers'] as const) {
+  for (const key of ['sellers', 'products', 'orders', 'customers'] as const) {
     assert.deepEqual(db[key], [], `${key} should be empty`)
   }
 })

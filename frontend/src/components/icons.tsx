@@ -149,8 +149,6 @@ export function StatusIcon({ name }: { name: StatusIconName }) {
 const PRODUCT_STATUS_ICON: Record<ProductStatusIconName, IconType> = {
   live: FiCircle,
   draft: FiEdit2,
-  pending: FiClock,
-  rejected: FiXCircle,
   paused: FiPause,
 }
 

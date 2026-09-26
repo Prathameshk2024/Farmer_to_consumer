@@ -1,14 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useI18n, useT } from '../i18n/I18nProvider.js'
 import logo from '../assets/logo.png'
 import { useAuth } from '../store/AuthContext.js'
 import { api } from '../lib/api.js'
 import { Button, useAsync } from './ui.js'
 import { Confirm } from './Confirm.js'
-import { useToast } from '../store/ToastContext.js'
 import {
-  IconBack, IconHome, IconImpact, IconOrders, IconPayments, IconProducts,
+  IconBack, IconHome, IconImpact, IconOrders, IconProducts,
   IconComplaints, IconReviews, IconSellers, IconToday,
 } from './icons.js'
 
@@ -24,17 +23,14 @@ export function Shell() {
   const { signOut } = useAuth()
   const [signingOut, setSigningOut] = useState(false)
 
-  const { toast } = useToast()
-  const nav = useNavigate()
-
   /**
    * Polled, at one minute.
    *
    * The comment that used to sit here said nothing changes without an admin
-   * doing it - and that was wrong in exactly the case that matters. A seller
-   * pays her Rs 50 and then cannot sell anything at all until somebody here
-   * clears it; she has no way to hurry that along, and nobody at this desk had
-   * any way to know it had arrived short of reloading the page.
+   * doing it - and that was wrong in exactly the case that matters. A farmer
+   * registers and then cannot sell anything at all until somebody here
+   * verifies him; he has no way to hurry that along, and nobody at this desk
+   * had any way to know he was waiting short of reloading the page.
    *
    * One request a minute against an endpoint that reads an in-memory snapshot
    * is cheap. Anything faster would be spending a woman's Firestore quota to
@@ -61,37 +57,11 @@ export function Shell() {
   const [data] = useAsync(() => api.stats(), [tick])
   const s = data?.stats
 
-  /**
-   * Announce a payment that ARRIVED, not one that is merely waiting.
-   *
-   * Comparing against the previous count rather than against zero: an admin
-   * who opens the console to a queue of three already sees three, and popping
-   * a toast for them would train her to dismiss the one that matters. The
-   * first reading only primes the baseline.
-   */
-  const seenPending = useRef<number | null>(null)
-  useEffect(() => {
-    const now = s?.pendingPayments
-    if (now === undefined) return
-
-    const before = seenPending.current
-    seenPending.current = now
-    if (before === null || now <= before) return
-
-    const added = now - before
-    toast(
-      added === 1 ? t('alert.newPayment') : t('alert.newPayments', { n: added }),
-      'warn',
-      { label: t('alert.open'), onClick: () => nav('/payments') },
-    )
-  }, [s?.pendingPayments, toast, t, nav])
-
   const items = [
     { to: '/', end: true, icon: IconHome, label: t('nav.home') },
     { to: '/today', icon: IconToday, label: t('nav.today') },
-    { to: '/payments', icon: IconPayments, label: t('nav.payments'), badge: s?.pendingPayments },
-    { to: '/products', icon: IconProducts, label: t('nav.products'), badge: s?.pendingProducts },
-    { to: '/sellers', icon: IconSellers, label: t('nav.sellers') },
+    { to: '/products', icon: IconProducts, label: t('nav.products') },
+    { to: '/sellers', icon: IconSellers, label: t('nav.sellers'), badge: s?.pendingVerification },
     { to: '/orders', icon: IconOrders, label: t('nav.orders'), badge: s?.stuckOrders },
     { to: '/reviews', icon: IconReviews, label: t('nav.reviews') },
     { to: '/complaints', icon: IconComplaints, label: t('nav.complaints') },

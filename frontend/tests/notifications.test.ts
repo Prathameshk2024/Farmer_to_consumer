@@ -134,25 +134,20 @@ test('an order with nothing from the other side is not a row at all', () => {
 /* ------------------------------------------------------------------ */
 
 /**
- * Her slots used to just grow. An admin approved the ₹50, five slots
- * appeared, and nothing anywhere told her - she had to spot the meter. These
- * lines come off her own seller record, written by the admin handler.
+ * An admin decision is told, not left to be noticed. These lines come off his
+ * own seller record, written by the admin handler.
  */
 function seller(notices: AdminNotice[]): Seller {
   return { id: 's1', notices } as Seller
 }
 
-test('a granted pack is a sentence with the number in it', () => {
+test('being verified is a sentence of its own', () => {
   const [row] = adminFeed(seller([
-    { id: 'a1', at: '2026-09-08T10:00:00.000Z', kind: 'SLOTS_GRANTED', n: 5 },
+    { id: 'a1', at: '2026-09-08T10:00:00.000Z', kind: 'VERIFIED' },
   ]))
 
-  assert.equal(row?.labelKey, 'notif.adm.SLOTS_GRANTED')
-  assert.deepEqual(row?.vars, { n: 5 })
-  assert.equal(
-    dictionaries.en[row!.labelKey]?.replace('{n}', '5'),
-    'You have been given 5 more product slots',
-  )
+  assert.equal(row?.labelKey, 'notif.verified')
+  assert.equal(dictionaries.en[row!.labelKey], 'You are verified. Your produce is now on sale.')
 })
 
 /** No order behind it, so nothing may render an order id or a rupee amount. */
@@ -177,7 +172,7 @@ test('both halves of the list are one list, newest first', () => {
   const merged = mergeFeeds(
     [{ id: 'o1', at: '2026-09-01T00:00:00.000Z', labelKey: 'x', who: '' }],
     adminFeed(seller([
-      { id: 'a4', at: '2026-09-08T00:00:00.000Z', kind: 'SLOTS_GRANTED', n: 5 },
+      { id: 'a4', at: '2026-09-08T00:00:00.000Z', kind: 'VERIFIED' },
     ])),
   )
 
@@ -185,12 +180,9 @@ test('both halves of the list are one list, newest first', () => {
 })
 
 test('every admin line exists in both languages', () => {
-  const kinds: AdminNotice['kind'][] = [
-    'SLOTS_GRANTED', 'SLOTS_REVOKED', 'PAYMENT_APPROVED', 'PAYMENT_REJECTED',
-    'BLOCKED', 'UNBLOCKED', 'PRODUCT_APPROVED', 'PRODUCT_REJECTED',
-  ]
+  const kinds: AdminNotice['kind'][] = ['VERIFIED', 'BLOCKED', 'UNBLOCKED', 'PRODUCT_REJECTED']
   const missing = kinds
-    .map((k) => `notif.adm.${k}`)
+    .map((k) => adminFeed(seller([{ id: k, at: '2026-09-08T00:00:00.000Z', kind: k }]))[0]!.labelKey)
     .filter((key) => !dictionaries.mr[key] || !dictionaries.en[key])
 
   assert.deepEqual(missing, [])
