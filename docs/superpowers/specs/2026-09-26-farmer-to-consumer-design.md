@@ -32,11 +32,11 @@ the research tables for 100–200 surveyed farmers.
 | Base | Copy `E:\Shantai_mahila_bazar_web` (branch `prathamesh2`, working tree including uncommitted edits) and adapt it. Every rule and fix recorded in its `CLAUDE.md` carries over unless this spec removes it. |
 | Delivery shape | Website only. No APK, no WebView wrapper, no push notifications. |
 | Login | Phone number + password. No OTP, no SMS provider. |
-| Forgotten password | Admin sets a temporary password from the console; the farmer or buyer must change it at next login. |
+| Forgotten password | A public request page (no OTP): the person leaves phone and name, an admin calls back from a queue in the console and gives a temporary password, which must be changed at next login. |
 | Fee | Free for farmers. No subscription, no slots, no payment-proof queue. |
 | Moderation | Admin verifies a farmer once. After that his listings go live immediately. Buyers report bad listings; admin takes them down. |
 | AI | No paid AI. Data-based price hint, demand/supply chart, voice search. |
-| Languages | Marathi (default), English, Hindi. |
+| Languages | Marathi (default) and English, as in the reference. No Hindi. Marathi first: the default in the farmer/buyer app and in the admin console, the source text of every string, and the fallback for a missing key. English is a toggle, written on its own. |
 | Hosting | Same as reference: one Cloud Run API (max instances 1, CPU always allocated), Firestore via `firebase-admin`, Cloudinary for photos, two Vercel projects (`frontend`, `admin`). |
 
 ## 3. What is copied, and what is not
@@ -99,9 +99,33 @@ screen and its section in `CLAUDE.md`.
 - `mustChangePassword` on the account. When set, every route except
   `POST /auth/password` answers 403 with a code the app turns into the
   change-password screen.
-- Admin: `POST /admin/users/:id/reset-password` generates a 6-digit temporary
-  password, shows it once to the admin, sets `mustChangePassword`, and revokes
-  every session of that user. It writes an audit notice with the admin's name.
+- Forgotten password, still with no OTP or SMS: the login screen has a
+  "पासवर्ड विसरलात?" link to a public page `/forgot-password/:role` (the role
+  comes from the login screen it was opened from). The person types phone and
+  name; a farmer also types his village. One big button sends it. After
+  sending, the page always shows the same line: "तुमची विनंती पाठवली. आमचे
+  प्रतिनिधी तुम्हाला फोन करून नवा तात्पुरता पासवर्ड देतील." It never says
+  whether the number has an account, so the page cannot be used to find out
+  which numbers are registered.
+- `POST /auth/password-requests { role, phone, name, village? }` is public and
+  rate limited: 3 per phone per 24 hours and 20 per IP per hour
+  (`auth/rateLimit.ts` `LIMITS`). A valid request always answers 200
+  `{ ok: true }`, whether or not an account matches. A new request from the
+  same phone and role while one is still open only refreshes that row's time;
+  it does not add a row. Requests are stored in `passwordRequests`, with the
+  matched account noted for the admin when there is one.
+- Admin "Password requests" queue, with the open count on the dashboard. Each
+  row shows name, phone (tap to call), role, village, how long it has waited,
+  and the matched account or "no account with this number". The admin calls
+  that number and gives the temporary password only on that call. Two actions:
+  - **Reset password** calls `POST /admin/users/reset-password
+    { role, userId, requestId? }`. It generates a 6-digit temporary password,
+    shows it once to the admin, sets `mustChangePassword`, revokes every
+    session of that user, and writes an audit notice with the admin's name.
+    With `requestId`, it also marks the request DONE. The same button, without
+    a request, is on the farmer and buyer detail pages.
+  - **Close** (reason optional) marks the request DISMISSED.
+- Closing an account also deletes that person's password requests.
 - `SESSION_SECRET` is still required in production.
 
 ### 5.2 Farmer (renamed from Seller)
@@ -236,14 +260,24 @@ Leaflet with OpenStreetMap tiles, loaded only on map screens.
 
 ### 5.10 Languages
 
-Marathi default, English and Hindi. The `I18nProvider` gains `hi`; the i18n
-parity test covers three dictionaries. `docs/MARATHI-STYLE.md` still governs
-Marathi. Hindi strings are written as Hindi, not translated word for word.
+Marathi and English, the two the reference already has. Marathi has priority;
+English is a toggle.
+
+- Marathi is the default language in the farmer/buyer app and in the admin
+  console. Both have the English toggle.
+- Every string is written in Marathi first. Marathi is the source text.
+  English is written on its own for its reader, not translated word for word.
+- The language picker lists मराठी first.
+- A key missing in `en` falls back to Marathi, never the other way round. The
+  i18n parity test covers both dictionaries, so a gap fails the build before
+  the fallback is ever needed.
+- `docs/MARATHI-STYLE.md` still governs Marathi.
 
 ### 5.11 Branding
 
-Name "Farmers to Consumer" / "शेतकऱ्यापासून थेट ग्राहकापर्यंत", tagline
-"शेतकरी समृद्ध | ग्राहक सुरक्षित | शेती टिकाऊ".
+Name "शेतकऱ्यापासून थेट ग्राहकापर्यंत" first, with "Farmers to Consumer"
+second, on the landing page, page titles and headers, in every language.
+Tagline "शेतकरी समृद्ध | ग्राहक सुरक्षित | शेती टिकाऊ".
 
 **Logo:** the same portrait mark as the reference project (maroon and gold in
 its own gold ring), copied as `frontend/src/assets/logo.png`,
@@ -299,6 +333,9 @@ voice input is an addition, never a replacement for the keyboard.
   `harvestDate`, `cultivation`.
 - `orders`: add `fulfilment: 'delivery' | 'pickup'`.
 - `surveys`: new.
+- `passwordRequests`: new. Role, phone, name, village (farmer), the matched
+  account if any, time, status `OPEN` / `DONE` / `DISMISSED`, who closed it
+  and when. Deleted with the account.
 - `payments` (subscription): removed.
 - `sessions`: drop `pushToken`, `pushLang`.
 
@@ -313,6 +350,10 @@ rewritten tests:
 
 - password register/login, wrong password, rate limit, must-change flow,
   admin reset revokes sessions
+- forgot-password requests: an unknown phone gets the same answer as a known
+  one, a repeat refreshes the open request, the fourth in 24 hours is refused,
+  a reset from the queue marks the request DONE, and the account is noted only
+  when one exists
 - FDRI score and band edges (3/4, 7/8)
 - pickup transitions and buyer stages
 - trace route visibility matches `publiclyVisible()`
@@ -320,7 +361,7 @@ rewritten tests:
 - verification gate: unverified farmer's listing not public
 - price hint median and unit conversion; missing API key
 - research tables on a fixed fixture, including the cross-tab
-- i18n parity across mr/en/hi
+- i18n parity across mr/en
 
 `npm test`, `npm run typecheck` and `npm run build` pass before each step is
 called done. `docs/MANUAL-TEST-PLAN.md` is rewritten for the new flows.
@@ -329,16 +370,15 @@ called done. `docs/MANUAL-TEST-PLAN.md` is rewritten for the new flows.
 
 1. Copy, rename packages, `git init`, first commit; build and tests green.
 2. Strip removed features (section 4); build and tests green.
-3. Password authentication and admin reset.
+3. Password authentication, forgot-password requests and admin reset.
 4. Farmer model, registration wizard, verification, FDRI.
 5. Produce listing, delivery and pickup.
 6. Traceability QR.
 7. Maps.
 8. Price hint, demand/supply chart, voice search.
 9. Survey entry, research tables, CSV export.
-10. Hindi.
-11. Branding and landing page.
-12. Docs (`CLAUDE.md`, `README.md`, `DEPLOY.md`, `MANUAL-TEST-PLAN.md`) and
+10. Branding, landing page and the Marathi-first language rules.
+11. Docs (`CLAUDE.md`, `README.md`, `DEPLOY.md`, `MANUAL-TEST-PLAN.md`) and
     deployment.
 
 ## 10. Out of scope

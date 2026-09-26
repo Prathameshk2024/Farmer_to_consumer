@@ -16,7 +16,10 @@
 - `shared/` is consumed as TypeScript source; never add a build step to it.
 - Errors are `{ error, messageMr, fields? }`; every user-facing failure carries a Marathi message.
 - No screen calls `fetch` directly; `frontend/src/lib/api.ts` and `admin/src/lib/api.ts` are the only seams.
-- Every UI string goes through `t('key')`, placeholders included. Dictionaries: `mr` (default), `en`, `hi` (from Task 13).
+- Every UI string goes through `t('key')`, placeholders included. Dictionaries: `mr` (default) and `en`, as in the reference. No Hindi.
+- Marathi has priority, in the farmer/buyer app and in the admin console alike. Marathi is the default language of both. Every string is written in Marathi first and Marathi is the source text; English is a toggle, written on its own for its reader, never word-for-word from Marathi. In this plan a string pair reads Marathi / English.
+- The language picker lists मराठी first. A key missing in `en` falls back to Marathi (Task 13); the parity test keeps such gaps from shipping.
+- The product name shows as "शेतकऱ्यापासून थेट ग्राहकापर्यंत" first and "Farmers to Consumer" second on the landing page, page titles and headers (Task 13).
 - Marathi follows `docs/MARATHI-STYLE.md`.
 - Design rules: status = colour + icon + word; 16px minimum text, 56px buttons, 44px touch targets; four bottom tabs, no hamburger; one question per wizard screen; editing is one page; confirmations state the consequence; Latin digits; no web fonts; no emoji rendered; voice input is an addition.
 - Colours come only from the `:root` THEME SWAP POINT tokens. Primary `#2e7d32` leaf green, accent `#7b1e2e` maroon (spec §5.11 table).
@@ -24,10 +27,11 @@
 - Persistence: exactly one API process; `isBulkDelete()` guard stays; never auto-seed.
 - Password: minimum 6 characters, digits-only allowed, scrypt via `backend/src/auth/crypto.ts`.
 - Login limit: 5 failures per phone per 15 min; 50 per IP per hour.
+- Forgot password: a request to the admin, not OTP. 3 requests per phone per 24 h, 20 per IP per hour, and the same answer whether or not the phone has an account.
 - Public farmer location: rounded to 2 decimals. Exact coordinates only for admin and the farmer himself.
 - FDRI: 10 indicators × 1 point; Low 0–3, Moderate 4–7, High 8–10.
 - Farmer code: `F2C-<VILLAGE>-<NNN>`, serial per village, 3 digits.
-- Website only: no APK, no push, no OTP, no subscription.
+- Website only: no APK, no push, no OTP, no subscription. No task builds, prepares or plans a mobile app.
 - Every task ends with `npm test`, `npm run typecheck` and `npm run build` green, then a commit that ends with `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`.
 
 ## Review Focus
@@ -59,13 +63,14 @@ shared/src/
   (kept) orderCancel.ts payment.ts review.ts report.ts complaint.ts accountClose.ts
 backend/src/
   auth/credentials.ts NEW  phone+password store (never on Farmer/Customer rows)
-  routes/auth.routes.ts   login, change password, logout, sessions, admin login
+  auth/passwordRequests.ts NEW forgot-password requests, admin reset
+  routes/auth.routes.ts   login, change password, forgot-password request, logout, sessions, admin login
   routes/farmers.routes.ts (was sellers.routes.ts)
   routes/insights.routes.ts NEW price hint
   insights/price.ts   NEW  platform median + Agmarknet
   routes/surveys.routes.ts NEW admin survey entry + research tables
 frontend/src/
-  screens/auth/Auth.tsx     phone + password login, register start
+  screens/auth/Auth.tsx     phone + password login, forgot-password request page, register start
   screens/auth/ChangePassword.tsx NEW
   screens/auth/FarmerRegister.tsx (was SellerRegister.tsx)
   screens/trace/Trace.tsx   NEW public QR landing
@@ -74,6 +79,8 @@ frontend/src/
   components/PriceHint.tsx  NEW
   screens/customer/FarmerMap.tsx NEW
 admin/src/
+  screens/PasswordRequests.tsx NEW forgot-password queue
+  components/ResetPassword.tsx NEW reset button + one-time temporary password
   screens/Surveys.tsx NEW   survey entry + list
   screens/Research.tsx NEW  Tables 1–9 + CSV
   screens/Demand.tsx NEW    demand/supply chart
@@ -354,7 +361,7 @@ In `shared/src/payment.ts`, delete `paidAtProblem` and anything that only served
   with `biz.pendingVerification` = "तुमची नोंदणी झाली. आमचे प्रतिनिधी तपासणी करतील, मग तुमचा माल ग्राहकांना दिसेल." / "You are registered. Our team will verify you; then buyers will see your produce."
 - `UploadProduct.tsx`: the final button reads `upl.publish` = "विक्रीसाठी टाका" / "Put on sale". Delete the slot meter and the "send for checking" copy.
 - `EditProduct.tsx`: remove the disabled-by-edit-limit logic; every field is editable.
-- Admin `SellerDetail.tsx`: when the status is `PENDING_VERIFICATION`, show a primary button `sel.verify` ("Verify farmer" / "शेतकरी तपासला") that posts to `/admin/sellers/:id/verify` behind the existing `Confirm` component. The consequence line is `sel.verifyConsequence` ("His live listings will be visible to buyers at once.").
+- Admin `SellerDetail.tsx`: when the status is `PENDING_VERIFICATION`, show a primary button `sel.verify` ("शेतकरी तपासला" / "Verify farmer") that posts to `/admin/sellers/:id/verify` behind the existing `Confirm` component. The consequence line is `sel.verifyConsequence` ("याचा विक्रीसाठी टाकलेला माल लगेच ग्राहकांना दिसेल." / "His live listings will be visible to buyers at once.").
 - Admin `Sellers.tsx`: replace the subscription filter with a "Waiting for verification" filter. `Home.tsx`/`Today.tsx`: replace the payment counters with `pendingVerification`.
 - Delete all now-unused keys from all dictionaries (`sub.`, `pay.` admin-payment keys, `slot`, `edit.left`).
 
@@ -443,7 +450,7 @@ Run `npm run typecheck` and fix each error. The known ones:
 - `frontend/src/lib/tours.ts` and `productDraft.ts` storage keys become `wb.draft.product.<farmerId>`. That is a new site, so nothing needs migrating.
 
 Run: `grep -rn "SMB\|Shantai\|shantai\|womenBiz" shared backend frontend admin --include=*.ts --include=*.tsx`
-Expected: only `app.name` strings and the logo alt text remain; Task 14 replaces those.
+Expected: only `app.name` strings and the logo alt text remain; Task 13 replaces those.
 
 - [ ] **Step 5: Gate**
 
@@ -464,12 +471,12 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 5: Phone + password authentication and admin password reset
+### Task 5: Phone + password authentication, forgot-password requests and admin password reset
 
 **Files:**
-- Create: `shared/src/password.ts`, `backend/src/auth/credentials.ts`, `backend/tests/password-auth.test.ts`, `frontend/src/screens/auth/ChangePassword.tsx`
+- Create: `shared/src/password.ts`, `backend/src/auth/credentials.ts`, `backend/src/auth/passwordRequests.ts`, `backend/tests/password-auth.test.ts`, `backend/tests/password-requests.test.ts`, `frontend/src/screens/auth/ChangePassword.tsx`, `admin/src/screens/PasswordRequests.tsx`, `admin/src/components/ResetPassword.tsx`
 - Delete: `backend/src/services/otp.service.ts`, `backend/src/services/otp.providers.ts`, `backend/src/auth/tickets.ts`, `frontend/src/lib/msg91Widget.ts`, `frontend/src/lib/registerTicket.ts`, `backend/tests/otp.test.ts`, `backend/tests/otp-widget.test.ts`, `frontend/tests/msg91-widget.test.ts`
-- Modify: `backend/src/auth/types.ts`, `backend/src/auth/rateLimit.ts`, `backend/src/routes/auth.routes.ts`, `backend/src/routes/farmers.routes.ts`, `backend/src/routes/customers.routes.ts`, `backend/src/routes/uploads.routes.ts`, `backend/src/routes/admin.routes.ts`, `backend/src/middleware/auth.ts`, `backend/src/db/seed.ts`, `backend/src/db/firestore.ts`, `backend/src/db/accountClose.ts`, `backend/src/config.ts`, `shared/src/orderFlow.ts` (comment only), `frontend/src/screens/auth/Auth.tsx`, `frontend/src/screens/auth/FarmerRegister.tsx`, `frontend/src/screens/auth/CustomerRegister.tsx`, `frontend/src/App.tsx`, `frontend/src/lib/api.ts`, `frontend/src/lib/upload.ts`, `frontend/src/store/AuthContext.tsx`, `frontend/src/components/ui.tsx` (delete `OtpInput`), `admin/src/lib/api.ts`, `admin/src/screens/FarmerDetail.tsx`, `admin/src/screens/Buyers*` (wherever a customer row is shown), all dictionaries, `backend/.env.example`, `frontend/.env.example`
+- Modify: `backend/src/auth/types.ts`, `backend/src/auth/rateLimit.ts`, `backend/src/routes/auth.routes.ts`, `backend/src/routes/farmers.routes.ts`, `backend/src/routes/customers.routes.ts`, `backend/src/routes/uploads.routes.ts`, `backend/src/routes/admin.routes.ts`, `backend/src/middleware/auth.ts`, `backend/src/db/seed.ts`, `backend/src/db/firestore.ts`, `backend/src/db/accountClose.ts`, `backend/src/db/analytics.ts`, `backend/src/config.ts`, `shared/src/types.ts`, `shared/src/orderFlow.ts` (comment only), `frontend/src/screens/auth/Auth.tsx`, `frontend/src/screens/auth/FarmerRegister.tsx`, `frontend/src/screens/auth/CustomerRegister.tsx`, `frontend/src/App.tsx`, `frontend/src/lib/api.ts`, `frontend/src/lib/upload.ts`, `frontend/src/store/AuthContext.tsx`, `frontend/src/components/ui.tsx` (delete `OtpInput`), `admin/src/lib/api.ts`, `admin/src/App.tsx`, `admin/src/components/Shell.tsx`, `admin/src/screens/Home.tsx`, `admin/src/screens/FarmerDetail.tsx`, `admin/src/screens/Buyers*` (wherever a customer row is shown), all dictionaries, `backend/.env.example`, `frontend/.env.example`
 
 **Interfaces:**
 - Consumes: `hashPassword`, `verifyPassword`, `burnPasswordTime`, `randomCode` from `backend/src/auth/crypto.ts`; `createSession`, `revokeAllForUser` from `sessions.ts`; `normalizePhone`, `isValidPhone` from `@shared/farmer.js`.
@@ -481,8 +488,17 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   - `POST /api/auth/password { current, next }` → `{ ok: true }`
   - `POST /api/farmers/register` body gains `phone`, `password`; no ticket
   - `POST /api/customers/register { phone, name, password }` → `{ session }`
-  - `POST /api/admin/users/reset-password { role, userId }` → `{ tempPassword }`
+  - `POST /api/admin/users/reset-password { role, userId, requestId? }` → `{ tempPassword }`; with `requestId` it also marks that request `DONE`
   - `LIMITS.loginPerPhone = { max: 5, windowMs: 15 min }`, `LIMITS.loginPerIp = { max: 50, windowMs: 60 min }`
+  - `backend/src/auth/types.ts`: `interface PasswordRequest { id; role: 'farmer'|'customer'; phone; name; village?; matchedUserId?; at; status: 'OPEN'|'DONE'|'DISMISSED'; closedAt?; closedBy?; closeReason? }` (backend only, not in `shared/`)
+  - `Db.passwordRequests: PasswordRequest[]`, Firestore collection `passwordRequests`
+  - `backend/src/auth/passwordRequests.ts`: `submitPasswordRequest(db, body, now?): { status: 200; body: { ok: true } } | { status: 400; body }`, `closePasswordRequest(db, id, status: 'DONE'|'DISMISSED', by, reason?, now?): PasswordRequest | undefined`, `resetUserPassword(db, { role, userId, requestId?, by }, now?): { tempPassword } | null`, `removePasswordRequests(db, userId, phone)`
+  - `POST /api/auth/password-requests { role, phone, name, village? }` (public) → 200 `{ ok: true }` for any valid body, account or not; 400 on a bad phone or a missing name or village; 429 over the limits
+  - `LIMITS.resetRequestPerPhone = { max: 3, windowMs: 24 h }`, `LIMITS.resetRequestPerIp = { max: 20, windowMs: 60 min }`
+  - `GET /api/admin/password-requests?status=OPEN` → `{ requests: (PasswordRequest & { matchedName?: string })[] }`, longest wait first
+  - `POST /api/admin/password-requests/:id/close { reason? }` → `{ request }` (`DISMISSED`)
+  - `AdminStats.openPasswordRequests: number`
+  - frontend public route `/forgot-password/:role`; admin route `/password-requests`
   - `Session.mustChangePassword?: boolean`; middleware answers 403 `{ error: 'Password change required', code: 'MUST_CHANGE_PASSWORD' }` on every farmer/customer route except `/auth/password` and `/auth/logout`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -797,30 +813,320 @@ customersRouter.post('/register', (req, res) => {
 
 `config.ts`: delete `MSG91_*`, the OTP demo mode and the "production refuses the server-side OTP path" check. Keep `SESSION_SECRET` required in production.
 
-- [ ] **Step 9: Admin reset**
+- [ ] **Step 9: Write the failing forgot-password tests**
 
-In `admin.routes.ts`:
+There is still no SMS, so a forgotten password comes back through a person. The admin reset lives in the same module as the request queue, so both are tested here.
+
+`backend/tests/password-requests.test.ts`:
 ```ts
-adminRouter.post('/users/reset-password', (req, res) => {
-  const db = getDb()
-  const role = req.body?.role === 'farmer' ? 'farmer' : 'customer'
-  const userId = String(req.body?.userId ?? '')
-  const person = role === 'farmer' ? db.farmers.find((f) => f.id === userId) : findCustomer(db, userId)
-  if (!person || !person.phone) { res.status(404).json({ error: 'Not found', messageMr: 'खाते सापडले नाही' }); return }
+import { test, beforeEach } from 'node:test'
+import assert from 'node:assert/strict'
 
-  // Six digits the admin reads out over the phone. Shown once, never stored
-  // in the clear, and useless after the first sign-in because it must be changed.
-  const tempPassword = randomCode(6)
-  setCredential(db, { role, userId, phone: person.phone, password: tempPassword, mustChange: true })
-  revokeAllForUser(db, userId, 'admin')
-  recordAuthEvent(db, { type: 'password.reset', subject: maskPhone(person.phone), role, detail: adminName(req) })
-  save()
-  res.json({ tempPassword })
+process.env.SESSION_SECRET = 'test-secret-for-unit-tests'
+const { emptyDb } = await import('../src/db/seed.js')
+const { setCredential, checkPassword } = await import('../src/auth/credentials.js')
+const { submitPasswordRequest, closePasswordRequest, resetUserPassword, removePasswordRequests } =
+  await import('../src/auth/passwordRequests.js')
+const { hit, LIMITS, resetAllLimits } = await import('../src/auth/rateLimit.js')
+
+/**
+ * "Forgot password" is a request to a person: the farmer leaves his number,
+ * an admin calls that number and reads out a temporary password. The page is
+ * public, so it must not answer the question "does this number have an
+ * account?", and a farmer who taps the button five times must still be one
+ * row in the admin's queue.
+ */
+
+let db = emptyDb()
+beforeEach(() => { db = emptyDb(); resetAllLimits() })
+
+const T0 = Date.parse('2026-09-26T06:00:00Z')
+const ask = (phone: string, now = T0) =>
+  submitPasswordRequest(db, { role: 'farmer', phone, name: 'राजेश पाटील', village: 'अणदूर' }, now)
+
+test('an unknown phone gets exactly the answer a known one gets', () => {
+  setCredential(db, { role: 'farmer', userId: 'f1', phone: '9822011223', password: '482913' })
+  const known = ask('9822011223')
+  const unknown = ask('9822099999')
+  assert.deepEqual(known, { status: 200, body: { ok: true } })
+  assert.deepEqual(unknown, known, 'any difference would tell a stranger which numbers are registered')
+})
+
+test('the account is noted only when there is one', () => {
+  setCredential(db, { role: 'farmer', userId: 'f1', phone: '9822011223', password: '482913' })
+  ask('9822011223')
+  ask('9822099999')
+  const byPhone = (p: string) => db.passwordRequests.find((r) => r.phone === p)!
+  assert.equal(byPhone('9822011223').matchedUserId, 'f1')
+  assert.equal(byPhone('9822099999').matchedUserId, undefined)
+  assert.equal(byPhone('9822099999').status, 'OPEN', 'still queued: he may have registered on another number')
+})
+
+test('a farmer request does not match a buyer account on the same phone', () => {
+  setCredential(db, { role: 'customer', userId: 'c1', phone: '9822011223', password: '482913' })
+  ask('9822011223')
+  assert.equal(db.passwordRequests[0].matchedUserId, undefined)
+})
+
+test('asking again while one is open refreshes it instead of adding a row', () => {
+  ask('9822011223', T0)
+  ask('+91 98220 11223', T0 + 3_600_000)
+  assert.equal(db.passwordRequests.length, 1, 'the same phone typed differently is the same person')
+  assert.equal(db.passwordRequests[0].at, new Date(T0 + 3_600_000).toISOString())
+})
+
+test('after the first is closed, a new request is a new row', () => {
+  ask('9822011223')
+  closePasswordRequest(db, db.passwordRequests[0].id, 'DISMISSED', 'admin@college', 'called, he remembered it')
+  ask('9822011223')
+  assert.equal(db.passwordRequests.length, 2)
+  assert.equal(db.passwordRequests[0].closeReason, 'called, he remembered it')
+})
+
+test('a bad phone, or a missing name or village, is refused and nothing is stored', () => {
+  assert.equal(ask('12345').status, 400)
+  assert.equal(submitPasswordRequest(db, { role: 'farmer', phone: '9822011223', name: ' ', village: 'अणदूर' }).status, 400)
+  assert.equal(submitPasswordRequest(db, { role: 'farmer', phone: '9822011223', name: 'राजेश पाटील' }).status, 400,
+    'a farmer also gives his village, so the admin can tell two Rajesh Patils apart')
+  assert.equal(db.passwordRequests.length, 0)
+})
+
+test('three requests per phone a day; the fourth is refused', () => {
+  assert.deepEqual(LIMITS.resetRequestPerPhone, { max: 3, windowMs: 24 * 60 * 60 * 1000 })
+  assert.deepEqual(LIMITS.resetRequestPerIp, { max: 20, windowMs: 60 * 60 * 1000 })
+  for (let i = 0; i < 3; i++) assert.ok(hit('reset:phone:9822011223', LIMITS.resetRequestPerPhone).ok)
+  assert.equal(hit('reset:phone:9822011223', LIMITS.resetRequestPerPhone).ok, false, 'the route answers this with 429')
+})
+
+test('a reset from the queue marks the request done and forces a new password', () => {
+  db.farmers.push({ id: 'f1', phone: '9822011223', name: 'राजेश पाटील', status: 'ACTIVE' } as never)
+  setCredential(db, { role: 'farmer', userId: 'f1', phone: '9822011223', password: '482913' })
+  ask('9822011223')
+  const request = db.passwordRequests[0]
+
+  const r = resetUserPassword(db, { role: 'farmer', userId: 'f1', requestId: request.id, by: 'admin@college' }, T0)!
+  assert.match(r.tempPassword, /^\d{6}$/)
+  assert.equal(request.status, 'DONE')
+  assert.equal(request.closedBy, 'admin@college')
+  assert.equal(request.closedAt, new Date(T0).toISOString())
+  assert.equal(checkPassword(db, 'farmer', '9822011223', '482913'), null, 'the old password stops working')
+  assert.equal(checkPassword(db, 'farmer', '9822011223', r.tempPassword)?.mustChangePassword, true)
+})
+
+test('a reset for someone who does not exist does nothing', () => {
+  assert.equal(resetUserPassword(db, { role: 'farmer', userId: 'nobody', by: 'admin@college' }), null)
+})
+
+test('closing an account takes its password requests with it', () => {
+  ask('9822011223')
+  removePasswordRequests(db, 'f1', '9822011223')
+  assert.equal(db.passwordRequests.length, 0)
 })
 ```
-Add `'password.reset'` to the `AuthEvent` type union.
 
-- [ ] **Step 10: Frontend**
+- [ ] **Step 10: Run to verify failure**
+
+Run: `cd backend && node --import tsx --test tests/password-requests.test.ts`
+Expected: FAIL — `Cannot find module '../src/auth/passwordRequests.js'`.
+
+- [ ] **Step 11: Request store, admin reset and routes**
+
+`backend/src/auth/types.ts` — add:
+```ts
+/**
+ * "I forgot my password", waiting for an admin to call back. Anyone can
+ * create one for any number, so it never touches the account itself, and
+ * only the admin API returns it.
+ */
+export interface PasswordRequest {
+  id: string
+  role: 'farmer' | 'customer'
+  phone: string
+  name: string
+  /** Farmers only: two Rajesh Patils are told apart by their village. */
+  village?: string
+  /** The account this phone had when the request came in. Absent when none. */
+  matchedUserId?: string
+  /** When he last asked. Asking again while OPEN moves this; it adds no row. */
+  at: string
+  status: 'OPEN' | 'DONE' | 'DISMISSED'
+  closedAt?: string
+  closedBy?: string
+  closeReason?: string
+}
+```
+Add `'password.reset'` to the `AuthEvent['type']` union.
+
+`backend/src/auth/passwordRequests.ts`:
+```ts
+import type { Db } from '../db/seed.js'
+import { isValidPhone, normalizePhone } from '@shared/farmer.js'
+import { newId } from '../db/ids.js'
+import { findCustomer } from '../db/customers.js'
+import { randomCode } from './crypto.js'
+import { findCredential, setCredential } from './credentials.js'
+import { revokeAllForUser } from './sessions.js'
+import { maskPhone, recordAuthEvent } from './events.js'
+import type { PasswordRequest } from './types.js'
+
+type Role = PasswordRequest['role']
+type Reply =
+  | { status: 200; body: { ok: true } }
+  | { status: 400; body: { error: string; messageMr: string; fields: Record<string, string> } }
+
+const OK: Reply = { status: 200, body: { ok: true } }
+
+/**
+ * Queue a forgot-password request. The answer is the same whether or not
+ * the phone has an account: the page is public, and any difference would
+ * let a stranger test which numbers are registered. The match is kept for
+ * the admin only.
+ */
+export function submitPasswordRequest(db: Db, body: Record<string, unknown> | undefined, now = Date.now()): Reply {
+  const role: Role = body?.role === 'farmer' ? 'farmer' : 'customer'
+  const phone = normalizePhone(String(body?.phone ?? ''))
+  const name = String(body?.name ?? '').trim().slice(0, 80)
+  const village = role === 'farmer' ? String(body?.village ?? '').trim().slice(0, 80) : ''
+  const fields: Record<string, string> = {}
+  if (!isValidPhone(phone)) fields.phone = '10 अंकी मोबाईल नंबर टाका'
+  if (!name) fields.name = 'नाव आवश्यक आहे'
+  if (role === 'farmer' && !village) fields.village = 'गाव आवश्यक आहे'
+  if (Object.keys(fields).length) {
+    return { status: 400, body: { error: 'Validation failed', messageMr: 'माहिती तपासा', fields } }
+  }
+
+  const at = new Date(now).toISOString()
+  // Tapping "send" again is impatience, not a second person.
+  const open = db.passwordRequests.find((r) => r.status === 'OPEN' && r.role === role && r.phone === phone)
+  if (open) { open.at = at; return OK }
+
+  db.passwordRequests.push({
+    id: newId('pwr'), role, phone, name, village: village || undefined,
+    matchedUserId: findCredential(db, role, phone)?.userId,
+    at, status: 'OPEN',
+  })
+  return OK
+}
+
+/** Close an open request. Undefined when it is unknown or already closed. */
+export function closePasswordRequest(
+  db: Db, id: string, status: 'DONE' | 'DISMISSED', by: string, reason?: string, now = Date.now(),
+): PasswordRequest | undefined {
+  const r = db.passwordRequests.find((x) => x.id === id)
+  if (!r || r.status !== 'OPEN') return undefined
+  r.status = status
+  r.closedAt = new Date(now).toISOString()
+  r.closedBy = by
+  const why = String(reason ?? '').trim().slice(0, 200)
+  if (why) r.closeReason = why
+  return r
+}
+
+/**
+ * Six digits the admin reads out over the phone. Shown once, never stored
+ * in the clear, and useless after the first sign-in because it must be
+ * changed. With a requestId, the queue row it answers is closed as DONE.
+ */
+export function resetUserPassword(
+  db: Db, input: { role: Role; userId: string; requestId?: string; by: string }, now = Date.now(),
+): { tempPassword: string } | null {
+  const person = input.role === 'farmer'
+    ? db.farmers.find((f) => f.id === input.userId)
+    : findCustomer(db, input.userId)
+  if (!person?.phone) return null
+
+  const tempPassword = randomCode(6)
+  setCredential(db, { role: input.role, userId: input.userId, phone: person.phone, password: tempPassword, mustChange: true }, now)
+  revokeAllForUser(db, input.userId, 'admin')
+  recordAuthEvent(db, { type: 'password.reset', subject: maskPhone(person.phone), role: input.role, detail: input.by })
+  if (input.requestId) closePasswordRequest(db, input.requestId, 'DONE', input.by, undefined, now)
+  return { tempPassword }
+}
+
+/** Account close: his requests carry his name and number, so they go too. */
+export function removePasswordRequests(db: Db, userId: string, phone: string): void {
+  const p = normalizePhone(phone)
+  for (let i = db.passwordRequests.length - 1; i >= 0; i--) {
+    const r = db.passwordRequests[i]
+    if (r.matchedUserId === userId || r.phone === p) db.passwordRequests.splice(i, 1)
+  }
+}
+```
+The import paths for `findCustomer`, `revokeAllForUser`, `maskPhone` and `recordAuthEvent` are the ones `auth.routes.ts` and `admin.routes.ts` use today. If typecheck says a module lives elsewhere, import it from there; do not move it.
+
+`backend/src/db/seed.ts`: add `passwordRequests: PasswordRequest[]` to `Db`, to `emptyDb()` (`passwordRequests: []`) and to `withDefaults` (`passwordRequests: raw.passwordRequests ?? []`). `backend/src/db/firestore.ts`: add `'passwordRequests'` to the collection list.
+
+`backend/src/auth/rateLimit.ts` `LIMITS` — add:
+```ts
+  /** Forgot-password requests for one phone: three a day is plenty for a real person. */
+  resetRequestPerPhone: { max: 3, windowMs: 24 * 60 * 60 * 1000 },
+  /** Per IP, wider because a village shares its carrier's address; stops one script filling the queue. */
+  resetRequestPerIp: { max: 20, windowMs: 60 * 60 * 1000 },
+```
+
+`auth.routes.ts` — the public request route:
+```ts
+authRouter.post('/password-requests', (req, res) => {
+  const ip = hashIp(callerIp(req))
+  const phone = normalizePhone(String(req.body?.phone ?? ''))
+  if (over(res, `reset:ip:${ip}`, LIMITS.resetRequestPerIp)) return
+  if (isValidPhone(phone) && over(res, `reset:phone:${phone}`, LIMITS.resetRequestPerPhone)) return
+
+  const db = getDb()
+  const reply = submitPasswordRequest(db, req.body)
+  if (reply.status === 200) save()
+  res.status(reply.status).json(reply.body)
+})
+```
+The limits are counted before any account lookup, so a registered and an unregistered number run out at the same moment.
+
+`admin.routes.ts` — the reset (same path the admin console calls) and the queue:
+```ts
+adminRouter.post('/users/reset-password', (req, res) => {
+  const result = resetUserPassword(getDb(), {
+    role: req.body?.role === 'farmer' ? 'farmer' : 'customer',
+    userId: String(req.body?.userId ?? ''),
+    requestId: req.body?.requestId ? String(req.body.requestId) : undefined,
+    by: adminName(req),
+  })
+  if (!result) { res.status(404).json({ error: 'Not found', messageMr: 'खाते सापडले नाही' }); return }
+  save()
+  res.json(result)
+})
+
+adminRouter.get('/password-requests', (req, res) => {
+  const db = getDb()
+  const status = ['OPEN', 'DONE', 'DISMISSED'].includes(String(req.query.status)) ? String(req.query.status) : 'OPEN'
+  const nameOf = (r: PasswordRequest) => !r.matchedUserId ? undefined
+    : r.role === 'farmer' ? db.farmers.find((f) => f.id === r.matchedUserId)?.name
+    : findCustomer(db, r.matchedUserId)?.name
+  const requests = db.passwordRequests
+    .filter((r) => r.status === status)
+    .sort((a, b) => a.at.localeCompare(b.at)) // longest wait first
+    .map((r) => ({ ...r, matchedName: nameOf(r) }))
+  res.json({ requests })
+})
+
+adminRouter.post('/password-requests/:id/close', (req, res) => {
+  const reason = req.body?.reason ? String(req.body.reason) : undefined
+  const request = closePasswordRequest(getDb(), req.params.id, 'DISMISSED', adminName(req), reason)
+  if (!request) {
+    res.status(404).json({ error: 'Not open', messageMr: 'ही विनंती सापडली नाही किंवा आधीच बंद झाली आहे' }); return
+  }
+  save()
+  res.json({ request })
+})
+```
+
+`db/analytics.ts`: `openPasswordRequests = db.passwordRequests.filter((r) => r.status === 'OPEN').length`, and `openPasswordRequests: number` on `AdminStats` in `shared/src/types.ts`.
+
+`accountClose.ts`: next to `removeCredential(db, id)`, call `removePasswordRequests(db, id, phone)` for both farmers and customers, reading the phone before the scrub blanks it.
+
+- [ ] **Step 12: Run the tests to verify they pass**
+
+Run: `cd backend && node --import tsx --test tests/password-requests.test.ts tests/password-auth.test.ts` → PASS.
+
+- [ ] **Step 13: Frontend**
 
 - `lib/api.ts`: delete `sendOtp`/`verifyOtp`. Add:
   ```ts
@@ -829,11 +1135,13 @@ Add `'password.reset'` to the `AuthEvent` type union.
   changePassword: (current: string, next: string) => post<{ ok: true }>('/auth/password', { current, next }),
   registerCustomer: (body: { phone: string; name: string; password: string }) =>
     post<{ session: Session }>('/customers/register', body),
+  requestPasswordReset: (body: { role: 'farmer' | 'customer'; phone: string; name: string; village?: string }) =>
+    post<{ ok: true }>('/auth/password-requests', body),
   ```
   In `request()`, when `res.status === 403 && body.code === 'MUST_CHANGE_PASSWORD'`, call every `mustChangeListeners` fn (a new listener set exported as `onMustChangePassword(fn)`, same pattern as `onSessionExpired`).
 - `shared/src/types.ts` `Session`: add `mustChangePassword?: boolean`.
 - `store/AuthContext.tsx`: subscribe to `onMustChangePassword` and set `session.mustChangePassword = true`.
-- `App.tsx`: replace `/join/:role`, `/login/:role`, `/otp/:role` with `/login/:role` → `<LoginScreen />`. Keep `/register/farmer` and `/register/customer`. Add `/password` → `<ChangePassword />`. In `Require`, when `session.mustChangePassword` is true and the path is not `/password`, return `<Navigate to="/password" replace />`.
+- `App.tsx`: replace `/join/:role`, `/login/:role`, `/otp/:role` with `/login/:role` → `<LoginScreen />`. Keep `/register/farmer` and `/register/customer`. Add `/password` → `<ChangePassword />` and the public `/forgot-password/:role` → `<ForgotPasswordScreen />`. In `Require`, when `session.mustChangePassword` is true and the path is not `/password`, return `<Navigate to="/password" replace />`.
 - `screens/auth/Auth.tsx`: replace `PhoneScreen` and `OtpScreen` with one `LoginScreen`:
   ```tsx
   export function LoginScreen() {
@@ -876,7 +1184,7 @@ Add `'password.reset'` to the `AuthEvent` type union.
         <Button onClick={submit} disabled={busy || !isValidPhone(phone) || password.length < MIN_PASSWORD}>
           {t('auth.login')}
         </Button>
-        <p className="body">{t('auth.forgot')}</p>
+        <Button tone="ghost" onClick={() => nav(`/forgot-password/${role}`)}>{t('auth.forgot')}</Button>
         <a className="btn btn--ghost" href={`tel:+91${SUPPORT_PHONE}`}><IconCall aria-hidden="true" /> {t('help.call')}</a>
         <Button tone="ghost" onClick={() => nav(`/register/${role}`)}>{t('auth.newAccount')}</Button>
       </div>
@@ -884,14 +1192,83 @@ Add `'password.reset'` to the `AuthEvent` type union.
   }
   ```
   Keep `roleFrom`, but change its values to `'farmer' | 'customer'`. Check the `TextInput` prop names (`onChange` gets a string or an event) against `components/ui.tsx:217` and match them.
+- `screens/auth/Auth.tsx`: add `ForgotPasswordScreen` next to `LoginScreen`. It is public (no `Require`). After sending it shows the same line whatever the server knows:
+  ```tsx
+  export function ForgotPasswordScreen() {
+    const t = useT()
+    const nav = useNavigate()
+    const role = roleFrom(useParams().role)
+    const [phone, setPhone] = useState('')
+    const [name, setName] = useState('')
+    const [village, setVillage] = useState('')
+    const [sent, setSent] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [busy, setBusy] = useState(false)
+
+    const ready = isValidPhone(phone) && name.trim() !== '' && (role !== 'farmer' || village.trim() !== '')
+    const submit = async () => {
+      setBusy(true); setError(null)
+      try {
+        await api.requestPasswordReset({ role, phone, name, village: role === 'farmer' ? village : undefined })
+        setSent(true)
+      } catch (e) {
+        setError(e instanceof ApiError ? e.messageMr ?? t('auth.failed') : t('auth.failed'))
+      } finally { setBusy(false) }
+    }
+
+    if (sent) {
+      return (
+        <div className="screen">
+          <AppBar title={t('forgot.title')} back />
+          <Notice tone="ok">{t('forgot.sent')}</Notice>
+          <Button onClick={() => nav(`/login/${role}`, { replace: true })}>{t('forgot.backToLogin')}</Button>
+        </div>
+      )
+    }
+
+    return (
+      <div className="screen">
+        <AppBar title={t('forgot.title')} back />
+        <p className="body">{t('forgot.intro')}</p>
+        <Field label={t('auth.phone')}>
+          <TextInput inputMode="numeric" autoComplete="tel" maxLength={14} value={phone}
+            onChange={setPhone} placeholder={t('auth.phonePh')} />
+        </Field>
+        <Field label={t('forgot.name')}>
+          <TextInput autoComplete="name" value={name} onChange={setName} />
+        </Field>
+        {role === 'farmer' && (
+          <Field label={t('forgot.village')}>
+            <TextInput value={village} onChange={setVillage} />
+          </Field>
+        )}
+        {error && <Notice tone="danger">{error}</Notice>}
+        <Button onClick={submit} disabled={busy || !ready}>{t('forgot.send')}</Button>
+      </div>
+    )
+  }
+  ```
+  Use the success tone `Notice` already has (check the tone names in `components/ui.tsx`; it may be `ok` or `success`). A 429 shows the server's Marathi wait message through `error`, as login does.
 - `screens/auth/ChangePassword.tsx`: the same shape with three fields (current, new, new again). Call `api.changePassword`. On success, set `session.mustChangePassword = false` through `AuthContext` and go to `homeFor(role)`. After an admin reset, "current" is the temporary password; label it `auth.currentOrTemp` ("सध्याचा किंवा दिलेला तात्पुरता पासवर्ड").
 - `FarmerRegister.tsx`: the first step becomes phone + password + password again (validated with `isValidPhone` and `passwordProblemMr`, and the two passwords must match: `auth.mismatch`). Send `phone` and `password` in `api.registerFarmer`. Delete ticket reading.
 - `CustomerRegister.tsx`: one screen with name, phone, password, password again, calling `api.registerCustomer`.
 - `Landing.tsx`: the four entry buttons go to `/register/farmer`, `/login/farmer`, `/register/customer`, `/login/customer`.
-- Dictionaries: add `auth.phone`, `auth.phonePh`, `auth.password`, `auth.passwordPh`, `auth.passwordAgain`, `auth.show`, `auth.hide`, `auth.login`, `auth.loginFarmer`, `auth.loginBuyer`, `auth.forgot` ("पासवर्ड विसरलात? मदत केंद्राला फोन करा, ते नवा पासवर्ड देतील." / "Forgot your password? Call the help desk and they will give you a new one."), `auth.newAccount`, `auth.failed`, `auth.mismatch`, `auth.currentOrTemp`, `auth.newPassword`, `auth.changeTitle`. Delete every `otp.` key.
-- Admin `FarmerDetail.tsx` and the customer detail panel: a "Reset password" button behind `Confirm` (consequence: "Their current password stops working and every phone they are signed in on is signed out."). After confirming, show `tempPassword` in large digits with a copy button and the line "Read this to them. They must choose a new one when they sign in."
+- Dictionaries: add `auth.phone`, `auth.phonePh`, `auth.password`, `auth.passwordPh`, `auth.passwordAgain`, `auth.show`, `auth.hide`, `auth.login`, `auth.loginFarmer`, `auth.loginBuyer`, `auth.forgot` ("पासवर्ड विसरलात?" / "Forgot your password?"), `auth.newAccount`, `auth.failed`, `auth.mismatch`, `auth.currentOrTemp`, `auth.newPassword`, `auth.changeTitle`. For the request page: `forgot.title` ("नवा पासवर्ड मागा" / "Ask for a new password"), `forgot.intro` ("तुमचा मोबाईल नंबर आणि नाव लिहा. आमचे प्रतिनिधी याच नंबरवर फोन करतील." / "Enter your mobile number and name. Our team will call you on this number."), `forgot.name` ("तुमचे नाव" / "Your name"), `forgot.village` ("तुमचे गाव" / "Your village"), `forgot.send` ("विनंती पाठवा" / "Send request"), `forgot.sent` ("तुमची विनंती पाठवली. आमचे प्रतिनिधी तुम्हाला फोन करून नवा तात्पुरता पासवर्ड देतील." / "Your request has been sent. Our team will call you and give you a temporary password."), `forgot.backToLogin` ("लॉगिनकडे परत" / "Back to login"). Delete every `otp.` key.
 
-- [ ] **Step 11: Delete OTP files and gate**
+- [ ] **Step 14: Admin: reset button and the password-request queue**
+
+- `admin/src/lib/api.ts`: `resetPassword(body: { role: 'farmer' | 'customer'; userId: string; requestId?: string })` → `{ tempPassword }`, `passwordRequests(status = 'OPEN')`, `closePasswordRequest(id: string, reason?: string)`.
+- `admin/src/components/ResetPassword.tsx`: the one reset flow, used by the farmer page, the buyer panel and the queue. Props `{ role, userId, requestId?, onDone?: () => void }`. A "Reset password" button (`pwr.reset`, "नवा पासवर्ड द्या" / "Reset password") behind `Confirm`, with the consequence `pwr.resetConsequence` ("यांचा सध्याचा पासवर्ड चालणार नाही, आणि ते ज्या ज्या फोनवर लॉगिन आहेत तिथून बाहेर पडतील." / "Their current password stops working and every phone they are signed in on is signed out."). After confirming, show `tempPassword` once in large digits with a copy button and the line `pwr.readOut` ("हा पासवर्ड त्यांना फोनवर वाचून दाखवा. लॉगिन केल्यावर त्यांना नवा पासवर्ड ठेवावा लागेल." / "Read this to them. They must choose a new one when they sign in."). Closing the panel forgets the password; nothing can fetch it again.
+- Admin `FarmerDetail.tsx` and the customer detail panel: `<ResetPassword role=… userId=… />`.
+- `admin/src/screens/PasswordRequests.tsx` at `/password-requests`, in `Shell` nav. It lists `GET /admin/password-requests?status=OPEN`, longest wait first. Each row shows the name, the phone as a `tel:` link, the role (icon + word), the village, how long it has waited (the relative-time helper in `admin/src/lib/format.ts`), and the matched account's name linking to its detail page, or `pwr.noAccount` ("या नंबरवर खाते नाही" / "No account with this number"). Actions:
+  - `<ResetPassword role={r.role} userId={r.matchedUserId} requestId={r.id} onDone={reload} />`, shown only when `matchedUserId` is set.
+  - "Close" (`pwr.close`, "बंद करा" / "Close") opening a `Confirm` with an optional reason box (`pwr.reason`, "कारण (हवे असल्यास)" / "Reason (optional)"), then `closePasswordRequest(id, reason)` and a reload.
+
+  Above the list, `pwr.callFirst`: "आधी याच नंबरवर फोन करा आणि नाव व गाव खात्री करा. पासवर्ड फक्त त्याच फोनवर सांगा." / "Call this number first and confirm the name and village. Give the password only on that call." An empty queue shows `pwr.empty` ("कोणतीही विनंती बाकी नाही" / "No requests waiting").
+- `Home.tsx` (dashboard): a card `pwr.title` ("पासवर्ड विनंत्या" / "Password requests") with `openPasswordRequests` as a count badge, linking to `/password-requests`, shown whenever the count is above 0.
+- Admin dictionaries: every `pwr.*` key above, Marathi first.
+
+- [ ] **Step 15: Delete OTP files and gate**
 
 ```bash
 git rm backend/src/services/otp.service.ts backend/src/services/otp.providers.ts backend/src/auth/tickets.ts \
@@ -901,20 +1278,22 @@ git rm backend/src/services/otp.service.ts backend/src/services/otp.providers.ts
 In `backend/tests/auth-hardening.test.ts`, delete the ticket cases. In `backend/tests/customer-registration.test.ts`, rewrite the cases around `POST /customers/register`.
 Run: `npm test && npm run typecheck && npm run build` → PASS.
 
-- [ ] **Step 12: Update CLAUDE.md "Sessions"**
+- [ ] **Step 16: Update CLAUDE.md "Sessions"**
 
-Replace the OTP, MSG91, ticket and three-codes-a-day paragraphs with: the password rule, the credential collection and why it is separate, the login limits, must-change, and admin reset.
+Replace the OTP, MSG91, ticket and three-codes-a-day paragraphs with: the password rule, the credential collection and why it is separate, the login limits, must-change, and admin reset. Add a paragraph "Forgot password is a request to a person": the public `/forgot-password/:role` page and `POST /auth/password-requests`; why it answers the same for every valid phone (no account oracle); the 3-per-phone-per-day and 20-per-IP-per-hour limits; a repeat refreshing the open row; the admin queue and the rule that the temporary password is read out only on a call to the requesting number; a reset with `requestId` closing the row as DONE; account close deleting the rows.
 
-- [ ] **Step 13: Commit**
+- [ ] **Step 17: Commit**
 
 ```bash
 git add -A
-git commit -m "Sign in with phone and password; admins reset forgotten ones
+git commit -m "Sign in with phone and password; forgotten ones go to an admin queue
 
 No SMS provider. Passwords are scrypt hashes in their own credentials
 collection, never on the farmer or customer row. Five wrong tries per
-phone per 15 minutes. An admin reset issues a six-digit temporary
-password, signs the person out everywhere, and forces a change.
+phone per 15 minutes. A forgotten password is a public request that
+answers the same for every number; an admin calls back from a queue and
+issues a six-digit temporary password, which signs the person out
+everywhere and must be changed.
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
@@ -931,9 +1310,9 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 **Interfaces:**
 - Consumes: `Farmer` from Task 4.
 - Produces:
-  - `fdri.ts`: `FDRI_INDICATORS` (readonly tuple of 10 keys), `type FdriIndicator`, `type FdriAnswers = Record<FdriIndicator, boolean>`, `type FdriBand = 'low'|'moderate'|'high'`, `FDRI_QUESTIONS: Record<FdriIndicator,{mr:string;en:string;hi:string}>`, `cleanFdri(raw: unknown): FdriAnswers`, `fdriScore(a: Partial<FdriAnswers>): number`, `fdriBand(score: number): FdriBand`
-  - `profile.ts`: `AGE_GROUPS`, `EDUCATION_LEVELS` (moved from farmer.ts), `LANDHOLDINGS`, `FARMER_TYPES`, `SELLING_CHANNELS`, `SELLING_PROBLEMS` — each `{ value: string; mr: string; en: string; hi: string }[]` — and `type AgeGroup`, `Landholding`, `FarmerType`, `SellingChannel`, `SellingProblem`
-  - `crops.ts`: `CROPS: { id: string; categoryId: string; mr: string; en: string; hi: string; agmarknet?: string }[]`, `cropById(id)`
+  - `fdri.ts`: `FDRI_INDICATORS` (readonly tuple of 10 keys), `type FdriIndicator`, `type FdriAnswers = Record<FdriIndicator, boolean>`, `type FdriBand = 'low'|'moderate'|'high'`, `FDRI_QUESTIONS: Record<FdriIndicator,{mr:string;en:string}>`, `cleanFdri(raw: unknown): FdriAnswers`, `fdriScore(a: Partial<FdriAnswers>): number`, `fdriBand(score: number): FdriBand`
+  - `profile.ts`: `AGE_GROUPS`, `EDUCATION_LEVELS` (moved from farmer.ts), `LANDHOLDINGS`, `FARMER_TYPES`, `SELLING_CHANNELS`, `SELLING_PROBLEMS` — each `{ value: string; mr: string; en: string }[]` — and `type AgeGroup`, `Landholding`, `FarmerType`, `SellingChannel`, `SellingProblem`
+  - `crops.ts`: `CROPS: { id: string; categoryId: string; mr: string; en: string; agmarknet?: string }[]`, `cropById(id)`
   - `geo.ts`: `isValidLatLng(lat, lng): boolean` (India bounding box 6–38 N, 68–98 E), `roundCoord(n: number, places = 2): number`, `publicLocation(p: {lat?: number; lng?: number; locationConsent?: boolean}): {lat:number;lng:number} | undefined`
   - `Farmer` fields: `lat?`, `lng?`, `locationConsent?`, `crops: string[]`, `ageGroup?`, `education?`, `landholding?`, `farmerTypes: FarmerType[]`, `sellingChannels: SellingChannel[]`, `problems: SellingProblem[]`, `fdri: FdriAnswers`, `fdriScore: number`, `fdriBand: FdriBand`. Removed: `digital`, `readinessScore`, `readinessBand`, `businessType`, `shgName`, `yearsInBusiness`, `monthlyCapacity`, `sellsFood`, `fssai`, `age`.
   - `PublicFarmer` adds `farmerCode` (already), `crops`, `lat?`, `lng?` (rounded), `pickup` (Task 8 fills it)
@@ -1038,17 +1417,17 @@ export type FdriIndicator = (typeof FDRI_INDICATORS)[number]
 export type FdriAnswers = Record<FdriIndicator, boolean>
 export type FdriBand = 'low' | 'moderate' | 'high'
 
-export const FDRI_QUESTIONS: Record<FdriIndicator, { mr: string; en: string; hi: string }> = {
-  smartphone: { mr: 'तुमच्याकडे स्मार्टफोन आहे का?', en: 'Do you have a smartphone?', hi: 'क्या आपके पास स्मार्टफोन है?' },
-  internet: { mr: 'तुम्ही इंटरनेट वापरता का?', en: 'Do you use the internet?', hi: 'क्या आप इंटरनेट चलाते हैं?' },
-  whatsapp: { mr: 'तुम्ही WhatsApp वापरता का?', en: 'Do you use WhatsApp?', hi: 'क्या आप WhatsApp चलाते हैं?' },
-  digitalPayment: { mr: 'तुम्ही UPI / ऑनलाइन पैसे पाठवता किंवा घेता का?', en: 'Do you send or receive money by UPI?', hi: 'क्या आप UPI से पैसे भेजते या लेते हैं?' },
-  onlineMarketInfo: { mr: 'बाजारभाव फोनवर पाहता का?', en: 'Do you check market prices on your phone?', hi: 'क्या आप फ़ोन पर मंडी भाव देखते हैं?' },
-  digitalPromotion: { mr: 'तुमच्या मालाची माहिती फोनवरून इतरांना पाठवता का?', en: 'Do you advertise your produce from your phone?', hi: 'क्या आप फ़ोन से अपनी उपज का प्रचार करते हैं?' },
-  onlineSelling: { mr: 'याआधी ऑनलाइन काही विकले आहे का?', en: 'Have you ever sold anything online?', hi: 'क्या आपने पहले कभी ऑनलाइन कुछ बेचा है?' },
-  directSelling: { mr: 'ग्राहकाला थेट माल विकायला तयार आहात का?', en: 'Are you willing to sell directly to buyers?', hi: 'क्या आप सीधे ग्राहक को बेचने को तैयार हैं?' },
-  packagingBranding: { mr: 'माल पॅक करून, स्वतःच्या नावाने विकायला तयार आहात का?', en: 'Are you ready to pack and brand your produce?', hi: 'क्या आप उपज को पैक करके अपने नाम से बेचने को तैयार हैं?' },
-  trainingWillingness: { mr: 'डिजिटल प्रशिक्षण घ्यायला आवडेल का?', en: 'Would you like digital training?', hi: 'क्या आप डिजिटल प्रशिक्षण लेना चाहेंगे?' },
+export const FDRI_QUESTIONS: Record<FdriIndicator, { mr: string; en: string }> = {
+  smartphone: { mr: 'तुमच्याकडे स्मार्टफोन आहे का?', en: 'Do you have a smartphone?' },
+  internet: { mr: 'तुम्ही इंटरनेट वापरता का?', en: 'Do you use the internet?' },
+  whatsapp: { mr: 'तुम्ही WhatsApp वापरता का?', en: 'Do you use WhatsApp?' },
+  digitalPayment: { mr: 'तुम्ही UPI / ऑनलाइन पैसे पाठवता किंवा घेता का?', en: 'Do you send or receive money by UPI?' },
+  onlineMarketInfo: { mr: 'बाजारभाव फोनवर पाहता का?', en: 'Do you check market prices on your phone?' },
+  digitalPromotion: { mr: 'तुमच्या मालाची माहिती फोनवरून इतरांना पाठवता का?', en: 'Do you advertise your produce from your phone?' },
+  onlineSelling: { mr: 'याआधी ऑनलाइन काही विकले आहे का?', en: 'Have you ever sold anything online?' },
+  directSelling: { mr: 'ग्राहकाला थेट माल विकायला तयार आहात का?', en: 'Are you willing to sell directly to buyers?' },
+  packagingBranding: { mr: 'माल पॅक करून, स्वतःच्या नावाने विकायला तयार आहात का?', en: 'Are you ready to pack and brand your produce?' },
+  trainingWillingness: { mr: 'डिजिटल प्रशिक्षण घ्यायला आवडेल का?', en: 'Would you like digital training?' },
 }
 
 export function cleanFdri(raw: unknown): FdriAnswers {
@@ -1096,44 +1475,44 @@ export function publicLocation(p: { lat?: number; lng?: number; locationConsent?
 ```
 `shared/src/profile.ts` (values are stored; labels are shown):
 ```ts
-type Opt = { value: string; mr: string; en: string; hi: string }
+type Opt = { value: string; mr: string; en: string }
 
 export const AGE_GROUPS = [
-  { value: 'u25', mr: '25 पेक्षा कमी', en: 'Under 25', hi: '25 से कम' },
-  { value: '25-35', mr: '25 ते 35', en: '25 to 35', hi: '25 से 35' },
-  { value: '36-50', mr: '36 ते 50', en: '36 to 50', hi: '36 से 50' },
-  { value: '51-60', mr: '51 ते 60', en: '51 to 60', hi: '51 से 60' },
-  { value: 'o60', mr: '60 पेक्षा जास्त', en: 'Over 60', hi: '60 से ज़्यादा' },
+  { value: 'u25', mr: '25 पेक्षा कमी', en: 'Under 25' },
+  { value: '25-35', mr: '25 ते 35', en: '25 to 35' },
+  { value: '36-50', mr: '36 ते 50', en: '36 to 50' },
+  { value: '51-60', mr: '51 ते 60', en: '51 to 60' },
+  { value: 'o60', mr: '60 पेक्षा जास्त', en: 'Over 60' },
 ] as const satisfies readonly Opt[]
 
 export const LANDHOLDINGS = [
-  { value: 'small', mr: 'लहान (2 हेक्टरपेक्षा कमी)', en: 'Small (under 2 ha)', hi: 'छोटा (2 हेक्टेयर से कम)' },
-  { value: 'medium', mr: 'मध्यम (2 ते 10 हेक्टर)', en: 'Medium (2 to 10 ha)', hi: 'मध्यम (2 से 10 हेक्टेयर)' },
-  { value: 'large', mr: 'मोठे (10 हेक्टरपेक्षा जास्त)', en: 'Large (over 10 ha)', hi: 'बड़ा (10 हेक्टेयर से ज़्यादा)' },
+  { value: 'small', mr: 'लहान (2 हेक्टरपेक्षा कमी)', en: 'Small (under 2 ha)' },
+  { value: 'medium', mr: 'मध्यम (2 ते 10 हेक्टर)', en: 'Medium (2 to 10 ha)' },
+  { value: 'large', mr: 'मोठे (10 हेक्टरपेक्षा जास्त)', en: 'Large (over 10 ha)' },
 ] as const satisfies readonly Opt[]
 
 export const FARMER_TYPES = [
-  { value: 'vegetable', mr: 'भाजीपाला', en: 'Vegetables', hi: 'सब्ज़ी' },
-  { value: 'grain', mr: 'धान्य', en: 'Grains', hi: 'अनाज' },
-  { value: 'fruit', mr: 'फळे', en: 'Fruit', hi: 'फल' },
-  { value: 'processing', mr: 'प्रक्रिया उत्पादने', en: 'Processed products', hi: 'प्रसंस्कृत उत्पाद' },
+  { value: 'vegetable', mr: 'भाजीपाला', en: 'Vegetables' },
+  { value: 'grain', mr: 'धान्य', en: 'Grains' },
+  { value: 'fruit', mr: 'फळे', en: 'Fruit' },
+  { value: 'processing', mr: 'प्रक्रिया उत्पादने', en: 'Processed products' },
 ] as const satisfies readonly Opt[]
 
 export const SELLING_CHANNELS = [
-  { value: 'trader', mr: 'गावातील व्यापारी', en: 'Local trader', hi: 'गाँव का व्यापारी' },
-  { value: 'apmc', mr: 'बाजार समिती (APMC)', en: 'APMC market', hi: 'मंडी (APMC)' },
-  { value: 'weekly', mr: 'आठवडी बाजार', en: 'Weekly market', hi: 'हाट बाज़ार' },
-  { value: 'direct', mr: 'थेट ग्राहक', en: 'Directly to buyers', hi: 'सीधे ग्राहक' },
-  { value: 'online', mr: 'ऑनलाइन / WhatsApp', en: 'Online / WhatsApp', hi: 'ऑनलाइन / WhatsApp' },
+  { value: 'trader', mr: 'गावातील व्यापारी', en: 'Local trader' },
+  { value: 'apmc', mr: 'बाजार समिती (APMC)', en: 'APMC market' },
+  { value: 'weekly', mr: 'आठवडी बाजार', en: 'Weekly market' },
+  { value: 'direct', mr: 'थेट ग्राहक', en: 'Directly to buyers' },
+  { value: 'online', mr: 'ऑनलाइन / WhatsApp', en: 'Online / WhatsApp' },
 ] as const satisfies readonly Opt[]
 
 export const SELLING_PROBLEMS = [
-  { value: 'lowPrice', mr: 'योग्य भाव मिळत नाही', en: 'Price too low', hi: 'सही दाम नहीं मिलता' },
-  { value: 'middlemen', mr: 'दलाल / मध्यस्थ जास्त', en: 'Too many middlemen', hi: 'बिचौलिए ज़्यादा' },
-  { value: 'transport', mr: 'वाहतूक खर्च', en: 'Transport cost', hi: 'ढुलाई खर्च' },
-  { value: 'storage', mr: 'साठवणूक नाही', en: 'No storage', hi: 'भंडारण नहीं' },
-  { value: 'noInfo', mr: 'बाजारभावाची माहिती नाही', en: 'No price information', hi: 'भाव की जानकारी नहीं' },
-  { value: 'latePayment', mr: 'पैसे उशिरा मिळतात', en: 'Late payment', hi: 'पैसे देर से मिलते हैं' },
+  { value: 'lowPrice', mr: 'योग्य भाव मिळत नाही', en: 'Price too low' },
+  { value: 'middlemen', mr: 'दलाल / मध्यस्थ जास्त', en: 'Too many middlemen' },
+  { value: 'transport', mr: 'वाहतूक खर्च', en: 'Transport cost' },
+  { value: 'storage', mr: 'साठवणूक नाही', en: 'No storage' },
+  { value: 'noInfo', mr: 'बाजारभावाची माहिती नाही', en: 'No price information' },
+  { value: 'latePayment', mr: 'पैसे उशिरा मिळतात', en: 'Late payment' },
 ] as const satisfies readonly Opt[]
 
 export type AgeGroup = (typeof AGE_GROUPS)[number]['value']
@@ -1150,40 +1529,40 @@ export function pickMany<T extends string>(list: readonly { value: T }[], raw: u
   return Array.isArray(raw) ? [...new Set(raw.filter((v) => list.some((o) => o.value === v)))] as T[] : []
 }
 ```
-Move `EDUCATION_LEVELS` from `farmer.ts` into `profile.ts`, add an `hi` label to each entry, and re-export nothing from `farmer.ts` (update importers).
+Move `EDUCATION_LEVELS` from `farmer.ts` into `profile.ts` with its `mr` and `en` labels, and re-export nothing from `farmer.ts` (update importers).
 
 `shared/src/crops.ts` — categories match Task 7:
 ```ts
-export interface Crop { id: string; categoryId: string; mr: string; en: string; hi: string; agmarknet?: string }
+export interface Crop { id: string; categoryId: string; mr: string; en: string; agmarknet?: string }
 
 /**
  * The crops around Anadur first. `agmarknet` is the commodity name the
  * government mandi-price feed uses; a crop without one gets no mandi line.
  */
 export const CROPS: Crop[] = [
-  { id: 'onion', categoryId: 'vegetables', mr: 'कांदा', en: 'Onion', hi: 'प्याज़', agmarknet: 'Onion' },
-  { id: 'tomato', categoryId: 'vegetables', mr: 'टोमॅटो', en: 'Tomato', hi: 'टमाटर', agmarknet: 'Tomato' },
-  { id: 'okra', categoryId: 'vegetables', mr: 'भेंडी', en: 'Okra', hi: 'भिंडी', agmarknet: 'Bhindi(Ladies Finger)' },
-  { id: 'brinjal', categoryId: 'vegetables', mr: 'वांगी', en: 'Brinjal', hi: 'बैंगन', agmarknet: 'Brinjal' },
-  { id: 'potato', categoryId: 'vegetables', mr: 'बटाटा', en: 'Potato', hi: 'आलू', agmarknet: 'Potato' },
-  { id: 'chilli', categoryId: 'vegetables', mr: 'हिरवी मिरची', en: 'Green chilli', hi: 'हरी मिर्च', agmarknet: 'Green Chilli' },
-  { id: 'methi', categoryId: 'leafy', mr: 'मेथी', en: 'Fenugreek leaves', hi: 'मेथी', agmarknet: 'Methi(Leaves)' },
-  { id: 'palak', categoryId: 'leafy', mr: 'पालक', en: 'Spinach', hi: 'पालक', agmarknet: 'Spinach' },
-  { id: 'coriander', categoryId: 'leafy', mr: 'कोथिंबीर', en: 'Coriander', hi: 'धनिया', agmarknet: 'Coriander(Leaves)' },
-  { id: 'grapes', categoryId: 'fruits', mr: 'द्राक्षे', en: 'Grapes', hi: 'अंगूर', agmarknet: 'Grapes' },
-  { id: 'pomegranate', categoryId: 'fruits', mr: 'डाळिंब', en: 'Pomegranate', hi: 'अनार', agmarknet: 'Pomegranate' },
-  { id: 'banana', categoryId: 'fruits', mr: 'केळी', en: 'Banana', hi: 'केला', agmarknet: 'Banana' },
-  { id: 'mango', categoryId: 'fruits', mr: 'आंबा', en: 'Mango', hi: 'आम', agmarknet: 'Mango' },
-  { id: 'jowar', categoryId: 'grains', mr: 'ज्वारी', en: 'Jowar', hi: 'ज्वार', agmarknet: 'Jowar(Sorghum)' },
-  { id: 'wheat', categoryId: 'grains', mr: 'गहू', en: 'Wheat', hi: 'गेहूँ', agmarknet: 'Wheat' },
-  { id: 'bajra', categoryId: 'grains', mr: 'बाजरी', en: 'Bajra', hi: 'बाजरा', agmarknet: 'Bajra(Pearl Millet/Cumbu)' },
-  { id: 'soybean', categoryId: 'pulses', mr: 'सोयाबीन', en: 'Soybean', hi: 'सोयाबीन', agmarknet: 'Soyabean' },
-  { id: 'tur', categoryId: 'pulses', mr: 'तूर', en: 'Tur (pigeon pea)', hi: 'तुअर', agmarknet: 'Arhar (Tur/Red Gram)(Whole)' },
-  { id: 'gram', categoryId: 'pulses', mr: 'हरभरा', en: 'Gram', hi: 'चना', agmarknet: 'Bengal Gram(Gram)(Whole)' },
-  { id: 'moong', categoryId: 'pulses', mr: 'मूग', en: 'Moong', hi: 'मूंग', agmarknet: 'Green Gram (Moong)(Whole)' },
-  { id: 'turmeric', categoryId: 'spices', mr: 'हळद', en: 'Turmeric', hi: 'हल्दी', agmarknet: 'Turmeric' },
-  { id: 'jaggery', categoryId: 'processed', mr: 'गूळ', en: 'Jaggery', hi: 'गुड़', agmarknet: 'Gur(Jaggery)' },
-  { id: 'other', categoryId: 'other', mr: 'इतर', en: 'Other', hi: 'अन्य' },
+  { id: 'onion', categoryId: 'vegetables', mr: 'कांदा', en: 'Onion', agmarknet: 'Onion' },
+  { id: 'tomato', categoryId: 'vegetables', mr: 'टोमॅटो', en: 'Tomato', agmarknet: 'Tomato' },
+  { id: 'okra', categoryId: 'vegetables', mr: 'भेंडी', en: 'Okra', agmarknet: 'Bhindi(Ladies Finger)' },
+  { id: 'brinjal', categoryId: 'vegetables', mr: 'वांगी', en: 'Brinjal', agmarknet: 'Brinjal' },
+  { id: 'potato', categoryId: 'vegetables', mr: 'बटाटा', en: 'Potato', agmarknet: 'Potato' },
+  { id: 'chilli', categoryId: 'vegetables', mr: 'हिरवी मिरची', en: 'Green chilli', agmarknet: 'Green Chilli' },
+  { id: 'methi', categoryId: 'leafy', mr: 'मेथी', en: 'Fenugreek leaves', agmarknet: 'Methi(Leaves)' },
+  { id: 'palak', categoryId: 'leafy', mr: 'पालक', en: 'Spinach', agmarknet: 'Spinach' },
+  { id: 'coriander', categoryId: 'leafy', mr: 'कोथिंबीर', en: 'Coriander', agmarknet: 'Coriander(Leaves)' },
+  { id: 'grapes', categoryId: 'fruits', mr: 'द्राक्षे', en: 'Grapes', agmarknet: 'Grapes' },
+  { id: 'pomegranate', categoryId: 'fruits', mr: 'डाळिंब', en: 'Pomegranate', agmarknet: 'Pomegranate' },
+  { id: 'banana', categoryId: 'fruits', mr: 'केळी', en: 'Banana', agmarknet: 'Banana' },
+  { id: 'mango', categoryId: 'fruits', mr: 'आंबा', en: 'Mango', agmarknet: 'Mango' },
+  { id: 'jowar', categoryId: 'grains', mr: 'ज्वारी', en: 'Jowar', agmarknet: 'Jowar(Sorghum)' },
+  { id: 'wheat', categoryId: 'grains', mr: 'गहू', en: 'Wheat', agmarknet: 'Wheat' },
+  { id: 'bajra', categoryId: 'grains', mr: 'बाजरी', en: 'Bajra', agmarknet: 'Bajra(Pearl Millet/Cumbu)' },
+  { id: 'soybean', categoryId: 'pulses', mr: 'सोयाबीन', en: 'Soybean', agmarknet: 'Soyabean' },
+  { id: 'tur', categoryId: 'pulses', mr: 'तूर', en: 'Tur (pigeon pea)', agmarknet: 'Arhar (Tur/Red Gram)(Whole)' },
+  { id: 'gram', categoryId: 'pulses', mr: 'हरभरा', en: 'Gram', agmarknet: 'Bengal Gram(Gram)(Whole)' },
+  { id: 'moong', categoryId: 'pulses', mr: 'मूग', en: 'Moong', agmarknet: 'Green Gram (Moong)(Whole)' },
+  { id: 'turmeric', categoryId: 'spices', mr: 'हळद', en: 'Turmeric', agmarknet: 'Turmeric' },
+  { id: 'jaggery', categoryId: 'processed', mr: 'गूळ', en: 'Jaggery', agmarknet: 'Gur(Jaggery)' },
+  { id: 'other', categoryId: 'other', mr: 'इतर', en: 'Other' },
 ]
 
 export function cropById(id: string | undefined): Crop | undefined {
@@ -1393,7 +1772,7 @@ Run: `cd backend && node --import tsx --test tests/produce.test.ts` → PASS.
 
 - `CATEGORIES` in `db/seed.ts`: the eight ids above with Marathi/English labels (vegetables भाजीपाला, leafy पालेभाज्या, fruits फळे, grains धान्य, pulses कडधान्ये, spices मसाले, processed प्रक्रिया उत्पादने, other इतर). Delete the `food` flag from `Category` and from the tests. `backend/tests/categories.test.ts` keeps "`other` sorts last". Also fix the known gap: `POST /products` and `PATCH` now refuse a `categoryId` that is not in `CATEGORIES`, and set `categoryId` from `cropById(cropId).categoryId` unless the crop is `other`.
 - `products.routes.ts`: validate with `listingProblems`. `PATCH` accepts every field (no edit limit). A farmer may `DELETE` any of his own listings (`farmerMayDelete` returns true); keep the Cloudinary cleanup.
-- `catalog.routes.ts`: `q` also matches the crop's `mr`/`en`/`hi` labels. Add filters `cropId` and `cultivation`.
+- `catalog.routes.ts`: `q` also matches the crop's `mr`/`en` labels. Add filters `cropId` and `cultivation`.
 - `UploadProduct.tsx` wizard steps: crop (chips from `CROPS` grouped by category) → photo (existing `PhotoPicker`) → name (pre-filled from the crop label, editable) → unit → price per unit → quantity available + minimum order → harvest date (`<input type="date" max={today}>`) → cultivation (three big choices with icons `IconOrganic`, `IconNatural`, `IconChemical` added to `icons.tsx` from `react-icons/gi` `GiPlantSeed`, `GiSprout`, `GiChemicalDrop`) → review. Delete the food/non-food fork and every food-only screen.
 - `EditProduct.tsx`: the same fields on one page.
 - `productDraft.ts` + its test: the new shape.
@@ -1871,7 +2250,7 @@ export default function MapView({ pins, height = 320, onSelect, center = [17.99,
 ```
 Load it lazily wherever it is used: `const MapView = lazy(() => import('../components/MapView.js'))` inside `<Suspense fallback={<Loading />}>`, so Leaflet (~40KB gz) is downloaded only on map screens.
 
-`--primary` exists from Task 14. Until then, `MapView` falls back: `colour.primary || '#2e7d32'`.
+`--primary` exists from Task 13. Until then, `MapView` falls back: `colour.primary || '#2e7d32'`.
 
 - [ ] **Step 6: Screens**
 
@@ -2135,7 +2514,7 @@ Run: `cd backend && node --import tsx --test tests/price-hint.test.ts` → PASS.
 
   Under both, a small `hint.note` — "हा फक्त अंदाज आहे. किंमत तुम्हीच ठरवा." / "This is only a guide. You set the price." It never writes into the price field.
 - Put `<PriceHint>` under the price input in `UploadProduct.tsx` (price step) and `EditProduct.tsx`.
-- Voice search: in `Browse.tsx`, the search box becomes a `VoiceInput` (it already owns its mic). `useVoiceInput.ts` picks the recogniser language from the app language: `{ mr: 'mr-IN', en: 'en-IN', hi: 'hi-IN' }[lang]`. Check how it is chosen today and change only that mapping.
+- Voice search: in `Browse.tsx`, the search box becomes a `VoiceInput` (it already owns its mic). `useVoiceInput.ts` picks the recogniser language from the app language: `{ mr: 'mr-IN', en: 'en-IN' }[lang]`. Check how it is chosen today and change only that mapping.
 - Admin `Demand.tsx` at `/demand`: a horizontal bar pair per crop (ordered vs listed). Follow the reference's chart standards (FEATURE-SPEC §13.3 and the existing `Donut.tsx` / Impact styling): series 1 leaf green = ordered, series 2 maroon = listed, value labels on the bars, and a period select 7/30/90 days. Include a table view under the chart with the same numbers.
 - `api.ts` (both): `priceHint`, `demand`.
 
@@ -2149,7 +2528,7 @@ git commit -m "Price hints, a demand/supply chart and voice search
 The listing form shows the median asking price here and, with a
 data.gov.in key, the latest Agmarknet modal price converted to the
 listing's unit (kg and quintal only). Admins get ordered-vs-listed per
-crop. The catalogue search takes speech in Marathi, Hindi or English.
+crop. The catalogue search takes speech in Marathi or English.
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
@@ -2430,10 +2809,10 @@ surveysRouter.delete('/:id', (req, res) => {
 
 - [ ] **Step 6: Admin screens**
 
-- `Surveys.tsx` at `/surveys`: a "New survey" form in a `<dialog>`. Fields: village, taluka, phone (optional), age group, education, landholding (selects), farmer types, crops, channels, problems (checkbox groups), the ten FDRI questions as Yes / No / Not asked radio triples (default Not asked), and a "Use this device's location" button. Below it, the list of surveys: newest first, the row shows village, date, entered by, FDRI score and band pill, linked farmer, with Delete behind `Confirm` ("This questionnaire leaves every research table."). A count line: "{n} questionnaires · {m} linked to farmers".
-- `Research.tsx` at `/research`: a heading "Respondents: {farmers} registered farmers + {surveys} questionnaires = {total}", then each table as an HTML `<table>` with its title in English and Marathi, a "Download CSV" button per table and a "Download all" that builds one CSV per table in sequence (`toCsv` + `URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))`, file names `table-<id>.csv`). Show `res.t9Note` under Table 9.
+- `Surveys.tsx` at `/surveys`: a "New survey" form in a `<dialog>`. Fields: village, taluka, phone (optional), age group, education, landholding (selects), farmer types, crops, channels, problems (checkbox groups), the ten FDRI questions as Yes / No / Not asked radio triples (default Not asked), and a "Use this device's location" button. Below it, the list of surveys: newest first, the row shows village, date, entered by, FDRI score and band pill, linked farmer, with Delete behind `Confirm` ("ही प्रश्नावली सर्व संशोधन तक्त्यांमधून निघून जाईल." / "This questionnaire leaves every research table."). A count line: "{n} प्रश्नावली · {m} शेतकऱ्यांशी जोडलेल्या" / "{n} questionnaires · {m} linked to farmers".
+- `Research.tsx` at `/research`: a heading "उत्तरदाते: {farmers} नोंदणीकृत शेतकरी + {surveys} प्रश्नावली = {total}" / "Respondents: {farmers} registered farmers + {surveys} questionnaires = {total}", then each table as an HTML `<table>` with its title in Marathi and English, a "Download CSV" button per table and a "Download all" that builds one CSV per table in sequence (`toCsv` + `URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))`, file names `table-<id>.csv`). Show `res.t9Note` under Table 9.
 - `Shell.tsx`: add Surveys, Research, Map and Demand links.
-- Admin dictionaries: every label in both languages.
+- Admin dictionaries: every label, written in Marathi first, then English.
 
 - [ ] **Step 7: Gate and commit**
 
@@ -2452,61 +2831,14 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 13: Hindi
+### Task 13: Theme, branding, Marathi-first languages, landing page and a gender-neutral copy pass
 
 **Files:**
-- Modify: `frontend/src/i18n/strings.ts`, `frontend/src/i18n/I18nProvider.tsx`, `frontend/tests/i18n.test.ts`, `admin/src/i18n/strings.ts`, `admin/src/i18n/I18nProvider.tsx`, `admin/tests/i18n.test.ts`, `frontend/src/components/ui.tsx` (`LanguagePicker`), every screen that reads `lang === 'en' ? … : …` from shared label objects (`FDRI_QUESTIONS`, profile lists, `CROPS`)
-
-**Interfaces:**
-- Consumes: all dictionaries as they stand after Task 12.
-- Produces: `LangCode = 'mr' | 'en' | 'hi'`; `label(o: { mr: string; en: string; hi: string }, lang: LangCode): string` in `frontend/src/lib/label.ts` (and an admin copy).
-
-- [ ] **Step 1: Extend the parity test first**
-
-In `frontend/tests/i18n.test.ts`, change the parity assertions from `mr`↔`en` to all three dictionaries having the same key set. Add: "every `hi` value contains Devanagari unless the `en` value is identical (brand names, UPI)". Do the same in `admin/tests/i18n.test.ts`.
-Run: `npm test -w @f2c/frontend` → FAIL (no `hi` dictionary).
-
-- [ ] **Step 2: Add the dictionary and provider support**
-
-```ts
-export const LANGS = [
-  { code: 'mr', label: 'मराठी', sub: 'Marathi' },
-  { code: 'hi', label: 'हिंदी', sub: 'Hindi' },
-  { code: 'en', label: 'English', sub: 'इंग्रजी' },
-] as const
-```
-`const hi: Record<string, string> = { … }` has every key of `en`, written as Hindi, not word-for-word from Marathi. Use simple everyday Hindi a farmer in Dharashiv district would hear (उपज, दाम, किसान, ग्राहक, ऑर्डर, भुगतान). `dictionaries = { mr, en, hi }`. `I18nProvider` reads the stored value: `const v = localStorage.getItem(STORAGE_KEY); return v === 'en' || v === 'hi' ? v : 'mr'`.
-
-`frontend/src/lib/label.ts`:
-```ts
-import type { LangCode } from '../i18n/strings.js'
-export const label = (o: { mr: string; en: string; hi: string }, lang: LangCode) => o[lang]
-```
-Replace each `lang === 'en' ? o.en : o.mr` (`grep -rn "=== 'en' ?" frontend/src admin/src`) with `label(o, lang)`.
-
-- [ ] **Step 3: Gate and commit**
-
-Run: `npm test && npm run typecheck && npm run build` → PASS.
-```bash
-git add -A
-git commit -m "Add Hindi as a third language
-
-Every string exists in Marathi, Hindi and English; the parity test now
-holds all three. Marathi stays the default.
-
-Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
-```
-
----
-
-### Task 14: Theme, branding, landing page and a gender-neutral copy pass
-
-**Files:**
-- Modify: `frontend/src/styles/theme.css`, `admin/src/styles/admin.css`, every `.tsx` with `var(--maroon` (6 files, found by grep), `frontend/src/components/QrCode.tsx` (`QR_COLOURS`), `frontend/src/screens/landing/{Landing,CollegeCard,HeroArt,PhotoRotator}.tsx`, `frontend/index.html`, `admin/index.html`, `frontend/public/*`, `admin/public/*`, `frontend/src/assets/*`, all dictionaries, `frontend/tests/marathi.test.ts`, `admin/tests/marathi.test.ts`
+- Modify: `frontend/src/styles/theme.css`, `admin/src/styles/admin.css`, every `.tsx` with `var(--maroon` (6 files, found by grep), `frontend/src/components/QrCode.tsx` (`QR_COLOURS`), `frontend/src/screens/landing/{Landing,CollegeCard,HeroArt,PhotoRotator}.tsx`, `frontend/src/components/layouts.tsx` (app bar name), `admin/src/components/Shell.tsx` (header name and language picker), `frontend/index.html`, `admin/index.html`, `frontend/public/*`, `admin/public/*`, `frontend/src/assets/*`, `frontend/src/i18n/I18nProvider.tsx`, `admin/src/i18n/I18nProvider.tsx`, `frontend/src/components/ui.tsx` (`LanguagePicker`), all dictionaries, `frontend/tests/i18n.test.ts`, `admin/tests/i18n.test.ts`, `frontend/tests/marathi.test.ts`, `admin/tests/marathi.test.ts`
 
 **Interfaces:**
 - Consumes: everything.
-- Produces: tokens `--primary`, `--primary-dark`, `--primary-soft`, `--leaf`, `--leaf-dark`, `--leaf-mid`, `--leaf-soft`; `--maroon*` kept as the accent.
+- Produces: tokens `--primary`, `--primary-dark`, `--primary-soft`, `--leaf`, `--leaf-dark`, `--leaf-mid`, `--leaf-soft`; `--maroon*` kept as the accent. Both apps start in Marathi, list मराठी first and fall back to Marathi for a missing key. `app.name` / `app.nameShort` shown Marathi first.
 
 - [ ] **Step 1: Tokens**
 
@@ -2535,10 +2867,11 @@ Check contrast. With the app running (`npm run dev`), open `/`, `/login/farmer`,
 - [ ] **Step 3: Logo and names**
 
 The logo files copied in Task 1 are the mark the user supplied (same portrait, gold ring). Keep `frontend/src/assets/logo.png`, `admin/src/assets/logo.png` and both `public/` favicons, with no border and no background. Update:
-- `app.name` → mr "शेतकऱ्यापासून थेट ग्राहकापर्यंत", en "Farmers to Consumer", hi "किसान से सीधे ग्राहक तक"
-- `app.nameShort` (new) → "Farmers to Consumer" in all three (brand)
-- `app.tagline` → mr "शेतकरी समृद्ध | ग्राहक सुरक्षित | शेती टिकाऊ", en "Prosperous farmers · Safe buyers · Sustainable farming", hi "समृद्ध किसान | सुरक्षित ग्राहक | टिकाऊ खेती"
-- `<title>` in both `index.html` files: "Farmers to Consumer" and "Farmers to Consumer · Admin"
+- `app.name` → "शेतकऱ्यापासून थेट ग्राहकापर्यंत" in both dictionaries. The product name is a brand, and Marathi leads it whatever the language.
+- `app.nameShort` (new) → "Farmers to Consumer" in both dictionaries.
+- Wherever the name shows (landing hero, app bar, admin `Shell` header, sign-in screens), `app.name` comes first and `app.nameShort` second, smaller, under it.
+- `app.tagline` → mr "शेतकरी समृद्ध | ग्राहक सुरक्षित | शेती टिकाऊ", en "Prosperous farmers · Safe buyers · Sustainable farming"
+- `<title>` in both `index.html` files: "शेतकऱ्यापासून थेट ग्राहकापर्यंत · Farmers to Consumer" and "शेतकऱ्यापासून थेट ग्राहकापर्यंत · Farmers to Consumer · प्रशासन"
 - `grep -rn "Shantai\|शांताई\|SMB\|महिला" frontend/src admin/src backend/src shared/src` must return nothing afterwards.
 
 - [ ] **Step 4: Landing page, following the poster**
@@ -2547,39 +2880,69 @@ The logo files copied in Task 1 are the mark the user supplied (same portrait, g
 1. Hero: logo, `app.name`, `app.tagline`, `lp.mission` ("शेतकऱ्यांच्या मेहनतीचे योग्य मूल्य आणि ग्राहकांना शुद्ध, सुरक्षित व ताजे अन्नधान्य — हेच आमचे ध्येय!"), and the four entry buttons (farmer: register / login; buyer: register / login). The farmer ones use `door--primary`.
 2. `lp.needTitle` प्रकल्पाची गरज — the five poster lines.
 3. `lp.workflowTitle` कार्यप्रवाह — six steps with icons: शेतकरी नोंदणी → उत्पादनाची माहिती अपलोड → किंमत अंदाज → डिजिटल बाजारपेठ → QR कोडद्वारे माहिती → वितरण व ट्रॅकिंग. The poster's "AI द्वारे विश्लेषण" is worded "किंमत अंदाज", because this build has no AI (spec §5.8).
-4. `lp.featuresTitle` प्रकल्पाची वैशिष्ट्ये — the web portal, price hint, QR traceability, GPS farmer map, digital payment (UPI), organic/local promotion, three languages.
+4. `lp.featuresTitle` प्रकल्पाची वैशिष्ट्ये — the web portal, price hint, QR traceability, GPS farmer map, digital payment (UPI), organic/local promotion, Marathi first with English.
 5. `lp.benefitsTitle` संभाव्य परिणाम — the poster's five lines.
 6. `CollegeCard`: जवाहर कला, विज्ञान व वाणिज्य महाविद्यालय, अणदूर, ता. तुळजापूर, जि. धाराशिव. Aavishkar Research Convention. संशोधक: कु. गायत्री पाटील (बी. कॉम. 3). मार्गदर्शक: प्रा. डॉ. डी. डी. कदम, प्रा. डॉ. एस. ए. इनामदार, प्रा. आर. व्हि. पवार, प्रा. कु. डी. एस. गणाचारी. वाणिज्य विभाग.
 7. Footer: `lp.footerQuote` "शेतकऱ्यांच्या श्रमाला, ग्राहकांच्या आरोग्यासाठी तंत्रज्ञानाची साथ!", the help phone, and the links "Farmer map" and "Help".
 
 `PhotoRotator`/`HeroArt`: remove the reference's photos of women's products. Use the category photos kept in Task 7 if any fit (vegetables, grains). Otherwise drop the rotator and keep `HeroArt` as a simple CSS field illustration using the tokens.
 
-- [ ] **Step 5: Gender-neutral Marathi and Hindi**
+- [ ] **Step 5: Gender-neutral Marathi**
 
 The reference addresses women. Farmers are men and women.
 ```bash
 grep -n "करते'\|आलीस\|विक्रेती\|उद्योजिका\|महिला\|ताई\|तिच\|ती \|तुझ" frontend/src/i18n/strings.ts admin/src/i18n/strings.ts
 ```
-Rewrite each hit in the plural-respectful form Marathi uses for any adult (`तुम्ही … करता`, `नंतर करू`). `common.skip` becomes `नंतर करू`. Per `docs/MARATHI-STYLE.md`, keep ऑर्डर neuter. Then update `CLAUDE.md`'s note that `नंतर करते` is deliberate: it is now `नंतर करू`, for the same reason (the reader's own first-person voice), made neutral. Do the same pass on Hindi (`करूँगी` → `करेंगे`). Update `marathi.test.ts` if it pins any of the old strings.
+Rewrite each hit in the plural-respectful form Marathi uses for any adult (`तुम्ही … करता`, `नंतर करू`). `common.skip` becomes `नंतर करू`. Per `docs/MARATHI-STYLE.md`, keep ऑर्डर neuter. Then update `CLAUDE.md`'s note that `नंतर करते` is deliberate: it is now `नंतर करू`, for the same reason (the reader's own first-person voice), made neutral. Update `marathi.test.ts` if it pins any of the old strings.
 
-- [ ] **Step 6: Gate, look, commit**
+- [ ] **Step 6: Marathi first, in both apps**
+
+Marathi is the default and the source; English is the toggle. Pin that in the tests first. In `frontend/tests/i18n.test.ts` and `admin/tests/i18n.test.ts`, next to the existing `mr`↔`en` parity check, add:
+```ts
+test('मराठी is the first language offered', () => {
+  // The picker order is the product's priority: Marathi first, English second.
+  assert.deepEqual(LANGS.map((l) => l.code), ['mr', 'en'])
+})
+```
+(`LANGS` is the list the `LanguagePicker` renders; if the admin names it differently or has none, export one from `admin/src/i18n/strings.ts`.)
+Run: `npm test -w @f2c/frontend -w @f2c/admin` → FAIL wherever the order or the list is wrong.
+
+Then:
+- Both `strings.ts`: `LANGS` lists मराठी first:
+  ```ts
+  export const LANGS = [
+    { code: 'mr', label: 'मराठी', sub: 'Marathi' },
+    { code: 'en', label: 'English', sub: 'इंग्रजी' },
+  ] as const
+  ```
+- Both `I18nProvider.tsx`: the stored value decides, and anything else is Marathi: `const v = localStorage.getItem(STORAGE_KEY); return v === 'en' ? 'en' : 'mr'`. The reference admin console may start in English; it now starts in Marathi like the app, with the same picker in the `Shell` header.
+- Both `I18nProvider.tsx`: a missing key falls back to Marathi, the source text, not to English. The reference has `dictionaries[lang][key] ?? dictionaries.en[key] ?? key`; change it to:
+  ```ts
+  dictionaries[lang][key] ?? dictionaries.mr[key] ?? key
+  ```
+  The parity test already stops a key missing from one dictionary, so this line only matters if a gap ever slips through.
+
+Run: `npm test -w @f2c/frontend -w @f2c/admin` → PASS.
+
+- [ ] **Step 7: Gate, look, commit**
 
 Run: `npm test && npm run typecheck && npm run build` → PASS.
-Run `npm run dev:all` and walk through landing → register farmer → upload listing → buyer register → order → farmer accept → pay → pack → deliver → review, once in each language. Screenshot the landing and one screen per role at 360px width and check that nothing overflows.
+Run `npm run dev:all` and walk through landing → register farmer → upload listing → buyer register → order → farmer accept → pay → pack → deliver → review, once in Marathi and once in English. Open the admin console in a fresh browser profile and check that it starts in Marathi. Screenshot the landing and one screen per role at 360px width and check that nothing overflows.
 ```bash
 git add -A
-git commit -m "Leaf green and maroon theme, Farmers to Consumer branding, poster landing
+git commit -m "Leaf green and maroon theme, Marathi-first branding, poster landing
 
 Primary actions move to a --primary token (leaf green); maroon stays
-for prices, names and headings. Copy no longer assumes the reader is a
-woman, in Marathi or Hindi.
+for prices, names and headings. The name reads Marathi first. Both apps
+start in Marathi, list it first and fall back to it for a missing key.
+Copy no longer assumes the reader is a woman.
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 15: Documentation and deployment
+### Task 14: Documentation and deployment
 
 **Files:**
 - Modify: `CLAUDE.md`, `README.md`, `docs/DEPLOY.md`, `docs/FEATURE-SPEC.md`, `docs/MANUAL-TEST-PLAN.md`, `docs/DEMO-SCRIPT.md`, `docs/TRAINING-CHECKLIST.md`, `docs/FUTURE-SCOPE.md`, `docs/CAPACITY.md`, `backend/.env.example`, `frontend/.env.example`, `.github/workflows/backup.yml`, `frontend/vercel.json`, `admin/vercel.json`
@@ -2591,17 +2954,17 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: CLAUDE.md**
 
-Update to the new product. Keep every architecture section that still holds (persistence, bulk-delete guard, sessions minus OTP, account close, order state machine plus pickup, money after acceptance, cancel, UTR/UPI rules, one farmer per cart, delivery area as a hint, public visibility, scroll memory, draft keys, photos, reviews, updates list, reports, complaints, sorting, config, conventions, design rules, deployment shape minus the APK). Add sections for: verification, password auth, FDRI, location privacy, produce rules, pickup, trace QR, maps, price hint, research module, three languages. The test counts in "Commands" must be the real ones from `npm test`.
+Update to the new product. Keep every architecture section that still holds (persistence, bulk-delete guard, sessions minus OTP, account close, order state machine plus pickup, money after acceptance, cancel, UTR/UPI rules, one farmer per cart, delivery area as a hint, public visibility, scroll memory, draft keys, photos, reviews, updates list, reports, complaints, sorting, config, conventions, design rules, deployment shape minus the APK). Add sections for: verification, password auth, FDRI, location privacy, produce rules, pickup, trace QR, maps, price hint, research module, and Marathi first (default in both apps, source text, fallback; English the toggle). The test counts in "Commands" must be the real ones from `npm test`.
 
 - [ ] **Step 2: README, spec, test plan, demo**
 
 - `README.md`: name, layout, run. Demo login: seed with `SEED_DEMO_DATA=true`, then `npm run admin -- set-password 9822011223 123456` and sign in at `/login/farmer`. Admin account creation as before.
 - `docs/FEATURE-SPEC.md`: replace it with a short pointer to the design spec in `docs/superpowers/specs/`, plus the reference sections that still apply (order lifecycle, money flow, rural design rules).
-- `docs/MANUAL-TEST-PLAN.md`: rewrite the flows for password login, forgotten password (admin reset), farmer verification, listing with harvest date, pickup order, trace QR scan from a second phone, map, price hint with and without the key, survey entry, research CSV opened in Excel, and Hindi.
+- `docs/MANUAL-TEST-PLAN.md`: rewrite the flows for password login, forgotten password (request page with a registered and an unregistered number showing the same confirmation, the fourth request in a day refused, the admin queue, reset from the queue, must-change at next login), farmer verification, listing with harvest date, pickup order, trace QR scan from a second phone, map, price hint with and without the key, survey entry, research CSV opened in Excel, and the language rules (a first visit to the app and to the admin console opens in Marathi; the English toggle works and is remembered).
 - `docs/DEMO-SCRIPT.md`: the Aavishkar demo, 5 minutes: poster → landing → farmer registers (FDRI) → admin verifies → listing with price hint → QR printed → buyer scans the QR → orders → farmer accepts → UPI pay → pickup → review → admin research tables.
-- `docs/TRAINING-CHECKLIST.md`: for field coordinators. Cover registering a farmer on their own phone, writing the password down with them, the verification visit, and entering a paper questionnaire.
-- `docs/FUTURE-SCOPE.md`: keep items that still apply. Add from the paper: Android app, AI price recommendation, crop disease detection, demand forecasting, digital weighing receipt, FPO integration, cold chain.
-- `docs/CAPACITY.md`: add `credentials` and `surveys` to the read budget.
+- `docs/TRAINING-CHECKLIST.md`: for field coordinators. Cover registering a farmer on their own phone, writing the password down with them, the verification visit, working the Password requests queue (call the number on the request, confirm name and village, read out the temporary password only on that call, close requests that need no reset), and entering a paper questionnaire.
+- `docs/FUTURE-SCOPE.md`: keep items that still apply, and drop any item that would build or prepare a mobile app (APK, Play Store, WebView wrapper, push). Add from the paper: AI price recommendation, crop disease detection, demand forecasting, digital weighing receipt, FPO integration, cold chain.
+- `docs/CAPACITY.md`: add `credentials`, `passwordRequests` and `surveys` to the read budget.
 
 - [ ] **Step 3: DEPLOY.md and environment**
 
@@ -2612,7 +2975,7 @@ Rewrite for new names:
 - `CORS_ORIGIN` = both Vercel URLs, comma-separated.
 - A new Firebase project and a new Cloudinary folder, so nothing is shared with Shantai.
 
-`.env.example` files: delete MSG91, FCM and admin UPI variables; add `DATA_GOV_IN_API_KEY`. `.github/workflows/backup.yml`: point it at the new project's secrets (names unchanged) and add `credentials` and `surveys` if the workflow lists collections.
+`.env.example` files: delete MSG91, FCM and admin UPI variables; add `DATA_GOV_IN_API_KEY`. `.github/workflows/backup.yml`: point it at the new project's secrets (names unchanged) and add `credentials`, `passwordRequests` and `surveys` if the workflow lists collections.
 
 - [ ] **Step 4: Deploy (the user runs the account-owning steps)**
 
@@ -2637,6 +3000,6 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ## Self-review notes
 
-- Spec coverage: §3 copy → T1 · §4 removals → T2, T3, T5, T7 · §5.1 auth → T5 · §5.2 farmer → T4, T6 · §5.3 FDRI → T6 · §5.4 produce → T7 · §5.5 delivery/pickup → T8 · §5.6 QR → T9 · §5.7 maps → T10 · §5.8 hints/demand/voice → T11 · §5.9 research → T12 · §5.10 languages → T13 · §5.11 branding/palette → T14 · §6 design rules → Global Constraints · §7 data model → T3, T5–T8, T12 · §8 tests → each task · §9 order → task order · docs/deploy → T15.
+- Spec coverage: §3 copy → T1 · §4 removals → T2, T3, T5, T7 · §5.1 auth, forgot-password requests and admin queue → T5 · §5.2 farmer → T4, T6 · §5.3 FDRI → T6 · §5.4 produce → T7 · §5.5 delivery/pickup → T8 · §5.6 QR → T9 · §5.7 maps → T10 · §5.8 hints/demand/voice → T11 · §5.9 research → T12 · §5.10 languages → Global Constraints, T13 · §5.11 branding/palette → T13 · §6 design rules → Global Constraints · §7 data model → T3, T5–T8, T12 · §8 tests → each task · §9 order → task order · docs/deploy → T14.
 - Review Focus coverage: phone formats → T5 test "a phone typed with +91"; unverified/blocked QR → T9 loop test; pickup cancel → T8 test; dozen/piece mandi → T11 test; missing survey answers → T12 test "not answered".
-- Known judgement calls recorded in the tasks: seeded farmers have no password (T6); Table 9 counts an unanswered direct-selling question as not willing (T12, shown as a note); the pickup place is public without home-location consent but rounded (T8).
+- Known judgement calls recorded in the tasks: seeded farmers have no password (T6); Table 9 counts an unanswered direct-selling question as not willing (T12, shown as a note); the pickup place is public without home-location consent but rounded (T8); a forgot-password request is matched through `credentials`, so a seeded farmer with no password shows "no account" and is reset from his farmer page (T5); the 429 for the fourth request is tested at the limiter, like the login limit (T5).
