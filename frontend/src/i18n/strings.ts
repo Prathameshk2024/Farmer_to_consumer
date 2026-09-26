@@ -777,6 +777,11 @@ const mr: Record<string, string> = {
   'cult.chemicalHint': 'रासायनिक खत किंवा फवारणी वापरली',
   'ph.price': 'उदा. 40',
   'ph.stock': 'उदा. 100',
+
+  // ---- price hint under the price box: advice, never a default ----------
+  'hint.platform': 'इथे इतर शेतकरी: ₹{price} / {unit} ({n} जाहिराती)',
+  'hint.mandi': '{market} बाजार समिती, {date}: ₹{price} / {unit}',
+  'hint.note': 'हा फक्त अंदाज आहे. किंमत तुम्हीच ठरवा.',
 }
 
 const en: Record<string, string> = {
@@ -1503,6 +1508,11 @@ const en: Record<string, string> = {
   'cult.chemicalHint': 'Chemical fertiliser or spray was used',
   'ph.price': 'e.g. 40',
   'ph.stock': 'e.g. 100',
+
+  // ---- price hint under the price box ----------------------------------
+  'hint.platform': 'Others here ask ₹{price} / {unit} ({n} listings)',
+  'hint.mandi': '{market} APMC, {date}: ₹{price} / {unit}',
+  'hint.note': 'This is only a guide. You set the price.',
 }
 
 export const dictionaries: Record<LangCode, Record<string, string>> = { mr, en }

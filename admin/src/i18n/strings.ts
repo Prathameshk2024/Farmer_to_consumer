@@ -344,6 +344,19 @@ const mr: Record<string, string> = {
   'pwr.wait.min': '{n} मिनिटांपासून',
   'pwr.wait.hour': '{n} तासांपासून',
   'pwr.wait.day': '{n} दिवसांपासून',
+
+  // ---- demand and supply ---------------------------------------------
+  'nav.demand': 'मागणी-पुरवठा',
+  'dm.title': 'मागणी आणि पुरवठा',
+  'dm.sub': 'पिकानुसार: या काळात मागवलेले आणि आता विक्रीस असलेले',
+  'dm.period': 'कालावधी',
+  'dm.days': 'मागील {n} दिवस',
+  'dm.ordered': 'मागवलेले',
+  'dm.listed': 'विक्रीस असलेले',
+  'dm.table': 'तक्ता',
+  'dm.crop': 'पीक',
+  'dm.unit': 'एकक',
+  'dm.empty': 'या काळात काहीही मागवलेले किंवा विक्रीस नाही',
 }
 
 const en: Record<string, string> = {
@@ -668,6 +681,19 @@ const en: Record<string, string> = {
   'pwr.wait.min': 'waiting {n} min',
   'pwr.wait.hour': 'waiting {n} h',
   'pwr.wait.day': 'waiting {n} days',
+
+  // ---- demand and supply ---------------------------------------------
+  'nav.demand': 'Demand',
+  'dm.title': 'Demand and supply',
+  'dm.sub': 'Per crop: ordered in the period against what is listed now',
+  'dm.period': 'Period',
+  'dm.days': 'Last {n} days',
+  'dm.ordered': 'Ordered',
+  'dm.listed': 'Listed now',
+  'dm.table': 'Table',
+  'dm.crop': 'Crop',
+  'dm.unit': 'Unit',
+  'dm.empty': 'Nothing ordered or listed in this period',
 }
 
 export const dictionaries: Record<LangCode, Record<string, string>> = { mr, en }

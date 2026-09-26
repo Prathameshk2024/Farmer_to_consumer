@@ -4,7 +4,7 @@ import {
 } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n, useT } from '../i18n/I18nProvider.js'
-import { useVoiceInput } from '../lib/useVoiceInput.js'
+import { RECOGNITION_LANG, useVoiceInput } from '../lib/useVoiceInput.js'
 import {
   dropCache, openScreen, screenIdentity, shownFor, writeCache, type Shown,
 } from '../lib/screenCache.js'
@@ -271,7 +271,7 @@ export function VoiceInput({
   )
 
   const voice = useVoiceInput(append, {
-    lang: langOverride ?? (lang === 'en' ? 'en-IN' : 'mr-IN'),
+    lang: langOverride ?? RECOGNITION_LANG[lang],
   })
 
   /**

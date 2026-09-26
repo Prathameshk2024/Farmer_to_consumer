@@ -309,6 +309,12 @@ export const ALLOW_DEV_RESET =
  */
 export const ALLOW_BULK_DELETE = /^(1|true|yes)$/i.test(firstOf('ALLOW_BULK_DELETE') ?? '')
 
+/**
+ * data.gov.in key for the Agmarknet daily mandi prices. Optional: without it
+ * the price hint shows only what other farmers here ask.
+ */
+export const DATA_GOV_IN_API_KEY = process.env.DATA_GOV_IN_API_KEY?.trim() || ''
+
 export function describeConfig(): string {
   const lines = [
     `  Database       ${
@@ -317,6 +323,7 @@ export function describeConfig(): string {
         : 'JSON file (backend/data/db.json)'
     }`,
     `  Images         ${usingCloudinary ? `Cloudinary (${cloudinary!.cloudName})` : 'off - emoji only'}`,
+    `  Mandi prices   ${DATA_GOV_IN_API_KEY ? 'on' : 'off (no DATA_GOV_IN_API_KEY)'}`,
     `  CORS           ${CORS_ORIGIN === true ? 'any origin' : CORS_ORIGIN.join(', ')}`,
   ]
   if (IS_PROD && CORS_ORIGIN === true) {

@@ -1,5 +1,6 @@
 import { Router, type Request } from 'express'
 import type { AdminStats } from '@shared/types.js'
+import type { Unit } from '@shared/produce.js'
 import { canSellNow } from '@shared/farmer.js'
 import { summarizeReviews } from '@shared/review.js'
 import { getDb, save } from '../db/store.js'
@@ -611,4 +612,27 @@ adminRouter.get('/impact', (_req, res) => {
       band: s.fdriBand,
     })),
   })
+})
+
+/**
+ * Demand against supply, per crop and unit: what buyers ordered in the period
+ * beside what is on the shelf now. A plain count, not a forecast.
+ */
+adminRouter.get('/demand', (req, res) => {
+  const db = getDb()
+  const days = Math.min(365, Math.max(1, Number(req.query.days) || 30))
+  const since = Date.now() - days * 86_400_000
+  const productById = new Map(db.products.map((p) => [p.id, p]))
+  const rows = new Map<string, { cropId: string; unit: Unit; ordered: number; listed: number }>()
+  const row = (cropId: string, unit: Unit) => {
+    const k = `${cropId}|${unit}`
+    if (!rows.has(k)) rows.set(k, { cropId, unit, ordered: 0, listed: 0 })
+    return rows.get(k)!
+  }
+  for (const p of db.products) if (p.status === 'LIVE') row(p.cropId, p.unit).listed += p.stock
+  for (const o of db.orders) {
+    if (Date.parse(o.placedAt) < since || o.status === 'REJECTED' || o.status === 'CANCELLED') continue
+    for (const i of o.items) { const p = productById.get(i.productId); if (p) row(p.cropId, p.unit).ordered += i.qty }
+  }
+  res.json({ rows: [...rows.values()].sort((a, b) => b.ordered - a.ordered) })
 })

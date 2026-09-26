@@ -23,6 +23,7 @@ import {
 } from '../../components/ui.js'
 import { IconBack, IconNext } from '../../components/icons.js'
 import { PageTour } from '../../components/Walkthrough.js'
+import { PriceHint } from '../../components/PriceHint.js'
 
 const STEPS = [
   'crop', 'photo', 'name', 'unit', 'price', 'quantity', 'harvest', 'cultivation', 'review',
@@ -296,6 +297,7 @@ export default function UploadProduct() {
               />
               <strong style={{ flex: 'none' }}>/ {t(`unit.${d.unit}`)}</strong>
             </div>
+            <PriceHint cropId={d.cropId} unit={d.unit} />
           </Field>
         )}
 

@@ -8,7 +8,7 @@ import { Button, useAsync } from './ui.js'
 import { Confirm } from './Confirm.js'
 import {
   IconBack, IconHome, IconImpact, IconOrders, IconProducts,
-  IconComplaints, IconReviews, IconFarmers, IconToday, IconPasswords,
+  IconComplaints, IconReviews, IconFarmers, IconToday, IconPasswords, IconDemand,
 } from './icons.js'
 
 /**
@@ -67,6 +67,7 @@ export function Shell() {
     { to: '/complaints', icon: IconComplaints, label: t('nav.complaints') },
     { to: '/password-requests', icon: IconPasswords, label: t('pwr.title'), badge: s?.openPasswordRequests },
     { to: '/impact', icon: IconImpact, label: t('nav.impact') },
+    { to: '/demand', icon: IconDemand, label: t('nav.demand') },
   ]
 
   return (
