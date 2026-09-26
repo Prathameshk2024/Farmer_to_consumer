@@ -13,7 +13,8 @@ import { destroyImage } from '../routes/uploads.routes.js'
  *
  * A waiting listing goes on sale (its farmer still has to be verified before
  * anyone sees it); a refused or archived one is removed with its photo; an
- * unpaid seller waits for verification.
+ * unpaid seller waits for verification; one already ACTIVE is stamped as
+ * verified.
  */
 export function normalizeLegacyRows(
   db: Pick<Db, 'products' | 'sellers'>,
@@ -37,6 +38,13 @@ export function normalizeLegacyRows(
   for (const s of db.sellers) {
     if (['REGISTERED', 'PAYMENT_SUBMITTED', 'PAYMENT_REJECTED'].includes(s.status as string)) {
       s.status = 'PENDING_VERIFICATION'
+      changed++
+    } else if (s.status === 'ACTIVE' && !s.verifiedAt) {
+      // Selling before verification existed: already let in by an admin.
+      // Stamped so that unblock and restore, which key on `verifiedAt`, do
+      // not drop him back to waiting.
+      s.verifiedAt = new Date().toISOString()
+      s.verifiedBy = 'legacy'
       changed++
     }
   }

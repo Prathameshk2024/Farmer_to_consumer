@@ -152,8 +152,5 @@ export const SELLER_PII_FIELDS = [
   'blockReason',
 ] as const
 
-/** The same, for a payment row: the ledger keeps the money, not the payer. */
-export const PAYMENT_PII_FIELDS = ['phone', 'payerUpi', 'screenshotUrl'] as const
-
 /** And for the buyer's copies carried on an order she placed. */
 export const ORDER_BUYER_PII_FIELDS = ['customerPhone', 'address'] as const
