@@ -243,11 +243,42 @@ Marathi. Hindi strings are written as Hindi, not translated word for word.
 ### 5.11 Branding
 
 Name "Farmers to Consumer" / "शेतकऱ्यापासून थेट ग्राहकापर्यंत", tagline
-"शेतकरी समृद्ध | ग्राहक सुरक्षित | शेती टिकाऊ". Green and orange from the
-poster, set in the `THEME SWAP POINT` block of `theme.css` only. Logo: the
-college logo supplied by the team (placeholder mark until then). Landing page
-follows the poster: need, objectives, workflow, benefits, college card with
-researcher and guide names from the paper.
+"शेतकरी समृद्ध | ग्राहक सुरक्षित | शेती टिकाऊ".
+
+**Logo:** the same portrait mark as the reference project (maroon and gold in
+its own gold ring), copied as `frontend/src/assets/logo.png`,
+`admin/src/assets/logo.png` and both `public/` favicons. As before, never give
+it a border or a background — it already carries its ring.
+
+**Palette:** leaf green leads, maroon supports. Only the `THEME SWAP POINT`
+block of `theme.css` (and the matching block in `admin.css`) changes:
+
+| Token | Value | Use |
+|---|---|---|
+| `--leaf` | `#2e7d32` | primary action, header, active tab (white text 5.1:1) |
+| `--leaf-dark` | `#1b5e20` | pressed |
+| `--leaf-mid` | `#43a047` | secondary highlights |
+| `--leaf-soft` | `#e8f5e9` | tinted surface |
+| `--maroon` | `#7b1e2e` | second accent: price, farmer name, headings, links |
+| `--maroon-soft` | `#f8e9e8` | maroon-tinted surface |
+| `--gold` | `#b6851b` | stars, small highlights (kept from the logo) |
+| `--bg` | `#f7f5ec` | page ground, a cooler cream than the reference |
+| `--danger` | `#b3341f` | errors, kept distinct from maroon |
+
+`--ok` points at `--leaf-dark`; status still carries icon + word, so a
+green "confirmed" beside green buttons is never read from colour alone. Chart
+series: leaf green, maroon, gold, then the reference's remaining validated
+colours.
+
+The reference has no `--primary` token: `var(--maroon)` is used directly 54
+times in `theme.css`, 23 in `admin.css` and 6 in `.tsx` files. The step adds
+`--primary`, `--primary-dark`, `--primary-soft` (pointing at the leaf tokens),
+moves every action/header/tab use of `--maroon` onto them, and leaves
+`--maroon` only where it is the accent (price, names, headings). After that,
+retheming is again a change to the `:root` block alone.
+
+Landing page follows the poster: need, objectives, workflow, benefits, college
+card with researcher and guide names from the paper.
 
 ## 6. Design rules (unchanged, restated because they are constraints)
 
