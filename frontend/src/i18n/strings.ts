@@ -777,6 +777,13 @@ const mr: Record<string, string> = {
   'cult.chemicalHint': 'रासायनिक खत किंवा फवारणी वापरली',
   'ph.price': 'उदा. 40',
   'ph.stock': 'उदा. 100',
+  'map.title': 'शेतकरी नकाशा',
+  'map.empty': 'नकाशावर अजून कोणी नाही',
+  'map.listTitle': 'नकाशावरील शेतकरी',
+  'map.all': 'सर्व',
+  'map.liveCount': 'विक्रीसाठी {n} उत्पादने',
+  'map.openShop': 'दुकान पहा',
+  'map.yourPoint': 'तुमचे ठिकाण',
 }
 
 const en: Record<string, string> = {
@@ -1503,6 +1510,13 @@ const en: Record<string, string> = {
   'cult.chemicalHint': 'Chemical fertiliser or spray was used',
   'ph.price': 'e.g. 40',
   'ph.stock': 'e.g. 100',
+  'map.title': 'Farmer map',
+  'map.empty': 'No farmers on the map yet',
+  'map.listTitle': 'Farmers on this map',
+  'map.all': 'All',
+  'map.liveCount': '{n} on sale',
+  'map.openShop': 'See the shop',
+  'map.yourPoint': 'Your location',
 }
 
 export const dictionaries: Record<LangCode, Record<string, string>> = { mr, en }

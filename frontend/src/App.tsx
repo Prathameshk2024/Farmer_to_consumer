@@ -38,6 +38,7 @@ import {
 import {
   Cart, Checkout, CustomerOrders, CustomerProfile, OrderPlaced, TrackOrder,
 } from './screens/customer/CartCheckout.js'
+import FarmerMap from './screens/customer/FarmerMap.js'
 
 /**
  * NOTE: there is no /admin route here, and that is deliberate.
@@ -239,6 +240,7 @@ export default function App() {
                 <Route path="orders/:orderId" element={<TrackOrder />} />
                 <Route path="profile" element={<CustomerProfile />} />
                 <Route path="notifications" element={<Notifications />} />
+                <Route path="map" element={<FarmerMap />} />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />

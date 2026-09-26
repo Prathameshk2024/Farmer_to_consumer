@@ -1,6 +1,7 @@
 import { Router, type Request } from 'express'
 import type { AdminStats } from '@shared/types.js'
 import { canSellNow } from '@shared/farmer.js'
+import { isValidLatLng } from '@shared/geo.js'
 import { summarizeReviews } from '@shared/review.js'
 import { getDb, save } from '../db/store.js'
 import { documentCount, startsWithinFreeReads } from '../db/firestore.js'
@@ -465,6 +466,18 @@ adminRouter.post('/reviews/:id/hide', (req, res) => {
 
   save()
   res.json({ review })
+})
+
+/**
+ * The admin's map: exact points, whatever the consent. Consent governs what
+ * buyers see; the programme placing a farm on its own field map is the reason
+ * the point was collected. `surveys` fills in once survey entry exists.
+ */
+adminRouter.get('/map', (_req, res) => {
+  const farmers = getDb().farmers
+    .filter((f) => isValidLatLng(f.lat, f.lng))
+    .map((f) => ({ id: f.id, name: f.name, village: f.village, lat: f.lat!, lng: f.lng!, fdriBand: f.fdriBand, crops: f.crops }))
+  res.json({ farmers, surveys: [] })
 })
 
 adminRouter.get('/farmers', (_req, res) => {

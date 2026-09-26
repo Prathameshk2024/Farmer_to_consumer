@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Suspense, lazy, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Farmer } from '@shared/types.js'
 import { CROPS } from '@shared/crops.js'
@@ -13,6 +13,23 @@ import {
   TextInput, VoiceInput, useAsync,
 } from '../../components/ui.js'
 import { IconBack, IconCheck, IconDelivery, IconFarm } from '../../components/icons.js'
+
+const MapView = lazy(() => import('../../components/MapView.js'))
+
+/**
+ * The exact point, shown back to the farmer who set it, so a location taken
+ * from the wrong field or the town office can be seen and set again. Buyers
+ * only ever get it rounded. Its own component so the one-pin list is memoised
+ * on the coordinates and typing elsewhere on the page does not refit the map.
+ */
+function OwnPoint({ lat, lng, label }: { lat: number; lng: number; label: string }) {
+  const pins = useMemo(() => [{ id: 'me', lat, lng, label }], [lat, lng, label])
+  return (
+    <Suspense fallback={<Loading />}>
+      <MapView pins={pins} height={200} center={[lat, lng]} label={label} />
+    </Suspense>
+  )
+}
 
 /**
  * EDITING HER OWN DETAILS, AFTER REGISTRATION
@@ -278,6 +295,9 @@ export default function EditProfile() {
             <p className="small" style={{ margin: 0 }}>{t('reg.locationWhy')}</p>
             {farmer.locationConsent && (
               <Notice tone="ok"><IconCheck aria-hidden="true" /> {t('reg.locationOn')}</Notice>
+            )}
+            {farmer.locationConsent && farmer.lat != null && farmer.lng != null && (
+              <OwnPoint lat={farmer.lat} lng={farmer.lng} label={t('map.yourPoint')} />
             )}
             <LocationButton
               label={t(farmer.locationConsent ? 'reg.locationChange' : 'reg.useLocation')}

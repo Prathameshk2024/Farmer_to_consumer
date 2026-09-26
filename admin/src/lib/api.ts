@@ -280,6 +280,12 @@ export const api = {
 
   impact: () => get<ImpactReport>('/admin/impact'),
 
+  /** Exact points, whatever the consent - the programme's own field map. */
+  map: () => get<{
+    farmers: { id: string; name: string; village: string; lat: number; lng: number; fdriBand: FdriBand; crops: string[] }[]
+    surveys: { id: string; village: string; lat: number; lng: number; fdriBand: FdriBand }[]
+  }>('/admin/map'),
+
   /** Every review, hidden ones included. `maxRating: 2` is the low-ratings view. */
   reviews: (
     params: { farmerId?: string; maxRating?: number; hidden?: boolean; reported?: boolean } = {},

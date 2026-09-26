@@ -1,7 +1,8 @@
 import { Router } from 'express'
 import type { Product, Farmer } from '@shared/types.js'
 import { getDb } from '../db/store.js'
-import { CATEGORIES } from '../db/seed.js'
+import { CATEGORIES, type Db } from '../db/seed.js'
+import { publicLocation } from '@shared/geo.js'
 import {
   NO_RATING, productReviewsFor, ratingsByProduct, ratingsByFarmer, farmerRating,
 } from '../db/reviews.js'
@@ -37,6 +38,30 @@ export function publiclyVisible(
 
 catalogRouter.get('/categories', (_req, res) => {
   res.json({ categories: CATEGORIES })
+})
+
+/**
+ * The buyer's map. A pin is a farmer with something a buyer could order right
+ * now, through the same `publiclyVisible` as the catalogue, so the map never
+ * shows a farm the shop would refuse. The point is `publicLocation`: rounded
+ * to about a kilometre, and absent without the farmer's consent.
+ */
+export function mapPins(db: Db, categoryId: string | undefined) {
+  const live = new Map<string, number>()
+  const farmers = new Map(db.farmers.map((f) => [f.id, f]))
+  for (const p of db.products) {
+    if (categoryId && p.categoryId !== categoryId) continue
+    if (publiclyVisible(p, farmers.get(p.farmerId))) live.set(p.farmerId, (live.get(p.farmerId) ?? 0) + 1)
+  }
+  return db.farmers.flatMap((f) => {
+    const at = live.get(f.id) ? publicLocation(f) : undefined
+    return at ? [{ farmerId: f.id, name: f.name, village: f.village, crops: f.crops, liveCount: live.get(f.id)!, ...at }] : []
+  })
+}
+
+catalogRouter.get('/map', (req, res) => {
+  const categoryId = typeof req.query.categoryId === 'string' && req.query.categoryId ? req.query.categoryId : undefined
+  res.json({ pins: mapPins(getDb(), categoryId) })
 })
 
 catalogRouter.get('/products', (req, res) => {

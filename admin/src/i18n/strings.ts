@@ -344,6 +344,13 @@ const mr: Record<string, string> = {
   'pwr.wait.min': '{n} मिनिटांपासून',
   'pwr.wait.hour': '{n} तासांपासून',
   'pwr.wait.day': '{n} दिवसांपासून',
+  'map.title': 'नकाशा',
+  'map.empty': 'नकाशावर अजून कोणी नाही',
+  'map.legend': 'नकाशावरील खुणा',
+  'map.legendFarmer': 'शेतकरी',
+  'map.legendSurvey': 'सर्वेक्षण',
+  'map.allCrops': 'सर्व पिके',
+  'map.allVillages': 'सर्व गावे',
 }
 
 const en: Record<string, string> = {
@@ -668,6 +675,13 @@ const en: Record<string, string> = {
   'pwr.wait.min': 'waiting {n} min',
   'pwr.wait.hour': 'waiting {n} h',
   'pwr.wait.day': 'waiting {n} days',
+  'map.title': 'Map',
+  'map.empty': 'No farmers on the map yet',
+  'map.legend': 'Map key',
+  'map.legendFarmer': 'Farmer',
+  'map.legendSurvey': 'Survey',
+  'map.allCrops': 'Every crop',
+  'map.allVillages': 'Every village',
 }
 
 export const dictionaries: Record<LangCode, Record<string, string>> = { mr, en }

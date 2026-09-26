@@ -308,6 +308,10 @@ export const api = {
       nearbyVillages: string[]
     }>(`/catalog/serviceability?pincode=${encodeURIComponent(pincode)}`),
 
+  /** Farmers with something on sale, at their rounded public point. */
+  mapPins: (categoryId?: string) =>
+    get<{ pins: MapPinRow[] }>(`/catalog/map${categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : ''}`),
+
   /* ---------------- her own record ---------------- */
 
   /**
@@ -478,4 +482,9 @@ export interface FarmerRegistration {
   problems: string[]
   fdri: FdriAnswers
   dispatch?: Farmer['dispatch']
+}
+
+/** One pin on the buyer's map, as `GET /catalog/map` sends it. */
+export interface MapPinRow {
+  farmerId: string; name: string; village: string; lat: number; lng: number; crops: string[]; liveCount: number
 }

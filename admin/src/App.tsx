@@ -14,6 +14,7 @@ import { Reviews } from './screens/Reviews.js'
 import { Complaints } from './screens/Complaints.js'
 import { Impact } from './screens/Impact.js'
 import { PasswordRequests } from './screens/PasswordRequests.js'
+import { MapScreen } from './screens/MapScreen.js'
 
 /**
  * The admin console.
@@ -57,6 +58,7 @@ function Gate() {
         <Route path="/complaints" element={<Complaints />} />
         <Route path="/impact" element={<Impact />} />
         <Route path="/password-requests" element={<PasswordRequests />} />
+        <Route path="/map" element={<MapScreen />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
