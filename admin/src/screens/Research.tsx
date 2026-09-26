@@ -44,7 +44,8 @@ export function Research() {
     a.href = url
     a.download = `table-${table.id}.csv`
     a.click()
-    URL.revokeObjectURL(url)
+    // Revoking at once can cancel the download before the browser has read the blob.
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
   if (loading) return <><TopBar title={t('res.title')} /><div className="body"><Loading /></div></>
@@ -57,7 +58,7 @@ export function Research() {
       <div className="body stack">
         <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <div className="strong">{t('res.respondents', { farmers, surveys, total: farmers + surveys })}</div>
-          <Button small onClick={() => data.tables.forEach(download)}>{t('res.downloadAll')}</Button>
+          <Button small onClick={() => data.tables.forEach((table, i) => setTimeout(() => download(table), i * 300))}>{t('res.downloadAll')}</Button>
         </div>
 
         {data.tables.map((table) => (

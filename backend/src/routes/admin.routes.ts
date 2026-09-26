@@ -15,6 +15,7 @@ import { findCustomer } from '../db/customers.js'
 import { closePasswordRequest, resetUserPassword } from '../auth/passwordRequests.js'
 import type { PasswordRequest } from '../auth/types.js'
 import { destroyImage } from './uploads.routes.js'
+import { unlinkedSurveyPoints } from '../db/surveys.js'
 
 /**
  * ADMIN API - BACKEND ONLY.
@@ -474,7 +475,7 @@ adminRouter.post('/reviews/:id/hide', (req, res) => {
 /**
  * The admin's map: exact points, whatever the consent. Consent governs what
  * buyers see; the programme placing a farm on its own field map is the reason
- * the point was collected. Surveys are placed wherever the coordinator
+ * the point was collected. Unlinked surveys are placed wherever the coordinator
  * recorded a point.
  */
 adminRouter.get('/map', (_req, res) => {
@@ -482,8 +483,7 @@ adminRouter.get('/map', (_req, res) => {
   const farmers = db.farmers
     .filter((f) => isValidLatLng(f.lat, f.lng))
     .map((f) => ({ id: f.id, name: f.name, village: f.village, lat: f.lat!, lng: f.lng!, fdriBand: f.fdriBand, crops: f.crops }))
-  const surveys = db.surveys
-    .filter((s) => isValidLatLng(s.lat, s.lng))
+  const surveys = unlinkedSurveyPoints(db)
     .map((s) => ({ id: s.id, village: s.village, lat: s.lat!, lng: s.lng!, fdriBand: fdriBand(fdriScore(s.fdri)) }))
   res.json({ farmers, surveys })
 })

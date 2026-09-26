@@ -1,4 +1,4 @@
-import { fdriBand, fdriScore, type FdriAnswers, type FdriIndicator } from './fdri.js'
+import { FDRI_INDICATORS, fdriBand, fdriScore, type FdriAnswers, type FdriIndicator } from './fdri.js'
 import { AGE_GROUPS, EDUCATION_LEVELS } from './profile.js'
 import type { Farmer, Survey } from './types.js'
 
@@ -52,6 +52,11 @@ function yesNo(rows: Respondent[], k: FdriIndicator) {
 }
 
 const band = (r: Respondent) => fdriBand(fdriScore(r.fdri))
+/**
+ * A score out of 10 means something only when all ten were answered: someone
+ * who skipped six questions would otherwise be banded "low" for not answering.
+ */
+const complete = (r: Respondent) => FDRI_INDICATORS.every((k) => typeof r.fdri[k] === 'boolean')
 const DIGITAL_USE: FdriIndicator[] = ['smartphone', 'internet', 'whatsapp', 'digitalPayment']
 const BANDS = ['low', 'moderate', 'high'] as const
 
@@ -63,15 +68,20 @@ export function researchTables(rows: Respondent[]): ResearchTable[] {
     const group = rows.filter((r) => (edu === NA ? !r.education || !educations.includes(r.education) : r.education === edu))
     const users = group.filter((r) => DIGITAL_USE.some((k) => r.fdri[k] === true)).length
     return [edu, group.length, users, pct(users, group.length)]
-  }).filter((r) => r[1] !== 0)
+  // Every education level stays, zero or not, like Table 1; only an empty
+  // not-answered row is dropped.
+  }).filter((r) => r[0] !== NA || r[1] !== 0)
 
+  const scored = rows.filter(complete)
+  const unscored = rows.length - scored.length
   const t8 = [
     ...BANDS.map((b) => {
-      const n = rows.filter((r) => band(r) === b).length
+      const n = scored.filter((r) => band(r) === b).length
       return [b, n, pct(n, rows.length)]
     }),
+    ...(unscored ? [[NA, unscored, pct(unscored, rows.length)]] : []),
     ...Array.from({ length: 11 }, (_, s) => {
-      const n = rows.filter((r) => fdriScore(r.fdri) === s).length
+      const n = scored.filter((r) => fdriScore(r.fdri) === s).length
       return [`score ${s}`, n, pct(n, rows.length)]
     }),
   ]
@@ -79,11 +89,11 @@ export function researchTables(rows: Respondent[]): ResearchTable[] {
   // A respondent who skipped the direct-selling question counts as "not
   // willing" here: willingness has to be said out loud. The admin screen
   // states this under the table (res.t9Note).
-  const t9 = BANDS.map((b) => {
-    const group = rows.filter((r) => band(r) === b)
+  const t9 = [...BANDS, NA].map((b) => {
+    const group = b === NA ? rows.filter((r) => !complete(r)) : scored.filter((r) => band(r) === b)
     const willing = group.filter((r) => r.fdri.directSelling === true).length
     return [b, willing, group.length - willing, group.length, pct(willing, group.length)]
-  })
+  }).filter((r) => r[0] !== NA || r[3] !== 0)
 
   return [
     { id: 1, titleEn: 'Age groups of farmers', titleMr: 'शेतकऱ्यांचे वयोगट', headers: freqHeaders,

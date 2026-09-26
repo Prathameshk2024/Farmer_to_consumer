@@ -199,6 +199,22 @@ test('every field that is THE PERSON is gone', () => {
   assert.equal(s.fdriScore, 0, 'a score is their answers, summed')
 })
 
+test('a questionnaire linked to them loses the phone, the point and the photo, and keeps the answers', () => {
+  const s = farmer()
+  const db = dbWith(s)
+  const place = { phone: '9822011223', lat: 17.99, lng: 76.23, photoUrl: 'https://example.com/p.jpg' }
+  db.surveys.push(
+    { id: 'sv1', village: 'अणदूर', linkedFarmerId: 's1', fdri: { smartphone: true }, ...place } as never,
+    { id: 'sv2', village: 'अणदूर', fdri: {}, ...place } as never,
+  )
+  scrubFarmer(db, s, Date.now(), () => true)
+
+  const [mine, other] = db.surveys
+  for (const k of ['phone', 'lat', 'lng', 'photoUrl'] as const) assert.equal(mine![k], undefined, `${k} survived`)
+  assert.deepEqual(mine!.fdri, { smartphone: true }, 'the answers are the research, not the person')
+  assert.equal(other!.phone, '9822011223', "somebody else's questionnaire is left alone")
+})
+
 test('no session outlives the erasing, and none keeps their number', () => {
   const s = farmer()
   const db = dbWith(s)

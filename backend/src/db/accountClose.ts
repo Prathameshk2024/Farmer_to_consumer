@@ -145,6 +145,16 @@ export function scrubFarmer(
   farmer.closedAt = new Date(now).toISOString()
   delete farmer.closingAt
 
+  // A questionnaire linked to them carries the same phone, and a photo and a
+  // point that place them. The answers stay: they are the research, not the person.
+  for (const s of db.surveys) {
+    if (s.linkedFarmerId !== farmer.id) continue
+    delete s.phone
+    delete s.lat
+    delete s.lng
+    delete s.photoUrl
+  }
+
   forgetSessions(db, farmer.id, now)
   return farmer
 }

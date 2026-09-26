@@ -35,6 +35,7 @@ export function Surveys() {
   const surveys = [...(data?.surveys ?? [])].sort((a, b) => b.at.localeCompare(a.at))
   const linked = surveys.filter((s) => s.linkedFarmerId).length
   const farmerName = (id: string) => farmers?.farmers.find((f) => f.id === id)?.name ?? id
+  const linkable = (farmers?.farmers ?? []).filter((f) => f.status !== 'CLOSED')
 
   return (
     <>
@@ -60,7 +61,7 @@ export function Surveys() {
                 </thead>
                 <tbody>
                   {surveys.map((s) => (
-                    <SurveyRow key={s.id} survey={s} farmerName={farmerName} onDone={reload} />
+                    <SurveyRow key={s.id} survey={s} farmerName={farmerName} linkable={linkable} onDone={reload} />
                   ))}
                 </tbody>
               </table>
@@ -74,11 +75,25 @@ export function Surveys() {
   )
 }
 
-function SurveyRow({ survey: s, farmerName, onDone }: { survey: Survey; farmerName: (id: string) => string; onDone: () => void }) {
+function SurveyRow({ survey: s, farmerName, linkable, onDone }: {
+  survey: Survey; farmerName: (id: string) => string; linkable: { id: string; name: string; village: string }[]; onDone: () => void
+}) {
   const { t } = useI18n()
   const errorText = useErrorText()
   const remove = useConfirm()
   const score = fdriScore(s.fdri)
+  const [linkError, setLinkError] = useState('')
+
+  async function link(farmerId: string) {
+    if (!farmerId) return
+    setLinkError('')
+    try {
+      await api.linkSurvey(s.id, farmerId)
+      onDone()
+    } catch (e) {
+      setLinkError(errorText(e))
+    }
+  }
 
   async function doDelete() {
     remove.setBusy(true)
@@ -99,7 +114,17 @@ function SurveyRow({ survey: s, farmerName, onDone }: { survey: Survey; farmerNa
       <td className="small">{when(s.at)}</td>
       <td className="small">{s.enteredBy}</td>
       <td><span className="num">{score}/10</span> <FdriBandPill band={fdriBand(score)} /></td>
-      <td className="small">{s.linkedFarmerId ? farmerName(s.linkedFarmerId) : '—'}</td>
+      <td className="small">
+        {s.linkedFarmerId ? farmerName(s.linkedFarmerId) : (
+          <>
+            <select className="select" aria-label={t('sv.linkTo')} value="" onChange={(e) => void link(e.target.value)}>
+              <option value="">{t('sv.linkTo')}</option>
+              {linkable.map((f) => <option key={f.id} value={f.id}>{f.name} · {f.village}</option>)}
+            </select>
+            {linkError && <Notice tone="danger">{linkError}</Notice>}
+          </>
+        )}
+      </td>
       <td>
         {remove.open ? (
           <Confirm

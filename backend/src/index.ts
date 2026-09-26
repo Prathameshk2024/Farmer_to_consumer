@@ -109,7 +109,6 @@ app.use('/api/complaints', complaintsRouter)
 app.use('/api/uploads', uploadsRouter)
 app.use('/api/insights', insightsRouter)
 
-// Admin has no frontend in this repo by design - the admin site is separate.
 app.use('/api/admin/surveys', surveysRouter)
 app.use('/api/admin', adminRouter)
 

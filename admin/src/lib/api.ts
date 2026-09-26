@@ -330,6 +330,7 @@ export const api = {
   /** Any answer left out stays "not answered"; the server keeps only what was given. */
   createSurvey: (body: Partial<Survey>) => post<{ survey: Survey }>('/admin/surveys', body),
   deleteSurvey: (id: string) => del<{ ok: true }>(`/admin/surveys/${id}`),
+  linkSurvey: (id: string, farmerId: string) => post<{ survey: Survey }>(`/admin/surveys/${id}/link`, { farmerId }),
 
   /** Tables 1-9, and how many respondents came from each source. */
   research: () => get<{ tables: ResearchTable[]; n: { farmers: number; surveys: number } }>('/admin/research'),

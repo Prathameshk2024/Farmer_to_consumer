@@ -18,6 +18,7 @@ import { openOrdersForFarmer, requestFarmerClose, restoreFarmer } from '../db/ac
 import { makeShopSlug, makeFarmerCode, villageCode } from '@shared/farmerCode.js'
 import { getDb, newId, save } from '../db/store.js'
 import { buyersForFarmer } from '../db/customers.js'
+import { linkSurveysByPhone } from '../db/surveys.js'
 import { farmerProductReviews, farmerRating } from '../db/reviews.js'
 import { publicFarmer } from '../db/publicFarmer.js'
 import { callerIp, requireRole } from '../middleware/auth.js'
@@ -194,6 +195,7 @@ farmersRouter.post('/register', (req, res) => {
   }
 
   db.farmers.push(farmer)
+  linkSurveysByPhone(db, farmer)
   setCredential(db, { role: 'farmer', userId: farmer.id, phone, password })
   save()
 
