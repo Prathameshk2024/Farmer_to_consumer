@@ -232,3 +232,22 @@ Done means:
   remaining batch path.
 - Tests cover the transactions: two concurrent orders for the last stock,
   and the same UTR claimed on two orders at once, each succeed exactly once.
+
+## From the research paper
+
+Directions the paper names. None is designed yet; each needs its own spec
+before any code.
+
+- **AI price recommendation** — extend the price hint from "what others ask"
+  and the mandi modal price to a suggested price per crop, grade and season.
+- **Crop disease detection** — a farmer photographs a leaf and gets a likely
+  disease and the nearest advice; needs a trained model and a way to say "not
+  sure".
+- **Demand forecasting** — the admin Demand & supply screen shows the last 30
+  days; a forecast would tell farmers what to sow or harvest for.
+- **Digital weighing receipt** — the weight at pickup or delivery recorded on
+  the order, so the buyer and the farmer hold the same number.
+- **FPO integration** — a Farmer Producer Organisation listing and selling for
+  its members, with one verification for the group.
+- **Cold chain** — storage and transport for perishables, so a listing can
+  reach buyers beyond a day's travel.

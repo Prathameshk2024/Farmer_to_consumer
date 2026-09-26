@@ -17,6 +17,38 @@ One backend, two front ends, three deployments — all from this one repository.
 Each Vercel project points at a different **Root Directory**, so they build and
 deploy independently while still sharing `shared/src/types.ts`.
 
+| Piece | Name used below |
+|---|---|
+| Cloud Run service | `f2c-api`, region `asia-south1` |
+| Vercel project, farmer + buyer site | `f2c-frontend`, Root Directory `frontend` |
+| Vercel project, admin console | `f2c-admin`, Root Directory `admin` |
+| Branch both Vercel projects track | `main` |
+
+---
+
+## 0. Accounts: new ones, nothing shared
+
+Every account below is created fresh for this site. Nothing is reused from
+any earlier project — not the Firebase project, not the Cloudinary folder, not
+a secret.
+
+1. **Google Cloud project** with billing on (Cloud Run needs it). Enable Cloud
+   Run, Cloud Build, Artifact Registry and Secret Manager.
+2. **Firebase project** on that Google Cloud project. Create the Firestore
+   database (Native mode, `(default)`, location `asia-south1`). Then *Project
+   settings → Service accounts → Generate new private key*: that JSON is
+   `FIREBASE_SERVICE_ACCOUNT`.
+3. **Firestore rules**: open *Firestore → Rules*, paste `firestore.rules` from
+   the repository root, and publish. It denies every client-SDK read and
+   write; the API uses `firebase-admin`, which the rules do not apply to.
+4. **Cloudinary**: an account of its own, folder `f2c`. The dashboard's *API
+   environment variable* is `CLOUDINARY_URL`.
+5. **Secret Manager**: three secrets, named after the variables they fill —
+   `SESSION_SECRET` (a fresh random value, see §1), `FIREBASE_SERVICE_ACCOUNT`
+   (the JSON on one line) and `CLOUDINARY_URL`. Give the Cloud Run runtime
+   service account `roles/secretmanager.secretAccessor` on each.
+6. **Optional:** a data.gov.in API key for `DATA_GOV_IN_API_KEY`.
+
 ---
 
 ## 1. Cloud Run — the API
@@ -61,7 +93,25 @@ the build if one points at nothing.
 `EXPOSE 4000` is documentation only. Cloud Run sets `PORT` (8080) and
 `config.ts` listens on whatever it says.
 
-To deploy from a clone, at the repository root:
+The first deploy, from a clone, at the repository root:
+
+```bash
+gcloud run deploy f2c-api --source . --region asia-south1 --project <PROJECT_ID>   --allow-unauthenticated --max-instances 1 --no-cpu-throttling   --set-env-vars CLOUDINARY_FOLDER=f2c   --set-secrets SESSION_SECRET=SESSION_SECRET:latest,FIREBASE_SERVICE_ACCOUNT=FIREBASE_SERVICE_ACCOUNT:latest,CLOUDINARY_URL=CLOUDINARY_URL:latest
+```
+
+Then the first administrator (single quotes: the hash contains `$`):
+
+```bash
+gcloud run services update f2c-api --region asia-south1 --project <PROJECT_ID>   --update-env-vars 'ADMIN_BOOTSTRAP_EMAIL=you@example.com,ADMIN_BOOTSTRAP_PASSWORD_HASH=<hash from npm run admin:users -- hash>'
+```
+
+Sign in once at the admin site, then remove both:
+
+```bash
+gcloud run services update f2c-api --region asia-south1 --project <PROJECT_ID>   --remove-env-vars ADMIN_BOOTSTRAP_EMAIL,ADMIN_BOOTSTRAP_PASSWORD_HASH
+```
+
+Later deploys need only:
 
 ```bash
 gcloud run deploy f2c-api --source . --region asia-south1 --project <PROJECT_ID>
@@ -225,7 +275,7 @@ an instance, and `backend/src/index.ts` flushes pending writes on it, so the
 Create **two** Vercel projects from the same repository. The only difference is
 the Root Directory.
 
-| | Project 1 | Project 2 |
+| | `f2c-frontend` | `f2c-admin` |
 |---|---|---|
 | Root Directory | `frontend` | `admin` |
 | Framework preset | Vite | Vite |
@@ -285,10 +335,10 @@ In development neither app needs it: `vite.config.ts` proxies `/api` to
 ## 3. CORS — the part that is easy to get wrong
 
 `CORS_ORIGIN` is **comma-separated**, because two different origins call this
-API:
+API (use the URLs Vercel actually assigns; these assume the names were free):
 
 ```
-CORS_ORIGIN=https://<app>.vercel.app,https://<admin>.vercel.app
+CORS_ORIGIN=https://f2c-frontend.vercel.app,https://f2c-admin.vercel.app
 ```
 
 Rules worth knowing:
@@ -306,7 +356,7 @@ Rules worth knowing:
 
   ```bash
   gcloud run services update f2c-api --region asia-south1 --project <PROJECT_ID> \
-    --update-env-vars "^;^CORS_ORIGIN=https://<app>.vercel.app,https://<admin>.vercel.app"
+    --update-env-vars "^;^CORS_ORIGIN=https://f2c-frontend.vercel.app,https://f2c-admin.vercel.app"
   ```
 
 Confirm it on boot — the banner prints what is active, in the service's
@@ -316,7 +366,7 @@ Confirm it on boot — the banner prints what is active, in the service's
   Database       Firestore (<project id>)
   Images         Cloudinary (<cloud name>)
   Mandi prices   on
-  CORS           https://<app>.vercel.app, https://<admin>.vercel.app
+  CORS           https://f2c-frontend.vercel.app, https://f2c-admin.vercel.app
 ```
 
 ---
@@ -331,7 +381,7 @@ passes:
 2. Deploy both Vercel projects with `VITE_API_URL` pointing at Cloud Run.
 3. Set `CORS_ORIGIN` on Cloud Run to the two Vercel URLs (the `^;^` command in
    §3). That makes a new revision — the same quiet-moment rule applies.
-4. Deploy the Firestore rules: `firebase deploy --only firestore:rules`.
+4. Check the Firestore rules are the ones from `firestore.rules` (§0).
 5. Check the boot banner shows Firestore, Cloudinary and both origins.
 6. Register and log in once on a real phone.
 
@@ -345,7 +395,7 @@ passes:
 - [ ] `CORS_ORIGIN` set to both origins
 - [ ] Cloud Run maximum instances is 1
 - [ ] Cloud Run CPU is always allocated (`cpu-throttling: 'false'`)
-- [ ] `firestore.rules` deployed
+- [ ] `firestore.rules` published (§0)
 - [ ] `SEED_DEMO_DATA` unset
 - [ ] `robots.txt` with `Disallow: /` on the admin project
 

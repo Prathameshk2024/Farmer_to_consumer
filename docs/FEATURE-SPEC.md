@@ -169,19 +169,35 @@ on their own order and on the trace page.
 | Orders | Every order, with who ended it and why |
 | Reviews | Low ratings, reported, hidden; **Hide** with a reason |
 | Complaints | Resolve with a note |
-| Map | Exact farmer pins, filter by crop, village, FDRI band |
+| Map | Exact farmer pins and unlinked questionnaire pins; filter by crop, village, FDRI band |
 | Demand & supply | Per crop: quantity ordered in the last 30 days vs. quantity listed |
 | Impact | Farmers, orders, money earned by farmers, FDRI bands |
+| Surveys | Enter a paper questionnaire; link it to a farmer; delete it |
+| Research | Tables 1–9 with a CSV download each |
 
 Admins are database records with scrypt hashes, managed by
 `npm run admin:users`. A password reset shows a 6-digit temporary password
 once, sets `mustChangePassword` and revokes every session of that user.
 
-### Research module (planned, spec §5.9)
+### Research module (spec §5.9)
 
-Survey entry for field coordinators (a `surveys` collection) and the research
-paper's Tables 1–9 with CSV export. Not built yet; the admin map already
-reserves a layer for survey records.
+- **Surveys** (`/surveys`): a coordinator types in a paper questionnaire for a
+  farmer with or without an account — village, optional phone, age group,
+  education, landholding, farming type, crops, selling channels, problems, the
+  ten FDRI questions (each may stay "not asked"), and an optional location.
+  Stored in the `surveys` collection (`backend/src/routes/surveys.routes.ts`).
+- **Linking**: a questionnaire whose phone matches a farmer is linked to that
+  farmer, both when it is entered and when the farmer registers later; an
+  admin can also link one by hand. A linked questionnaire is the same person,
+  so it is not counted or pinned a second time. Closed accounts are never
+  linked, and closing an account strips phone, location and photo from linked
+  questionnaires.
+- **Research tables** (`/research`): the paper's Tables 1–9
+  (`shared/src/research.ts`) over every farmer not closed plus every unlinked
+  questionnaire. Skipped answers appear as a "not answered" row, never as
+  "no"; Tables 8–9 band only respondents who answered all ten FDRI questions.
+  Each table downloads as a CSV (UTF-8 with BOM, so Excel keeps Devanagari).
+- **Map**: unlinked questionnaires with a location are drawn as their own pins.
 
 ---
 
@@ -210,6 +226,5 @@ Marathi follows `docs/MARATHI-STYLE.md`.
 
 ## 9. Not built yet
 
-Survey entry and research tables · phone notifications · chat · returns and
-refunds inside the site · delivery charge by distance · in-app camera capture ·
-farmer replies to reviews. See `docs/FUTURE-SCOPE.md`.
+Phone notifications · chat · returns and refunds inside the site · delivery
+charge by distance · in-app camera capture · farmer replies to reviews. See `docs/FUTURE-SCOPE.md`.

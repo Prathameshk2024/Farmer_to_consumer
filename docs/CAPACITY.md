@@ -28,6 +28,9 @@ Section 9 lists what to look up to replace the guesses with real numbers.
 | Product | 1 | ~0.5 KB (measured: 493 B average) | ~3 (create, edits) | ~0.4 MB with thumbnails; ~6 transformations |
 | Order | 1, plus ~1.5 reviews (the buyer must rate every product) | ~1.2 KB + ~0.4 KB per review | ~13 over its life | — |
 | Buyer | 1 | ~0.5 KB | — | — |
+| Password (`credentials`) | 1 per farmer or buyer | ~0.2 KB (a scrypt hash) | 1 per set or reset | — |
+| Forgotten-password request (`passwordRequests`) | 1 per phone, reused on repeat | ~0.3 KB | 1 per request, 1 to close | — |
+| Paper questionnaire (`surveys`) | 1 | under 1 KB (estimate) | 1 to enter, 1 to link | — |
 | Sign-in | ~3 auth-log rows + 1 session | ~0.25 KB each | ~4 | — |
 | Time spent in the app | — | — | 1 per 5 minutes of use (the session's `lastSeenAt`) | — |
 
@@ -82,6 +85,12 @@ reads every document in the database once**, holds them all in memory, and
 reads Firestore again only at the next start. So:
 
 > **documents × server starts in a day must stay under 50,000.**
+
+"Documents" means every collection in `COLLECTIONS`
+(`backend/src/db/firestore.ts`): farmers, products, orders, customers,
+reviews, reports, complaints, sessions, admins, authEvents, credentials,
+passwordRequests and surveys. A survey drive of a few hundred questionnaires
+is a few hundred more documents read at every start.
 
 | Documents | Starts allowed in a day |
 |---|---|

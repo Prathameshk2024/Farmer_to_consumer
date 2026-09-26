@@ -6,6 +6,23 @@ panel on a projector. Farmer, buyer and admin all run from one laptop.
 The script follows one story: a farmer joins, is verified, lists produce,
 receives orders and gets paid. Each feature appears where it matters.
 
+## Aavishkar: the 5-minute version
+
+Prepare section 0 first, with a verified farmer, one live listing and its QR
+printed, so nothing waits on a live step that can fail.
+
+| Min | Show |
+|---|---|
+| 0:00 | Poster → landing page: the problem (middlemen) and the idea |
+| 0:30 | Farmer registers: the ten one-question screens, ending in the FDRI questions |
+| 1:15 | Admin → **Farmers** → **Verify** |
+| 1:45 | Farmer lists produce: the price hint on the price screen |
+| 2:15 | The printed QR, scanned with a second phone → trace page |
+| 2:45 | Buyer orders from the trace page; farmer accepts |
+| 3:15 | Buyer pays by UPI (QR screenshot → gallery); farmer confirms the money |
+| 3:45 | Pickup → Delivered; buyer rates the produce |
+| 4:15 | Admin → **Research**: Tables 1–9 and a CSV download |
+
 ---
 
 ## 0. Setup that will break the demo if skipped
@@ -132,9 +149,14 @@ The admin console is a separate site and can sit in either.
 
 - [ ] **Products**: take a listing down; the **Reported** tab.
 - [ ] **Orders**, **Reviews** (hide with a reason), **Complaints** (resolve).
-- [ ] **Map**: exact pins, filter by crop, village and FDRI band.
+- [ ] **Map**: exact farmer pins and questionnaire pins; filter by crop,
+      village and FDRI band.
 - [ ] **Demand & supply**: ordered vs listed per crop, last 30 days.
 - [ ] **Impact**: farmers, orders, money earned by farmers, FDRI bands.
+- [ ] **Surveys**: enter a paper questionnaire; one with a farmer's phone is
+      linked to that farmer and counted once.
+- [ ] **Research**: Tables 1–9 over farmers plus unlinked questionnaires;
+      download a CSV and open it in Excel.
 - [ ] Sort by, and the language switch.
 
 ## 9. Behind the scenes (optional, 5 min)
@@ -146,7 +168,7 @@ The admin console is a separate site and can sit in either.
       the farmer's phone reaches a buyer on the buyer's own order or trace
       page. Reviews show the buyer's first name only.
 - [ ] Not built yet: phone notifications, chat, returns and refunds inside
-      the site, the research survey entry and tables (planned).
+      the site.
 
 ## 10. Cleanup straight after (on the live site)
 

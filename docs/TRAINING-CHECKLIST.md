@@ -104,6 +104,27 @@ one phone's hotspot, the room counts as one address:
 - [ ] Do not put a phone number in a listing description.
 - [ ] On a shared phone, **log out** after use.
 
+### 8. For field coordinators
+- [ ] **Register on the farmer's own phone**, never on the coordinator's: the
+      session, the draft and the password belong on that handset. Log out of
+      any earlier account first.
+- [ ] **Write the password down with the farmer**, in the farmer's own hand,
+      and leave it with the farmer. Never keep a copy.
+- [ ] **Verification visit**: meet the farmer, check name, village and that
+      the produce is theirs, then press **Verify** on the farmer's page in the
+      admin console. Verify once; it lasts.
+- [ ] **Password requests queue** (admin → Password requests): call the
+      number on the request; confirm name and village; only on that call,
+      press **Reset password** and read out the temporary password (it is
+      shown once, and the farmer must change it at the next login). Close any
+      request that needs no reset — a mistake, or "no account" for a number
+      that never registered.
+- [ ] **Paper questionnaire** (admin → Surveys → New survey): type it in the
+      same day. Village is required; enter the phone if there is one, so the
+      questionnaire links to the farmer's account if the farmer registers.
+      Leave any question the farmer did not answer as "not asked" — never
+      guess. Use "this device's location" only when standing at the farm.
+
 ## E. Suiting the audience
 
 - [ ] Speak Marathi and use the site's own words: ऑर्डर, भरणा, स्वीकारा.

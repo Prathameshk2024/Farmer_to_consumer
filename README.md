@@ -40,7 +40,8 @@ later, stop the API, delete `backend/data/db.json`, and start it again.
   `9822011223`, सविता कांबळे `9764455661`, गणेश जगदाळे `9890033441` and
   लक्ष्मी शिंदे `9850012345`. Seeding never invents passwords, so give one a
   demo password with the API stopped:
-  `npm run admin -- set-password 9822011223 123456`.
+  `npm run admin -- set-password 9822011223 123456`, then sign in at
+  `/login/farmer`.
 - **Admin console:** there is no default account. Stop the API, then create
   one; the command asks for the password:
 
@@ -49,7 +50,8 @@ later, stop the API, delete `backend/data/db.json`, and start it again.
   ```
 
   The API reads the database into memory at start, so a running API does not
-  see the new account and can overwrite it.
+  see the new account and can overwrite it. The console also holds survey
+  entry and the research paper's Tables 1–9, each downloadable as CSV.
 
 ## Configuration
 

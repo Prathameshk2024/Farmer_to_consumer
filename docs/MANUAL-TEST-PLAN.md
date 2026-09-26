@@ -192,11 +192,18 @@ Admin: `npm run admin:users -- create you@example.com "Your Name"` (API stopped)
 | ☐ K1 | Today / Home | Counts of unverified farmers, password requests, reports, complaints |
 | ☐ K2 | Farmers list: sort and filter | Choice remembered per list |
 | ☐ K3 | Farmer detail: Reset password without a request | Same behaviour as C6 |
-| ☐ K4 | Map | Exact pins; filters by crop, village, FDRI band |
+| ☐ K4 | Map | Exact farmer pins plus a pin per unlinked questionnaire with a location; filters by crop, village, FDRI band (a crop filter leaves farmers only) |
 | ☐ K5 | Demand & supply | Per crop, ordered (30 days) vs listed |
 | ☐ K6 | Impact | Farmers, orders, money earned, FDRI bands |
 | ☐ K7 | Orders → open one | Opens in a dialog, not below the fold |
-| ☐ K8 | Language switch | Marathi default, English toggle |
+| ☐ K8 | Language: first visit in a fresh profile, then English, then reload | Opens in Marathi; English switches every string; the choice survives reload |
+| ☐ K9 | Surveys → New survey with only a village | Saved; unanswered questions stay "not asked" |
+| ☐ K10 | New survey with the phone of a registered farmer | Saved as linked to that farmer |
+| ☐ K11 | New survey with a new phone, then register a farmer with that phone | The questionnaire becomes linked at registration |
+| ☐ K12 | Link an unlinked questionnaire by hand; delete another | Linked row names the farmer; delete asks with the consequence, then the row leaves every table |
+| ☐ K13 | Research | Tables 1–9; respondents = farmers not closed + unlinked questionnaires; skipped answers in a "not answered" row |
+| ☐ K14 | Download a table's CSV and open it in Excel | Opens straight into columns with Devanagari intact |
+| ☐ K15 | Close a farmer account with a linked questionnaire | After the 7-day sweep, the questionnaire keeps its answers but loses phone, location and photo |
 
 ## 12. Suite L — Security and API negatives (curl against `:4000`)
 
@@ -234,6 +241,7 @@ Admin: `npm run admin:users -- create you@example.com "Your Name"` (API stopped)
 - [ ] An unverified farmer's listing is not public; verified, it is
 - [ ] Forgot password → admin reset → forced change works
 - [ ] English shows no Devanagari placeholders
+- [ ] A linked questionnaire is counted once in Research and pinned once on the Map
 - [ ] `npm test` and `npm run typecheck` green
 
 ---
