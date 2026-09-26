@@ -1,0 +1,35 @@
+name: Backup
+
+on:
+  schedule:
+    - cron: '30 21 * * *'        # every day at 03:00 IST
+  workflow_dispatch:             # adds a "Run workflow" button
+    inputs:
+      dry_run:
+        description: Report only, write nothing
+        type: boolean
+        default: true
+
+concurrency: backup              # never two runs at once
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run backup -- --no-local-images ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.LIVE_FIREBASE_SERVICE_ACCOUNT }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.LIVE_CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.LIVE_CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.LIVE_CLOUDINARY_API_SECRET }}
+          CLOUDINARY_FOLDER: shanta-mahila-bazar
+          BACKUP_TARGETS: a
+          BACKUP_A_FIREBASE_SERVICE_ACCOUNT: ${{ secrets.BACKUP_A_FIREBASE_SERVICE_ACCOUNT }}
+          BACKUP_A_CLOUDINARY_URL: ${{ secrets.BACKUP_A_CLOUDINARY_URL }}

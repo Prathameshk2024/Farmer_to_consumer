@@ -1,0 +1,37 @@
+{
+  "name": "farmers-to-consumer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WomenBiz - digital entrepreneurship platform for rural women. Frontend (seller + customer app), backend API (includes the admin API), shared domain types.",
+  "workspaces": [
+    "shared",
+    "backend",
+    "admin",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c green,cyan \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm --workspace @f2c/backend run dev",
+    "dev:web": "npm --workspace @f2c/frontend run dev",
+    "admin": "tsx backend/scripts/admin.ts",
+    "build": "npm --workspace @f2c/backend run build && npm --workspace @f2c/frontend run build && npm --workspace @f2c/admin run build",
+    "typecheck": "npm --workspace @f2c/backend run typecheck && npm --workspace @f2c/frontend run typecheck && npm --workspace @f2c/admin run typecheck",
+    "test": "npm --workspace @f2c/backend run test && npm --workspace @f2c/frontend run test && npm --workspace @f2c/admin run test",
+    "backfill:customers": "npm --workspace @f2c/backend run backfill:customers --",
+    "purge:demo": "npm --workspace @f2c/backend run purge:demo --",
+    "dev:admin": "npm --workspace @f2c/admin run dev",
+    "dev:all": "concurrently -n api,web,admin -c green,cyan,magenta \"npm:dev:api\" \"npm:dev:web\" \"npm:dev:admin\"",
+    "admin:users": "npm --workspace @f2c/backend run admin:users --",
+    "backup": "npm --workspace @f2c/backend run backup --",
+    "restore": "npm --workspace @f2c/backend run restore --"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "tsx": "^4.23.13"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "@firebase/util@1.15.3": true,
+    "protobufjs@7.6.6": true
+  }
+}

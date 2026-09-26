@@ -1,0 +1,1889 @@
+/* ============================================================
+   शांताई महिला बाजार · Shantai Mahila Bazar — design system
+   ------------------------------------------------------------
+   >>> THEME SWAP POINT <<<
+   Every colour, size and radius comes from the :root block
+   below. Change these tokens and the whole app follows; no
+   component carries a hard-coded colour.
+
+   The palette is deliberately small: deep maroon for actions,
+   warm cream for ground, soft gold for highlights, dark green
+   for confirmation. Nothing else. Colour is spent on meaning -
+   what to tap, what changed, what went wrong - never on
+   decoration, and never as the ONLY signal: every status also
+   carries an icon and a word.
+
+   MOBILE FIRST. Base styles target a 360px phone. Every
+   media query below adds width, never takes it away.
+   ============================================================ */
+
+:root {
+  /* --- brand ------------------------------------------------ */
+  --maroon: #7b1e2e;          /* primary action, header, price */
+  --maroon-dark: #5c1522;     /* pressed */
+  --maroon-mid: #98304a;
+  --maroon-soft: #f8e9e8;     /* tinted surface */
+
+  --gold: #b6851b;            /* highlights, slot meter, stars */
+  --gold-deep: #8a6310;
+  --gold-soft: #faefd3;
+  --gold-band: #f3e3ba;       /* the striped shop banner */
+
+  --green: #26663f;           /* confirmed, verified, WhatsApp */
+  --green-dark: #1b4d2e;
+  --green-soft: #e5f0e8;
+
+  /* --- neutrals (warm) -------------------------------------- */
+  --ink: #3b2b23;
+  --ink-2: #6b584c;
+  --ink-3: #97867a;
+  --bg: #f7f0e4;              /* warm cream page ground */
+  --bg-2: #f1e7d4;
+  --surface: #ffffff;
+  --surface-2: #faf5ea;
+  --line: #e7dcc8;
+  --line-2: #d6c8ae;
+  /* Example text inside an empty field. Deliberately faint: it is a hint,
+     and at the browser default it read as a value already typed in. */
+  --placeholder: #bfb2a5;
+
+  /* --- semantic --------------------------------------------- */
+  --ok: var(--green);
+  --ok-soft: var(--green-soft);
+  --warn: #9a6b0c;
+  --warn-soft: var(--gold-soft);
+  --danger: #b3341f;          /* deliberately warmer than maroon */
+  --danger-soft: #fbe8e3;
+  --info: #4a5f52;
+  --info-soft: #ecf0ea;
+
+  /* --- chart series (validated for colour-blind separation) -- */
+  --series1: #7b1e2e;
+  --series2: #26663f;
+  --series3: #b6851b;
+  --series4: #3d5ac4;
+
+  /* --- type ------------------------------------------------- */
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Noto Sans Devanagari', 'Nirmala UI', 'Mangal', sans-serif;
+
+  --t-xs: 0.8125rem;
+  --t-sm: 0.9375rem;
+  --t-base: 1rem;
+  --t-md: 1.125rem;
+  --t-lg: 1.375rem;
+  --t-xl: 1.75rem;
+  --t-2xl: 2.25rem;
+
+  /* --- spacing / shape -------------------------------------- */
+  --s1: 0.25rem;
+  --s2: 0.5rem;
+  --s3: 0.75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2rem;
+  --s7: 3rem;
+  --s8: 4rem;
+
+  --r-sm: 10px;
+  --r: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-full: 999px;
+
+  --tap: 44px;
+  --btn-h: 54px;
+  --nav-h: 66px;
+  --bar-h: 56px;
+
+  --shadow-sm: 0 1px 2px rgba(59, 43, 35, 0.06);
+  --shadow: 0 2px 12px rgba(59, 43, 35, 0.07);
+  --shadow-up: 0 -2px 14px rgba(59, 43, 35, 0.09);
+
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+
+  --shell: 100%;
+}
+
+/* ============================================================
+   Reset
+   ============================================================ */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--t-base);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  /* Nothing may push the page sideways on a 360px phone. */
+  overflow-x: hidden;
+  /* An app, not a document: a long press on a label or a button must not
+     start a text selection with its drag handles and "Copy" bar — on a
+     phone that is what a slow thumb produces, and it reads as the app
+     breaking. What she might need to copy (UPI ID, order number) has its
+     own copy button. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Fields she types into must stay selectable, or she cannot fix a digit
+   in the middle of a UTR or paste a UPI ID she copied. */
+/* So must the value beside a copy button: when the clipboard refuses
+   ("copy failed"), a long press on the UPI ID is her only way round it. */
+input, textarea, [contenteditable="true"], .copyrow .num {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+img { max-width: 100%; display: block; }
+svg { max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--maroon); }
+
+/* Long words and URLs must wrap, not widen the page. */
+p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
+
+/* ...except a figure. `anywhere` also shrinks an element's minimum width to
+   one character, so an amount beside a long label in a flex row was squeezed
+   until "₹450" printed as "₹45" over "0" - a different number, on the screen
+   where she is told what to pay. The label beside it wraps instead. */
+.money, .hero-num { white-space: nowrap; overflow-wrap: normal; }
+
+:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   App shell — phone width first, widening only above 900px
+   ============================================================ */
+.app-shell {
+  max-width: 520px;
+  margin: 0 auto;
+  /*
+   * dvh, not 100%. Chrome on Android hides its toolbar as she scrolls down and
+   * the visible area grows, but a percentage height was resolved against the
+   * viewport that existed at layout time - so the shell ended short and the
+   * four tabs sat on a band of bare cream above the gesture bar. 100% stays
+   * first as the fallback for a WebView that has never heard of dvh.
+   */
+  min-height: 100%;
+  min-height: 100dvh;
+  background: var(--bg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+@media (min-width: 560px) {
+  .app-shell {
+    box-shadow: 0 0 0 1px var(--line);
+  }
+}
+@media (min-width: 1000px) {
+  .app-shell { max-width: 720px; }
+}
+
+.screen {
+  flex: 1;
+  width: 100%;
+  padding: var(--s4);
+  /*
+   * No room reserved for the tab bar. It is sticky and therefore still IN the
+   * flow, so it takes its own 66px; adding them here again left an empty
+   * cream block at the end of every scroll and pushed the shell past the
+   * bottom of the screen.
+   */
+  padding-bottom: var(--s5);
+}
+.screen--nonav { padding-bottom: calc(var(--s6) + var(--safe-b)); }
+@media (min-width: 600px) {
+  .screen { padding: var(--s5); }
+}
+
+/* --- top app bar: maroon, the brand band ------------------- */
+.appbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  min-height: var(--bar-h);
+  padding: calc(var(--safe-t) + var(--s3)) var(--s3) var(--s3);
+  background: var(--maroon);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.appbar__title {
+  font-size: var(--t-md);
+  font-weight: 700;
+  line-height: 1.25;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: #fff;
+}
+.appbar__sub {
+  display: block;
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+}
+.appbar__btn {
+  width: var(--tap);
+  height: var(--tap);
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  border-radius: var(--r-sm);
+  font-size: 1.3rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.appbar__btn:active { background: rgba(255, 255, 255, 0.16); }
+
+/* The brand mark already carries its own gold ring - no border, no backdrop. */
+.appbar__mark {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  display: block;
+}
+
+/* --- bottom nav: the selected tab is unmistakable ---------- */
+.bottomnav {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  box-shadow: var(--shadow-up);
+  padding-bottom: var(--safe-b);
+}
+.bottomnav__item {
+  min-height: var(--nav-h);
+  border: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--s2) 3px;
+  color: var(--ink-3);
+  text-decoration: none;
+  cursor: pointer;
+  min-width: 0;
+}
+.bottomnav__icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  position: relative;
+  width: 46px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-full);
+}
+.bottomnav__badge {
+  position: absolute;
+  top: -4px;
+  right: 4px;
+  background: var(--danger);
+  color: #fff;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 5px;
+  line-height: 16px;
+  min-width: 16px;
+}
+.bottomnav__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+.bottomnav__item--on { color: var(--maroon); }
+.bottomnav__item--on .bottomnav__icon { background: var(--maroon-soft); }
+.bottomnav__item--on .bottomnav__label { font-weight: 700; }
+
+/* ============================================================
+   Typography helpers
+   ============================================================ */
+.h1 { font-size: var(--t-xl); font-weight: 800; line-height: 1.22; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+.h2 { font-size: var(--t-lg); font-weight: 700; line-height: 1.28; margin: 0; }
+.h3 { font-size: var(--t-md); font-weight: 700; line-height: 1.3; margin: 0; }
+.body { font-size: var(--t-base); margin: 0; }
+.muted { color: var(--ink-2); }
+.dim { color: var(--ink-3); }
+.small { font-size: var(--t-sm); }
+.tiny { font-size: var(--t-xs); }
+.num { font-variant-numeric: tabular-nums; }
+.center { text-align: center; }
+.stack { display: flex; flex-direction: column; gap: var(--s4); }
+.stack-sm { display: flex; flex-direction: column; gap: var(--s2); }
+.row { display: flex; align-items: center; gap: var(--s3); min-width: 0; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-width: 0; }
+.grow { flex: 1; min-width: 0; }
+.wrap-row { display: flex; flex-wrap: wrap; gap: var(--s2); }
+/* Two figures side by side while both fit, one above the other when one
+   does not. `min-width: auto` is the point: a card is as wide as its number,
+   so a big day's earnings takes the whole row rather than running out of
+   the card. */
+.stat-row { display: flex; flex-wrap: wrap; gap: var(--s3); }
+.stat-row > .card { flex: 1 1 130px; min-width: auto; }
+
+/* A maroon section heading with a rule running off to the right. */
+.sec-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin: 0 0 var(--s3);
+}
+.sec-head__t {
+  font-size: var(--t-base);
+  font-weight: 700;
+  color: var(--maroon);
+  margin: 0;
+  flex: 0 0 auto;
+}
+.sec-head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ============================================================
+   Buttons — ONE primary style, used everywhere
+   ============================================================ */
+.btn {
+  min-height: var(--btn-h);
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-sm);
+  border: 2px solid transparent;
+  background: var(--maroon);
+  color: #fff;
+  font-size: var(--t-base);
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  width: 100%;
+  line-height: 1.3;
+  text-decoration: none;
+  text-align: center;
+  min-width: 0;
+}
+.btn:active { background: var(--maroon-dark); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn--ghost { background: var(--surface); color: var(--green); border-color: var(--green); }
+.btn--ghost:active { background: var(--green-soft); }
+.btn--quiet { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+.btn--quiet:active { background: var(--bg-2); }
+.btn--danger { background: var(--danger); }
+.btn--accent { background: var(--gold-deep); }
+.btn--sm { min-height: var(--tap); font-size: var(--t-sm); padding: var(--s2) var(--s3); width: auto; }
+
+.btn-row { display: flex; gap: var(--s2); flex-wrap: wrap; }
+.btn-row > * { flex: 1 1 140px; min-width: 0; }
+/* A small-button row is for two or three short labels side by side, so they
+   share the width rather than each sizing to its own text. */
+.btn-row > .btn--sm { flex: 1 1 0; width: auto; }
+
+/* ============================================================
+   Cards
+   ============================================================ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s4);
+  min-width: 0;
+}
+.card--tap { cursor: pointer; text-align: left; width: 100%; font: inherit; color: inherit; }
+.card--tap:active { background: var(--surface-2); }
+
+.section-title {
+  font-size: var(--t-sm);
+  font-weight: 700;
+  color: var(--maroon);
+  margin: 0 0 var(--s2);
+}
+.divider { height: 1px; background: var(--line); border: 0; margin: var(--s4) 0; }
+
+/* ============================================================
+   Forms
+   ============================================================ */
+.field { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
+.field__label { font-size: var(--t-base); font-weight: 700; line-height: 1.35; }
+.field__req { color: var(--danger); margin-left: 2px; }
+.field__hint { font-size: var(--t-sm); color: var(--ink-2); line-height: 1.45; }
+.field__err { font-size: var(--t-sm); color: var(--danger); font-weight: 600; }
+
+.input, .select, .textarea {
+  min-height: var(--btn-h);
+  width: 100%;
+  max-width: 100%;
+  padding: var(--s3);
+  border: 2px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: var(--t-base);
+  color: var(--ink);
+}
+/* No drag handle: there is no corner to drag on a phone, and every stretch it
+   produced left a box the wrong shape. The height follows the text instead -
+   VoiceInput sets it from scrollHeight, and `overflow: hidden` keeps a scroll
+   bar from appearing inside a box that is about to grow anyway. */
+.textarea { min-height: 96px; resize: none; overflow: hidden; }
+.input:focus, .select:focus, .textarea:focus { border-color: var(--maroon); outline: none; }
+.input--err, .textarea--err { border-color: var(--danger); }
+.input:disabled { background: var(--surface-2); color: var(--ink-3); }
+
+.input-voice { display: flex; gap: var(--s2); align-items: stretch; min-width: 0; }
+.input-voice > .input, .input-voice > .textarea { flex: 1; min-width: 0; }
+.mic {
+  flex: 0 0 auto;
+  width: var(--btn-h);
+  min-height: var(--btn-h);
+  border: 2px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: 1.35rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.mic--on { background: var(--danger); border-color: var(--danger); color: #fff; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.62; } }
+.mic:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  width: 100%;
+  min-height: var(--btn-h);
+  padding: var(--s3);
+  border: 2px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: var(--t-base);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.35;
+  min-width: 0;
+}
+.choice--on { border-color: var(--maroon); background: var(--maroon-soft); }
+.choice__mark {
+  width: 26px; height: 26px; flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid var(--line-2);
+  display: grid; place-items: center;
+  font-size: 0.85rem; color: #fff;
+}
+.choice--on .choice__mark { background: var(--maroon); border-color: var(--maroon); }
+.choice__body { flex: 1; min-width: 0; }
+.choice__sub { display: block; font-size: var(--t-sm); font-weight: 500; color: var(--ink-3); }
+
+.chip {
+  min-height: var(--tap);
+  padding: var(--s2) var(--s4);
+  border-radius: var(--r-full);
+  border: 2px solid var(--line-2);
+  background: var(--surface);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.chip--on { background: var(--maroon); border-color: var(--maroon); color: #fff; }
+
+.yesno { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+
+/* ============================================================
+   Status pills — colour + icon + word
+   ============================================================ */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  line-height: 1.4;
+  border: 1px solid transparent;
+  max-width: 100%;
+}
+.pill--neutral { background: var(--surface-2); color: var(--ink-2); border-color: var(--line); }
+.pill--info { background: var(--info-soft); color: var(--info); border-color: var(--info); }
+.pill--warn { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+.pill--ok { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
+.pill--danger { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+
+/* The dashed Shanta Mahila Bazar ID badge from the storefront. */
+.idpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px dashed var(--line-2);
+  border-radius: var(--r-sm);
+  padding: 7px 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--green);
+  background: var(--surface);
+  font-size: var(--t-sm);
+  letter-spacing: 0.02em;
+}
+.verified { color: var(--green); font-weight: 700; font-size: var(--t-sm); display: inline-flex; align-items: center; gap: 5px; }
+
+/* ============================================================
+   Notices
+   ============================================================ */
+.notice {
+  border-radius: var(--r-sm);
+  padding: var(--s3) var(--s4);
+  border-left: 4px solid var(--ink-3);
+  background: var(--surface-2);
+  font-size: var(--t-sm);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.notice--warn { background: var(--warn-soft); border-left-color: var(--warn); }
+.notice--ok { background: var(--ok-soft); border-left-color: var(--ok); }
+.notice--danger { background: var(--danger-soft); border-left-color: var(--danger); }
+.notice--info { background: var(--info-soft); border-left-color: var(--info); }
+.notice__title { font-weight: 700; font-size: var(--t-base); display: block; margin-bottom: 2px; color: var(--ink); }
+
+/* ============================================================
+   Slot meter
+   ============================================================ */
+.slotmeter { display: flex; flex-direction: column; gap: var(--s2); }
+.slotmeter__bars { display: grid; gap: 4px; }
+.slotmeter__bar { height: 10px; border-radius: 3px; background: var(--bg-2); border: 1px solid var(--line); }
+.slotmeter__bar--on { background: var(--gold); border-color: var(--gold); }
+
+/* ============================================================
+   Empty & loading states
+   ============================================================ */
+.empty {
+  text-align: center;
+  padding: var(--s6) var(--s3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s3);
+}
+.empty__icon {
+  font-size: 2rem;
+  line-height: 1;
+  width: 64px; height: 64px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--gold-soft);
+}
+.empty__title { font-size: var(--t-md); font-weight: 700; }
+.empty__body { color: var(--ink-2); max-width: 32ch; font-size: var(--t-sm); }
+
+/* No internet: a whole-screen sheet OVER the app, so what is underneath
+   stays mounted and comes back untouched. */
+.offline {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--bg);
+  overflow-y: auto;
+  display: flex;
+  padding: calc(var(--s5) + var(--safe-t)) var(--s4) calc(var(--s5) + var(--safe-b));
+}
+.offline__card {
+  margin: auto;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s3);
+  text-align: center;
+}
+.offline__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-weight: 700;
+  color: var(--maroon);
+  margin-bottom: var(--s5);
+}
+.offline__logo { width: 40px; height: 40px; }
+.offline__icon {
+  width: 96px; height: 96px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--maroon-soft);
+  color: var(--maroon);
+  font-size: 2.75rem;
+}
+.offline__title { margin: var(--s2) 0 0; font-size: var(--t-xl); line-height: 1.25; }
+.offline__body { margin: 0; color: var(--ink-2); font-size: var(--t-base); max-width: 34ch; }
+.offline__safe {
+  margin: var(--s2) 0 var(--s4);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-full);
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-size: var(--t-base);
+  font-weight: 600;
+}
+.offline__still { margin: 0; min-height: 1.5em; color: var(--danger); font-size: var(--t-base); }
+
+/* ============================================================
+   List tiles & product cards
+   ============================================================ */
+.tile {
+  display: flex;
+  gap: var(--s3);
+  align-items: flex-start;
+  padding: var(--s3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  min-width: 0;
+}
+.tile:active { background: var(--surface-2); }
+.tile__img {
+  width: 62px; height: 62px; flex: 0 0 auto;
+  border-radius: var(--r-sm);
+  background: var(--gold-soft);
+  display: grid; place-items: center;
+  font-size: 1.7rem;
+  overflow: hidden;
+}
+.tile__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tile__title { font-weight: 700; font-size: var(--t-base); line-height: 1.35; }
+.tile__meta { font-size: var(--t-sm); color: var(--ink-3); }
+.tile__price { font-weight: 800; font-size: var(--t-base); color: var(--maroon); flex: 0 0 auto; }
+
+/* ============================================================
+   Updates — one row per order, read at a glance
+   ------------------------------------------------------------
+   Built like the order rows in any shopping app: a mark that
+   carries the state, the thing itself on the first line with
+   the time opposite it, and the detail underneath in the
+   order she needs it - what it is, whose it is, where it got
+   to, what it came to. The plain list tile put the state pill
+   inside the title and the time in a run-on line of dots,
+   which reads as one long string rather than four facts.
+   ============================================================ */
+.notif {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: var(--s3);
+  align-items: start;
+  width: 100%;
+  padding: var(--s3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.notif:active { background: var(--surface-2); }
+/* Unread, under the नवीन heading that already names them: the tint is the
+   second, quieter signal, never the only one. */
+.notif--new { background: var(--maroon-soft); border-color: var(--line-2); }
+.notif--new:active { background: var(--gold-soft); }
+
+.notif__mark {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 1.15rem;
+  border: 1px solid transparent;
+}
+.notif__mark--neutral { background: var(--surface-2); color: var(--ink-2); border-color: var(--line); }
+.notif__mark--info { background: var(--info-soft); color: var(--info); border-color: var(--info); }
+.notif__mark--warn { background: var(--gold-soft); color: var(--warn); border-color: var(--warn); }
+.notif__mark--ok { background: var(--green-soft); color: var(--ok); border-color: var(--ok); }
+.notif__mark--danger { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+
+.notif__body { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
+.notif__head { display: flex; align-items: baseline; gap: var(--s2); }
+.notif__title {
+  font-weight: 700;
+  line-height: 1.35;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* The time never wraps under the title it belongs to. */
+.notif__when { flex: 0 0 auto; font-size: var(--t-sm); color: var(--ink-3); white-space: nowrap; }
+.notif__say { font-size: var(--t-base); color: var(--ink-2); line-height: 1.45; }
+.notif__meta { font-size: var(--t-sm); color: var(--ink-3); }
+.notif__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); flex-wrap: wrap; }
+.notif__amount { font-weight: 800; color: var(--maroon); }
+
+/* Auto-fitting grid: 2 up at 360px, more as space allows. */
+.pgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+  gap: var(--s3);
+}
+.pgrid--2 { grid-template-columns: repeat(2, 1fr); }
+
+.pcard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+/* The card opens the product; the strip under it adds to the cart. Separate
+   buttons, because one tap must not do both. */
+.pcard__open {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pcard__open:active { background: var(--surface-2); }
+.pcard__add {
+  padding: 0 var(--s3) var(--s3);
+  display: flex;
+  justify-content: stretch;
+}
+.pcard__add > * { flex: 1; }
+
+/* − 2 + : the count where the button was, so she can see what a tap did. */
+.qtybar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  border: 1px solid var(--maroon);
+  border-radius: var(--r);
+  background: var(--maroon-soft);
+  padding: 2px;
+}
+.qtybar__btn {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--maroon);
+  border-radius: var(--r-sm);
+  font-size: 1.1rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.qtybar__btn:active { background: rgba(123, 30, 46, 0.12); }
+.qtybar__btn:disabled { opacity: 0.35; cursor: default; }
+.qtybar__n { font-weight: 800; color: var(--maroon); font-size: var(--t-base); }
+.pcard__img { aspect-ratio: 1; background: var(--gold-soft); display: grid; place-items: center; font-size: 2.4rem; }
+.pcard__body { padding: var(--s3); display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.pcard__name { font-weight: 700; font-size: var(--t-sm); line-height: 1.35; }
+.pcard__price { font-weight: 800; font-size: var(--t-base); color: var(--maroon); margin-top: auto; }
+
+.hscroll {
+  display: flex;
+  gap: var(--s3);
+  overflow-x: auto;
+  padding: 0 var(--s4) var(--s2);
+  margin: 0 calc(-1 * var(--s4));
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.hscroll::-webkit-scrollbar { display: none; }
+.hscroll > * { flex: 0 0 auto; }
+
+/* ============================================================
+   Storefront — the reference screen
+   ============================================================ */
+.shopcard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.shopcard__band {
+  background: var(--gold-band);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.45) 0 10px,
+    rgba(255, 255, 255, 0) 10px 20px
+  );
+  padding: var(--s4);
+  display: flex;
+  gap: var(--s3);
+  align-items: center;
+  min-width: 0;
+}
+.shop-avatar {
+  width: 66px; height: 66px; flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--maroon);
+  color: #fff;
+  display: grid; place-items: center;
+  font-size: 1.6rem; font-weight: 700;
+  border: 3px solid var(--surface);
+}
+
+/**
+ * A person, as her initials. One shape everywhere a seller or a buyer appears,
+ * so the same woman is recognisably the same woman on the profile, in a list
+ * and in the cart.
+ *
+ * Deliberately ONE colour rather than a palette hashed from the name: colour
+ * in this app means what to tap, what changed and what went wrong, and a
+ * screenful of tinted circles would make the one status colour harder to find.
+ * The letters are the identity; the circle is just a frame.
+ */
+.avatar {
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--maroon-soft);
+  color: var(--maroon);
+  display: grid; place-items: center;
+  font-weight: 800;
+  line-height: 1;
+  /* Marathi names are wide; never let a long cluster spill out of the circle. */
+  overflow: hidden;
+  text-align: center;
+}
+.shopcard__name { font-size: var(--t-lg); font-weight: 800; color: var(--maroon); line-height: 1.2; margin: 0; }
+.shopcard__meta { font-size: var(--t-sm); color: var(--ink-2); margin: 3px 0 0; }
+.stars { color: var(--gold); letter-spacing: 1px; font-size: var(--t-sm); }
+.shopcard__foot {
+  padding: var(--s3) var(--s4);
+  display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3);
+  align-items: center; justify-content: space-between;
+}
+
+/* Product row on the storefront: image, details, then actions. */
+.prow { display: flex; gap: var(--s3); padding: var(--s3); align-items: flex-start; min-width: 0; }
+.prow__img {
+  width: 74px; height: 74px; flex: 0 0 auto;
+  border-radius: var(--r-sm);
+  background: var(--gold-soft);
+  display: grid; place-items: center; font-size: 2rem;
+}
+.prow__body { flex: 1; min-width: 0; }
+.prow__name { font-weight: 700; font-size: var(--t-md); line-height: 1.3; margin: 0; }
+.prow__meta { font-size: var(--t-sm); color: var(--ink-3); margin: 2px 0 6px; }
+.prow__price { font-weight: 800; font-size: var(--t-md); color: var(--maroon); }
+.prow__price span { font-weight: 500; font-size: var(--t-sm); color: var(--ink-3); }
+.prow__actions { display: flex; gap: var(--s2); flex-wrap: wrap; padding: 0 var(--s3) var(--s3); }
+.prow__actions > * { flex: 1 1 140px; }
+
+/* ============================================================
+   Stepper / dots / timeline / OTP / action bar
+   ============================================================ */
+/* `flex: none`: its buttons are a fixed 44px and it clips, so a stepper that
+   shrinks beside a long amount loses its + off the edge. The name wraps. */
+.stepper { display: inline-flex; flex: none; align-items: center; border: 2px solid var(--line-2); border-radius: var(--r-sm); overflow: hidden; }
+.stepper button { width: var(--tap); height: var(--tap); border: 0; background: var(--surface); font-size: 1.3rem; font-weight: 700; cursor: pointer; color: var(--maroon); }
+.stepper button:active { background: var(--surface-2); }
+.stepper button:disabled { color: var(--ink-3); }
+.stepper__v { min-width: 42px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/**
+ * A value and the button that copies it.
+ *
+ * The button is a square at the touch floor and carries no word: labelled, it
+ * was wider than the UPI ID it belonged to, and the ID is the thing she is
+ * meant to read. Centred as a pair, because on the payment screen it sits
+ * under a QR code.
+ *
+ * Never wrapped: a long ID breaks across lines beside the button instead.
+ * With `flex-wrap: wrap` an ID that did not fit on one line pushed the button
+ * onto its own line underneath, where it read as a separate thing rather than
+ * "copy this". `min-width: 0` is what lets the ID shrink and break at all.
+ */
+.copyrow { display: flex; align-items: center; justify-content: center; gap: var(--s2); }
+.copyrow > strong { min-width: 0; }
+.copybtn { width: var(--tap); min-width: var(--tap); height: var(--tap); min-height: var(--tap); padding: 0; flex: none; }
+
+.dots { display: flex; gap: 5px; align-items: center; }
+.dots__d { height: 6px; flex: 1; border-radius: 3px; background: var(--line); }
+.dots__d--on { background: var(--maroon); }
+.dots__d--done { background: var(--maroon-soft); }
+
+.timeline { display: flex; flex-direction: column; }
+.tl { display: grid; grid-template-columns: 28px 1fr; gap: var(--s3); padding-bottom: var(--s4); position: relative; }
+.tl:last-child { padding-bottom: 0; }
+.tl::before { content: ''; position: absolute; left: 13px; top: 26px; bottom: 0; width: 2px; background: var(--line); }
+.tl:last-child::before { display: none; }
+.tl__dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); border: 2px solid var(--line); font-size: 0.8rem; z-index: 1; }
+.tl--done .tl__dot { background: var(--green); border-color: var(--green); color: #fff; }
+.tl--now .tl__dot { background: var(--gold); border-color: var(--gold); color: #fff; }
+.tl--done::before { background: var(--green); }
+.tl__label { font-weight: 700; font-size: var(--t-base); line-height: 1.3; }
+.tl__time { font-size: var(--t-xs); color: var(--ink-3); }
+.tl--todo .tl__label { color: var(--ink-3); font-weight: 600; }
+
+.otp { display: flex; gap: var(--s2); justify-content: center; }
+.otp input {
+  width: 100%; max-width: 62px; height: 62px; text-align: center;
+  font-size: var(--t-xl); font-weight: 700;
+  border: 2px solid var(--line-2); border-radius: var(--r-sm); background: var(--surface);
+}
+.otp input:focus { border-color: var(--maroon); outline: none; }
+
+/**
+ * The bar that holds Back / Next / Pay.
+ *
+ * It is written both ways round in this app: most screens put it AFTER
+ * `.screen`, as a child of the shell, and a couple put it inside `.screen`.
+ * The negative margins only make sense in the second case - as a child of the
+ * shell they pushed the bar 16px past both edges of the phone column, which is
+ * what made the buttons on the upload wizard hang off the screen.
+ */
+.actionbar {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding: var(--s3) var(--s4) calc(var(--s3) + var(--safe-b));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin: 0;
+  box-shadow: var(--shadow-up);
+  z-index: 20;
+}
+/* Inside a padded screen it still has to reach both edges. */
+.screen .actionbar { margin: 0 calc(-1 * var(--s4)) calc(-1 * var(--s4)); }
+/**
+ * On a screen with the four tabs, the bar stops ON TOP of them: they are both
+ * stuck to the bottom of the same scroll, and the nav wins on z-index, so
+ * "Next" was sitting behind "Add Product".
+ */
+.app-shell--nav .actionbar { bottom: calc(var(--nav-h) + var(--safe-b)); }
+@media (min-width: 600px) {
+  .actionbar { padding-left: var(--s5); padding-right: var(--s5); }
+  .screen .actionbar { margin: 0 calc(-1 * var(--s5)) calc(-1 * var(--s5)); }
+}
+
+/* ============================================================
+   Bar chart — no axis, direct labels
+   ============================================================ */
+.bars { display: grid; gap: 4px; align-items: end; height: 148px; }
+.bars__col { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; height: 100%; min-width: 0; }
+.bars__v { font-size: 0.7rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--maroon); }
+.bars__v--zero { color: var(--ink-3); font-weight: 500; }
+.bars__bar { width: 100%; background: var(--maroon); border-radius: 4px 4px 0 0; min-height: 3px; }
+.bars__bar--zero { background: var(--line-2); }
+.bars__d { font-size: 0.7rem; color: var(--ink-3); }
+.hero-num { font-size: var(--t-2xl); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--maroon); }
+
+/* ============================================================
+   Bottom sheets
+   ============================================================ */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(59, 43, 35, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+/**
+ * A bottom sheet on a phone, a centred dialog on anything wider.
+ *
+ * The cap is `min(100%, ...)` rather than a bare pixel value so it can never
+ * exceed its container - which is what the blanket rule at the foot of this
+ * file used to be for, before it started overriding this line instead.
+ *
+ * It matches the app shell rather than the window: the app is a 520px column
+ * however wide the browser is, and a confirmation that spanned the whole
+ * screen would not look like it belonged to the screen behind it.
+ */
+.sheet {
+  width: 100%;
+  max-width: min(100%, 520px);
+  background: var(--surface);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  padding: var(--s4);
+  padding-bottom: calc(var(--s4) + var(--safe-b));
+  max-height: 88vh;
+  overflow-y: auto;
+}
+@media (min-width: 600px) {
+  .sheet-backdrop { align-items: center; padding: var(--s4); }
+  .sheet { border-radius: var(--r-xl); max-width: min(100%, 460px); }
+}
+
+/* ============================================================
+   Page walkthrough — the ring is around a REAL control
+   ============================================================ */
+/**
+ * The dim is the ring's own box-shadow, so the control keeps its true
+ * colours while everything around it recedes. Where a step has no control on
+ * screen - a gated wizard, an empty cart - `.tour__dim` stands in and the
+ * card explains the screen on its own.
+ */
+.tour { position: fixed; inset: 0; z-index: 120; }
+/* While a walkthrough is open the page under it does not move - see the
+   comment in Walkthrough.tsx. `scroll-behavior: auto` so the tour's own
+   scrollIntoView, which still works through this, lands without animating
+   against a locked page. */
+.tour-open, .tour-open body { overflow: hidden; scroll-behavior: auto; }
+/* Stops a swipe on the overlay scrolling the page behind it on Android. */
+.tour__block { position: absolute; inset: 0; touch-action: none; }
+.tour__dim { position: absolute; inset: 0; background: rgba(59, 43, 35, 0.55); }
+.tour__ring {
+  position: absolute;
+  border-radius: var(--r);
+  border: 3px solid var(--gold);
+  box-shadow: 0 0 0 9999px rgba(59, 43, 35, 0.55);
+  pointer-events: none;
+  transition: top 0.2s, left 0.2s, width 0.2s, height 0.2s;
+}
+.tour__card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
+  max-width: min(100%, 520px);
+  background: var(--surface);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  padding: var(--s4);
+  padding-bottom: calc(var(--s4) + var(--safe-b));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  box-shadow: 0 -6px 24px rgba(59, 43, 35, 0.18);
+}
+.tour__card--top {
+  bottom: auto;
+  top: 0;
+  border-radius: 0 0 var(--r-xl) var(--r-xl);
+  padding-top: calc(var(--s4) + env(safe-area-inset-top, 0px));
+  padding-bottom: var(--s4);
+}
+
+/* ============================================================
+   LANDING PAGE — the one full-width surface
+   ============================================================ */
+/**
+ * The landing page is a PHONE COLUMN, at every screen size.
+ *
+ * It used to be a wide marketing page that reflowed into two- and four-column
+ * grids above 520px. Everyone who uses this holds a phone, so those layouts
+ * were only ever seen by us - and they were the layouts we were looking at
+ * while deciding whether the page was right. Matching .app-shell means the
+ * first screen a seller meets is the same shape as every screen after it, and
+ * that what we check on a laptop is what she actually gets.
+ */
+.landing {
+  min-height: 100%;
+  background: var(--bg);
+  overflow-x: hidden;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+@media (min-width: 560px) { .landing { box-shadow: 0 0 0 1px var(--line); } }
+@media (min-width: 1000px) { .landing { max-width: 720px; } }
+/* min(), so the centred column can never be widened by a later blanket rule
+   and can never overflow a narrow window either. */
+.wrap { max-width: 100%; margin: 0 auto; padding: 0 var(--s4); width: 100%; }
+
+/* --- header ------------------------------------------------ */
+.lnav {
+  position: sticky; top: 0; z-index: 40;
+  background: var(--maroon);
+  color: #fff;
+  padding-top: var(--safe-t);
+}
+.lnav__in { display: flex; align-items: center; gap: var(--s2); min-height: 60px; }
+.brand { display: flex; align-items: center; gap: var(--s2); min-width: 0; text-decoration: none; color: inherit; }
+.brand__mark {
+  /* Her portrait, already circular and already carrying its own gold ring, so
+     no background or border here - either would print a second ring. */
+  width: 44px; height: 44px; flex: 0 0 auto;
+  border-radius: 50%;
+  display: block; object-fit: contain;
+}
+.brand__name { font-weight: 800; font-size: var(--t-base); line-height: 1.15; color: #fff; letter-spacing: 0.01em; }
+.brand__name em { font-style: normal; color: var(--gold-band); }
+.brand__sub { display: block; font-size: 0.7rem; font-weight: 500; color: rgba(255,255,255,0.7); }
+
+.langswitch { display: flex; background: rgba(255,255,255,0.14); border-radius: var(--r-full); padding: 3px; gap: 2px; flex: 0 0 auto; }
+.langswitch button {
+  border: 0; background: transparent; color: rgba(255,255,255,0.85);
+  font-size: 0.8rem; font-weight: 700; padding: 6px 11px;
+  border-radius: var(--r-full); cursor: pointer; min-height: 34px; white-space: nowrap;
+}
+.langswitch button[aria-pressed='true'] { background: #fff; color: var(--maroon); }
+
+/* --- hero -------------------------------------------------- */
+.hero { padding: var(--s6) 0 var(--s5); }
+.hero__in { display: flex; flex-direction: column; gap: var(--s5); }
+.hero__eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: var(--t-xs); font-weight: 700; color: var(--maroon);
+  background: var(--maroon-soft); border-radius: var(--r-full);
+  padding: 6px 14px; margin-bottom: var(--s3);
+}
+.hero h1 {
+  /* Capped to --t-2xl: vw is the viewport, not this column, so a wide window
+     used to inflate the headline far past what 520px can hold. */
+  font-size: clamp(1.75rem, 7vw, 2.25rem);
+  line-height: 1.16; letter-spacing: -0.015em; margin: 0 0 var(--s3);
+  text-wrap: balance; color: var(--ink);
+}
+.hero h1 em { font-style: normal; color: var(--maroon); }
+.hero__lede { font-size: clamp(0.98rem, 2.2vw, 1.1rem); color: var(--ink-2); max-width: 46ch; margin: 0 0 var(--s5); }
+
+/* The two entry doors: side by side, icon left, words right.
+   Sized to the content rather than to the column - these are two choices, not
+   a hero, and half a 520px column is 244px, which an icon and a label fit in
+   comfortably once neither is oversized. */
+.doors { display: flex; flex-direction: row; gap: var(--s3); }
+.door {
+  display: flex; flex-direction: row; align-items: center; gap: var(--s3);
+  padding: var(--s3); border-radius: var(--r-lg);
+  border: 2px solid var(--line-2); background: var(--surface);
+  cursor: pointer; text-align: left;
+  flex: 1 1 0; min-width: 0;
+  font: inherit; color: inherit; text-decoration: none;
+}
+.door--primary { background: var(--maroon); border-color: var(--maroon); color: #fff; }
+.door--primary .door__s { color: rgba(255,255,255,0.78); }
+.door:active { transform: translateY(1px); }
+.door__icon {
+  font-size: 1.15rem; flex: 0 0 auto;
+  width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--gold-soft);
+}
+.door--primary .door__icon { background: rgba(255,255,255,0.16); }
+.door__t { font-weight: 800; font-size: var(--t-base); line-height: 1.25; display: block; }
+.door__s { font-size: var(--t-sm); color: var(--ink-3); display: block; }
+/* Half a 360px phone leaves ~80px for words. The title carries the meaning;
+   the second line is the first thing that should go. */
+@media (max-width: 400px) { .door__s { display: none; } }
+
+/* --- hero artwork ------------------------------------------ */
+/* The frame belongs to the PHOTOGRAPH, not to the figure.
+   Caption and picture used to share one bordered card, so the words read as
+   part of the image rather than as a line about it. Now the card stops at the
+   bottom of the photo and the caption sits under it, on the page. */
+.hero__art {
+  margin: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.hero__art figure { margin: 0; }
+.hero__art figcaption {
+  padding: var(--s3) var(--s1) 0;
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+.hero__art figcaption strong { color: var(--maroon); display: block; font-size: var(--t-base); }
+/* The "Built for her" figure holds the drawn artwork rather than photographs,
+   so it takes the same frame directly. */
+.hero__art > svg {
+  display: block; width: 100%;
+  border-radius: var(--r-xl); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+
+/* Hero photographs: four frames stacked in one box, cross-faded on a timer.
+   The box owns the aspect ratio so the swap never reflows the page. */
+.heroshots {
+  position: relative; aspect-ratio: 16 / 9; background: var(--bg-2);
+  border-radius: var(--r-xl); overflow: hidden;
+  border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.heroshots img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0; transition: opacity 900ms ease-in-out;
+}
+.heroshots img.is-on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .heroshots img { transition: none; } }
+
+/* --- sections ---------------------------------------------- */
+.lsection { padding: var(--s6) 0; }
+.lsection--tint { background: var(--bg-2); }
+.lsection__head { max-width: 58ch; margin: 0 auto var(--s5); text-align: center; }
+.lsection__head h2 {
+  font-size: clamp(1.3rem, 4.5vw, 1.9rem); line-height: 1.2;
+  margin: 0 0 var(--s2); letter-spacing: -0.01em; color: var(--ink);
+}
+.lsection__head p { color: var(--ink-2); margin: 0; font-size: var(--t-base); }
+
+/* How it works: two lanes of numbered steps, side by side.
+   The two lanes are the same four beats told twice - one for her, one for the
+   buyer - and the point only lands when you can read them against each other.
+   Stacked, the second lane was a scroll away from the first. The steps are one
+   or two words each, so half of a 360px phone holds them. */
+.lanes { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+.lane { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s3); }
+.lane__t { display: flex; align-items: center; gap: var(--s2); font-weight: 800; font-size: var(--t-base); margin: 0 0 var(--s2); color: var(--maroon); }
+.lane--buy .lane__t { color: var(--green); }
+.steps { display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; list-style: none; }
+.steps li { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--line); font-size: var(--t-sm); }
+.steps li:first-child { border-top: 0; }
+.steps b {
+  width: 24px; height: 24px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--maroon-soft); color: var(--maroon);
+  display: grid; place-items: center; font-size: 0.72rem;
+}
+.lane--buy .steps b { background: var(--green-soft); color: var(--green); }
+
+/* Why cards: a 2x2 grid of square tiles.
+   Four reasons read as one set, so they are shown as one block rather than as
+   four rows you scroll past one at a time. */
+.whys { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+/* Square tiles, read top-left down: icon, heading, line.
+   ONE tint across all four, not four colours. These are four facets of a
+   single answer, so they are one surface repeated; tinting them separately
+   would make the eye look for a difference that is not there, and would spend
+   colour on decoration - which the palette note at the top of this file is
+   explicit about not doing.
+   No aspect-ratio. Forcing a square left two thirds of each tile empty for a
+   two-line sentence. Height comes from the words; the grid still evens the two
+   tiles in a row, which is alignment rather than padding for its own sake. */
+.why {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: var(--s4);
+  text-align: left;
+  display: flex; flex-direction: column;
+  align-items: flex-start; justify-content: flex-start; gap: var(--s2);
+}
+.why__icon {
+  width: 38px; height: 38px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--gold-soft); color: var(--maroon);
+  display: grid; place-items: center; font-size: 1.1rem;
+}
+.why h3 { margin: 0; font-size: var(--t-base); line-height: 1.25; }
+.why p { margin: 0; color: var(--ink-2); font-size: var(--t-sm); line-height: 1.45; }
+
+/* Category strip */
+.cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: var(--s3); }
+.cat {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: var(--s2);
+  text-align: center; cursor: pointer; font: inherit; color: inherit; min-width: 0;
+}
+.cat:active { background: var(--surface-2); }
+.cat__i {
+  display: block; width: 100%; height: auto; aspect-ratio: 340 / 216;
+  object-fit: cover; border-radius: var(--r-sm); background: var(--surface-2);
+}
+.cat__t { font-weight: 700; font-size: var(--t-sm); margin-top: 6px; line-height: 1.3; }
+
+/* A whole list row that is itself the tap target. Reset to look like the
+   markup it replaced, so nothing about the card reads as a form control. */
+.tile-tap {
+  display: flex; align-items: flex-start; gap: var(--s3);
+  width: 100%; padding: 0; border: 0; background: none;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+  min-height: var(--tap);
+}
+.tile-tap:active { opacity: 0.7; }
+.tile-tap__go { color: var(--ink-3, var(--ink-2)); flex: 0 0 auto; padding-top: 4px; }
+
+/* Women section */
+.women { display: grid; grid-template-columns: 1fr; gap: var(--s5); align-items: center; }
+.women__copy h2 { font-size: clamp(1.3rem, 4.5vw, 1.9rem); margin: 0 0 var(--s3); line-height: 1.22; }
+.women__list { list-style: none; margin: var(--s4) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.women__list li { display: flex; gap: var(--s3); align-items: flex-start; font-size: var(--t-base); color: var(--ink-2); }
+.women__list span { flex: 0 0 auto; color: var(--green); font-weight: 700; }
+
+/* Final CTA */
+.cta {
+  background: var(--maroon);
+  color: #fff;
+  border-radius: var(--r-xl);
+  padding: var(--s6) var(--s4);
+  text-align: center;
+}
+.cta h2 { font-size: clamp(1.3rem, 4.5vw, 1.9rem); margin: 0 0 var(--s2); line-height: 1.25; }
+.cta p { color: rgba(255,255,255,0.8); margin: 0 0 var(--s5); font-size: var(--t-base); }
+.cta__btns { display: flex; flex-direction: column; gap: var(--s3); max-width: 460px; margin: 0 auto; }
+.cta .btn { background: #fff; color: var(--maroon); }
+.cta .btn--ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,0.6); }
+
+/* Footer */
+.lfoot { border-top: 1px solid var(--line); padding: var(--s5) 0; color: var(--ink-3); font-size: var(--t-sm); background: var(--surface); }
+.lfoot__in { display: flex; flex-direction: column; gap: var(--s2); }
+
+/* ============================================================
+   Utility
+   ============================================================ */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ============================================================
+   SMALL-PHONE GUARDS  (360-412px is the real target)
+   ------------------------------------------------------------
+   Checked against 360x640, 375x667, 390x844 and 412x915. The
+   landing header is the tightest row on the page: brand +
+   language switch + login all compete for 360px, so the
+   secondary line drops out first and the controls tighten.
+   ============================================================ */
+@media (max-width: 430px) {
+  .brand__sub { display: none; }
+  .brand__mark { width: 40px; height: 40px; }
+  .brand__name { font-size: 0.95rem; }
+  .langswitch button { padding: 6px 9px; font-size: 0.75rem; }
+  .lnav__in { gap: var(--s1); min-height: 56px; }
+}
+
+@media (max-width: 380px) {
+  .bottomnav__label { font-size: 0.7rem; }
+  .bottomnav__icon { width: 40px; }
+  .otp input { max-width: 56px; height: 58px; }
+  .prow__actions > * { flex: 1 1 100%; }
+  .shop-avatar { width: 58px; height: 58px; font-size: 1.4rem; }
+}
+
+/**
+ * Nothing may be wider than its column, ever.
+ *
+ * `.wrap` and `.sheet` are NOT in this list, and that is the point. They set a
+ * deliberate maximum of their own further up the file, and a blanket
+ * `max-width: 100%` down here has the same specificity but a later position,
+ * so it silently won - stretching the confirmation sheet across the whole
+ * window and letting the landing page's centred column run edge to edge. Both
+ * now express the guarantee as `min(100%, <their own cap>)` at the point where
+ * the cap is declared, which cannot be undone from a distance.
+ */
+.screen, .card, .tile, .pcard, .notice, .choice { max-width: 100%; }
+.hscroll, .tablewrap { max-width: 100vw; }
+
+/* Tables and pre blocks scroll inside themselves rather than
+   widening the page. */
+pre, code { overflow-x: auto; max-width: 100%; }
+
+/* ============================================================
+   Shared voice button + live dictation banner
+   ============================================================ */
+.appbar__btn--rec {
+  background: #fff;
+  color: var(--maroon);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.voicebar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(var(--safe-t) + var(--bar-h) + var(--s2));
+  z-index: 60;
+  width: min(calc(100% - var(--s5)), 480px);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--r-full);
+  padding: var(--s2) var(--s4);
+  font-size: var(--t-sm);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+.voicebar__dot {
+  width: 9px; height: 9px; flex: 0 0 auto;
+  border-radius: 50%;
+  background: #ff5b47;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* ============================================================
+   App bar at 360px
+   ------------------------------------------------------------
+   The bar can now hold back + audio-help + the shared mic. That
+   is 132px of controls before the title gets a pixel, so on the
+   smallest phones the buttons tighten and the title is allowed
+   to ellipsize rather than wrap the bar to two lines.
+   ============================================================ */
+@media (max-width: 400px) {
+  .appbar { gap: 2px; padding-left: var(--s2); padding-right: var(--s2); }
+  .appbar__btn { width: 40px; height: 40px; font-size: 1.15rem; }
+  .appbar__title { font-size: var(--t-base); }
+  .appbar__title,
+  .appbar__sub {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .voicebar { font-size: var(--t-xs); padding: var(--s2) var(--s3); }
+}
+
+/* The pincode bar keeps its button on the same row at every width. */
+.input-voice > .btn { flex: 0 0 auto; width: auto; }
+
+/* ============================================================
+   ICONS  (react-icons)
+   ------------------------------------------------------------
+   Every icon renders at 1em, so it is the SURROUNDING font-size
+   that sizes it - which is why the rules above did not have to
+   change when the emoji were replaced. Two things do need
+   saying: an inline SVG sits on the text baseline and looks
+   low, and an icon inside a flex container must never shrink.
+   ============================================================ */
+.btn svg, .pill svg, .lane__t svg, .verified svg, .tile svg, .field__err svg,
+.appbar__btn svg, .bottomnav__icon svg, .mic svg, .choice__mark svg,
+.door__icon svg, .why__icon svg, .empty__icon svg, .stepper button svg {
+  flex: 0 0 auto;
+}
+.field__err { display: flex; gap: 5px; align-items: center; }
+.field__err.center { justify-content: center; }
+.choice__mark { font-size: 0.95rem; }
+.women__list span svg { vertical-align: middle; }
+
+/* "बदला" beside a reviewed answer. Underlined, not a button shape: it belongs
+   to the line it edits, and a row of full buttons would out-shout the answers
+   they sit next to. Still 44px tall, because it is a real tap target. */
+.linkbtn {
+  border: 0;
+  background: transparent;
+  color: var(--maroon);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: var(--s2);
+  margin: calc(var(--s2) * -1);
+  min-height: var(--tap);
+  flex: 0 0 auto;
+}
+.linkbtn:active { color: var(--maroon-dark); }
+
+/* The five shortcuts on My Business. */
+.quicklink__icon { font-size: 1.9rem; line-height: 1; color: var(--maroon); display: grid; place-items: center; }
+
+/* The single large mark on a whole-screen state - waiting for approval, or a
+   payment that was not accepted. It replaces a 4rem emoji, so it keeps the
+   same weight on the page. */
+.bigstate { font-size: 3.5rem; line-height: 1; display: grid; place-items: center; color: var(--ink-3); }
+.bigstate--warn { color: var(--danger); }
+
+/* The waiting icon turns, so a slow screen looks busy rather than stuck. */
+.empty__icon--spin svg { animation: spin 1.4s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .empty__icon--spin svg { animation: none; }
+}
+
+/* The dictation hint under a field she is speaking into. */
+.input-voice + .field__hint { color: var(--maroon); font-weight: 600; }
+
+/* ============================================================
+   The college behind the project
+   ------------------------------------------------------------
+   The photo is optional: `college--noimg` is what the section
+   collapses to when frontend/public/college.jpg is absent, so
+   the address still reads as a finished card rather than as a
+   gap where a picture failed.
+   ============================================================ */
+.college {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  max-width: 860px;
+  margin: 0 auto;
+}
+.college__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  max-height: 320px;
+  object-fit: cover;
+  background: var(--bg-2);
+}
+.college__body {
+  padding: var(--s5) var(--s4);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s2);
+  min-width: 0;
+}
+.college__mr {
+  margin: 0;
+  font-size: var(--t-md);
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--maroon);
+  text-wrap: pretty;
+}
+.college__en {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+/* ============================================================
+   Toasts - "that worked", said out loud
+   ------------------------------------------------------------
+   Above the bottom nav, never over it: the confirmation must
+   not cover the tab she is about to press next. Centred on the
+   app column rather than the window, so on a desk it sits with
+   the phone frame instead of drifting to a corner.
+   ============================================================ */
+.toasts {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--nav-h) + var(--safe-b) + var(--s3));
+  /* Above the rating screen (130). */
+  z-index: 140;
+  width: min(calc(100% - var(--s5)), 480px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  pointer-events: none;
+}
+/* Notifications refused (components/PushBridge.tsx). Sits where the toasts
+   do, above the bottom nav, and under them so a toast still reads. */
+.pushoff {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--nav-h) + var(--safe-b) + var(--s3));
+  z-index: 135;
+  width: min(calc(100% - var(--s5)), 480px);
+  box-shadow: var(--shadow);
+}
+.pushoff__actions { display: flex; gap: var(--s2); margin-top: var(--s2); }
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s3) var(--s3);
+  border-radius: var(--r);
+  background: var(--ink);
+  color: #fff;
+  font-size: var(--t-sm);
+  line-height: 1.4;
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  animation: toast-in 180ms ease-out;
+}
+.toast__i { flex: 0 0 auto; font-size: 1.1rem; display: grid; place-items: center; }
+.toast--ok .toast__i { color: #7fe0a4; }
+.toast--warn .toast__i { color: var(--gold-band); }
+.toast--danger { background: var(--danger); }
+.toast__x {
+  flex: 0 0 auto;
+  border: 0; background: transparent; color: rgba(255,255,255,0.75);
+  cursor: pointer; display: grid; place-items: center;
+  width: 28px; height: 28px; border-radius: var(--r-sm);
+}
+.toast__x:active { background: rgba(255,255,255,0.16); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+
+/* ============================================================
+   The notification bell
+   ------------------------------------------------------------
+   Rendered BY the AppBar, so it takes its own place in the bar
+   beside the audio-help button. Floated over the bar instead,
+   it covered that button on every screen that has one.
+   ============================================================ */
+.appbar__btn--bell { position: relative; }
+.appbar__dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: var(--r-full);
+  background: var(--gold);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+  /* A ring of the bar behind it, so the badge reads as a separate object
+     rather than as part of the bell glyph. */
+  box-shadow: 0 0 0 2px var(--maroon);
+}
+
+/* "New" beside an update she has not seen. A word, not only a colour. */
+.newdot {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 1px 7px;
+  border-radius: var(--r-full);
+  background: var(--gold-soft);
+  color: var(--gold-deep);
+  border: 1px solid var(--gold);
+  font-size: var(--t-xs);
+  font-weight: 700;
+}
+
+/* ============================================================
+   Language row
+   ------------------------------------------------------------
+   Label left, the current language on the right, and the list
+   only when she opens it. Every language spelled out on the
+   page permanently was a third of a card spent on a setting
+   most people change once.
+   ============================================================ */
+.langrow {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: var(--tap);
+}
+.langrow__l { font-weight: 700; flex: 1; min-width: 0; }
+.langrow__s {
+  width: auto;
+  min-width: 140px;
+  min-height: var(--tap);
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------
+   Feedback - stars, the rating summary, one review
+   Stars are gold because the token says so; every row of them also
+   prints its number and a word (see components/Reviews.tsx).
+   ------------------------------------------------------------------ */
+.stars { display: inline-flex; gap: 2px; vertical-align: middle; }
+.star { color: var(--line-2); fill: none; flex: 0 0 auto; }
+.star--on { color: var(--gold); fill: var(--gold); }
+.stars--sm .star { width: 16px; height: 16px; }
+.stars--md .star { width: 22px; height: 22px; }
+.stars--lg .star { width: 30px; height: 30px; }
+
+.rating-line { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--s2); }
+
+.rating-summary { display: flex; flex-wrap: wrap; gap: var(--s4); align-items: center; }
+.rating-summary__big { display: flex; flex-direction: column; align-items: center; gap: var(--s1); min-width: 7rem; }
+.rating-summary__bars { flex: 1 1 12rem; display: flex; flex-direction: column; gap: var(--s1); }
+.rating-bar { display: flex; align-items: center; gap: var(--s2); }
+.rating-bar .star { width: 14px; height: 14px; }
+.rating-bar__track { flex: 1; height: 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
+.rating-bar__fill { display: block; height: 100%; background: var(--gold); }
+
+.review-list { display: flex; flex-direction: column; }
+.review { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) 0; }
+.review + .review { border-top: 1px solid var(--line); }
+.review:first-child { padding-top: 0; }
+.review:last-child { padding-bottom: 0; }
+.review__text { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.star-picker { display: flex; justify-content: center; gap: var(--s2); flex-wrap: wrap; }
+.star-picker__btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-width: var(--tap); min-height: calc(var(--tap) + 12px); padding: var(--s1) var(--s2);
+  border: 2px solid var(--line); border-radius: var(--r-sm); background: var(--surface);
+  color: var(--ink-2); font: inherit; cursor: pointer;
+}
+.star-picker__btn .star { width: 30px; height: 30px; }
+.star-picker__btn--on { border-color: var(--gold); background: var(--gold-soft); color: var(--gold-deep); }
+
+/* Placeholders - every input and text box, one light colour.
+   Without this each phone used its own default grey, dark enough on this
+   cream ground to look like something already filled in. `opacity: 1`
+   because Firefox fades placeholders on top of whatever colour is set. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------
+   The rating screen (RateOrderGate) - over the whole customer app,
+   bottom tabs included, until every delivered product is rated.
+   ------------------------------------------------------------------ */
+.gate {
+  position: fixed;
+  inset: 0;
+  /* Above sheets (100) and the page tour (120); under the no-internet screen
+     (1000), which has to win over everything; under toasts, so "thank you"
+     is seen even while the next order is being asked about. */
+  z-index: 130;
+  background: var(--bg);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.gate__inner {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--s5) var(--s4) calc(var(--s5) + env(safe-area-inset-bottom, 0px));
+}
+
+/* The veg / non-veg mark (icons.tsx VegMark): a bordered square with a dot,
+   drawn so it is identical on every phone. */
+.vegmark {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  vertical-align: -2px;
+  flex: none;
+}
+.vegmark::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.vegmark--veg { color: var(--green); }
+.vegmark--nonveg { color: var(--danger); }
+
+/* A product with no picture, in a list: a small icon where an emoji used to be. */
+.lineicon { display: inline-grid; place-items: center; font-size: 1.25rem; color: var(--gold-deep); flex: none; }
+/* A category with no photograph: the same height as a photo tile, so the grid lines up. */
+.tileart { height: 72px; display: grid; place-items: center; font-size: 2.25rem; color: var(--gold-deep); background: var(--gold-soft); border-radius: var(--r-sm); }
+/* A done screen: a green tick where a party emoji used to be. */
+.bigstate--ok { color: var(--green); }
+
+/* ------------------------------------------------------------------
+   The buyer's order tracker (components/OrderTracker.tsx)
+   Four stages; green dot and green line for every stage reached.
+   ------------------------------------------------------------------ */
+.track { list-style: none; margin: 0; padding: 0; }
+.track__step {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--s2);
+  padding: 0 0 var(--s5) calc(18px + var(--s4));
+  min-height: 18px;
+}
+.track__step:last-child { padding-bottom: 0; }
+/* The line from this dot down to the next one. */
+.track__step::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 14px;
+  bottom: -4px;
+  width: 3px;
+  background: var(--line-2);
+}
+.track__step:last-child::before { display: none; }
+.track__step--line::before { background: var(--green); }
+.track__dot {
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 3px solid var(--line-2);
+  box-sizing: border-box;
+}
+.track__step--done .track__dot { background: var(--green); border-color: var(--green); }
+.track__step--ended .track__dot { background: var(--danger); border-color: var(--danger); }
+.track__title { font-size: var(--t-md); font-weight: 700; color: var(--ink-3); line-height: 1.35; }
+.track__step--done .track__title,
+.track__step--ended .track__title { color: var(--ink); }
+.track__step--ended .track__title { color: var(--danger); }
+.track__date { font-size: var(--t-sm); color: var(--ink-3); }
+
+/* The one-line status at the top of an order, which opens into the tracker. */
+.statusbox { border: 1.5px solid var(--line-2); border-radius: var(--r-lg, 16px); background: var(--surface); overflow: hidden; }
+.statusbox__head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s4);
+  min-height: var(--tap);
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.statusbox__icon { display: grid; place-items: center; font-size: 1.6rem; flex: none; }
+.statusbox__label { flex: 1; font-size: var(--t-lg); font-weight: 800; line-height: 1.25; }
+.statusbox__chev { display: grid; place-items: center; font-size: 1.4rem; color: var(--ink-3); transform: rotate(90deg); transition: transform 0.15s; flex: none; }
+.statusbox__chev--open { transform: rotate(-90deg); }
+.statusbox__body { padding: 0 var(--s4) var(--s4); border-top: 1px solid var(--line); padding-top: var(--s4); }
+.statusbox--ok .statusbox__icon,
+.statusbox--ok .statusbox__label { color: var(--green); }
+.statusbox--danger .statusbox__icon,
+.statusbox--danger .statusbox__label { color: var(--danger); }
+.statusbox--now .statusbox__icon { color: var(--gold-deep); }
+@media (prefers-reduced-motion: reduce) { .statusbox__chev { transition: none; } }
+
+/* The order number with its copy button, under the product lines. */
+.orderno { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); color: var(--ink-3); font-size: var(--t-sm); }
+
+/* A product line with no picture: a larger tile at the top of an order. */
+.lineicon--lg { width: 56px; height: 56px; border-radius: var(--r-sm); background: var(--gold-soft); font-size: 1.6rem; }
+.tile__img svg { font-size: 1.5rem; }
+
+/* The size the price is for, under it on a product card. */
+.pcard__size { font-size: var(--t-sm); color: var(--ink-3); line-height: 1.3; }
+
+/* "Report" sits quietly at the foot of what it reports: available to anyone
+   who needs it, never competing with Add to basket. */
+.linkbtn--quiet { color: var(--ink-3); font-weight: 600; text-decoration: underline; }
+.linkbtn--quiet:active { color: var(--danger); }

@@ -1,0 +1,735 @@
+/*
+ * The seller app's palette, applied to a desk instead of a phone.
+ *
+ * Tokens are copied verbatim from frontend/src/styles/theme.css so the two
+ * products look like one product. What changes is density and layout: she is
+ * standing in a village with one thumb, the admin is sitting down with a mouse
+ * and wants twenty rows on screen at once.
+ */
+
+:root {
+  /* --- brand (frontend/src/styles/theme.css) ---------------- */
+  --maroon: #7b1e2e;
+  --maroon-dark: #5c1522;
+  --maroon-mid: #98304a;
+  --maroon-soft: #f8e9e8;
+
+  --gold: #b6851b;
+  --gold-deep: #8a6310;
+  --gold-soft: #faefd3;
+
+  --green: #26663f;
+  --green-dark: #1b4d2e;
+  --green-soft: #e5f0e8;
+
+  /* --- neutrals (warm) -------------------------------------- */
+  --ink: #3b2b23;
+  --ink-2: #6b584c;
+  --ink-3: #97867a;
+  --bg: #f7f0e4;
+  --bg-2: #f1e7d4;
+  --surface: #ffffff;
+  --surface-2: #faf5ea;
+  --line: #e7dcc8;
+  --line-2: #d6c8ae;
+  /* Example text inside an empty field. Deliberately faint: it is a hint,
+     and at the browser default it read as a value already typed in. */
+  --placeholder: #bfb2a5;
+
+  /* --- semantic --------------------------------------------- */
+  --ok: var(--green);
+  --ok-soft: var(--green-soft);
+  --warn: #9a6b0c;
+  --warn-soft: var(--gold-soft);
+  --danger: #b3341f;
+  --danger-soft: #fbe8e3;
+  --info: #4a5f52;
+  --info-soft: #ecf0ea;
+
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Noto Sans Devanagari', 'Nirmala UI', 'Mangal', sans-serif;
+  --mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', monospace;
+
+  --r: 4px;
+  --side-w: 208px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.dim { color: var(--ink-2); }
+.dim-2 { color: var(--ink-3); }
+.small { font-size: 13px; }
+.strong { font-weight: 700; }
+.right { text-align: right; }
+.grow { flex: 1; min-width: 0; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Icons are 1em, so the containing font-size sizes them. These are the places
+   where the container has no text of its own to inherit from. */
+.navlink__icon svg, .seccard__icon svg, .empty__i svg,
+.allclear__i svg, .field__err svg, .btn svg, .seccard__go svg { display: block; }
+.field__err { display: flex; align-items: center; gap: 5px; }
+
+/* ================= shell ================= */
+
+.shell { display: flex; min-height: 100%; }
+
+.side {
+  width: var(--side-w);
+  flex: none;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.side__brand {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px;
+  /* It is a link now, so it has to stop looking like a visited one. */
+  color: inherit;
+  text-decoration: none;
+}
+.side__brand:hover { background: var(--surface-2); }
+/* The mark carries its own gold ring, so no border or background here -
+   either would print a second ring around it. */
+.side__logo { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 50%; display: block; }
+.min0 { min-width: 0; }
+.side__name { font-weight: 700; color: var(--maroon); line-height: 1.2; }
+.side__role {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 3px;
+}
+
+.side__nav { padding: 8px; display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
+
+.navlink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--r);
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 14px;
+}
+.navlink:hover { background: var(--bg-2); color: var(--ink); }
+.navlink--on {
+  background: var(--maroon-soft);
+  color: var(--maroon);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--maroon);
+}
+.navlink__icon {
+  width: 18px; flex: none;
+  display: grid; place-items: center;
+  font-size: 16px;
+  color: var(--ink-3);
+}
+.navlink:hover .navlink__icon { color: var(--ink-2); }
+.navlink--on .navlink__icon { color: var(--maroon); }
+.navlink__badge {
+  margin-inline-start: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--gold-soft);
+  color: var(--gold-deep);
+  border: 1px solid var(--gold);
+}
+
+.side__foot { border-top: 1px solid var(--line); padding: 10px; display: grid; gap: 8px; }
+
+/* Sidebar links and Sign out in plain black, icons included. Scoped to the
+   sidebar and one extra class deep, so they outrank .navlink and .btn--quiet
+   here without changing those rules anywhere else they are used. */
+.side .navlink,
+.side .navlink:hover,
+.side .navlink--on,
+.side .navlink__icon,
+.side .navlink:hover .navlink__icon,
+.side .navlink--on .navlink__icon { color: #000; }
+.side__foot .side__signout,
+.side__foot .side__signout:hover { color: #000; }
+
+.langtoggle { display: flex; border: 1px solid var(--line-2); border-radius: var(--r); overflow: hidden; }
+.langtoggle button {
+  flex: 1;
+  padding: 5px 6px;
+  border: 0;
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  font-size: 13px;
+}
+.langtoggle button[aria-pressed='true'] { background: var(--maroon); color: #fff; font-weight: 600; }
+
+/* ================= content ================= */
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.topbar h1 { font-size: 20px; margin: 0; font-weight: 700; }
+/* The way back out of a page that was reached from a list. Aligned to the
+   heading rather than the baseline, so the arrow sits with the title. */
+.topbar__back {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 30px; height: 30px;
+  margin-inline-start: -6px;
+  border-radius: var(--r);
+  color: var(--ink-2);
+  font-size: 19px;
+}
+.topbar__back:hover { background: var(--bg-2); color: var(--maroon); }
+.topbar__sub { color: var(--ink-2); font-size: 13px; }
+/* Pushed to the far corner, centred on the bar rather than on the title's
+   baseline, and sized to its words instead of stretching like it does on the
+   sign-in column. */
+.topbar .langtoggle { margin-inline-start: auto; align-self: center; flex: none; }
+.topbar .langtoggle button { flex: none; padding: 5px 12px; }
+
+.body { padding: 20px 24px 56px; max-width: 1180px; }
+.stack { display: grid; gap: 16px; }
+.stack-sm { display: grid; gap: 8px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.wrap { flex-wrap: wrap; }
+
+.section__t {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+/* ================= pieces ================= */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 14px;
+}
+.card--flush { padding: 0; overflow: hidden; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(136px, 1fr)); gap: 10px; }
+/* Every tile the same height whatever its label does, so a two-line caption
+   does not leave a short neighbour floating. */
+/* A tile is also a size container, so its figure can shrink with it. On a
+   phone a tile is ~130px inside, and "₹12,34,567" at 26px ran out past its
+   border and off the screen. 15cqi fits an eight-digit rupee figure with its
+   commas; the plain px line before it is what a browser without container
+   units keeps. */
+.tiles > * {
+  display: flex; flex-direction: column; justify-content: center; min-height: 74px;
+  container-type: inline-size; min-width: 0;
+}
+
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  text-align: start;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.tile--action { border-color: var(--gold); background: var(--gold-soft); cursor: pointer; }
+.tile--action:hover { border-color: var(--gold-deep); }
+.tile--zero { opacity: 0.72; }
+.tile__n {
+  font-size: 26px;
+  font-size: min(26px, 15cqi);
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tile__n--mini { font-size: 21px; font-size: min(21px, 15cqi); }
+.tile--action .tile__n { color: var(--gold-deep); }
+.tile__l { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: var(--r);
+  border: 1px solid var(--maroon);
+  background: var(--maroon);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--maroon-dark); border-color: var(--maroon-dark); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn--ok { background: var(--green); border-color: var(--green); }
+.btn--ok:hover { background: var(--green-dark); border-color: var(--green-dark); }
+.btn--danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+.btn--danger:hover { background: var(--danger-soft); }
+.btn--quiet { background: transparent; border-color: var(--line-2); color: var(--ink-2); }
+.btn--quiet:hover { background: var(--bg-2); color: var(--ink); }
+.btn--sm { padding: 4px 9px; font-size: 12.5px; }
+
+.pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.pill--ok { background: var(--ok-soft); color: var(--green); border-color: var(--green); }
+.pill--warn { background: var(--warn-soft); color: var(--gold-deep); border-color: var(--gold); }
+.pill--danger { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+.pill--info { background: var(--info-soft); color: var(--info); border-color: var(--info); }
+
+/* "Sort by" and its menu, kept together on one line and pushed to the right
+   end of whatever filter row it sits in. */
+.sortsel { display: inline-flex; align-items: center; gap: 8px; margin-inline-start: auto; }
+.sortsel .select { width: auto; min-width: 190px; }
+
+.input, .select, .textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--surface);
+}
+/* Fixed, like the seller app's. The drag handle in the corner invited an
+   admin to resize a box that is part of a form's layout, and a stretched one
+   pushed the buttons under it off the screen. Long text scrolls instead. */
+.textarea { min-height: 72px; resize: none; }
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible,
+.btn:focus-visible, .navlink:focus-visible, .langtoggle button:focus-visible {
+  outline: 2px solid var(--maroon-mid);
+  outline-offset: 2px;
+}
+
+.field { display: grid; gap: 4px; }
+.field__l { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.field__err { font-size: 12.5px; color: var(--danger); }
+
+/* ================= tables ================= */
+
+.tablewrap { overflow-x: auto; }
+table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.t th, table.t td { padding: 10px 12px; text-align: start; border-bottom: 1px solid var(--line); }
+table.t th {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  background: var(--surface-2);
+  font-weight: 700;
+  white-space: nowrap;
+}
+table.t tbody tr:hover { background: var(--surface-2); }
+table.t tr:last-child td { border-bottom: 0; }
+
+/* ================= states ================= */
+
+.empty { text-align: center; padding: 44px 20px; color: var(--ink-2); }
+.empty__i {
+  width: 52px; height: 52px; margin: 0 auto; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--line);
+  color: var(--ink-3);
+  display: grid; place-items: center; font-size: 24px;
+}
+.empty__t { font-weight: 700; color: var(--ink); margin-top: 10px; }
+
+.allclear__i {
+  width: 34px; height: 34px; flex: none; border-radius: 50%;
+  background: var(--ok-soft); color: var(--green);
+  display: grid; place-items: center; font-size: 18px;
+}
+
+.notice {
+  border: 1px solid var(--line-2);
+  border-inline-start: 3px solid var(--ink-3);
+  background: var(--surface-2);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.notice--danger { border-color: var(--danger); border-inline-start-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+.notice--warn { border-color: var(--gold); border-inline-start-color: var(--gold); background: var(--gold-soft); color: var(--gold-deep); }
+
+.spinner {
+  width: 22px; height: 22px; margin: 32px auto;
+  border: 2px solid var(--line-2);
+  border-top-color: var(--maroon);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.5s; } }
+
+/* ================= sign in =================
+ * One centred column, everything on the same 340px axis.
+ * It read as uneven because the heading, the card and the language toggle each
+ * found their own width: the brand sat flush left of a card that was wider
+ * than it, and the toggle stretched wider still. One max-width on the column
+ * lines all three up. */
+
+.signin {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  /* A hairline of brand at the top, so the sign-in page belongs to the
+     console rather than looking like a stray form on a cream background. */
+  border-top: 3px solid var(--maroon);
+}
+.signin__card { width: 100%; max-width: 340px; gap: 14px; }
+.signin__brand { text-align: center; }
+.signin__logo { width: 96px; height: 96px; border-radius: 50%; display: block; margin: 0 auto 12px; }
+.signin__name { font-weight: 800; font-size: 19px; color: var(--maroon); line-height: 1.2; }
+.signin__sub {
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ink-3); margin-top: 4px;
+}
+.signin__card .card { padding: 18px; }
+.signin__card h1 { font-size: 16px; margin: 0 0 10px; }
+/* The submit button is the only full-width control on the page. */
+.signin__card .btn { width: 100%; justify-content: center; padding: 9px 13px; }
+
+/* ================= charts ================= */
+
+/* Two charts to a row on a desk, one on a laptop half-screen. 300px is the
+   narrowest a donut plus its legend stays readable at. */
+.chartgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+
+.chart__t { font-weight: 700; font-size: 14px; margin: 0 0 2px; }
+.chart__d { font-size: 12.5px; color: var(--ink-3); margin: 0 0 12px; }
+
+.donut { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.donut__svg { width: 148px; height: 148px; flex: none; }
+/* Text wears TEXT colours, never a series colour - the swatch beside a label
+   is what carries identity. */
+.donut__total {
+  text-anchor: middle; font-size: 30px; font-weight: 700;
+  fill: var(--ink); font-variant-numeric: tabular-nums;
+}
+.donut__cap { text-anchor: middle; font-size: 10px; fill: var(--ink-3); letter-spacing: 0.06em; }
+
+.legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; flex: 1; min-width: 150px; }
+.legend li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.legend__sw { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.legend__l { color: var(--ink-2); flex: 1; min-width: 0; }
+.legend__v { font-weight: 700; }
+
+.bars { display: grid; gap: 7px; }
+.bar__row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+.bar__track { height: 20px; background: var(--bg-2); border-radius: 2px; overflow: hidden; }
+.bar__fill { height: 100%; background: var(--maroon); }
+.bar__fill--gold { background: var(--gold); }
+
+/* ================= responsive ================= */
+
+@media (max-width: 900px) {
+  .shell { flex-direction: column; }
+  .side { width: auto; height: auto; position: static; border-right: 0; border-bottom: 1px solid var(--line); }
+  .side__nav { flex-direction: row; overflow-x: auto; }
+  .navlink--on { box-shadow: inset 0 -3px 0 var(--maroon); }
+  .side__foot { grid-auto-flow: column; }
+  .body { padding: 16px; }
+}
+
+/* ================= confirmation ================= */
+
+.confirm {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-2);
+  border-inline-start: 3px solid var(--maroon);
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+.confirm__t { font-weight: 700; }
+.confirm__d { font-size: 13.5px; color: var(--ink-2); margin-top: 4px; max-width: 62ch; }
+
+.packbtn {
+  min-width: 38px;
+  padding: 5px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.packbtn--on { background: var(--maroon); border-color: var(--maroon); color: #fff; font-weight: 700; }
+.packbtn:focus-visible { outline: 2px solid var(--maroon-mid); outline-offset: 2px; }
+
+/* ================= a record, read as label / value =================
+ * A description list rather than a table: these are facts about one woman,
+ * not rows to compare against each other, and a two-column grid keeps the
+ * values lined up without any of a table's furniture.
+ */
+.kv {
+  display: grid;
+  grid-template-columns: minmax(88px, 34%) 1fr;
+  gap: 6px 12px;
+  margin: 0 0 10px;
+  font-size: 13.5px;
+}
+.kv dt { color: var(--ink-3); }
+.kv dd { margin: 0; }
+
+/* ================= has / has not =================
+ * Colour is never the only signal - the tick and the cross say it too, which
+ * is what keeps this readable when it is printed or read by someone
+ * colour-blind.
+ */
+.checks { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 5px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-3); }
+.check--on { color: var(--ink); }
+.check__i {
+  flex: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 12px;
+  background: var(--bg-2); color: var(--ink-3);
+}
+.check--on .check__i { background: var(--ok-soft); color: var(--green); }
+
+/* ================= what was done, and when ================= */
+.timeline { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 8px; }
+.timeline > li {
+  padding-inline-start: 10px;
+  border-inline-start: 2px solid var(--line-2);
+}
+
+/* ================= landing sections ================= */
+
+.seccards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 10px;
+}
+
+.seccard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  text-align: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  cursor: pointer;
+  color: inherit;
+}
+.seccard:hover { border-color: var(--maroon); background: var(--surface-2); }
+.seccard:focus-visible { outline: 2px solid var(--maroon-mid); outline-offset: 2px; }
+
+.seccard__icon {
+  flex: none;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--maroon-soft); color: var(--maroon);
+  display: grid; place-items: center; font-size: 17px;
+}
+.seccard__body { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.seccard__t { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.seccard__d { font-size: 13px; color: var(--ink-2); }
+.seccard__go { color: var(--ink-3); font-size: 18px; line-height: 1; align-self: center; flex: none; }
+.seccard:hover .seccard__go { color: var(--maroon); }
+.seccard__t .navlink__badge { margin-inline-start: 0; }
+
+/* ================= toasts =================
+ * Bottom-right, out of the way of the sidebar and the row an admin is
+ * working on. Every completed action ends with one: a row leaving a
+ * list is not the same as being told what it did.
+ */
+.toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 90;
+  width: min(360px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: var(--r);
+  background: var(--ink);
+  color: #fff;
+  font-size: 13.5px;
+  line-height: 1.45;
+  box-shadow: 0 6px 20px rgba(59, 43, 35, 0.25);
+  pointer-events: auto;
+  animation: toast-in 160ms ease-out;
+}
+.toast__i { flex: none; font-size: 16px; display: grid; place-items: center; }
+.toast--ok .toast__i { color: #7fe0a4; }
+.toast--warn { background: var(--gold-deep); }
+.toast--danger { background: var(--danger); }
+.toast__go {
+  flex: none;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: transparent;
+  color: #fff;
+  border-radius: var(--r);
+  padding: 3px 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.toast__go:hover { background: rgba(255, 255, 255, 0.16); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+
+/**
+ * Order detail, in the browser's own top layer.
+ *
+ * It used to be an ordinary card appended after the table, so opening row 30
+ * of a long list rendered the detail below the whole page and nothing appeared
+ * to happen. `<dialog showModal>` puts it in view wherever the page is
+ * scrolled, and brings Esc, the backdrop and a focus trap with it - none of
+ * which is worth hand-writing.
+ */
+.dlg {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  overflow: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--ink);
+}
+.dlg::backdrop { background: rgba(0, 0, 0, 0.45); }
+/* Wide enough to hold a phone screenshot and the numbers it is checked against. */
+.dlg--wide { width: min(900px, calc(100vw - 32px)); }
+
+/* ================= payment proof ================= */
+
+/* A phone screenshot is tall and narrow, so the thumbnail is too. */
+.shotthumb {
+  position: relative;
+  flex: none;
+  width: 96px;
+  height: 160px;
+  padding: 0;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.shotthumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.shotthumb__cap {
+  position: absolute; inset: auto 0 0 0;
+  padding: 3px 4px;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  text-align: center;
+}
+.shotthumb--none {
+  display: grid; place-items: center;
+  padding: 8px;
+  font-size: 12px; text-align: center;
+  color: var(--danger);
+  border-style: dashed;
+  cursor: default;
+}
+
+.payfacts { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 6px 0; }
+
+.verify {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  display: grid;
+  gap: 6px;
+}
+.verify__item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; cursor: pointer; }
+.verify__item input { margin-top: 3px; width: 16px; height: 16px; flex: none; }
+
+.shotview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 280px); gap: 16px; margin-top: 12px; }
+.shotview__img img {
+  width: 100%;
+  max-height: calc(100vh - 160px);
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: #fff;
+}
+.shotview__big { font-size: 20px; letter-spacing: 0.04em; }
+@media (max-width: 700px) {
+  .shotview { grid-template-columns: 1fr; }
+}
+
+/* Feedback. Text stars take the gold token; the number and word always sit beside them. */
+.stars-text { color: var(--gold-deep); letter-spacing: 1px; }
+.nowrap { white-space: nowrap; }
+
+/* Placeholders - every input and text box, one light colour.
+   Without this each phone used its own default grey, dark enough on this
+   cream ground to look like something already filled in. `opacity: 1`
+   because Firefox fades placeholders on top of whatever colour is set. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
+}
+
+/* What the buyers said, under the listing they said it about. */
+.reportlist { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; }
+.reportlist li::marker { color: var(--danger); }

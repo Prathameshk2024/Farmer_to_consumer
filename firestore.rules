@@ -1,0 +1,23 @@
+rules_version = '2';
+
+/*
+ * Firestore security rules for Shanta Mahila Bazar.
+ *
+ * The API talks to Firestore with the Admin SDK, which bypasses these rules
+ * entirely. They exist so that if a client SDK is ever pointed at this project
+ * - a future admin console, a debugging script, a leaked web config - it can
+ * read and write nothing.
+ *
+ * Deploy:  firebase deploy --only firestore:rules
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Deny everything to client SDKs. All access goes through the API, which
+    // authenticates with a service account and enforces its own rules:
+    // slot limits, FSSAI-on-food, order state transitions, admin-only writes.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
