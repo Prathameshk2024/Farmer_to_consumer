@@ -201,7 +201,7 @@ const mr: Record<string, string> = {
   'se.fdri': 'डिजिटल तयारी (FDRI)', 'se.fdriAll': 'सर्व FDRI गट',
   'today.fdriSpread': 'डिजिटल तयारी (FDRI)', 'today.fdriSpreadSub': 'नोंदणीच्या वेळी कोणत्या गटात किती शेतकरी',
   'fdri.band.low': 'कमी', 'fdri.band.moderate': 'मध्यम', 'fdri.band.high': 'उच्च',
-  'sd.crops': 'पिके', 'sd.landholding': 'शेती', 'sd.farmerTypes': 'शेतीचा प्रकार',
+  'sd.crops': 'पिके', 'sd.landholding': 'शेतजमीन', 'sd.farmerTypes': 'शेतीचा प्रकार',
   'sd.channels': 'माल कुठे विकतात', 'sd.problems': 'विक्रीतील अडचणी',
   'sd.location': 'शेताचे ठिकाण', 'sd.noLocation': 'दिलेले नाही',
   'sd.open': 'तपशील',

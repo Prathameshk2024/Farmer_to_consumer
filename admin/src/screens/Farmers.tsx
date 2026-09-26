@@ -121,7 +121,7 @@ function FarmerCard({ farmer, onDone }: { farmer: FarmerRow; onDone: () => void 
           </div>
           <div className="small dim-2">
             {t('se.products')}: <span className="num">{farmer.productCount}</span>
-            {' · '}{t('se.fdri')}: <span className="num">{farmer.fdriScore}/10</span>{' '}
+            {' · '}{t('se.fdri')}: <span className="num">{farmer.fdriScore ?? 0}/10</span>{' '}
             <FdriBandPill band={farmer.fdriBand} />
           </div>
 

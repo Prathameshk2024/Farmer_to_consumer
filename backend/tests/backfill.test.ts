@@ -43,13 +43,13 @@ const LIVE_ORDERS: Order[] = [
   }),
   order({
     id: 'F2C1042', customerId: 'c2', customerName: 'अनिता कुलकर्णी', customerPhone: '9922334455',
-    address: 'घर क्र. 12, गणेश नगर, आणदुर',
+    address: 'घर क्र. 12, गणेश नगर, अणदूर',
     landmark: 'ग्रामपंचायत ऑफिससमोर', pincode: '413601',
     placedAt: '2026-09-04T08:00:00.000Z',
   }),
   order({
     id: 'F2C1031', customerId: 'c4', customerName: 'रेखा भोसले', customerPhone: '9834455667',
-    address: 'सर्वे नं. 45, तुळजापूर रोड, आणदुर',
+    address: 'सर्वे नं. 45, तुळजापूर रोड, अणदूर',
     pincode: '413601',
     placedAt: '2026-09-03T10:00:00.000Z',
   }),
@@ -98,7 +98,7 @@ test('an order with no landmark still yields a usable address', () => {
 
   assert.equal(rekha.addresses.length, 1)
   assert.equal(rekha.addresses[0]!.landmark, undefined)
-  assert.equal(rekha.addresses[0]!.line, 'सर्वे नं. 45, तुळजापूर रोड, आणदुर')
+  assert.equal(rekha.addresses[0]!.line, 'सर्वे नं. 45, तुळजापूर रोड, अणदूर')
 })
 
 test('createdAt is the earliest order and updatedAt the latest', () => {

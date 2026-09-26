@@ -36,7 +36,7 @@
  * taluka from the village they are named after.
  */
 export const VILLAGES: { mr: string; code: string; taluka: string; district: string }[] = [
-  { mr: 'आणदुर', code: 'ANADUR', taluka: 'तुळजापूर', district: 'धाराशिव' },
+  { mr: 'अणदूर', code: 'ANADUR', taluka: 'तुळजापूर', district: 'धाराशिव' },
   { mr: 'जेवळी', code: 'JEVALI', taluka: 'लोहारा', district: 'धाराशिव' },
   { mr: 'भोसगा', code: 'BHOSGA', taluka: 'लोहारा', district: 'धाराशिव' },
   { mr: 'चिवरी', code: 'CHIVARI', taluka: 'तुळजापूर', district: 'धाराशिव' },
@@ -79,7 +79,7 @@ const ANUSVARA = 'ं'
 
 /**
  * Turn a Marathi place name into an uppercase Latin code.
- * आणदुर -> ANADUR   जेवळी -> JEVALI   रुद्रवाडी -> RUDRAVADI
+ * अणदूर -> ANADUR   जेवळी -> JEVALI   रुद्रवाडी -> RUDRAVADI
  */
 export function transliterate(input: string): string {
   const chars = Array.from((input || '').trim())

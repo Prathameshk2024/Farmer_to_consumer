@@ -459,8 +459,10 @@ const FDRI_BAND_LOOK: Record<FdriBand, { tone: 'warn' | 'info' | 'ok'; Icon: Ico
   high: { tone: 'ok', Icon: IconUp },
 }
 
-export function FdriPill({ band }: { band: FdriBand }) {
+/** A farmer row written before the FDRI existed has no band: nothing is drawn. */
+export function FdriPill({ band }: { band: FdriBand | undefined }) {
   const t = useT()
+  if (!band || !FDRI_BAND_LOOK[band]) return null
   const { tone, Icon } = FDRI_BAND_LOOK[band]
   return <Pill tone={tone} icon={<Icon />}>{t(`fdri.band.${band}`)}</Pill>
 }

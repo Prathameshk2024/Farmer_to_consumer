@@ -603,7 +603,8 @@ adminRouter.get('/impact', (_req, res) => {
       villages: byVillage.size,
     },
     byVillage: [...byVillage.entries()].map(([code, row]) => ({ code, ...row })),
-    fdri: db.farmers.map((s) => ({
+    // Closed accounts are erased to zero answers, not a score anyone gave.
+    fdri: db.farmers.filter((f) => f.status !== 'CLOSED').map((s) => ({
       farmerCode: s.farmerCode,
       village: s.village,
       score: s.fdriScore,

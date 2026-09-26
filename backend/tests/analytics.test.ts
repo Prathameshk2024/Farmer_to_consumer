@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { Order } from '@shared/types.js'
 import { emptyDb } from '../src/db/seed.js'
-import { farmerWeek, startOfWeek } from '../src/db/analytics.js'
+import { farmerWeek, fdriBandCounts, startOfWeek } from '../src/db/analytics.js'
 
 /**
  * "My growth" showed "not enough information yet" to every real farmer on the
@@ -166,4 +166,19 @@ test('the week starts on Monday', () => {
 
   assert.equal(start.getDay(), 1, 'Monday')
   assert.equal(start.getDate(), 31, '31 August 2026 is that Monday')
+})
+
+/**
+ * A closed account's FDRI answers are erased to zero. Counted, each one
+ * would be a "low" nobody gave, skewing the research chart.
+ */
+test('FDRI band counts leave closed accounts out', () => {
+  const counts = fdriBandCounts([
+    { fdriBand: 'moderate', status: 'ACTIVE' },
+    { fdriBand: 'low', status: 'PENDING_VERIFICATION' },
+    { fdriBand: 'low', status: 'CLOSED' },
+  ])
+  assert.deepEqual(counts, [
+    { band: 'low', v: 1 }, { band: 'moderate', v: 1 }, { band: 'high', v: 0 },
+  ])
 })

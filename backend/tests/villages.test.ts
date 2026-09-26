@@ -32,7 +32,7 @@ test('येळी is one of the supported villages', () => {
 test('the taluka is the village\'s own, not the first one on the list', () => {
   const taluka = (mr: string) => VILLAGES.find((v) => v.mr === mr)?.taluka
 
-  assert.equal(taluka('आणदुर'), 'तुळजापूर')
+  assert.equal(taluka('अणदूर'), 'तुळजापूर')
   assert.equal(taluka('चिवरी'), 'तुळजापूर')
   assert.equal(taluka('जेवळी'), 'लोहारा')
   assert.equal(taluka('भोसगा'), 'लोहारा')
@@ -82,7 +82,7 @@ test('a new village starts its own serial at 001', () => {
   const issued = ['F2C-ANADUR-001', 'F2C-ANADUR-002', 'F2C-JEVALI-001']
 
   assert.equal(makeFarmerCode('येळी', issued), 'F2C-YELI-001')
-  assert.equal(makeFarmerCode('आणदुर', issued), 'F2C-ANADUR-003')
+  assert.equal(makeFarmerCode('अणदूर', issued), 'F2C-ANADUR-003')
 })
 
 test('the serial is three digits: the third farmer from a village is 003', () => {

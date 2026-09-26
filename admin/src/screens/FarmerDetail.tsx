@@ -224,7 +224,7 @@ function Numbers({ detail }: { detail: Detail }) {
       <Tile n={orders.length} label={t('sd.ordersAll')} />
       <Tile n={delivered} label={t('sd.delivered')} />
       <Tile n={rupees(earned)} label={t('sd.earned')} />
-      <Tile n={`${farmer.fdriScore}/10`} label={t('se.fdri')} />
+      <Tile n={`${farmer.fdriScore ?? 0}/10`} label={t('se.fdri')} />
     </div>
   )
 }
@@ -257,7 +257,7 @@ function Business({ detail }: { detail: Detail }) {
       <SectionTitle>{t('sd.business')}</SectionTitle>
       <dl className="kv">
         <Row label={t('sd.crops')}>
-          {farmer.crops.map((id) => cropById(id)?.[lang] ?? id).join(', ') || '—'}
+          {(farmer.crops ?? []).map((id) => cropById(id)?.[lang] ?? id).join(', ') || '—'}
         </Row>
         <Row label={t('sd.age')}>{labelOf(AGE_GROUPS, farmer.ageGroup)}</Row>
         <Row label={t('sd.education')}>{labelOf(EDUCATION_LEVELS, farmer.education)}</Row>
@@ -345,7 +345,7 @@ function Fdri({ detail }: { detail: Detail }) {
       <SectionTitle>{t('se.fdri')}</SectionTitle>
 
       <div className="row" style={{ gap: 10, marginBottom: 10 }}>
-        <span className="num" style={{ fontSize: 26, fontWeight: 700 }}>{farmer.fdriScore}</span>
+        <span className="num" style={{ fontSize: 26, fontWeight: 700 }}>{farmer.fdriScore ?? 0}</span>
         <span className="dim-2 small">/ 10</span>
         <FdriBandPill band={farmer.fdriBand} />
       </div>

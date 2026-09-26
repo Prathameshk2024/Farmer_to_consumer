@@ -67,7 +67,7 @@ export function FarmerProfile() {
           <div className="row-between">
             <div>
               <div className="small dim">{t('reg.fdriScore')}</div>
-              <strong className="num" style={{ fontSize: 'var(--t-lg)' }}>{farmer.fdriScore} / 10</strong>
+              <strong className="num" style={{ fontSize: 'var(--t-lg)' }}>{farmer.fdriScore ?? 0} / 10</strong>
             </div>
             <FdriPill band={farmer.fdriBand} />
           </div>

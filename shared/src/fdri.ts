@@ -17,7 +17,7 @@ export type FdriBand = 'low' | 'moderate' | 'high'
 export const FDRI_QUESTIONS: Record<FdriIndicator, { mr: string; en: string }> = {
   smartphone: { mr: 'तुमच्याकडे स्मार्टफोन आहे का?', en: 'Do you have a smartphone?' },
   internet: { mr: 'तुम्ही इंटरनेट वापरता का?', en: 'Do you use the internet?' },
-  whatsapp: { mr: 'तुम्ही WhatsApp वापरता का?', en: 'Do you use WhatsApp?' },
+  whatsapp: { mr: 'तुम्ही व्हॉट्सॲप वापरता का?', en: 'Do you use WhatsApp?' },
   digitalPayment: { mr: 'तुम्ही UPI / ऑनलाइन पैसे पाठवता किंवा घेता का?', en: 'Do you send or receive money by UPI?' },
   onlineMarketInfo: { mr: 'बाजारभाव फोनवर पाहता का?', en: 'Do you check market prices on your phone?' },
   digitalPromotion: { mr: 'तुमच्या मालाची माहिती फोनवरून इतरांना पाठवता का?', en: 'Do you advertise your produce from your phone?' },

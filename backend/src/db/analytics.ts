@@ -120,7 +120,10 @@ export function farmerWeek(db: Db, farmerId: string, now = Date.now()): FarmerWe
  * How many farmers sit in each FDRI band, every band present even at zero,
  * in the paper's order - the dashboard draws the three as one chart.
  */
-export function fdriBandCounts(farmers: Pick<Farmer, 'fdriBand'>[]): { band: FdriBand; v: number }[] {
+export function fdriBandCounts(farmers: Pick<Farmer, 'fdriBand' | 'status'>[]): { band: FdriBand; v: number }[] {
+  // A closed account's answers were erased to zero; counting it would add a
+  // "low" nobody gave.
+  const counted = farmers.filter((f) => f.status !== 'CLOSED')
   const bands: FdriBand[] = ['low', 'moderate', 'high']
-  return bands.map((band) => ({ band, v: farmers.filter((f) => f.fdriBand === band).length }))
+  return bands.map((band) => ({ band, v: counted.filter((f) => f.fdriBand === band).length }))
 }

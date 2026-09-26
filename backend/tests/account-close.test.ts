@@ -43,7 +43,7 @@ function farmer(over: Partial<Farmer> = {}): Farmer {
     sellingChannels: ['trader', 'weekly'],
     problems: ['lowPrice'],
     crops: ['tomato'],
-    village: 'आणदुर',
+    village: 'अणदूर',
     villageCode: 'ANADUR',
     taluka: 'तुळजापूर',
     district: 'धाराशिव',
@@ -240,7 +240,7 @@ test('her password and her forgot-password requests go with the account', async 
   const s = farmer()
   const db = dbWith(s)
   setCredential(db, { role: 'farmer', userId: 's1', phone: '9822011223', password: '482913' })
-  submitPasswordRequest(db, { role: 'farmer', phone: '9822011223', name: 'सुनीता पाटील', village: 'आणदुर' })
+  submitPasswordRequest(db, { role: 'farmer', phone: '9822011223', name: 'सुनीता पाटील', village: 'अणदूर' })
   setCredential(db, { role: 'customer', userId: 'c-9876543210', phone: '9876543210', password: '482913' })
 
   scrubFarmer(db, s, Date.now(), () => true)
@@ -280,7 +280,7 @@ test('closing a buyer account takes her off the orders she placed', () => {
   })
   db.orders.push({
     id: 'o1', farmerId: 's1', customerId: 'c-9876543210', customerName: 'आशा',
-    customerPhone: '9876543210', address: 'घर क्र. 4, आणदुर', pincode: '413601',
+    customerPhone: '9876543210', address: 'घर क्र. 4, अणदूर', pincode: '413601',
     status: 'DELIVERED', total: 220,
   } as Order)
   db.reviews.push({

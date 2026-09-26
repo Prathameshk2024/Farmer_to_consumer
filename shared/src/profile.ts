@@ -36,7 +36,7 @@ export const SELLING_CHANNELS = [
   { value: 'apmc', mr: 'बाजार समिती (APMC)', en: 'APMC market' },
   { value: 'weekly', mr: 'आठवडी बाजार', en: 'Weekly market' },
   { value: 'direct', mr: 'थेट ग्राहक', en: 'Directly to buyers' },
-  { value: 'online', mr: 'ऑनलाइन / WhatsApp', en: 'Online / WhatsApp' },
+  { value: 'online', mr: 'ऑनलाइन / व्हॉट्सॲप', en: 'Online / WhatsApp' },
 ] as const satisfies readonly Opt[]
 
 export const SELLING_PROBLEMS = [
