@@ -13,7 +13,7 @@ const MapView = lazy(() => import('../components/MapView.js'))
 
 /**
  * The programme's field map: every farmer who gave a location, at the exact
- * point, and every survey record once survey entry exists. Filtered by crop,
+ * point, and every questionnaire not yet linked to a farmer. Filtered by crop,
  * village and FDRI band, to find where training should go first.
  */
 export function MapScreen() {
