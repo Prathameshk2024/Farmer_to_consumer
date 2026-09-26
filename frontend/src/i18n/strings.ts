@@ -683,7 +683,7 @@ const mr: Record<string, string> = {
   'wt.ex2': 'प्रकारावर बोट ठेवा — त्या प्रकारातील सर्व वस्तू दिसतील.',
   'wt.ex3': 'वस्तूवर बोट ठेवा, माहिती वाचा आणि टोपलीत टाका.',
 
-  'wt.ca1': 'इथे सर्व प्रकार आहेत — खाणे, कपडे, सजावट. एकावर बोट ठेवा, त्यातील सर्व वस्तू दिसतील.',
+  'wt.ca1': 'इथे सर्व प्रकार आहेत — भाजीपाला, फळे, धान्य. एकावर बोट ठेवा, त्यातील सर्व वस्तू दिसतील.',
 
   'wt.ct0': 'टोपली रिकामी आहे. ऑर्डर करण्यासाठी आधी वस्तू निवडाव्या लागतात — "वस्तू पहा" दाबा, आवडेल ती वस्तू टोपलीत टाका आणि इथे परत या.',
   'wt.ct1': 'टोपलीतील वस्तू. संख्या बदलायची असेल तर + किंवा − दाबा; 0 केले की वस्तू निघून जाते.',
@@ -712,9 +712,9 @@ const mr: Record<string, string> = {
   'ph.village': 'गावाचे नाव',
   'ph.taluka': 'तालुक्याचे नाव',
   'ph.district': 'जिल्ह्याचे नाव',
-  'ph.shopName': 'सुनीता गृहउद्योग',
+  'ph.shopName': 'पाटील फार्म',
 
-  'ph.about': 'गेली 12 वर्षे आम्ही घरी लोणची बनवतो...',
+  'ph.about': 'गेली 12 वर्षे आम्ही अणदूरमध्ये कांदा आणि टोमॅटो पिकवतो...',
 
 
   'cart.free': 'मोफत',
@@ -741,7 +741,7 @@ const mr: Record<string, string> = {
   'prod.crop': 'कोणते पीक?',
   'prod.cropHint': 'यादीत नसेल तर "इतर" निवडा.',
   'prod.otherCategory': 'हा माल कोणत्या प्रकारात येतो?',
-  'prod.unitHint': 'किंमत आणि माल याच एककात मोजला जाईल.',
+  'prod.unitHint': 'किंमत आणि माल याच एककात मोजले जातील.',
   'prod.minOrder': 'एका ऑर्डरमध्ये किमान किती?',
   'prod.minOrderHint': 'यापेक्षा कमी माल ग्राहकाला मागवता येणार नाही.',
   'prod.minOrderShort': 'किमान {n} {unit}',
@@ -752,7 +752,7 @@ const mr: Record<string, string> = {
   'prod.harvestedAgo': '{n} दिवसांपूर्वी काढलेला',
   'prod.cultivation': 'शेती कशी केली?',
   'cult.organic': 'सेंद्रिय',
-  'cult.organicHint': 'रासायनिक खत आणि फवारणी वापरली नाही',
+  'cult.organicHint': 'रासायनिक खत किंवा फवारणी वापरली नाही',
   'cult.natural': 'नैसर्गिक',
   'cult.naturalHint': 'शेणखत, जीवामृत, देशी पद्धत',
   'cult.chemical': 'रासायनिक',
@@ -1397,7 +1397,7 @@ const en: Record<string, string> = {
   'wt.ex2': 'Tap a type to see everything in it.',
   'wt.ex3': 'Tap a product to read about it and add it to the cart.',
 
-  'wt.ca1': 'Every type is here - food, clothes, decoration. Tap one to see everything in it.',
+  'wt.ca1': 'Every type is here - vegetables, fruits, grain. Tap one to see everything in it.',
 
   'wt.ct0': 'Your basket is empty. You need products in it before you can order - tap Browse products, add what you like, then come back here.',
   'wt.ct1': 'What is in your cart. Tap + or - to change the number; 0 removes it.',
@@ -1423,9 +1423,9 @@ const en: Record<string, string> = {
   'ph.village': 'Village name',
   'ph.taluka': 'Taluka name',
   'ph.district': 'District name',
-  'ph.shopName': 'Sunita Home Foods',
+  'ph.shopName': 'Patil Farm',
 
-  'ph.about': 'For twelve years I have made pickles at home...',
+  'ph.about': 'We have grown onions and tomatoes in Anadur for twelve years...',
 
 
   'cart.free': 'Free',

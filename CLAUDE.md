@@ -469,7 +469,20 @@ screen and the server alike, with Marathi messages keyed by field.
 the stock, and a − below the minimum takes the line out (because she tapped it —
 nothing is removed on her behalf). `CartItem` copies `minOrder`; a line saved
 in localStorage before that is read as minimum 1 (`lineMinOrder` in
-`cartRules.ts`). `backend/tests/produce.test.ts` holds the rules.
+`cartRules.ts`). Stock below the minimum cannot be added at all.
+`backend/tests/produce.test.ts` holds the rules.
+
+**`POST /orders` holds the same rule** (`orderQtyProblem`): a quantity that is
+not a whole number, is below `max(1, minOrder)` or is above `stock` gets a 409
+with a Marathi message naming the product, the number and the unit. **An order
+does not decrement stock** — the farmer keeps the quantity current himself, as
+in the reference.
+
+An edit to a live listing is judged by `patchProblems()` in
+`products.routes.ts` on the fields it touched, plus what depends on them:
+changing the crop or category re-judges the harvest date, and changing the
+stock re-judges the minimum. `description` is capped at 500 characters on
+POST and PATCH, draft or not, like a review comment.
 
 ### Reporting a listing or a review
 

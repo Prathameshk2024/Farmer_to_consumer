@@ -12,6 +12,7 @@ import { cancelOrder } from '../db/orderCancel.js'
 import { ordersToRate, writeRatings } from '../db/reviews.js'
 import { toPublicReview } from '@shared/review.js'
 import { canSellNow } from '@shared/farmer.js'
+import { orderQtyProblem } from '@shared/produce.js'
 import { newShortId } from '../db/ids.js'
 import { requireRole } from '../middleware/auth.js'
 
@@ -164,6 +165,18 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
     }
     const outsideArea = !farmer.pincodes.includes(b.address.pincode)
 
+    // Every quantity is judged before anything is written: whole units, at
+    // least his minimum, no more than he has. Stock is NOT decremented here -
+    // the farmer keeps it current himself.
+    for (const i of g.items) {
+      const product = db.products.find((p) => p.id === i.productId)
+      const problem = product && orderQtyProblem(product, i.qty)
+      if (problem) {
+        res.status(409).json({ error: 'Invalid quantity', messageMr: problem, productId: product!.id })
+        return
+      }
+    }
+
     const items = g.items.map((i) => {
       const product = db.products.find((p) => p.id === i.productId)
       if (!product || product.status !== 'LIVE') {
@@ -173,7 +186,7 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
         productId: product.id,
         name: product.name,
         emoji: product.emoji,
-        qty: Math.max(1, Number(i.qty)),
+        qty: Number(i.qty), // judged above by orderQtyProblem
         price: product.price, // server price, not the client's
       }
     })

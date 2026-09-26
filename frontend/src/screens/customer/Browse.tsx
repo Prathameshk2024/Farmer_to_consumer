@@ -20,6 +20,7 @@ import { PageTour } from '../../components/Walkthrough.js'
 import { RatingLine, RatingSummaryCard, ReviewList } from '../../components/Reviews.js'
 import { CultivationPill, PricePerUnit, useHarvestLabel } from '../../components/Produce.js'
 import { cropById } from '@shared/crops.js'
+import { cartStep } from '@shared/produce.js'
 
 /**
  * The picture on a category tile: a photograph where we have one, a plain
@@ -101,7 +102,8 @@ function AddControl({ product }: { product: CardProduct }) {
   const { items, add, step, farmerName: cartShop } = useCart()
 
   const qty = items.find((i) => i.productId === product.id)?.qty ?? 0
-  const outOfStock = product.stock === 0
+  // Less on the shelf than his minimum cannot be ordered (cartStep).
+  const outOfStock = cartStep(product, 0, 1) === 0
 
   if (outOfStock) {
     return <span className="pill pill--danger">{t('prod.outOfStock')}</span>
@@ -302,7 +304,8 @@ export function ProductDetail() {
   }
 
   const { product, farmer } = data
-  const outOfStock = product.stock === 0
+  // Less on the shelf than his minimum cannot be ordered (cartStep).
+  const outOfStock = cartStep(product, 0, 1) === 0
 
   // Newest first, this one excluded, three of them. Three is a glance; a
   // second grid of everything she sells belongs on the shop page, not under

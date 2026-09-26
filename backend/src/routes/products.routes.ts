@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import type { Product } from '@shared/types.js'
 import { canSellNow, initialListingStatus } from '@shared/farmer.js'
-import { categoryFor, listingProblems } from '@shared/produce.js'
+import { categoryFor, descriptionProblem, listingProblems } from '@shared/produce.js'
 import { getDb, newId, save } from '../db/store.js'
 import { CATEGORIES, isCategoryId } from '../db/seed.js'
 import { requireRole } from '../middleware/auth.js'
@@ -34,6 +34,38 @@ function unknownCategory(sent: unknown): boolean {
   return sent != null && sent !== '' && !isCategoryId(sent)
 }
 
+/**
+ * What is refused outright, draft or not: a category not in the list, and a
+ * description past the cap. Both would otherwise sit in the database whatever
+ * the listing's status.
+ */
+export function hardRefusal(body: Record<string, unknown>): { error: string; messageMr: string; fields: Record<string, string> } | null {
+  if (unknownCategory(body.categoryId)) {
+    return { error: 'Unknown category', messageMr: CATEGORY_MR, fields: { categoryId: CATEGORY_MR } }
+  }
+  const desc = descriptionProblem(body.description)
+  if (desc) return { error: 'Description too long', messageMr: desc, fields: { description: desc } }
+  return null
+}
+
+/**
+ * What an edit to a listing on sale is judged on. Only the fields he touched:
+ * a tomato listed 61 days ago must still be pausable, and its stale harvest
+ * date is not what he came to change. But a field is judged whenever
+ * something it depends on moves - the minimum against the stock, and the
+ * harvest date against the crop, or grain relabelled as tomatoes would turn
+ * a 61-day-old listing into "fresh" produce.
+ */
+export function patchProblems(merged: Partial<Product>, patchKeys: string[], now = Date.now()): Record<string, string> {
+  const touched = new Set(patchKeys)
+  if (touched.has('cropId')) { touched.add('categoryId'); touched.add('harvestDate') }
+  if (touched.has('categoryId')) touched.add('harvestDate')
+  if (touched.has('stock')) touched.add('minOrder')
+  const all = listingProblems(merged, now)
+  if (!isCategoryId(merged.categoryId)) all.categoryId = CATEGORY_MR
+  return Object.fromEntries(Object.entries(all).filter(([k]) => touched.has(k)))
+}
+
 /** Numbers arrive from a form as text; store them as numbers. */
 const NUMERIC = ['price', 'stock', 'minOrder'] as const
 
@@ -63,8 +95,9 @@ productsRouter.post('/', requireRole('farmer'), (req, res) => {
     res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
     return
   }
-  if (unknownCategory(b.categoryId)) {
-    res.status(400).json({ error: 'Unknown category', messageMr: CATEGORY_MR, fields: { categoryId: CATEGORY_MR } })
+  const refused = hardRefusal(b as Record<string, unknown>)
+  if (refused) {
+    res.status(400).json(refused)
     return
   }
 
@@ -123,8 +156,9 @@ productsRouter.patch('/:id', requireRole('farmer'), (req, res) => {
   for (const key of allowed) if (key in req.body) patch[key] = req.body[key]
   for (const key of NUMERIC) if (key in patch) patch[key] = Number(patch[key])
 
-  if (unknownCategory(patch.categoryId)) {
-    res.status(400).json({ error: 'Unknown category', messageMr: CATEGORY_MR, fields: { categoryId: CATEGORY_MR } })
+  const refused = hardRefusal(patch)
+  if (refused) {
+    res.status(400).json(refused)
     return
   }
 
@@ -152,15 +186,8 @@ productsRouter.patch('/:id', requireRole('farmer'), (req, res) => {
     }
     merged.status = initialListingStatus(false)
   } else if (merged.status !== 'DRAFT') {
-    // An edit to a listing on sale may not make it wrong. Only the fields he
-    // touched are judged: a tomato listed 61 days ago must still be pausable,
-    // and its stale harvest date is not what he came to change.
-    const touched = new Set([...Object.keys(patch), ...('cropId' in patch ? ['categoryId'] : [])])
-    const fields = Object.fromEntries(
-      Object.entries(publishProblems(merged)).filter(([k]) => touched.has(k)
-        // A minimum is judged against the stock, so changing either judges both.
-        || (k === 'minOrder' && touched.has('stock'))),
-    )
+    // An edit to a listing on sale may not make it wrong (patchProblems).
+    const fields = patchProblems(merged, Object.keys(patch))
     if (Object.keys(fields).length) {
       res.status(400).json({ error: 'Validation failed', messageMr: CHECK_MR, fields })
       return

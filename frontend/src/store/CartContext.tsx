@@ -66,6 +66,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
    * double tap.
    */
   const add = useCallback((product: Product, qty = cartStep(product, 0, 1), farmerName?: string) => {
+    // Nothing to add - stock below his minimum (cartStep gives 0). A line of
+    // 0 would sit in the cart as an order the server refuses.
+    if (!(qty > 0)) return true
     let ok = true
     setItems((cur) => {
       if (!canAddFrom(cur, product.farmerId)) {
