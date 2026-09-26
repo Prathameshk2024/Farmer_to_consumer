@@ -7,6 +7,7 @@ import {
 import { isMaharashtraPincode } from '@shared/farmer.js'
 import { normalizeUtr, utrProblem } from '@shared/payment.js'
 import { getDb, save } from '../db/store.js'
+import type { Db } from '../db/seed.js'
 import { recordOrderCustomer } from '../db/customers.js'
 import { cancelOrder } from '../db/orderCancel.js'
 import { ordersToRate, writeRatings } from '../db/reviews.js'
@@ -132,21 +133,59 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
     return
   }
 
-  // Serviceability and price are both re-derived from the database. Trusting
-  // the client's totals is how a cart becomes a discount coupon.
+  // Build every order first, commit only when all of them pass. A refusal in
+  // the second farmer's group must not leave the first farmer's order in
+  // memory, where the next save() would persist it.
+  const built = buildOrders(db, b, { customerId: auth.customerId!, phone: auth.phone ?? '' })
+  if (!built.ok) {
+    res.status(built.status).json(built.body)
+    return
+  }
+  const { orders: created, groupId } = built
+
+  for (const order of created) {
+    db.orders.unshift(order)
+    const farmer = db.farmers.find((s) => s.id === order.farmerId)
+    if (farmer && order.sourceShareCode === farmer.shopSlug) farmer.qrOrders += 1
+  }
+
+  // Remember who she is and where she asked for it. A cart split across three
+  // farmers is three orders but one customer, so this runs once on the first.
+  if (created[0]) recordOrderCustomer(db, created[0])
+
+  save()
+  res.status(201).json({ orders: created, groupId })
+})
+
+type BuildResult =
+  | { ok: true; orders: Order[]; groupId: string }
+  | { ok: false; status: number; body: { error: string; messageMr: string; productId?: string } }
+
+/**
+ * Every check a checkout can fail, judged over ALL the groups, and the orders
+ * it would create - without writing anything. Nothing in `db` is changed
+ * here: the caller pushes the orders only when this says ok, so a refusal is
+ * a refusal of the whole cart and never half of it.
+ *
+ * Serviceability and price are both re-derived from the database. Trusting
+ * the client's totals is how a cart becomes a discount coupon.
+ */
+export function buildOrders(
+  db: Db,
+  b: Pick<PlaceBody, 'address' | 'groups' | 'paymentMode' | 'customerName' | 'sourceShareCode'>,
+  who: { customerId: string; phone: string },
+): BuildResult {
   const groupId = `G${Date.now().toString(36).toUpperCase()}`
   const created: Order[] = []
+  const refuse = (status: number, error: string, messageMr: string, productId?: string): BuildResult =>
+    ({ ok: false, status, body: { error, messageMr, ...(productId ? { productId } : {}) } })
 
   for (const g of b.groups) {
     const farmer = db.farmers.find((s) => s.id === g.farmerId)
     // A blocked, closed or unverified shop takes no new orders. Orders it
     // already has carry on: she can still deliver them, or cancel and refund.
     if (!farmer || !canSellNow(farmer) || !farmer.isOpen) {
-      res.status(409).json({
-        error: 'Farmer unavailable',
-        messageMr: 'हा शेतकरी सध्या ऑर्डर घेत नाही',
-      })
-      return
+      return refuse(409, 'Farmer unavailable', 'हा शेतकरी सध्या ऑर्डर घेत नाही')
     }
     /**
      * The farmer's listed areas are a hint now, not a gate.
@@ -157,47 +196,33 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
      * Outside Maharashtra is still refused here, before them sees it.
      */
     if (!isMaharashtraPincode(b.address.pincode)) {
-      res.status(409).json({
-        error: 'Outside Maharashtra',
-        messageMr: 'सध्या महाराष्ट्रातच पोहोचवले जाते',
-      })
-      return
+      return refuse(409, 'Outside Maharashtra', 'सध्या महाराष्ट्रातच पोहोचवले जाते')
     }
     const outsideArea = !farmer.pincodes.includes(b.address.pincode)
 
-    // Every quantity is judged before anything is written: whole units, at
-    // least his minimum, no more than he has. Stock is NOT decremented here -
-    // the farmer keeps it current himself.
-    for (const i of g.items) {
+    const items: Order['items'] = []
+    for (const i of g.items ?? []) {
       const product = db.products.find((p) => p.id === i.productId)
-      const problem = product && orderQtyProblem(product, i.qty)
-      if (problem) {
-        res.status(409).json({ error: 'Invalid quantity', messageMr: problem, productId: product!.id })
-        return
+      if (!product || product.status !== 'LIVE' || product.farmerId !== farmer.id) {
+        return refuse(409, 'Product unavailable', 'हे उत्पादन आता उपलब्ध नाही', i.productId)
       }
-    }
-
-    const items = g.items.map((i) => {
-      const product = db.products.find((p) => p.id === i.productId)
-      if (!product || product.status !== 'LIVE') {
-        throw Object.assign(new Error('Product unavailable'), { status: 409 })
-      }
-      return {
+      // Whole units, at least his minimum, no more than he has. Stock is
+      // NOT decremented by an order - the farmer keeps it current himself.
+      const problem = orderQtyProblem(product, i.qty)
+      if (problem) return refuse(409, 'Invalid quantity', problem, product.id)
+      items.push({
         productId: product.id,
         name: product.name,
         emoji: product.emoji,
-        qty: Number(i.qty), // judged above by orderQtyProblem
+        qty: Number(i.qty),
         price: product.price, // server price, not the client's
-      }
-    })
+      })
+    }
+    if (!items.length) return refuse(400, 'Empty cart', 'टोपली रिकामी आहे')
 
     const itemsTotal = items.reduce((n, i) => n + i.price * i.qty, 0)
     if (farmer.minOrder > 0 && itemsTotal < farmer.minOrder) {
-      res.status(409).json({
-        error: 'Below minimum',
-        messageMr: `${farmer.shopName} किमान ऑर्डर ₹${farmer.minOrder}`,
-      })
-      return
+      return refuse(409, 'Below minimum', `${farmer.shopName} किमान ऑर्डर ₹${farmer.minOrder}`)
     }
 
     const deliveryFee =
@@ -206,13 +231,14 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
         : farmer.deliveryFee
 
     const now = new Date().toISOString()
-    const order: Order = {
-      id: newShortId('F2C', (id) => db.orders.some((o) => o.id === id)),
+    created.push({
+      // Unique against the stored orders AND the ones built so far in this cart.
+      id: newShortId('F2C', (id) => db.orders.some((o) => o.id === id) || created.some((o) => o.id === id)),
       groupId,
       farmerId: farmer.id,
-      customerId: auth.customerId!,
+      customerId: who.customerId,
       customerName: b.customerName ?? 'ग्राहक',
-      customerPhone: auth.phone ?? '',
+      customerPhone: who.phone,
       address: b.address.line,
       landmark: b.address.landmark,
       pincode: b.address.pincode,
@@ -227,20 +253,10 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
       outsideArea: outsideArea || undefined,
       events: [{ to: 'PLACED', at: now, by: 'customer' }],
       sourceShareCode: b.sourceShareCode,
-    }
-
-    db.orders.unshift(order)
-    created.push(order)
-    if (order.sourceShareCode === farmer.shopSlug) farmer.qrOrders += 1
+    })
   }
-
-  // Remember who she is and where she asked for it. A cart split across three
-  // farmers is three orders but one customer, so this runs once on the first.
-  if (created[0]) recordOrderCustomer(db, created[0])
-
-  save()
-  res.status(201).json({ orders: created, groupId })
-})
+  return { ok: true, orders: created, groupId }
+}
 
 /* ------------------------------------------------------------------ */
 /* Moving along the state machine                                      */

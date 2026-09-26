@@ -99,7 +99,7 @@ export function ProductCard({ product, onOpen }: { product: CardProduct; onOpen:
 function AddControl({ product }: { product: CardProduct }) {
   const t = useT()
   const { toast } = useToast()
-  const { items, add, step, farmerName: cartShop } = useCart()
+  const { items, add, step, canAdd, farmerName: cartShop } = useCart()
 
   const qty = items.find((i) => i.productId === product.id)?.qty ?? 0
   // Less on the shelf than his minimum cannot be ordered (cartStep).
@@ -117,7 +117,7 @@ function AddControl({ product }: { product: CardProduct }) {
         onClick={() => {
           // One farmer owns the cart. A toast rather than a dialog: she is in
           // the middle of a list, and the product screen says it in full.
-          if (!add(product, undefined, product.farmer?.shopName)) {
+          if (!add(product, undefined, product.farmer?.shopName) && !canAdd(product.farmerId)) {
             toast(t('cus.cartLocked', { shop: cartShop ?? '' }), 'warn')
           }
         }}

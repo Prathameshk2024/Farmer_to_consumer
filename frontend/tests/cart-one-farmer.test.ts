@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { CartItem } from '@shared/types.js'
-import { canAddFrom, cartFarmer, cartFarmerName, lineMinOrder, stepLine } from '../src/store/cartRules.js'
+import { addLine, canAddFrom, cartFarmer, cartFarmerName, lineMinOrder, stepLine } from '../src/store/cartRules.js'
 
 /**
  * ONE FARMER OWNS THE CART.
@@ -74,4 +74,33 @@ test('a line saved before the minimum existed is read as minimum 1', () => {
   const legacy = { ...item({ qty: 2 }), minOrder: undefined } as unknown as CartItem
   assert.equal(lineMinOrder(legacy), 1)
   assert.equal(stepLine(legacy, 10, -1), 1)
+})
+
+const tomato = {
+  id: 'p1', farmerId: 's1', name: 'टोमॅटो', emoji: '🍅', price: 40, unit: 'kg' as const, minOrder: 2, stock: 150,
+}
+
+test('the first add puts in the farmer\'s minimum', () => {
+  const r = addLine([], tomato)
+  assert.equal(r.ok, true)
+  assert.equal(r.items[0]?.qty, 2)
+})
+
+/**
+ * Stock below the minimum is nothing to sell. A line of 0 would be an order
+ * the server refuses, and saying "added" about nothing is a lie on screen.
+ */
+test('adding when there is nothing to add inserts no line and reports false', () => {
+  for (const p of [{ ...tomato, stock: 0 }, { ...tomato, stock: 1 }]) {
+    const r = addLine([], p)
+    assert.equal(r.ok, false)
+    assert.deepEqual(r.items, [])
+  }
+})
+
+test('another shop\'s product is refused and the cart is untouched', () => {
+  const cart = [item()]
+  const r = addLine(cart, { ...tomato, id: 'p9', farmerId: 's2' })
+  assert.equal(r.ok, false)
+  assert.equal(r.items, cart)
 })

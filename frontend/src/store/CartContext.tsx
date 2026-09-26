@@ -3,8 +3,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { CartItem, Product, Farmer, FarmerGroup } from '@shared/types.js'
-import { cartStep } from '@shared/produce.js'
-import { canAddFrom, cartFarmer, cartFarmerName, stepLine } from './cartRules.js'
+import { addLine, canAddFrom, cartFarmer, cartFarmerName, stepLine } from './cartRules.js'
 
 /**
  * The cart is GROUPED BY FARMER, and that is not a display detail - it is the
@@ -26,7 +25,7 @@ interface CartValue {
   farmerName?: string
   /** False when the cart already belongs to a different shop. */
   canAdd: (farmerId: string) => boolean
-  /** Refuses, and says so, when the cart belongs to another shop. The first add is his minimum. */
+  /** False when nothing went in: the cart belongs to another shop, or there is nothing to add. The first add is his minimum. */
   add: (p: Product, qty?: number, farmerName?: string) => boolean
   setQty: (productId: string, qty: number) => void
   /** One + or − on a line, bounded by the farmer's minimum and `stock` (see cartRules). */
@@ -60,39 +59,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items])
 
   /**
-   * Returns false when the cart belongs to another shop, so the screen can
-   * explain rather than silently doing nothing. The check is repeated inside
-   * the updater because `items` in this closure can be a render behind a
-   * double tap.
+   * Returns false when nothing went in - another shop owns the cart, or there
+   * is nothing to add (`addLine` in cartRules). The check runs inside the
+   * updater because `items` in this closure can be a render behind a double
+   * tap.
    */
-  const add = useCallback((product: Product, qty = cartStep(product, 0, 1), farmerName?: string) => {
-    // Nothing to add - stock below his minimum (cartStep gives 0). A line of
-    // 0 would sit in the cart as an order the server refuses.
-    if (!(qty > 0)) return true
-    let ok = true
+  const add = useCallback((product: Product, qty?: number, farmerName?: string) => {
+    let ok = false
     setItems((cur) => {
-      if (!canAddFrom(cur, product.farmerId)) {
-        ok = false
-        return cur
-      }
-      const found = cur.find((i) => i.productId === product.id)
-      if (found) {
-        return cur.map((i) => (i.productId === product.id ? { ...i, qty: Math.min(i.qty + qty, product.stock) } : i))
-      }
-      return [
-        ...cur,
-        {
-          productId: product.id,
-          farmerId: product.farmerId,
-          farmerName,
-          name: product.name,
-          emoji: product.emoji,
-          price: product.price,
-          unit: product.unit,
-          minOrder: product.minOrder,
-          qty,
-        },
-      ]
+      const next = addLine(cur, product, qty, farmerName)
+      ok = next.ok
+      return next.items
     })
     return ok
   }, [])

@@ -42,3 +42,13 @@ test('an unknown category or an over-long description is refused outright', () =
   assert.equal(hardRefusal({ categoryId: 'grains', description: 'x'.repeat(500) }), null)
   assert.equal(hardRefusal({}), null, 'absent is not unknown')
 })
+
+/**
+ * Only `other` lets the farmer pick a category, and moving it from grains to
+ * vegetables makes a 61-day-old listing "fresh" produce - so the category
+ * alone re-judges the harvest date too.
+ */
+test('changing only the category re-judges the harvest date', () => {
+  const other = { ...wheat, cropId: 'other', categoryId: 'vegetables' }
+  assert.ok(patchProblems(other, ['categoryId'], now).harvestDate)
+})

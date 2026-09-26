@@ -1,4 +1,4 @@
-import type { CartItem } from '@shared/types.js'
+import type { CartItem, Product } from '@shared/types.js'
 import { cartStep } from '@shared/produce.js'
 
 /**
@@ -48,4 +48,34 @@ export function lineMinOrder(item: Pick<CartItem, 'minOrder'>): number {
  */
 export function stepLine(item: Pick<CartItem, 'minOrder' | 'qty'>, stock: number, dir: 1 | -1): number {
   return cartStep({ minOrder: lineMinOrder(item), stock }, item.qty, dir)
+}
+
+/**
+ * One tap on ADD, as data. `ok` is true only when something went in, so the
+ * screen never says "added" about nothing.
+ *
+ * Refused (items unchanged) when another shop owns the cart, or when there is
+ * nothing to add: stock below his minimum gives `cartStep` 0, and a line of 0
+ * would sit in the cart as an order the server refuses.
+ */
+export function addLine(
+  cur: CartItem[],
+  product: Pick<Product, 'id' | 'farmerId' | 'name' | 'emoji' | 'price' | 'unit' | 'minOrder' | 'stock'>,
+  qty = cartStep(product, 0, 1),
+  farmerName?: string,
+): { items: CartItem[]; ok: boolean } {
+  if (!(qty > 0) || !canAddFrom(cur, product.farmerId)) return { items: cur, ok: false }
+  if (cur.some((i) => i.productId === product.id)) {
+    return {
+      items: cur.map((i) => (i.productId === product.id ? { ...i, qty: Math.min(i.qty + qty, product.stock) } : i)),
+      ok: true,
+    }
+  }
+  return {
+    items: [...cur, {
+      productId: product.id, farmerId: product.farmerId, farmerName, name: product.name,
+      emoji: product.emoji, price: product.price, unit: product.unit, minOrder: product.minOrder, qty,
+    }],
+    ok: true,
+  }
 }
