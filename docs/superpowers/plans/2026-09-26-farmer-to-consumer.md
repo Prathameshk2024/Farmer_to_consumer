@@ -99,9 +99,15 @@ Run in PowerShell:
 ```powershell
 robocopy E:\Shantai_mahila_bazar_web E:\Farmer_to_consumer_website /E `
   /XD .git node_modules .claude brag-output brag-output-2026-09-21-210937 dist coverage .vercel recovery backups `
-  /XF .env *.tsbuildinfo db.json artifact-cleanup.json current-changes.patch *.apk *.keystore google-services.json *serviceAccount*.json *firebase-adminsdk*.json .env.msg91-backup
+  /XF CLAUDE.md .env *.tsbuildinfo db.json artifact-cleanup.json current-changes.patch *.apk *.keystore google-services.json *serviceAccount*.json *firebase-adminsdk*.json .env.msg91-backup
 ```
-Expected: exit code below 8. Then check that `docs/superpowers/specs/2026-09-26-farmer-to-consumer-design.md` is still ours: `git diff --stat docs/superpowers` shows no change.
+Expected: exit code below 8. `CLAUDE.md` is excluded because this repo already has one (the Workflow / Model routing / Delegation rules). Append the reference's one below those rules, dropping only its first `# CLAUDE.md` heading line:
+```bash
+tail -n +2 /e/Shantai_mahila_bazar_web/CLAUDE.md >> CLAUDE.md
+```
+The Workflow section must stay at the top. Later tasks edit only the appended part.
+
+Then check that `docs/superpowers/specs/2026-09-26-farmer-to-consumer-design.md` is still ours: `git diff --stat docs/superpowers` shows no change.
 
 - [ ] **Step 2: Rename the workspace packages**
 
