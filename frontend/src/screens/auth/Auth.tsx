@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { isValidPhone } from '@shared/farmer.js'
 import { MIN_PASSWORD } from '@shared/password.js'
 import { useT } from '../../i18n/I18nProvider.js'
@@ -38,8 +38,12 @@ export function LoginScreen() {
   const [show, setShow] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Where a signed-out visitor was going - the trace page's "order" button.
+  // Only a path inside this app: never a link to somewhere else.
+  const next = (useLocation().state as { next?: unknown } | null)?.next
+  const home = typeof next === 'string' && next.startsWith('/') && !next.startsWith('//') ? next : homeFor(role)
 
-  if (session?.role === role && !session.mustChangePassword) return <Navigate to={homeFor(role)} replace />
+  if (session?.role === role && !session.mustChangePassword) return <Navigate to={home} replace />
 
   const submit = async () => {
     setBusy(true)
@@ -47,7 +51,7 @@ export function LoginScreen() {
     try {
       const r = await api.login(phone, password, role)
       signIn(r.session)
-      nav(r.mustChangePassword ? '/password' : homeFor(role), { replace: true })
+      nav(r.mustChangePassword ? '/password' : home, { replace: true })
     } catch (e) {
       setError(e instanceof ApiError ? (e.messageMr ?? t('auth.failed')) : t('auth.failed'))
     } finally {

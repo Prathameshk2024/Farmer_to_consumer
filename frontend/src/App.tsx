@@ -20,6 +20,7 @@ import ChangePassword from './screens/auth/ChangePassword.js'
 import FarmerRegister from './screens/auth/FarmerRegister.js'
 import CustomerRegister from './screens/auth/CustomerRegister.js'
 import Notifications from './screens/Notifications.js'
+import Trace from './screens/trace/Trace.js'
 
 import MyBusiness from './screens/farmer/MyBusiness.js'
 import MyProducts from './screens/farmer/MyProducts.js'
@@ -194,6 +195,7 @@ export default function App() {
                   page that immediately threw her somewhere else - and the
                   "carry on to your shop" decision had nowhere to live. */}
               <Route path="/" element={<Landing />} />
+              <Route path="/trace/:productId" element={<Trace />} />
 
               {/* Each landing door is a register or a login, per role. */}
               <Route path="/login/:role" element={<LoginScreen />} />

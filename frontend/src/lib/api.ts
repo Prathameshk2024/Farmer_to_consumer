@@ -298,6 +298,10 @@ export const api = {
   productReviews: (id: string) =>
     get<{ reviews: PublicReview[]; summary: RatingSummary }>(`/catalog/products/${id}/reviews`),
 
+  /** A scanned QR. Unlike `product`, the farmer's phone is on it - the farmer printed the code. */
+  trace: (id: string) =>
+    get<{ product: CatalogProduct; farmer: PublicFarmer & { phone: string } }>(`/catalog/products/${id}/trace`),
+
   /** Is this pincode covered by any open farmer? Derived, never a static list. */
   serviceability: (pincode: string) =>
     get<{

@@ -1739,3 +1739,20 @@ textarea::placeholder {
    who needs it, never competing with Add to basket. */
 .linkbtn--quiet { color: var(--ink-3); font-weight: 600; text-decoration: underline; }
 .linkbtn--quiet:active { color: var(--danger); }
+
+/* ============================================================
+   Product QR - a dialog on screen, one clean page on paper
+   ============================================================ */
+dialog.qr-dialog { border: 0; margin: auto auto 0; color: inherit; }
+dialog.qr-dialog::backdrop { background: rgba(59, 43, 35, 0.5); }
+@media (min-width: 600px) { dialog.qr-dialog { margin: auto; } }
+.qr-print { text-align: center; }
+.qr-print img { max-width: 100%; height: auto; }
+.qr-print__crop { font-size: var(--t-xl); font-weight: 700; }
+.qr-print__who { color: var(--ink-2); }
+@media print {
+  body * { visibility: hidden; }
+  .qr-print, .qr-print * { visibility: visible; }
+  .qr-print { position: absolute; inset: 0; text-align: center; padding-top: 20mm; }
+  .no-print { display: none !important; }
+}

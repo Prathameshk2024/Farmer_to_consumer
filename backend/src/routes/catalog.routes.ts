@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { Product, Farmer } from '@shared/types.js'
 import { getDb } from '../db/store.js'
+import type { Db } from '../db/seed.js'
 import { CATEGORIES } from '../db/seed.js'
 import {
   NO_RATING, productReviewsFor, ratingsByProduct, ratingsByFarmer, farmerRating,
@@ -108,13 +109,44 @@ catalogRouter.get('/products/:id', (req, res) => {
     return
   }
 
-  // The card, never the record. This route used to send her whole document -
+  // The card, never the record. This route used to send the whole document -
   // phone, admin notices, block reason - to anyone holding a product id.
-  const { summary } = productReviewsFor(db, product!.id)
-  res.json({
-    product: { ...product!, rating: summary.average, ratingCount: summary.count },
-    farmer: publicFarmer(farmer!, farmerRating(db, farmer!.id)),
-  })
+  res.json({ product: withRating(db, product!), farmer: farmerCard(db, farmer!) })
+})
+
+/**
+ * Shared by the product page and the trace page, so the two answers about
+ * one listing cannot drift apart.
+ */
+function withRating(db: Db, product: Product) {
+  const { summary } = productReviewsFor(db, product.id)
+  return { ...product, rating: summary.average, ratingCount: summary.count }
+}
+
+function farmerCard(db: Db, farmer: Farmer) {
+  return publicFarmer(farmer, farmerRating(db, farmer.id))
+}
+
+/**
+ * WHAT A SCANNED QR SHOWS. The farmer's phone is on it on purpose: the
+ * poster promises "farmer contact" to anyone holding the produce, and the
+ * farmer printed the code. Everything else is the public card.
+ */
+export function traceView(db: Db, productId: string) {
+  const product = db.products.find((p) => p.id === productId)
+  const farmer = product && db.farmers.find((f) => f.id === product.farmerId)
+  if (!product || !farmer || !publiclyVisible(product, farmer)) return null
+  return { product: withRating(db, product), farmer: { ...farmerCard(db, farmer), phone: farmer.phone } }
+}
+
+// Same 404 as GET /products/:id, whether the id is unknown or merely hidden.
+catalogRouter.get('/products/:id/trace', (req, res) => {
+  const view = traceView(getDb(), req.params.id)
+  if (!view) {
+    res.status(404).json({ error: 'Product not found', messageMr: 'हा माल सापडला नाही' })
+    return
+  }
+  res.json(view)
 })
 
 /**

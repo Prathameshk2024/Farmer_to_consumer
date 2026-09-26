@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Product } from '@shared/types.js'
 import { PRODUCT_STATUS_STYLE, farmerMayDelete } from '@shared/farmer.js'
@@ -7,12 +7,13 @@ import { api } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
 import ProductImage from '../../components/ProductImage.js'
 import { PricePerUnit, useHarvestLabel } from '../../components/Produce.js'
+import { ProductQr } from '../../components/ProductQr.js'
 import {
   AppBar, Button, Card, ConfirmSheet, EmptyState, Loading,
   Pill, useAsync,
 } from '../../components/ui.js'
 import {
-  IconEdit, IconPause, IconPlay, IconPlus, IconProduct, IconTrash, ProductStatusIcon,
+  IconClose, IconEdit, IconPause, IconPlay, IconPlus, IconProduct, IconQr, IconTrash, ProductStatusIcon,
 } from '../../components/icons.js'
 
 export default function MyProducts() {
@@ -21,6 +22,10 @@ export default function MyProducts() {
   const { toast } = useToast()
   const [data, loading, setData] = useAsync(() => api.myProducts(), [], 'farmer:products')
   const [toDelete, setToDelete] = useState<Product | null>(null)
+  const [qrFor, setQrFor] = useState<Product | null>(null)
+  // The name and code printed under the QR, so a sack found in a market
+  // still says whose it is to someone with no phone to scan it.
+  const [me] = useAsync(() => api.me(), [])
   const harvested = useHarvestLabel()
 
   if (loading) {
@@ -106,6 +111,11 @@ export default function MyProducts() {
                         {p.status === 'PAUSED' ? <IconPlay aria-hidden="true" /> : <IconPause aria-hidden="true" />}
                       </Button>
                     )}
+                    {p.status === 'LIVE' && me && (
+                      <Button variant="quiet" size="sm" onClick={() => setQrFor(p)}>
+                        <IconQr aria-hidden="true" /> {t('qr.show')}
+                      </Button>
+                    )}
                     <Button
                       variant="quiet"
                       size="sm"
@@ -141,6 +151,41 @@ export default function MyProducts() {
         onCancel={() => setToDelete(null)}
         onConfirm={() => void doDelete()}
       />
+
+      {qrFor && me && (
+        <QrDialog onClose={() => setQrFor(null)}>
+          <ProductQr product={qrFor} farmerName={me.farmer.name} farmerCode={me.farmer.farmerCode} />
+        </QrDialog>
+      )}
     </>
+  )
+}
+
+/**
+ * Opened with showModal() so it sits above the list wherever the row was.
+ * Never closed in an effect cleanup: under StrictMode that `close` event lands
+ * after the second showModal() and unmounts the dialog it just opened.
+ * Unmounting takes it out of the top layer.
+ */
+function QrDialog({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+  const t = useT()
+  const ref = useRef<HTMLDialogElement>(null)
+  useEffect(() => {
+    const dialog = ref.current
+    if (dialog && !dialog.open) dialog.showModal()
+  }, [])
+  return (
+    <dialog ref={ref} className="sheet qr-dialog" onClose={onClose}>
+      <div className="stack">
+        <div className="row no-print">
+          <h2 className="h2 grow">{t('qr.title')}</h2>
+          <button type="button" className="appbar__btn" aria-label={t('qr.close')} onClick={onClose}>
+            <IconClose aria-hidden="true" />
+          </button>
+        </div>
+        <p className="body muted no-print">{t('qr.hint')}</p>
+        {children}
+      </div>
+    </dialog>
   )
 }

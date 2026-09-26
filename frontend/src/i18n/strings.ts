@@ -777,6 +777,26 @@ const mr: Record<string, string> = {
   'cult.chemicalHint': 'रासायनिक खत किंवा फवारणी वापरली',
   'ph.price': 'उदा. 40',
   'ph.stock': 'उदा. 100',
+  // Traceability QR
+  'qr.show': 'QR कोड',
+  'qr.title': 'मालाचा QR कोड',
+  'qr.hint': 'हा कोड पोत्यावर किंवा पिशवीवर लावा. स्कॅन केल्यावर शेतकरी, गाव, काढणीची तारीख आणि संपर्क दिसतो.',
+  'qr.alt': 'QR कोड: {name}',
+  'qr.print': 'छापा',
+  'qr.close': 'बंद करा',
+  'trace.title': 'मालाची माहिती',
+  'trace.farmer': 'शेतकरी',
+  'trace.village': 'गाव',
+  'trace.crop': 'पीक',
+  'trace.harvest': 'काढणी',
+  'trace.cultivation': 'शेती',
+  'trace.price': 'किंमत',
+  'trace.available': 'उपलब्ध माल',
+  'trace.call': 'फोन करा',
+  'trace.whatsapp': 'व्हॉट्सॲप',
+  'trace.map': 'गाव नकाशावर पहा',
+  'trace.order': 'हा माल मागवा',
+  'trace.gone': 'हा माल आता विक्रीसाठी नाही.',
 }
 
 const en: Record<string, string> = {
@@ -1503,6 +1523,26 @@ const en: Record<string, string> = {
   'cult.chemicalHint': 'Chemical fertiliser or spray was used',
   'ph.price': 'e.g. 40',
   'ph.stock': 'e.g. 100',
+  // Traceability QR
+  'qr.show': 'QR code',
+  'qr.title': 'QR code for this produce',
+  'qr.hint': 'Stick it on the sack or bag. Scanning it shows who grew it, where, when it was harvested and how to get in touch.',
+  'qr.alt': 'QR code for {name}',
+  'qr.print': 'Print',
+  'qr.close': 'Close',
+  'trace.title': 'About this produce',
+  'trace.farmer': 'Grown by',
+  'trace.village': 'Village',
+  'trace.crop': 'Crop',
+  'trace.harvest': 'Harvested',
+  'trace.cultivation': 'How it was grown',
+  'trace.price': 'Price',
+  'trace.available': 'Available',
+  'trace.call': 'Call the farmer',
+  'trace.whatsapp': 'WhatsApp',
+  'trace.map': 'See the village on a map',
+  'trace.order': 'Order this produce',
+  'trace.gone': 'This produce is no longer on sale.',
 }
 
 export const dictionaries: Record<LangCode, Record<string, string>> = { mr, en }

@@ -10,7 +10,7 @@ import {
   FiPlusCircle, FiSearch, FiShare2, FiShoppingBag, FiShoppingCart,
   FiSmartphone, FiSquare, FiStar, FiThumbsDown, FiThumbsUp, FiTrash2,
   FiTrendingDown, FiTrendingUp, FiTruck, FiUpload, FiUser, FiUsers, FiWifiOff, FiX, FiXCircle,
-  FiCircle,
+  FiCircle, FiPrinter,
 } from 'react-icons/fi'
 import { MdCurrencyRupee, MdQrCode2 } from 'react-icons/md'
 import { GiBarn, GiChemicalDrop, GiPlantSeed, GiSprout } from 'react-icons/gi'
@@ -125,6 +125,7 @@ export const IconAddressOther: IconType = FiBriefcase
 
 /* --- landing ---------------------------------------------------------- */
 export const IconQr: IconType = MdQrCode2
+export const IconPrint: IconType = FiPrinter
 export const IconVillage: IconType = FiHome
 export const IconSafe: IconType = FiLock
 
