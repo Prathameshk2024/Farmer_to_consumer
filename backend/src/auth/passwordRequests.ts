@@ -78,7 +78,12 @@ export function resetUserPassword(
   setCredential(db, { role: input.role, userId: input.userId, phone: person.phone, password: tempPassword, mustChange: true }, now)
   revokeAllForUser(db, input.userId, 'admin')
   recordAuthEvent(db, { type: 'password.reset', subject: maskPhone(person.phone), role: input.role, detail: input.by })
-  if (input.requestId) closePasswordRequest(db, input.requestId, 'DONE', input.by, undefined, now)
+  // Only the request this reset answers: a stale tab or a mis-click with
+  // somebody else's id has not called that person back.
+  const answered = input.requestId
+    ? db.passwordRequests.find((r) => r.id === input.requestId && r.role === input.role && r.matchedUserId === input.userId)
+    : undefined
+  if (answered) closePasswordRequest(db, answered.id, 'DONE', input.by, undefined, now)
   return { tempPassword }
 }
 

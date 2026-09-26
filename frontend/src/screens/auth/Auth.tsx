@@ -8,6 +8,7 @@ import { api, ApiError } from '../../lib/api.js'
 import { AppBar, Button, Field, Notice, TextInput } from '../../components/ui.js'
 import { IconCall } from '../../components/icons.js'
 import { SUPPORT_PHONE } from '../farmer/Misc.js'
+import { PHONE_INPUT_MAX } from '../../lib/phone.js'
 
 type RoleParam = 'farmer' | 'customer'
 
@@ -15,7 +16,6 @@ export function roleFrom(value: string | undefined): RoleParam {
   return value === 'farmer' ? 'farmer' : 'customer'
 }
 
-const digitsOnly = (v: string) => v.replace(/\D/g, '')
 
 /**
  * SIGN IN: PHONE AND PASSWORD
@@ -69,10 +69,10 @@ export function LoginScreen() {
             id="phone"
             inputMode="numeric"
             autoComplete="tel"
-            maxLength={10}
+            maxLength={PHONE_INPUT_MAX}
             value={phone}
             placeholder={t('auth.phonePh')}
-            onChange={(e) => setPhone(digitsOnly(e.target.value))}
+            onChange={(e) => setPhone(e.target.value)}
           />
         </Field>
         <Field label={t('auth.password')} htmlFor="password">
@@ -148,10 +148,10 @@ export function ForgotPasswordScreen() {
                 id="phone"
                 inputMode="numeric"
                 autoComplete="tel"
-                maxLength={10}
+                maxLength={PHONE_INPUT_MAX}
                 value={phone}
                 placeholder={t('auth.phonePh')}
-                onChange={(e) => setPhone(digitsOnly(e.target.value))}
+                onChange={(e) => setPhone(e.target.value)}
               />
             </Field>
             <Field label={t('forgot.name')} htmlFor="name">

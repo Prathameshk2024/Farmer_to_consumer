@@ -76,7 +76,8 @@ function isRealName(name: string): boolean {
  * A buyer's account: phone, name and password, on one screen.
  *
  * A row may already exist - a checkout, or the order backfill, makes one from
- * her phone - and that row becomes hers, keeping its addresses. What makes a
+ * her phone. An empty one is adopted; one with addresses or orders is refused
+ * with CLAIM_VIA_ADMIN, because typing a number proves nothing about it. What makes a
  * number taken is a CUSTOMER CREDENTIAL, not a row: a phone that only ever
  * ordered has no password yet, and a farmer's password on the same number is
  * a different account.
@@ -85,7 +86,7 @@ function isRealName(name: string): boolean {
  */
 export type CustomerRegistration =
   | { status: 201; customer: Customer; phone: string }
-  | { status: 400 | 409; body: { error: string; messageMr: string; fields?: Record<string, string> } }
+  | { status: 400 | 409; body: { error: string; messageMr: string; code?: string; fields?: Record<string, string> } }
 
 export function registerCustomer(db: Db, body: Record<string, unknown> | undefined): CustomerRegistration {
   const phone = normalizePhone(String(body?.phone ?? ''))
@@ -104,7 +105,25 @@ export function registerCustomer(db: Db, body: Record<string, unknown> | undefin
     return { status: 409, body: { error: 'Already registered', messageMr: 'हा नंबर आधीच नोंदणीकृत आहे. लॉगिन करा.' } }
   }
 
-  const customer = ensureCustomer(db, customerIdFor(phone), phone, name)
+  // A row with history - saved addresses, orders - is somebody's. Typing the
+  // number proves nothing, so it is claimed through the admin reset, which is
+  // a call to that number. An empty row carries nothing and may be adopted.
+  const id = customerIdFor(phone)
+  const existing = findCustomer(db, id)
+  const hasHistory = !!existing && (existing.addresses.length > 0 || db.orders.some(
+    (o) => o.customerId === id || normalizePhone(o.customerPhone) === phone,
+  ))
+  if (hasHistory) {
+    return {
+      status: 409,
+      body: {
+        error: 'Existing buyer', code: 'CLAIM_VIA_ADMIN',
+        messageMr: 'या नंबरवर आधीच ऑर्डर झाल्या आहेत. पासवर्डसाठी मदत केंद्राकडे विनंती पाठवा.',
+      },
+    }
+  }
+
+  const customer = ensureCustomer(db, id, phone, name)
   setCredential(db, { role: 'customer', userId: customer.id, phone, password })
   return { status: 201, customer, phone }
 }

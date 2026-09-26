@@ -1,15 +1,14 @@
 import { Router, type Request, type Response } from 'express'
 import { isValidPhone, normalizePhone } from '@shared/farmer.js'
-import { passwordProblemMr } from '@shared/password.js'
 import { getDb, save } from '../db/store.js'
 import { findCustomer } from '../db/customers.js'
 import { callerIp, requireRole } from '../middleware/auth.js'
 import { signToken } from '../auth/tokens.js'
 import {
-  createSession, describeClient, liveSessionsForUser, revokeAllForUser, revokeSession,
+  createSession, describeClient, liveSessionsForUser, revokeSession,
 } from '../auth/sessions.js'
 import { authenticateAdmin, bootstrapAdmin, normalizeEmail } from '../auth/admins.js'
-import { checkPassword, setCredential } from '../auth/credentials.js'
+import { changeOwnPassword, checkPassword } from '../auth/credentials.js'
 import { submitPasswordRequest } from '../auth/passwordRequests.js'
 import { recordAuthEvent } from '../auth/events.js'
 import { hashIp, maskPhone } from '../auth/crypto.js'
@@ -66,14 +65,17 @@ function retryInMr(sec: number): string {
 function over(res: Response, key: string, limit: Limit): boolean {
   const result = hit(key, limit)
   if (result.ok) return false
+  tooMany(res, result.retryAfterSec)
+  return true
+}
 
-  res.setHeader('Retry-After', String(result.retryAfterSec))
+function tooMany(res: Response, retryAfterSec: number): void {
+  res.setHeader('Retry-After', String(retryAfterSec))
   res.status(429).json({
     error: 'Too many attempts',
-    messageMr: `खूप वेळा प्रयत्न झाले. ${retryInMr(result.retryAfterSec)} पुन्हा प्रयत्न करा.`,
-    retryAfterSec: result.retryAfterSec,
+    messageMr: `खूप वेळा प्रयत्न झाले. ${retryInMr(retryAfterSec)} पुन्हा प्रयत्न करा.`,
+    retryAfterSec,
   })
-  return true
 }
 
 /* ------------------------------------------------------------------ */
@@ -140,27 +142,10 @@ authRouter.post('/login', (req, res) => {
 /** Also the way out of must-change: the middleware lets this route through. */
 authRouter.post('/password', requireRole('farmer', 'customer'), (req, res) => {
   const auth = req.auth!
-  const db = getDb()
-  const role = auth.role as 'farmer' | 'customer'
-  const next = String(req.body?.next ?? '')
-  const problem = passwordProblemMr(next)
-  if (problem) {
-    res.status(400).json({ error: 'Weak password', messageMr: problem, fields: { next: problem } })
-    return
-  }
-
-  const cred = checkPassword(db, role, auth.phone ?? '', String(req.body?.current ?? ''))
-  if (!cred || cred.userId !== auth.userId) {
-    res.status(401).json({ error: 'Bad credentials', messageMr: 'जुना पासवर्ड चुकीचा आहे' })
-    return
-  }
-
-  setCredential(db, { role, userId: cred.userId, phone: cred.phone, password: next })
-  // Every other phone signed in as this person is signed out: a password
-  // is changed because someone else may know the old one.
-  revokeAllForUser(db, cred.userId, 'password-change', undefined, auth.sessionId)
-  save()
-  res.json({ ok: true })
+  const reply = changeOwnPassword(getDb(), { ...auth, role: auth.role as 'farmer' | 'customer' }, req.body)
+  if (reply.status === 429) { tooMany(res, reply.retryAfterSec); return }
+  if (reply.status === 200) save()
+  res.status(reply.status).json(reply.body)
 })
 
 /* ------------------------------------------------------------------ */

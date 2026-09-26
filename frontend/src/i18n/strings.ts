@@ -216,6 +216,7 @@ const mr: Record<string, string> = {
   'forgot.send': 'विनंती पाठवा',
   'forgot.sent': 'तुमची विनंती पाठवली. आमचे प्रतिनिधी तुम्हाला फोन करून नवा तात्पुरता पासवर्ड देतील.',
   'forgot.backToLogin': 'लॉगिनकडे परत',
+  'creg.claim': 'पासवर्डसाठी विनंती पाठवा',
 
   // ---- customer registration ------------------------------------------
   'creg.title': 'ग्राहक नोंदणी',
@@ -934,6 +935,7 @@ const en: Record<string, string> = {
   'forgot.send': 'Send request',
   'forgot.sent': 'Your request has been sent. Our team will call you and give you a temporary password.',
   'forgot.backToLogin': 'Back to login',
+  'creg.claim': 'Ask for a password',
 
   // ---- customer registration ------------------------------------------
   'creg.title': 'Customer registration',

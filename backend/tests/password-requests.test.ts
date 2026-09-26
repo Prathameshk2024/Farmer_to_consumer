@@ -101,3 +101,20 @@ test('closing an account takes its password requests with it', () => {
   removePasswordRequests(db, 'f1', '9822011223')
   assert.equal(db.passwordRequests.length, 0)
 })
+
+/*
+ * Review fix: a reset only closes the request it actually answers. An admin who
+ * resets farmer A with request B's id (a stale tab, a mis-click) has not called
+ * B back, so B must stay in the queue.
+ */
+test('a reset with somebody else\'s request id leaves that request open', () => {
+  db.farmers.push({ id: 'f1', phone: '9822011223', name: 'राजेश पाटील', status: 'ACTIVE' } as never)
+  db.farmers.push({ id: 'f2', phone: '9822055555', name: 'सुनील जाधव', status: 'ACTIVE' } as never)
+  setCredential(db, { role: 'farmer', userId: 'f1', phone: '9822011223', password: '482913' })
+  setCredential(db, { role: 'farmer', userId: 'f2', phone: '9822055555', password: '482913' })
+  ask('9822055555')
+  const forF2 = db.passwordRequests[0]
+
+  assert.ok(resetUserPassword(db, { role: 'farmer', userId: 'f1', requestId: forF2.id, by: 'admin@college' }, T0))
+  assert.equal(forF2.status, 'OPEN')
+})

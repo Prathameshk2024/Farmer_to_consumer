@@ -69,15 +69,38 @@ test('a farmer password on the same number does not block a buyer account', () =
   assert.equal(registerCustomer(db, body()).status, 201)
 })
 
-test('a buyer who ordered before registering keeps her row and its addresses', () => {
+/*
+ * Review fix: registration used to ADOPT an existing row - her saved addresses
+ * and her order history - with no proof the caller owns the number. Anyone who
+ * knew a buyer's phone could register it and read her home address. A row with
+ * history is now claimed only through the admin reset, which is a phone call
+ * to that number; an empty row carries nothing, so it may still be adopted.
+ */
+test('a phone with orders or addresses but no password is claimed through the admin, not here', () => {
   const db = emptyDb()
   recordOrderCustomer(db, {
-    id: 'o1', farmerId: 's1', customerId: ID, customerName: PLACEHOLDER_NAME, customerPhone: PHONE,
+    id: 'o1', farmerId: 's1', customerId: ID, customerName: 'प्रिया देशमुख', customerPhone: PHONE,
     address: 'घर क्र. 12, गणेश नगर', pincode: '413601', placedAt: new Date().toISOString(),
   } as unknown as Order)
+  db.orders.push({ id: 'o1', customerId: ID, customerPhone: PHONE } as unknown as Order)
 
+  const r = registerCustomer(db, body({ name: 'कोणीतरी' }))
+  assert.equal(r.status, 409)
+  assert.ok(r.status === 409 && r.body.code === 'CLAIM_VIA_ADMIN')
+  assert.equal(db.credentials.length, 0)
+  assert.equal(db.customers[0]!.name, 'प्रिया देशमुख', 'her name is not overwritten either')
+})
+
+test('an order alone, with no saved address, is history too', () => {
+  const db = emptyDb()
+  db.customers.push({ id: ID, phone: PHONE, name: '', addresses: [], createdAt: '', updatedAt: '' })
+  db.orders.push({ id: 'o1', customerId: 'c1', customerPhone: '+91 90112 23344' } as unknown as Order)
+  assert.equal(registerCustomer(db, body()).status, 409)
+})
+
+test('an empty row with no password may still be adopted', () => {
+  const db = emptyDb()
+  db.customers.push({ id: ID, phone: PHONE, name: '', addresses: [], createdAt: '', updatedAt: '' })
   assert.equal(registerCustomer(db, body()).status, 201)
-  assert.equal(db.customers.length, 1)
   assert.equal(db.customers[0]!.name, 'प्रिया देशमुख')
-  assert.equal(db.customers[0]!.addresses.length, 1)
 })

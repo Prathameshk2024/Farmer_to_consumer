@@ -6,6 +6,7 @@ import { useT } from '../../i18n/I18nProvider.js'
 import { useAuth } from '../../store/AuthContext.js'
 import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
+import { PHONE_INPUT_MAX } from '../../lib/phone.js'
 import { AppBar, Button, Field, Notice, TextInput, VoiceInput } from '../../components/ui.js'
 
 /**
@@ -29,6 +30,8 @@ export default function CustomerRegister() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [serverError, setServerError] = useState('')
   const [busy, setBusy] = useState(false)
+  /** A number with orders already: claimed through the admin, not by typing it. */
+  const [claim, setClaim] = useState(false)
 
   if (session?.role === 'customer') return <Navigate to="/shop" replace />
 
@@ -43,6 +46,7 @@ export default function CustomerRegister() {
     if (Object.keys(e).length) return
 
     setServerError('')
+    setClaim(false)
     setBusy(true)
     try {
       const res = await api.registerCustomer({ phone, name: name.trim(), password })
@@ -52,6 +56,7 @@ export default function CustomerRegister() {
     } catch (err) {
       if (err instanceof ApiError) {
         setServerError(err.messageMr ?? err.message)
+        setClaim(err.body.code === 'CLAIM_VIA_ADMIN')
         if (err.fields) setErrors(err.fields)
       } else {
         setServerError(t('auth.failed'))
@@ -82,11 +87,11 @@ export default function CustomerRegister() {
             id="phone"
             inputMode="numeric"
             autoComplete="tel"
-            maxLength={10}
+            maxLength={PHONE_INPUT_MAX}
             value={phone}
             error={!!errors.phone}
             placeholder={t('auth.phonePh')}
-            onChange={(e) => { setPhone(e.target.value.replace(/\D/g, '')); clear('phone') }}
+            onChange={(e) => { setPhone(e.target.value); clear('phone') }}
           />
         </Field>
         <Field label={t('auth.password')} hint={t('auth.passwordPh')} error={errors.password} required htmlFor="pw">
@@ -111,6 +116,9 @@ export default function CustomerRegister() {
         </Field>
 
         {serverError && <Notice tone="danger">{serverError}</Notice>}
+        {claim && (
+          <Button variant="ghost" onClick={() => nav('/forgot-password/customer')}>{t('creg.claim')}</Button>
+        )}
         <Button onClick={submit} disabled={busy}>
           {busy ? t('common.loading') : t('creg.submit')}
         </Button>

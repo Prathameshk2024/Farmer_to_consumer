@@ -66,3 +66,48 @@ test('five wrong guesses per phone, then a wait', () => {
   for (let i = 0; i < 5; i++) assert.ok(hit('login:phone:9822011223', LIMITS.loginPerPhone).ok)
   assert.equal(hit('login:phone:9822011223', LIMITS.loginPerPhone).ok, false)
 })
+
+/*
+ * Review fix: changing a password asks for the current one, and that check is
+ * a login in all but name. Without the same per-phone budget, anyone holding a
+ * live session - a phone left unlocked on a shop counter - could guess the
+ * owner's six-digit PIN at leisure, then change it and lock her out.
+ */
+test('the sixth wrong current password in the window is refused, like a sixth wrong login', async () => {
+  const { changeOwnPassword } = await import('../src/auth/credentials.js')
+  setCredential(db, { role: 'farmer', userId: 'f1', phone: '9822011223', password: '482913' })
+  const auth = { role: 'farmer' as const, userId: 'f1', phone: '9822011223', sessionId: 's1' }
+
+  for (let i = 0; i < 5; i++) {
+    assert.equal(changeOwnPassword(db, auth, { current: '000000', next: '777777' }).status, 401, `guess ${i + 1}`)
+  }
+  const sixth = changeOwnPassword(db, auth, { current: '482913', next: '777777' })
+  assert.equal(sixth.status, 429, 'even the right password waits: the budget is spent')
+  assert.equal(checkPassword(db, 'farmer', '9822011223', '482913')?.userId, 'f1', 'nothing changed')
+})
+
+test('a right current password changes it and clears the budget', async () => {
+  const { changeOwnPassword } = await import('../src/auth/credentials.js')
+  setCredential(db, { role: 'farmer', userId: 'f1', phone: '9822011223', password: '482913' })
+  const auth = { role: 'farmer' as const, userId: 'f1', phone: '9822011223', sessionId: 's1' }
+
+  changeOwnPassword(db, auth, { current: '000000', next: '777777' })
+  assert.equal(changeOwnPassword(db, auth, { current: '482913', next: '777777' }).status, 200)
+  assert.equal(checkPassword(db, 'farmer', '9822011223', '777777')?.userId, 'f1')
+  assert.ok(hit('login:phone:9822011223', LIMITS.loginPerPhone).remaining === LIMITS.loginPerPhone.max - 1,
+    'a success forgets the typos before it')
+})
+
+/*
+ * Review fix: a farmer credential with no farmer row (a half-finished close,
+ * a restore gone wrong) must not be silently re-pointed at a new registration
+ * on the same number - that would hand the old password to a stranger's shop.
+ */
+test('a farmer phone is taken by a farmer row or by a farmer credential', async () => {
+  const { farmerPhoneTaken } = await import('../src/auth/credentials.js')
+  assert.equal(farmerPhoneTaken(db, '9822011223'), false)
+  setCredential(db, { role: 'farmer', userId: 'orphan', phone: '9822011223', password: '482913' })
+  assert.equal(farmerPhoneTaken(db, '+91 98220 11223'), true)
+  setCredential(db, { role: 'customer', userId: 'c1', phone: '9822099999', password: '482913' })
+  assert.equal(farmerPhoneTaken(db, '9822099999'), false, 'a buyer password is a different account')
+})

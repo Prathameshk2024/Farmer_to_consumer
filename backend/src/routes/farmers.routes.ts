@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { DigitalProfile, Farmer } from '@shared/types.js'
 import {
   defaultAbout, fssaiProblem, isValidPhone, isValidPincode, normalizeFssai,
-  normalizePhone, samePhone, validateFarmerProfile, canSellNow,
+  normalizePhone, validateFarmerProfile, canSellNow,
 } from '@shared/farmer.js'
 import { upiProblem } from '@shared/payment.js'
 import { passwordProblemMr } from '@shared/password.js'
@@ -17,7 +17,7 @@ import { publicFarmer } from '../db/publicFarmer.js'
 import { callerIp, requireRole } from '../middleware/auth.js'
 import { signToken } from '../auth/tokens.js'
 import { createSession, describeClient } from '../auth/sessions.js'
-import { setCredential } from '../auth/credentials.js'
+import { farmerPhoneTaken, setCredential } from '../auth/credentials.js'
 import { recordAuthEvent } from '../auth/events.js'
 import { hashIp, maskPhone } from '../auth/crypto.js'
 import { hit, LIMITS } from '../auth/rateLimit.js'
@@ -109,7 +109,7 @@ farmersRouter.post('/register', (req, res) => {
   }
 
   const db = getDb()
-  if (db.farmers.some((s) => samePhone(s.phone, phone))) {
+  if (farmerPhoneTaken(db, phone)) {
     res.status(409).json({
       error: 'Already registered',
       messageMr: 'हा नंबर आधीच नोंदणीकृत आहे. लॉगिन करा.',

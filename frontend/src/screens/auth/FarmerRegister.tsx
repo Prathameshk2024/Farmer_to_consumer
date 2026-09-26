@@ -5,6 +5,7 @@ import {
   EDUCATION_LEVELS, FSSAI_DIGITS, fssaiProblem, isValidPhone, isValidPincode, isValidUpi, normalizePhone,
 } from '@shared/farmer.js'
 import { passwordProblemMr } from '@shared/password.js'
+import { PHONE_INPUT_MAX } from '../../lib/phone.js'
 import { upiProblem } from '@shared/payment.js'
 import { VILLAGES, makeFarmerCode, villageCode } from '@shared/farmerCode.js'
 import {
@@ -157,7 +158,10 @@ export default function FarmerRegister() {
 
   function next() {
     if (!validate(step)) return
-    if (step === 0) setParams({ phone }, { replace: true })
+    if (step === 0) {
+      setPhone(normalizePhone(phone))
+      setParams({ phone: normalizePhone(phone) }, { replace: true })
+    }
     setStep((s) => Math.min(STEP_KEYS.length - 1, s + 1))
   }
 
@@ -302,11 +306,11 @@ export default function FarmerRegister() {
                 id="phone"
                 inputMode="numeric"
                 autoComplete="tel"
-                maxLength={10}
+                maxLength={PHONE_INPUT_MAX}
                 value={phone}
                 error={!!errors.phone}
                 placeholder={t('auth.phonePh')}
-                onChange={(e) => { setPhone(e.target.value.replace(/\D/g, '')); setErrors((x) => ({ ...x, phone: '' })) }}
+                onChange={(e) => { setPhone(e.target.value); setErrors((x) => ({ ...x, phone: '' })) }}
               />
             </Field>
             <Field label={t('auth.password')} hint={t('auth.passwordPh')} error={errors.password} required htmlFor="pw">
