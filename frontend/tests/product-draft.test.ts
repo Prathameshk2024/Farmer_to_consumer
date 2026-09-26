@@ -28,7 +28,7 @@ function fakeStore() {
   }
 }
 
-const typed = { ...BLANK, name: 'आंब्याचे लोणचे', price: '220' }
+const typed = { ...BLANK, cropId: 'onion', name: 'लाल कांदा', price: '28' }
 
 test('a draft one farmer typed is invisible to the next farmer on the same phone', () => {
   const store = fakeStore()
@@ -43,17 +43,17 @@ test('the same farmer gets her own draft back, on the step she left', () => {
 
   const back = readDraft(store, 'sel_sunita')
   assert.equal(back?.step, 3)
-  assert.equal(back?.d.name, 'आंब्याचे लोणचे')
-  assert.equal(back?.d.price, '220')
+  assert.equal(back?.d.name, 'लाल कांदा')
+  assert.equal(back?.d.price, '28')
 })
 
 test('two farmers on one phone keep two separate drafts', () => {
   const store = fakeStore()
-  writeDraft(store, 'sel_sunita', 1, { ...BLANK, name: 'लोणचे' })
-  writeDraft(store, 'sel_rekha', 4, { ...BLANK, name: 'पापड' })
+  writeDraft(store, 'sel_sunita', 1, { ...BLANK, name: 'कांदा' })
+  writeDraft(store, 'sel_rekha', 4, { ...BLANK, name: 'भेंडी' })
 
-  assert.equal(readDraft(store, 'sel_sunita')?.d.name, 'लोणचे')
-  assert.equal(readDraft(store, 'sel_rekha')?.d.name, 'पापड')
+  assert.equal(readDraft(store, 'sel_sunita')?.d.name, 'कांदा')
+  assert.equal(readDraft(store, 'sel_rekha')?.d.name, 'भेंडी')
 })
 
 /**
@@ -88,8 +88,8 @@ test('a photo with no words counts as started', () => {
   assert.equal(hasStarted({ ...BLANK, imageUrl: 'https://res.cloudinary.com/x/a.jpg' }), true)
 })
 
-test('choosing made-to-order counts as started, even though it is a boolean', () => {
-  assert.equal(hasStarted({ ...BLANK, madeToOrder: true }), true)
+test('choosing a crop counts as started', () => {
+  assert.equal(hasStarted({ ...BLANK, cropId: 'tomato' }), true)
 })
 
 /**
@@ -110,13 +110,13 @@ test('a draft from an older build loads with the new fields blank', () => {
   const store = fakeStore()
   store.setItem(
     draftKey('sel_sunita'),
-    JSON.stringify({ farmerId: 'sel_sunita', step: 1, d: { name: 'पापड' } }),
+    JSON.stringify({ farmerId: 'sel_sunita', step: 1, d: { name: 'भेंडी' } }),
   )
 
   const back = readDraft(store, 'sel_sunita')
-  assert.equal(back?.d.name, 'पापड')
+  assert.equal(back?.d.name, 'भेंडी')
   assert.equal(back?.d.unit, BLANK.unit, 'filled in from BLANK, not left undefined')
-  assert.equal(back?.d.madeToOrder, false)
+  assert.equal(back?.d.minOrder, '1')
 })
 
 test('a step number outside the wizard is clamped rather than trusted', () => {
@@ -127,7 +127,7 @@ test('a step number outside the wizard is clamped rather than trusted', () => {
   )
 
   const back = readDraft(store, 'sel_sunita')
-  assert.ok(back && back.step >= 0 && back.step <= 6)
+  assert.ok(back && back.step >= 0 && back.step <= 8)
 })
 
 test('unreadable JSON is treated as no draft, never as a crash', () => {
@@ -140,12 +140,12 @@ test('unreadable JSON is treated as no draft, never as a crash', () => {
 test('publishing clears only her own draft', () => {
   const store = fakeStore()
   writeDraft(store, 'sel_sunita', 2, typed)
-  writeDraft(store, 'sel_rekha', 2, { ...BLANK, name: 'पापड' })
+  writeDraft(store, 'sel_rekha', 2, { ...BLANK, name: 'भेंडी' })
 
   clearDraft(store, 'sel_sunita')
 
   assert.equal(readDraft(store, 'sel_sunita'), null)
-  assert.equal(readDraft(store, 'sel_rekha')?.d.name, 'पापड', 'hers is untouched')
+  assert.equal(readDraft(store, 'sel_rekha')?.d.name, 'भेंडी', 'hers is untouched')
 })
 
 /** No farmer id yet - the wizard must not fall back to a shared bucket. */
@@ -155,4 +155,14 @@ test('with no farmer id there is no draft to read and nothing is written', () =>
 
   assert.equal(store.size(), 0)
   assert.equal(readDraft(store, undefined), null)
+})
+
+/** The packaged-goods build sold by the gram and the set; produce does not. */
+test('a draft holding a unit that no longer exists falls back to kg', () => {
+  const store = fakeStore()
+  store.setItem(
+    draftKey('sel_sunita'),
+    JSON.stringify({ farmerId: 'sel_sunita', step: 2, d: { name: 'कांदा', unit: 'g' } }),
+  )
+  assert.equal(readDraft(store, 'sel_sunita')?.d.unit, 'kg')
 })

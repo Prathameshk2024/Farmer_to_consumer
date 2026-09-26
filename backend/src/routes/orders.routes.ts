@@ -61,7 +61,7 @@ ordersRouter.get('/:id', requireRole('farmer', 'customer'), (req, res) => {
    * db/publicFarmer.ts is an allow-list without it), so browsing the
    * catalogue never exposes it. It IS on the order, from the
    * moment the order exists: a buyer who has paid by UPI and is waiting for
-   * food needs to be able to ring the woman making it, and this route already
+   * produce needs to be able to ring the farmer sending it, and this route already
    * refuses anyone who is not one of the two parties, three lines up.
    *
    * It used to be withheld until she ACCEPTED, which is exactly backwards -

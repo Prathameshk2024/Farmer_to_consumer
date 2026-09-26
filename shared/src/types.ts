@@ -8,6 +8,7 @@
  */
 
 import type { FdriAnswers, FdriBand } from './fdri.js'
+import type { Unit, Cultivation } from './produce.js'
 import type { AgeGroup, Education, FarmerType, Landholding, SellingChannel, SellingProblem } from './profile.js'
 
 /* ------------------------------------------------------------------ */
@@ -356,58 +357,34 @@ export type PublicFarmer = Pick<
 
 export type ProductStatus = 'DRAFT' | 'LIVE' | 'PAUSED'
 
-export type Unit = 'kg' | 'g' | 'piece' | 'dozen' | 'litre' | 'ml' | 'set'
+export type { Unit, Cultivation } from './produce.js'
 
 export interface Product {
   id: string
   farmerId: string
-  /** Fallback shown until a real photo exists, and if one fails to load. */
-  emoji: string
+  /** A crop id from crops.ts. `other` is the only crop whose category the farmer picks. */
+  cropId: string
+  /** Pre-filled from the crop's label; his own words if he changed it. */
+  name: string
+  /** Set by the server from the crop, except for `other`. */
+  categoryId: string
   /** Cloudinary secure_url. Read through the LRU cache, never fetched directly. */
   imageUrl?: string
   /** Cloudinary public_id, so a replaced photo can be deleted from the account. */
   imagePublicId?: string
-  name: string
-  nameEn?: string
-  categoryId: string
-  isFood: boolean
-
-  // food only - all four are required when isFood is true
-  ingredients?: string
-  vegType?: 'veg' | 'nonveg'
-  /**
-   * Her FSSAI licence number, if she has one. OPTIONAL and staying that way:
-   * most women here cook at home and are below the registration threshold, and
-   * a required licence number would shut them out of the market this exists
-   * to open. The ones who do have it gain by showing it, which is why it is
-   * asked at all - and only on food, where it means anything.
-   */
-  fssai?: string
-
-  // non-food only
-  material?: string
-
-  price: number
-  mrp: number
+  /** Fallback shown until a real photo exists, and if one fails to load. */
+  emoji: string
   unit: Unit
-  /**
-   * HOW MUCH ONE OF THESE IS, counted in `unit`: 500 with unit `g`, 1 with
-   * unit `set`. A price with no size is not a price - "₹80 for pickle" tells
-   * a buyer nothing until she knows whether that is a 200g jar or a kilo, and
-   * she cannot compare two farmers without it.
-   *
-   * Optional on the type because listings published before the question
-   * existed do not carry one; required by `listingProblems` on anything
-   * submitted since.
-   */
-  packSize?: number
-  /**
-   * For a `set`: how many items are inside one. "1 set" is not an amount -
-   * a set of four ladoos and a set of twenty are the same word.
-   */
-  piecesPerPack?: number
+  /** Rupees for ONE unit: ₹40 / किलो. */
+  price: number
+  /** Whole units he has to sell. 0 means sold out for now. */
   stock: number
-  madeToOrder?: boolean
+  /** The fewest units he sends in one order - a trip for 1 kg may not pay. */
+  minOrder: number
+  /** YYYY-MM-DD. Buyers read "harvested N days ago" from it (produce.ts). */
+  harvestDate: string
+  cultivation: Cultivation
+  description?: string
 
   status: ProductStatus
   views: number
@@ -419,13 +396,6 @@ export interface Category {
   icon: string
   mr: string
   en: string
-  /**
-   * Which half of the wizard this category belongs to. **Absent means both** -
-   * `other` is the only one, and it has to be offered to a woman selling food
-   * and to one selling cloth alike, because what it is for is everything the
-   * list forgot.
-   */
-  food?: boolean
 }
 
 /* ------------------------------------------------------------------ */
@@ -483,6 +453,12 @@ export interface CartItem {
   emoji: string
   price: number
   unit: Unit
+  /**
+   * The farmer's minimum for this product, copied in when added so the + and
+   * - buttons can step without the catalogue. A line saved before this existed
+   * has none and is read as 1 (`cartRules`).
+   */
+  minOrder: number
   qty: number
 }
 

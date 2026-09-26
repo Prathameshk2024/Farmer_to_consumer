@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useT } from '../i18n/I18nProvider.js'
+import { cropById } from '@shared/crops.js'
+import { useI18n, useT } from '../i18n/I18nProvider.js'
 import { SortSelect, useSort } from '../components/SortSelect.js'
 import { PRODUCT_SORTS, sortRows } from '../lib/sort.js'
 import { IconProducts } from '../components/icons.js'
@@ -78,6 +79,7 @@ export function Products() {
  */
 export function ProductCard({ product, onDone }: { product: ProductRow; onDone: () => void }) {
   const t = useT()
+  const { lang } = useI18n()
   const errorText = useErrorText()
 
   const [rejecting, setRejecting] = useState(false)
@@ -121,13 +123,21 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
           <div className="row wrap" style={{ gap: 8 }}>
             {/* Her words, rendered exactly as she wrote them. */}
             <span className="strong">{product.name}</span>
-            {product.isFood && <Pill tone="info">{t('pr.food')}</Pill>}
             {live && <Pill tone="ok">{t('pr.liveTab')}</Pill>}
           </div>
 
           <div className="small dim">
-            {rupees(product.price)}
+            {rupees(product.price)} / {t(`unit.${product.unit}`)}
             {product.farmer && <> · {t('pr.by')}: {product.farmer.name}</>}
+          </div>
+
+          {/* What an admin checks a produce listing against: is it the crop
+              it says, grown the way it says, harvested when it says. */}
+          <div className="small dim">
+            {t('pr.crop')}: {cropById(product.cropId)?.[lang] ?? product.cropId}
+            {' · '}{t('pr.cultivation')}: {product.cultivation ? t(`cult.${product.cultivation}`) : '—'}
+            {' · '}{t('pr.harvest')}: {product.harvestDate || '—'}
+            {' · '}{t('pr.stock')}: {product.stock} {t(`unit.${product.unit}`)}
           </div>
 
           {/* What the buyers actually said, each with its reason, because

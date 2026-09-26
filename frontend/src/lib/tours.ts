@@ -64,7 +64,7 @@ export const TOURS: Record<TourId, TourStep[]> = {
   ],
   'farmer.upload': [
     { sel: '[data-wt="up-dots"]', title: 'prod.add', body: 'wt.up1' },
-    { sel: '[data-wt="up-body"] .field', title: 'prod.photos', body: 'wt.up2' },
+    { sel: '[data-wt="up-body"] .field', title: 'prod.crop', body: 'wt.up2' },
     { sel: '[data-wt="up-next"]', title: 'common.next', body: 'wt.up3' },
   ],
   'farmer.profile': [

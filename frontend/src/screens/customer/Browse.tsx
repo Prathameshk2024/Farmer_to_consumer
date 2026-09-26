@@ -7,7 +7,6 @@ import { useToast } from '../../store/ToastContext.js'
 import ProductImage from '../../components/ProductImage.js'
 import { Avatar } from '../../components/Avatar.js'
 import { api } from '../../lib/api.js'
-import { sizeLabel } from '../../lib/productSize.js'
 import { ReportLink, ReportSheet } from '../../components/ReportSheet.js'
 import { categoryPhoto } from '../../lib/categoryPhoto.js'
 import {
@@ -15,10 +14,12 @@ import {
   Rupees, SectionTitle, TextInput, useAsync,
 } from '../../components/ui.js'
 import {
-  IconCart, IconCheck, IconMinus, IconNext, IconPlus, IconProduct, IconSearch, VegMark,
+  IconCart, IconCheck, IconMinus, IconNext, IconPlus, IconProduct, IconSearch,
 } from '../../components/icons.js'
 import { PageTour } from '../../components/Walkthrough.js'
 import { RatingLine, RatingSummaryCard, ReviewList } from '../../components/Reviews.js'
+import { CultivationPill, PricePerUnit, useHarvestLabel } from '../../components/Produce.js'
+import { cropById } from '@shared/crops.js'
 
 /**
  * The picture on a category tile: a photograph where we have one, a plain
@@ -46,6 +47,7 @@ type CardProduct = Product & { farmer?: Partial<Farmer>; rating?: number; rating
 
 export function ProductCard({ product, onOpen }: { product: CardProduct; onOpen: () => void }) {
   const t = useT()
+  const harvested = useHarvestLabel()
   return (
     <div className="pcard">
       {/* The card opens the product; the control below adds it. Two jobs, two
@@ -60,9 +62,13 @@ export function ProductCard({ product, onOpen }: { product: CardProduct; onOpen:
         />
         <div className="pcard__body">
           <div className="pcard__name">{product.name}</div>
-          <div className="pcard__price"><Rupees value={product.price} /></div>
-          {/* A price with no size cannot be compared with the shop next door. */}
-          <div className="pcard__size">{sizeLabel(product, t)}</div>
+          {/* The price is for ONE unit, and says which. */}
+          <div className="pcard__price"><PricePerUnit price={product.price} unit={product.unit} /></div>
+          <div className="pcard__size">{harvested(product.harvestDate)}</div>
+          {product.minOrder > 1 && (
+            <div className="pcard__size">{t('prod.minOrderShort', { n: product.minOrder, unit: t(`unit.${product.unit}`) })}</div>
+          )}
+          <CultivationPill cultivation={product.cultivation} />
           {/* Its own stars, from buyers who received it. Nothing at all on a
               product nobody has rated - "no reviews" down a grid is noise. */}
           <RatingLine average={product.rating} count={product.ratingCount} hideEmpty />
@@ -85,17 +91,17 @@ export function ProductCard({ product, onOpen }: { product: CardProduct; onOpen:
  * becomes the count, with a minus beside it, so a mis-tap is undone where it
  * happened rather than two screens away.
  *
- * Bounded by the stock the farmer entered, because the whole listing is a
- * promise she has to keep.
+ * Bounded by the farmer's minimum and his stock (`cartStep`): the first tap
+ * adds the minimum, and a − below it takes the line out, because the whole
+ * listing is a promise he has to keep.
  */
 function AddControl({ product }: { product: CardProduct }) {
   const t = useT()
   const { toast } = useToast()
-  const { items, add, setQty, farmerName: cartShop } = useCart()
+  const { items, add, step, farmerName: cartShop } = useCart()
 
   const qty = items.find((i) => i.productId === product.id)?.qty ?? 0
-  const outOfStock = !product.madeToOrder && product.stock === 0
-  const max = product.madeToOrder ? 20 : product.stock
+  const outOfStock = product.stock === 0
 
   if (outOfStock) {
     return <span className="pill pill--danger">{t('prod.outOfStock')}</span>
@@ -109,7 +115,7 @@ function AddControl({ product }: { product: CardProduct }) {
         onClick={() => {
           // One farmer owns the cart. A toast rather than a dialog: she is in
           // the middle of a list, and the product screen says it in full.
-          if (!add(product, 1, product.farmer?.shopName)) {
+          if (!add(product, undefined, product.farmer?.shopName)) {
             toast(t('cus.cartLocked', { shop: cartShop ?? '' }), 'warn')
           }
         }}
@@ -123,8 +129,8 @@ function AddControl({ product }: { product: CardProduct }) {
     <div className="qtybar">
       <button
         className="qtybar__btn"
-        aria-label={qty > 1 ? t('cart.decrease') : t('cart.removeItem')}
-        onClick={() => setQty(product.id, qty - 1)}
+        aria-label={qty > Math.max(1, product.minOrder) ? t('cart.decrease') : t('cart.removeItem')}
+        onClick={() => step(product.id, product.stock, -1)}
       >
         <IconMinus aria-hidden="true" />
       </button>
@@ -132,8 +138,8 @@ function AddControl({ product }: { product: CardProduct }) {
       <button
         className="qtybar__btn"
         aria-label={t('cart.increase')}
-        disabled={qty >= max}
-        onClick={() => setQty(product.id, qty + 1)}
+        disabled={qty >= product.stock}
+        onClick={() => step(product.id, product.stock, 1)}
       >
         <IconPlus aria-hidden="true" />
       </button>
@@ -155,7 +161,7 @@ export function Explore() {
 
   const products = data?.products ?? []
   const list = products.filter((p) =>
-    !q.trim() ? true : (p.name + (p.nameEn ?? '')).toLowerCase().includes(q.toLowerCase()),
+    !q.trim() ? true : [p.name, cropById(p.cropId)?.mr, cropById(p.cropId)?.en].join(' ').toLowerCase().includes(q.toLowerCase()),
   )
 
   return (
@@ -271,6 +277,7 @@ export function ProductDetail() {
   const t = useT()
   const nav = useNavigate()
   const { add, has, canAdd, farmerName: cartShop } = useCart()
+  const harvested = useHarvestLabel()
 
   const [data, loading] = useAsync(() => api.product(productId!), [productId], `product:${productId}`)
   /** Open while she is saying what is wrong with this listing. */
@@ -295,7 +302,7 @@ export function ProductDetail() {
   }
 
   const { product, farmer } = data
-  const outOfStock = !product.madeToOrder && product.stock === 0
+  const outOfStock = product.stock === 0
 
   // Newest first, this one excluded, three of them. Three is a glance; a
   // second grid of everything she sells belongs on the shop page, not under
@@ -326,55 +333,24 @@ export function ProductDetail() {
 
         <div className="stack-sm">
           <h1 className="h2">{product.name}</h1>
-          <div className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap' }}>
-            <strong style={{ fontSize: 'var(--t-xl)' }}><Rupees value={product.price} /></strong>
-            {product.mrp > product.price && (
-              <span className="dim" style={{ textDecoration: 'line-through' }}>
-                <Rupees value={product.mrp} />
-              </span>
-            )}
-            <span className="dim">/ {sizeLabel(product, t)}</span>
-          </div>
+          <PricePerUnit price={product.price} unit={product.unit} big />
           <div className="wrap-row">
-            {product.isFood && product.vegType && (
-              <Pill tone={product.vegType === 'veg' ? 'ok' : 'danger'}>
-                <VegMark type={product.vegType} />{' '}
-                {product.vegType === 'veg' ? t('cus.veg') : t('cus.nonveg')}
-              </Pill>
-            )}
+            <CultivationPill cultivation={product.cultivation} />
             <Pill tone={outOfStock ? 'danger' : 'ok'}>
               {outOfStock ? t('prod.outOfStock') : t('prod.inStock')}
             </Pill>
           </div>
+          <div className="small dim">{harvested(product.harvestDate)}</div>
+          {/* Said before the button, because the first tap adds this many. */}
+          {product.minOrder > 1 && (
+            <div className="small">{t('prod.minOrderShort', { n: product.minOrder, unit: t(`unit.${product.unit}`) })}</div>
+          )}
         </div>
 
         {farmer && <FarmerCard farmer={farmer} />}
 
-        {product.isFood ? (
-          <Card>
-            <div className="stack-sm small">
-              <div>
-                <span className="dim">{t('cus.ingredients')}: </span>
-                {product.ingredients}
-              </div>
-            </div>
-          </Card>
-        ) : (
-          product.material && (
-            <Card>
-              <div className="small">
-                <span className="dim">{t('cus.material')}: </span>
-                {product.material}
-              </div>
-            </Card>
-          )
-        )}
-
-        {/* Printed for the buyer because that is the point of having one:
-            a number she can check against the FSSAI register. Only shown
-            when the farmer gave one. */}
-        {product.isFood && product.fssai && (
-          <div className="small dim num">{t('prod.fssai')}: {product.fssai}</div>
+        {product.description && (
+          <Card><div className="small">{product.description}</div></Card>
         )}
 
         {farmer && (
@@ -450,14 +426,14 @@ export function ProductDetail() {
         ) : (
           <>
             {/* No quantity row here. It carried `prod.stock` - "how much is
-                left?", the question the FARMER answers when she lists the
-                product - which asked a buyer to declare the shop's stock. One
-                is added, and the quantity is hers to change on the cart line
+                left?", the question the FARMER answers when he lists the
+                product - which asked a buyer to declare the shop's stock. His
+                minimum is added, and the quantity is hers to change on the cart line
                 that follows, where the ceiling is the stock she cannot see. */}
             <Button
               disabled={outOfStock}
               onClick={() => {
-                if (add(product, 1, farmer?.shopName)) nav('/shop/cart')
+                if (add(product, undefined, farmer?.shopName)) nav('/shop/cart')
               }}
             >
               {outOfStock ? t('prod.outOfStock') : <><IconCart aria-hidden="true" /> {t('cus.addToCart')}</>}

@@ -39,7 +39,7 @@ test('no string is left empty in either language', () => {
 
 test('the Marathi dictionary is actually in Marathi', () => {
   // Guards against a copy-paste that leaves English text under the mr key.
-  // Some entries are legitimately Latin (UTR, FSSAI), so this checks the bulk
+  // Some entries are legitimately Latin (UTR, UPI), so this checks the bulk
   // rather than every line.
   const devanagari = /[ऀ-ॿ]/
   const values = Object.values(dictionaries.mr)

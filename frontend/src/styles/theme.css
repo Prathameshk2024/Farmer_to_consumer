@@ -1644,22 +1644,6 @@ textarea::placeholder {
   padding: var(--s5) var(--s4) calc(var(--s5) + env(safe-area-inset-bottom, 0px));
 }
 
-/* The veg / non-veg mark (icons.tsx VegMark): a bordered square with a dot,
-   drawn so it is identical on every phone. */
-.vegmark {
-  display: inline-grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  border: 2px solid currentColor;
-  border-radius: 3px;
-  vertical-align: -2px;
-  flex: none;
-}
-.vegmark::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.vegmark--veg { color: var(--green); }
-.vegmark--nonveg { color: var(--danger); }
-
 /* A product with no picture, in a list: a small icon where an emoji used to be. */
 .lineicon { display: inline-grid; place-items: center; font-size: 1.25rem; color: var(--gold-deep); flex: none; }
 /* A category with no photograph: the same height as a photo tile, so the grid lines up. */

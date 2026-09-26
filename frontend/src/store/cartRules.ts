@@ -1,4 +1,5 @@
 import type { CartItem } from '@shared/types.js'
+import { cartStep } from '@shared/produce.js'
 
 /**
  * ONE FARMER AT A TIME.
@@ -30,4 +31,21 @@ export function cartFarmerName(items: CartItem[]): string | undefined {
 export function canAddFrom(items: CartItem[], farmerId: string): boolean {
   const owner = cartFarmer(items)
   return owner === null || owner === farmerId
+}
+
+/**
+ * A line's minimum. A cart saved in localStorage before the minimum existed
+ * has none, and is read as 1 - the rule it was bought under.
+ */
+export function lineMinOrder(item: Pick<CartItem, 'minOrder'>): number {
+  return Math.max(1, Number(item.minOrder) || 1)
+}
+
+/**
+ * The quantity after a + or − on a line: never between 0 and the farmer's
+ * minimum, never past his stock. 0 means the line goes - only because she
+ * tapped − on it, never on her behalf.
+ */
+export function stepLine(item: Pick<CartItem, 'minOrder' | 'qty'>, stock: number, dir: 1 | -1): number {
+  return cartStep({ minOrder: lineMinOrder(item), stock }, item.qty, dir)
 }

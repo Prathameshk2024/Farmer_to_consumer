@@ -68,34 +68,31 @@ export function withDefaults(raw: Partial<Db>): Db {
   }
 }
 
+/**
+ * The produce categories, in the order a buyer in a village market walks past
+ * them. Every crop in `crops.ts` names one of these ids.
+ */
 export const CATEGORIES: Category[] = [
-  { id: 'food',       icon: '🍱', mr: 'घरगुती खाद्यपदार्थ', en: 'Homemade Food',     food: true },
-  { id: 'pickle',     icon: '🫙', mr: 'लोणची, पापड, मसाले', en: 'Pickles & Masala',  food: true },
-  { id: 'sweets',     icon: '🍬', mr: 'मिठाई व बेकरी',      en: 'Sweets & Bakery',   food: true },
-  { id: 'namkeen',    icon: '🥟', mr: 'शेव, भेळ, चिवडा',    en: 'Namkeen & Snacks',  food: true },
-  { id: 'handicraft', icon: '🧺', mr: 'हस्तकला',            en: 'Handicrafts',       food: false },
-  { id: 'embroidery', icon: '🪡', mr: 'भरतकाम',             en: 'Embroidery',        food: false },
-  { id: 'textile',    icon: '🧵', mr: 'कापड व साड्या',      en: 'Textiles & Sarees', food: false },
-  { id: 'tailoring',  icon: '✂️', mr: 'शिवणकाम',           en: 'Tailoring',         food: false },
-  { id: 'agarbatti',  icon: '🕯️', mr: 'अगरबत्ती व मेणबत्ती', en: 'Agarbatti & Candles', food: false },
-  { id: 'jewellery',  icon: '📿', mr: 'दागिने',             en: 'Jewellery',         food: false },
-  { id: 'beauty',     icon: '🌿', mr: 'सौंदर्य व आरोग्य',   en: 'Beauty & Wellness', food: false },
-  { id: 'decor',      icon: '🪔', mr: 'घर सजावट',           en: 'Home Decor',        food: false },
-  { id: 'farm',       icon: '🌾', mr: 'शेतीपूरक उत्पादने',  en: 'Farm Produce',      food: true },
+  { id: 'vegetables', icon: '🍅', mr: 'भाजीपाला',          en: 'Vegetables' },
+  { id: 'leafy',      icon: '🥬', mr: 'पालेभाज्या',         en: 'Leafy greens' },
+  { id: 'fruits',     icon: '🍇', mr: 'फळे',               en: 'Fruits' },
+  { id: 'grains',     icon: '🌾', mr: 'धान्य',              en: 'Grains' },
+  { id: 'pulses',     icon: '🫘', mr: 'कडधान्ये',           en: 'Pulses' },
+  { id: 'spices',     icon: '🌶️', mr: 'मसाले',             en: 'Spices' },
+  { id: 'processed',  icon: '🫙', mr: 'प्रक्रिया उत्पादने', en: 'Processed produce' },
   /**
-   * Last, and in both halves of the wizard on purpose.
-   *
-   * Twelve categories cannot name everything a village makes, and a woman
-   * whose product is not on the list had two ways out: file it under something
-   * it is not, or stop. The first poisons the category filter for every buyer,
-   * the second loses the farmer. `food` is absent so this shows whether she
-   * said food or handmade - it is the answer for both.
-   *
-   * It carries no photograph in `categoryPhoto.ts`, deliberately: there is no
-   * honest picture of "everything else".
+   * Last. No list names every crop a farmer grows, and one whose crop is not
+   * on it would otherwise file it under something it is not - which poisons
+   * the filter for every buyer - or stop. It carries no photograph in
+   * `categoryPhoto.ts`: there is no honest picture of "everything else".
    */
-  { id: 'other',      icon: '📦', mr: 'इतर',                en: 'Other' },
+  { id: 'other',      icon: '📦', mr: 'इतर',               en: 'Other' },
 ]
+
+/** Is this a category id the catalogue knows? The server refuses any other. */
+export function isCategoryId(id: unknown): boolean {
+  return CATEGORIES.some((c) => c.id === id)
+}
 
 /**
  * A seed farmer's FDRI: the first `yes` indicators answered yes, in the
@@ -172,20 +169,19 @@ export function seed(): Db {
     },
   ]
 
-  // One listing per farmer, their poster crop, in the current product shape.
-  // ponytail: Task 7 reshapes products for produce; this is the minimum that type-checks until then.
-  const listing = {
-    categoryId: 'farm', isFood: true, vegType: 'veg', unit: 'kg', packSize: 1, status: 'LIVE',
-  } as const
+  // One listing per farmer, their poster crop. Harvest dates are counted back
+  // from today so the demo always reads as fresh.
+  const harvested = (d: number) => new Date(now + 5.5 * 3_600_000 - d * 86_400_000).toISOString().slice(0, 10)
+  const listing = { unit: 'kg', status: 'LIVE', views: 0 } as const
   const products: Product[] = [
-    { ...listing, id: 'p1', farmerId: 's1', emoji: '🍅', name: 'टोमॅटो', nameEn: 'Tomato',
-      ingredients: 'टोमॅटो', price: 40, mrp: 0, stock: 50, views: 0, createdAt: daysAgo(20) },
-    { ...listing, id: 'p2', farmerId: 's2', emoji: '🥒', name: 'भेंडी', nameEn: 'Okra',
-      ingredients: 'भेंडी', price: 35, mrp: 0, stock: 30, views: 0, createdAt: daysAgo(18) },
-    { ...listing, id: 'p3', farmerId: 's3', emoji: '🧅', name: 'कांदा', nameEn: 'Onion',
-      ingredients: 'कांदा', price: 28, mrp: 0, stock: 200, views: 0, createdAt: daysAgo(15) },
-    { ...listing, id: 'p4', farmerId: 's4', emoji: '🫘', name: 'हरभरा', nameEn: 'Gram',
-      ingredients: 'हरभरा', price: 60, mrp: 0, stock: 80, views: 0, createdAt: daysAgo(10) },
+    { ...listing, id: 'p1', farmerId: 's1', cropId: 'tomato', categoryId: 'vegetables', emoji: '🍅', name: 'टोमॅटो',
+      price: 40, stock: 150, minOrder: 2, harvestDate: harvested(1), cultivation: 'organic', createdAt: daysAgo(1) },
+    { ...listing, id: 'p2', farmerId: 's2', cropId: 'okra', categoryId: 'vegetables', emoji: '🥒', name: 'भेंडी',
+      price: 35, stock: 60, minOrder: 1, harvestDate: harvested(0), cultivation: 'natural', createdAt: daysAgo(0) },
+    { ...listing, id: 'p3', farmerId: 's3', cropId: 'onion', categoryId: 'vegetables', emoji: '🧅', name: 'कांदा',
+      price: 28, stock: 800, minOrder: 5, harvestDate: harvested(12), cultivation: 'chemical', createdAt: daysAgo(10) },
+    { ...listing, id: 'p4', farmerId: 's4', cropId: 'gram', categoryId: 'pulses', emoji: '🫘', name: 'हरभरा',
+      price: 60, stock: 300, minOrder: 5, harvestDate: harvested(25), cultivation: 'chemical', createdAt: daysAgo(20) },
   ]
 
   const orders: Order[] = [

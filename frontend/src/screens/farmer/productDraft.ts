@@ -1,42 +1,41 @@
-import type { Unit } from '@shared/types.js'
+import type { Cultivation, Unit } from '@shared/types.js'
+import { UNITS } from '@shared/produce.js'
 
 /**
  * The half-filled product the upload wizard keeps on the device.
  *
- * She leaves this screen for ordinary reasons - most often to change the
+ * A farmer leaves this screen for ordinary reasons - most often to change the
  * language from her profile - and unmounting it used to throw away everything
- * she had typed and send her back to picking the photo again. So it is written
+ * he had typed and send him back to the first question again. So it is written
  * down.
  *
  * It is written down PER FARMER. The first version used one shared key, and on
  * a field coordinator's phone, where farmer after farmer registers on the same
- * handset, the next woman opened "New product" and found a stranger's photo
+ * handset, the next farmer opened "New product" and found a stranger's photo
  * waiting on step 1. The farmer id is in the key and in the payload, and a
  * disagreement between the two means no draft.
  */
 
 export const BLANK = {
+  cropId: '',
+  /** Only asked when the crop is `other`; every other crop brings its own. */
+  categoryId: '',
   imageUrl: '',
   imagePublicId: '',
   name: '',
-  categoryId: '',
-  isFood: null as boolean | null,
-  ingredients: '',
-  vegType: '' as '' | 'veg' | 'nonveg',
-  material: '',
+  unit: 'kg' as Unit,
   price: '',
-  mrp: '',
-  unit: 'piece' as Unit,
-  packSize: '',
-  piecesPerPack: '',
   stock: '',
-  madeToOrder: false,
+  minOrder: '1',
+  /** YYYY-MM-DD from `<input type="date">`. */
+  harvestDate: '',
+  cultivation: '' as '' | Cultivation,
 }
 
 export type Draft = typeof BLANK
 
 /** Mirrors STEPS in UploadProduct - a stored step outside it is not trusted. */
-const LAST_STEP = 6
+const LAST_STEP = 8
 
 /** The single shared key of the first version. Deleted on sight. */
 export const LEGACY_DRAFT_KEY = 'wb.draft.product'
@@ -81,11 +80,17 @@ export function readDraft(
     // or hand-edited, and the safe reading of an ambiguous draft is no draft.
     if (saved.farmerId !== farmerId) return null
 
+    const d = { ...BLANK, ...saved.d }
+    // A draft from the packaged-goods build may hold a unit that no longer
+    // exists (g, ml, set); it starts again from the default rather than
+    // publishing something the server will refuse.
+    if (!UNITS.includes(d.unit)) d.unit = BLANK.unit
+
     return {
       step: Math.max(0, Math.min(LAST_STEP, saved.step ?? 0)),
       // Spread over BLANK: a draft written by an older build is missing
       // whatever field has been added since.
-      d: { ...BLANK, ...saved.d },
+      d,
     }
   } catch {
     return null

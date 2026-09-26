@@ -102,7 +102,7 @@ function AskFarmerButton({ farmerId }: { farmerId: string }) {
 export function Cart() {
   const t = useT()
   const nav = useNavigate()
-  const { items: cartItems, setQty, count, groupByFarmer, farmerId: cartFarmerId } = useCart()
+  const { items: cartItems, step, count, groupByFarmer, farmerId: cartFarmerId } = useCart()
 
   // Farmers come from the catalog, which already carries a farmer card per item.
   const [data, loading] = useAsync(() => api.catalog(), [], 'catalog')
@@ -139,15 +139,14 @@ export function Cart() {
    * How many of this she may still add.
    *
    * Read from the catalogue rather than from the cart line, because the cart
-   * is written to localStorage and a jar that was in stock on Tuesday may not
-   * be on Friday. Made-to-order has no shelf to count, so it gets the same
-   * ceiling the product screen uses; a product that has vanished from the
-   * catalogue keeps whatever is already in the basket and goes no higher.
+   * is written to localStorage and a crop that was in stock on Tuesday may be
+   * sold by Friday. A product that has vanished from the catalogue keeps
+   * whatever is already in the basket and goes no higher.
    */
   const maxQty = (productId: string): number => {
     const p = (data?.products ?? []).find((x) => x.id === productId)
     if (!p) return cartItems.find((i) => i.productId === productId)?.qty ?? 1
-    return p.madeToOrder ? 20 : p.stock
+    return p.stock
   }
 
   const farmers = dedupeFarmers(data?.products ?? [])
@@ -222,11 +221,12 @@ export function Cart() {
                     <strong className="num" style={{ flex: 'none' }}><Rupees value={i.price * i.qty} /></strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    {/* min 0: the last tap on a line of one takes it out,
-                        which is how she empties a cart to reach another shop. */}
+                    {/* min 0: a − below the farmer's minimum takes the line
+                        out (cartStep), which is how she empties a cart to
+                        reach another shop. */}
                     <Stepper
                       value={i.qty}
-                      onChange={(v) => setQty(i.productId, v)}
+                      onChange={(v) => step(i.productId, maxQty(i.productId), v > i.qty ? 1 : -1)}
                       min={0}
                       max={maxQty(i.productId)}
                     />

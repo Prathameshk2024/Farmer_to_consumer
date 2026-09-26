@@ -3,7 +3,8 @@ import {
   type ReactNode,
 } from 'react'
 import type { CartItem, Product, Farmer, FarmerGroup } from '@shared/types.js'
-import { canAddFrom, cartFarmer, cartFarmerName } from './cartRules.js'
+import { cartStep } from '@shared/produce.js'
+import { canAddFrom, cartFarmer, cartFarmerName, stepLine } from './cartRules.js'
 
 /**
  * The cart is GROUPED BY FARMER, and that is not a display detail - it is the
@@ -25,9 +26,11 @@ interface CartValue {
   farmerName?: string
   /** False when the cart already belongs to a different shop. */
   canAdd: (farmerId: string) => boolean
-  /** Refuses, and says so, when the cart belongs to another shop. */
+  /** Refuses, and says so, when the cart belongs to another shop. The first add is his minimum. */
   add: (p: Product, qty?: number, farmerName?: string) => boolean
   setQty: (productId: string, qty: number) => void
+  /** One + or − on a line, bounded by the farmer's minimum and `stock` (see cartRules). */
+  step: (productId: string, stock: number, dir: 1 | -1) => void
   remove: (productId: string) => void
   clear: () => void
   has: (productId: string) => boolean
@@ -40,6 +43,7 @@ const KEY = 'wb.cart'
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
+      // Lines saved before `minOrder` existed are read as minimum 1 (cartRules).
       const raw = localStorage.getItem(KEY)
       return raw ? (JSON.parse(raw) as CartItem[]) : []
     } catch {
@@ -61,7 +65,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
    * the updater because `items` in this closure can be a render behind a
    * double tap.
    */
-  const add = useCallback((product: Product, qty = 1, farmerName?: string) => {
+  const add = useCallback((product: Product, qty = cartStep(product, 0, 1), farmerName?: string) => {
     let ok = true
     setItems((cur) => {
       if (!canAddFrom(cur, product.farmerId)) {
@@ -70,7 +74,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       const found = cur.find((i) => i.productId === product.id)
       if (found) {
-        return cur.map((i) => (i.productId === product.id ? { ...i, qty: i.qty + qty } : i))
+        return cur.map((i) => (i.productId === product.id ? { ...i, qty: Math.min(i.qty + qty, product.stock) } : i))
       }
       return [
         ...cur,
@@ -82,6 +86,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           emoji: product.emoji,
           price: product.price,
           unit: product.unit,
+          minOrder: product.minOrder,
           qty,
         },
       ]
@@ -95,6 +100,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ? cur.filter((i) => i.productId !== productId)
         : cur.map((i) => (i.productId === productId ? { ...i, qty } : i)),
     )
+  }, [])
+
+  const step = useCallback((productId: string, stock: number, dir: 1 | -1) => {
+    setItems((cur) => {
+      const line = cur.find((i) => i.productId === productId)
+      if (!line) return cur
+      const qty = stepLine(line, stock, dir)
+      return qty <= 0
+        ? cur.filter((i) => i.productId !== productId)
+        : cur.map((i) => (i.productId === productId ? { ...i, qty } : i))
+    })
   }, [])
 
   const remove = useCallback(
@@ -149,9 +165,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       items, count, farmerId, farmerName, canAdd,
-      add, setQty, remove, clear, has, groupByFarmer,
+      add, setQty, step, remove, clear, has, groupByFarmer,
     }),
-    [items, count, farmerId, farmerName, canAdd, add, setQty, remove, clear, has, groupByFarmer],
+    [items, count, farmerId, farmerName, canAdd, add, setQty, step, remove, clear, has, groupByFarmer],
   )
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

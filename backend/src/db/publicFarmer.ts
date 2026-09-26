@@ -12,7 +12,7 @@ import { publicLocation } from '@shared/geo.js'
  *
  * What is here, and why each is public:
  *  - who and where: name, photo, shop, farmer code, village - what a buyer is
- *    choosing between, and what the law wants beside a food listing.
+ *    choosing between, and who grew what they are buying.
  *  - delivery terms and pincodes - checkout needs them to price and warn.
  *  - UPI ID, QR image and whether it is set up - the thing a buyer pays to.
  *  - crops and a point rounded to about a kilometre, only with her consent -

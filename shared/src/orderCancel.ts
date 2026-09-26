@@ -9,7 +9,7 @@ import type { Order, OrderEvent, OrderStatus } from './types.js'
  *
  * THE BUYER, ONLY BEFORE SHE ACCEPTS. Until then nothing has happened: no
  * money has moved (a UPI buyer pays after acceptance) and nothing has been
- * cooked or packed. After she says yes she may already be buying ingredients,
+ * picked or packed. After she says yes she may already be harvesting for it,
  * so a buyer who wants out from there has to ask her - "customer asked to
  * cancel" is on her list for exactly that.
  *

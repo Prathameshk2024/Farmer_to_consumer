@@ -271,7 +271,7 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
    * A rejection needs a reason, and the server is where that is true.
    *
    * She reads it in her own app, and it is the only thing standing between
-   * "your papad listing was refused because the photo is too dark" and a
+   * "your onion listing was refused because the photo is too dark" and a
    * product that vanishes for no stated cause. The console asks for one; this
    * is what makes the console's rule real rather than polite.
    */

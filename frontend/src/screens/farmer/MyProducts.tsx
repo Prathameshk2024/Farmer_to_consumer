@@ -4,12 +4,12 @@ import type { Product } from '@shared/types.js'
 import { PRODUCT_STATUS_STYLE, farmerMayDelete } from '@shared/farmer.js'
 import { useT } from '../../i18n/I18nProvider.js'
 import { api } from '../../lib/api.js'
-import { sizeLabel } from '../../lib/productSize.js'
 import { useToast } from '../../store/ToastContext.js'
 import ProductImage from '../../components/ProductImage.js'
+import { PricePerUnit, useHarvestLabel } from '../../components/Produce.js'
 import {
   AppBar, Button, Card, ConfirmSheet, EmptyState, Loading,
-  Pill, Rupees, useAsync,
+  Pill, useAsync,
 } from '../../components/ui.js'
 import {
   IconEdit, IconPause, IconPlay, IconPlus, IconProduct, IconTrash, ProductStatusIcon,
@@ -21,6 +21,7 @@ export default function MyProducts() {
   const { toast } = useToast()
   const [data, loading, setData] = useAsync(() => api.myProducts(), [], 'farmer:products')
   const [toDelete, setToDelete] = useState<Product | null>(null)
+  const harvested = useHarvestLabel()
 
   if (loading) {
     return <><AppBar title={t('biz.myProducts')} backTo="/farmer" /><div className="screen"><Loading /></div></>
@@ -66,7 +67,7 @@ export default function MyProducts() {
           <div className="stack-sm">
             {products.map((p) => {
               const style = PRODUCT_STATUS_STYLE[p.status]
-              const outOfStock = !p.madeToOrder && p.stock === 0
+              const outOfStock = p.stock === 0
               return (
                 <Card key={p.id}>
                   {/* The whole row is the way in to editing. A farmer who
@@ -85,18 +86,14 @@ export default function MyProducts() {
                     />
                     <div className="tile__body">
                       <div className="tile__title">{p.name}</div>
-                      <div className="row" style={{ gap: 6 }}>
-                        <strong><Rupees value={p.price} /></strong>
-                        <span className="small dim">/ {sizeLabel(p, t)}</span>
-                      </div>
+                      <PricePerUnit price={p.price} unit={p.unit} />
+                      <div className="small dim">{harvested(p.harvestDate)}</div>
                       <div className="wrap-row" style={{ marginTop: 4 }}>
                         <Pill tone={style.tone} icon={<ProductStatusIcon name={style.icon} />}>{t(style.labelKey)}</Pill>
                         <Pill tone={outOfStock ? 'danger' : 'neutral'}>
                           {outOfStock
                             ? t('prod.outOfStock')
-                            : p.madeToOrder
-                              ? t('prod.madeToOrder')
-                              : `${t('prod.inStock')}: ${p.stock}`}
+                            : `${t('prod.inStock')}: ${p.stock} ${t(`unit.${p.unit}`)}`}
                         </Pill>
                       </div>
                     </div>

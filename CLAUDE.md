@@ -286,9 +286,11 @@ A hidden listing answers **404, not 403**, and the same 404 as an id that never 
 The screen is `frontend/src/screens/farmer/EditProduct.tsx`, and it is
 deliberately **not** the wizard: one question per screen is right when the job
 is teaching a farmer what a listing needs, and wrong when the farmer came to
-fix one number. `isFood` is immutable — it picks the category set and
-which half of the fields apply (ingredients and veg/non-veg, or material), so
-changing it would leave a listing carrying claims that no longer fit it.
+fix one number. Every field is on one page and every field may change — crop,
+unit, price, stock, minimum order, harvest date, how it was grown. There is no
+edit limit. A listing on sale is held to the full `listingProblems` on save;
+the server judges only the fields a PATCH touched, so a tomato listed 61 days
+ago can still be paused.
 
 ### Scroll position
 
@@ -373,9 +375,11 @@ The key is `wb.draft.product.<farmerId>` and the farmer id is **also stored insi
 
 `CATEGORIES` in `backend/src/db/seed.ts`, served by `GET /api/catalog/categories`. It is a constant in code, not a collection: a product stores only `categoryId`, and the label, icon and photograph are all derived from it.
 
-**`other` is the escape hatch, and it carries no `food` flag.** `Category.food` absent means *both halves*, because both wizard screens filter the list by the food question the farmer has already answered — flag it either way and half the farmers lose their escape hatch. Twelve categories cannot name everything a village makes, and a woman whose product is not listed otherwise has two choices: file it under something it is not, which poisons the filter for every buyer, or stop. It sorts last and has no entry in `categoryPhoto.ts`, because there is no honest picture of "everything else". `backend/tests/categories.test.ts` holds all of that.
+The eight produce categories: `vegetables`, `leafy`, `fruits`, `grains`, `pulses`, `spices`, `processed`, `other`. Every crop in `shared/src/crops.ts` names one of them.
 
-Known gap: **the server never checks `categoryId` against this list** — `products.routes.ts` only requires it to be non-empty, so a junk id is stored and the product then falls out of every category filter. There is at least one such row in production (`pickles`, plural).
+**A listing's category comes from its crop.** `POST` and `PATCH /products` set `categoryId` from `cropById(cropId).categoryId` (`categoryFor()` in `shared/src/produce.ts`), so onions cannot be filed under fruit. Only the crop `other` has no category of its own, and there the farmer picks one. **A `categoryId` that is not in the list is refused with 400**, draft or not — a junk id would otherwise fall out of every category filter.
+
+**`other` is the escape hatch** for a crop the list forgot. It sorts last and has no entry in `categoryPhoto.ts`, because there is no honest picture of "everything else". `backend/tests/categories.test.ts` holds all of that.
 
 ### Product photos
 
@@ -385,7 +389,7 @@ Known gap: **the server never checks `categoryId` against this list** — `produ
 
 **Photos are shown by a plain `<img loading="lazy">` on the Cloudinary thumbnail URL** (`ProductImage`, sized by `cloudinaryThumb`), and repeat views come from the browser's own cache, which Cloudinary allows for 30 days. There was an in-memory LRU of blob URLs (`imageCache.ts`) on the belief that it saved reads; photos never touch the API or Firestore, so it saved none. It cost bandwidth instead — every card `fetch()`ed its photo on mount, so a catalogue downloaded whole while she looked at four — and evicting a blob revoked a URL a card on screen still held, so Back to a long list showed category stock photos. It was removed on 25 September 2026; do not bring a blob cache back.
 
-A listing that still has no picture — an old one, or Cloudinary off — falls back to a photograph of its **category**, never of a product: `frontend/src/lib/categoryPhoto.ts`, the same bundled files the landing page already ships, so it costs no new bytes. A generic jar of pickle above a farmer's name is honest about being a category picture; a specific-looking photo of someone else's pickle is not. Categories with no honest match (beauty, farm produce, jewellery) are absent on purpose and keep the emoji — a wrong photo is worse than none.
+A listing that still has no picture — an old one, or Cloudinary off — falls back to a photograph of its **category**, never of a product: `frontend/src/lib/categoryPhoto.ts`. A generic bowl of spices above a farmer's turmeric is honest about being a category picture; a specific-looking photo of someone else's tomatoes is not. Only `spices` has an honest photograph today; every other category keeps the icon fallback on purpose — a wrong photo is worse than none.
 
 ### Feedback: buyers rate products; a farmer's rating comes from them
 
@@ -445,20 +449,27 @@ inventing is worse for the buyer than none — and `cleanDeliveryEstimate()`
 stores nothing for an empty answer. It is kept only on the `ACCEPTED`
 transition, and shown on both order screens under the status.
 
-### What size is it
+### What a listing is
 
-`Product.packSize` counts in the listing's own `unit` (500 with `g`), and
-`piecesPerPack` answers the second question a **set** raises: a set of four
-ladoos and a set of twenty are the same word. `sizeProblems()` and
-`needsPieceCount()` in `shared/src/farmer.ts` are the rule, enforced by the
-wizard, the edit screen and `listingProblems` on the server — a price with no
-size cannot be compared with the shop next door.
+A listing is **produce**: a crop from `CROPS`, a unit, a price per unit, the
+stock, a minimum order, a harvest date and how it was grown. The rules are
+`listingProblems()` in `shared/src/produce.ts`, run by the wizard, the edit
+screen and the server alike, with Marathi messages keyed by field.
 
-Both are in `EDIT_COUNTED_FIELDS`: moving 500 g to 250 g at the same price is
-a different product, not a correction. The price itself stays free to change,
-for the reason it always was. `sizeLabel()` in `frontend/src/lib/productSize.ts`
-prints it ("500 ग्रॅम", "1 सेट (6 नग)"); a listing from before the question
-existed has none, and its unit alone is still the honest answer.
+- **Units** are `kg`, `quintal`, `dozen`, `piece`, `litre`. The price is for
+  ONE unit and is always printed with it (`₹40 / किलो`).
+- **Stock** is whole units, 0 meaning sold out for now. **Minimum order** is at
+  least 1 and never more than a non-zero stock.
+- **Harvest date** cannot be tomorrow. Fresh produce (vegetables, leafy, fruits)
+  older than `FRESH_MAX_DAYS` (60) is refused; grain and pulses keep. Buyers
+  read "harvested N days ago" (`harvestAgeDays`).
+- **Cultivation** is `organic`, `natural` or `chemical`, shown as icon + word.
+
+**The cart steps with `cartStep()`**: the first tap adds the minimum, + stops at
+the stock, and a − below the minimum takes the line out (because she tapped it —
+nothing is removed on her behalf). `CartItem` copies `minOrder`; a line saved
+in localStorage before that is read as minimum 1 (`lineMinOrder` in
+`cartRules.ts`). `backend/tests/produce.test.ts` holds the rules.
 
 ### Reporting a listing or a review
 
@@ -536,7 +547,7 @@ From spec section 6, encoded in `frontend/src/styles/theme.css`:
 
 Voice input (`frontend/src/lib/useVoiceInput.ts`) wraps the Web Speech API and is an **addition** — the keyboard is never removed, and the mic simply does not render where speech is unsupported. Every `VoiceInput` owns its own mic and dictates into itself; there is no app-wide microphone.
 
-Icons come from `react-icons` through `frontend/src/components/icons.tsx` (and `admin/src/components/icons.tsx`), the only files that name a vendor icon. **No emoji is shown anywhere in the three apps.** `STATUS_STYLE` and `PRODUCT_STATUS_STYLE` carry an icon *name* (`StatusIconName`, `ProductStatusIconName`) that `StatusIcon` / `ProductStatusIcon` draw; a product or order line with no photo shows `IconProduct`; veg/non-veg is `VegMark`, drawn in CSS like the printed FSSAI mark; done screens show a green tick. `Product.emoji` and `Category.icon` are still stored but never rendered. The only marks of that kind left are a tick and a cross — as icons.
+Icons come from `react-icons` through `frontend/src/components/icons.tsx` (and `admin/src/components/icons.tsx`), the only files that name a vendor icon. **No emoji is shown anywhere in the three apps.** `STATUS_STYLE` and `PRODUCT_STATUS_STYLE` carry an icon *name* (`StatusIconName`, `ProductStatusIconName`) that `StatusIcon` / `ProductStatusIcon` draw; a product or order line with no photo shows `IconProduct`; how a crop was grown is `IconOrganic` / `IconNatural` / `IconChemical` beside its word; done screens show a green tick. `Product.emoji` and `Category.icon` are still stored but never rendered. The only marks of that kind left are a tick and a cross — as icons.
 
 The brand mark is a portrait of कै. शांताबाई (काकी) सिद्रामप्पा आलुरे, the woman the market is named for. `frontend/src/assets/logo.png` and `admin/src/assets/logo.png` are the same mark; both apps also carry it as a favicon from their `public/` folder. It already contains its own gold ring, so never give it a border or a background — either prints a second ring.
 

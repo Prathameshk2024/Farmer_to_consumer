@@ -27,6 +27,7 @@ function sharedAndBackendMarathi(): { where: string; value: string }[] {
   const files = [
     '../../shared/src/payment.ts',
     '../../shared/src/farmer.ts',
+    '../../shared/src/produce.ts',
     '../../shared/src/orderCancel.ts',
     '../../shared/src/review.ts',
     '../../backend/src/routes/products.routes.ts',

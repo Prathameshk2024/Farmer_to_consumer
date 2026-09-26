@@ -1,4 +1,4 @@
-import type { Product, ProductStatus, Farmer, Unit } from './types.js'
+import type { ProductStatus, Farmer } from './types.js'
 import { upiProblem } from './payment.js'
 import { cropById } from './crops.js'
 
@@ -8,58 +8,6 @@ import { cropById } from './crops.js'
  */
 export function farmerMayDelete(_status: ProductStatus): boolean {
   return true
-}
-
-/**
- * WHAT SIZE IS IT? The one question a price cannot answer on its own.
- *
- * `packSize` counts in the listing's own unit - 500 with `g`, 1 with `set` -
- * and a SET needs one more number: a set of four ladoos and a set of twenty
- * are the same word, and only the farmer knows which she is selling.
- *
- * Both sides read these two functions, so the wizard, the edit screen and the
- * server cannot drift apart on what counts as a complete listing.
- */
-export function needsPieceCount(unit: Unit): boolean {
-  return unit === 'set'
-}
-
-export function sizeProblems(
-  p: Pick<Partial<Product>, 'unit' | 'packSize' | 'piecesPerPack'>,
-): Record<string, string> {
-  const fields: Record<string, string> = {}
-  const size = Number(p.packSize ?? 0)
-  if (!Number.isFinite(size) || size <= 0) fields.packSize = 'किती ते लिहा'
-  const pieces = Number(p.piecesPerPack ?? 0)
-  if (p.unit && needsPieceCount(p.unit) && (!Number.isFinite(pieces) || pieces <= 0)) {
-    fields.piecesPerPack = 'एका सेटमध्ये किती नग ते लिहा'
-  }
-  return fields
-}
-
-/**
- * A FOOD LICENCE NUMBER, IF SHE HAS ONE.
- *
- * Optional, and that is the whole design: a home kitchen under the FSSAI
- * turnover threshold does not need a licence, and demanding one would close
- * this market to most of the women it was built for. Blank is always fine.
- *
- * What is NOT fine is a wrong one. An FSSAI licence is exactly 14 digits, and
- * a buyer who reads a number off a listing and checks it against the FSSAI
- * register learns something only if the digits are real - so a number that
- * cannot be one is refused rather than quietly published. Spaces come out,
- * because that is how it is printed on a certificate.
- */
-export const FSSAI_DIGITS = 14
-
-export function normalizeFssai(raw: unknown): string {
-  return String(raw ?? '').replace(/[\s-]/g, '')
-}
-
-export function fssaiProblem(raw: unknown): string | null {
-  const value = normalizeFssai(raw)
-  if (!value) return null
-  return /^\d{14}$/.test(value) ? null : `FSSAI क्रमांक ${FSSAI_DIGITS} अंकांचा असतो`
 }
 
 

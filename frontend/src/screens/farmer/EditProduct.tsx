@@ -1,38 +1,32 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { Category, Product, Unit } from '@shared/types.js'
-import { needsPieceCount } from '@shared/farmer.js'
-import { useI18n, useT } from '../../i18n/I18nProvider.js'
+import type { Category, Cultivation, Product, Unit } from '@shared/types.js'
+import { categoryFor, listingProblems } from '@shared/produce.js'
+import { useT } from '../../i18n/I18nProvider.js'
 import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
 import PhotoPicker from '../../components/PhotoPicker.js'
 import {
-  AppBar, Button, Card, Choice, EmptyState, Field, Loading, Notice,
+  CategoryPicker, CropPicker, CultivationPicker, UnitPicker, todayIso,
+} from '../../components/Produce.js'
+import {
+  AppBar, Button, Card, EmptyState, Field, Loading, Notice,
   TextInput, VoiceInput, useAsync,
 } from '../../components/ui.js'
-import {
-  IconProduct, IconWaiting, VegMark,
-} from '../../components/icons.js'
-
-const UNITS: Unit[] = ['kg', 'g', 'piece', 'dozen', 'litre', 'ml', 'set']
+import { IconProduct } from '../../components/icons.js'
 
 /**
- * Editing a product she has already added.
+ * Editing a listing he has already added.
  *
  * Deliberately NOT the upload wizard. One question per screen is right the
- * first time, when the job is teaching her what a listing needs; it is wrong
- * for changing a price, where it would put four taps between her and the one
- * number she came to fix. Everything is on one page, Save is at the bottom.
- *
- * Food or not is fixed once created. It decides which categories apply and
- * which licence the listing carries, so changing it would quietly re-file the
- * product under a licence nobody checked it against - that is a new listing,
- * not an edit.
+ * first time, when the job is teaching him what a listing needs; it is wrong
+ * for changing a price, where it would put eight taps between him and the one
+ * number he came to fix. Every field is on one page, Save is at the bottom,
+ * and every field may change - there is no edit limit.
  */
 export default function EditProduct() {
   const { productId } = useParams()
   const t = useT()
-  const { lang } = useI18n()
   const nav = useNavigate()
   const { toast } = useToast()
 
@@ -42,18 +36,15 @@ export default function EditProduct() {
   type Form = {
     imageUrl: string
     imagePublicId: string
-    name: string
+    cropId: string
     categoryId: string
-    ingredients: string
-    vegType: '' | 'veg' | 'nonveg'
-    material: string
-    price: string
-    mrp: string
+    name: string
     unit: Unit
-    packSize: string
-    piecesPerPack: string
+    price: string
     stock: string
-    madeToOrder: boolean
+    minOrder: string
+    harvestDate: string
+    cultivation: Cultivation | ''
   }
 
   const [d, setD] = useState<Form | null>(null)
@@ -69,18 +60,15 @@ export default function EditProduct() {
     setD({
       imageUrl: product.imageUrl ?? '',
       imagePublicId: product.imagePublicId ?? '',
-      name: product.name,
+      cropId: product.cropId,
       categoryId: product.categoryId,
-      ingredients: product.ingredients ?? '',
-      vegType: product.vegType ?? '',
-      material: product.material ?? '',
-      price: String(product.price),
-      mrp: product.mrp ? String(product.mrp) : '',
+      name: product.name,
       unit: product.unit,
-      packSize: product.packSize ? String(product.packSize) : '',
-      piecesPerPack: product.piecesPerPack ? String(product.piecesPerPack) : '',
+      price: String(product.price),
       stock: String(product.stock),
-      madeToOrder: !!product.madeToOrder,
+      minOrder: String(product.minOrder ?? 1),
+      harvestDate: product.harvestDate,
+      cultivation: product.cultivation ?? '',
     })
   }, [product, d])
 
@@ -113,45 +101,35 @@ export default function EditProduct() {
   }
 
   const categories: Category[] = catData?.categories ?? []
-  // `other` carries no `food` flag and so belongs to both halves. Without this
-  // a listing already filed under it had no category to sit in on its own edit
-  // screen, and the select opened blank.
-  const visibleCats = categories.filter((c) => c.food === undefined || c.food === p.isFood)
+
+  const listing = {
+    cropId: form.cropId,
+    categoryId: categoryFor(form.cropId, form.categoryId) ?? '',
+    name: form.name.trim(),
+    unit: form.unit,
+    price: Number(form.price),
+    stock: form.stock === '' ? NaN : Number(form.stock),
+    minOrder: Number(form.minOrder),
+    harvestDate: form.harvestDate,
+    cultivation: (form.cultivation || undefined) as Cultivation | undefined,
+  }
 
   /**
-   * `submitting` is the "send for checking" press, which is where the server
-   * checks a listing is complete. A plain save is held to the same standard
-   * for everything that was always asked for - and NOT for the size, which
-   * listings published before the question existed do not carry. Blocking a
-   * price correction until she fills in a field she has never seen would cost
-   * her the one thing this app never gets in the way of.
+   * A listing on sale is held to the full rules on every save - the server
+   * refuses the same things, so this only says it sooner. A draft saved
+   * without `submit` is his to leave half-done.
    */
-  function validate(submitting = false): boolean {
-    const e: Record<string, string> = {}
-    if (!form.name.trim()) e.name = t('common.required')
-    if (!form.categoryId) e.categoryId = t('common.required')
-    if (!form.price || Number(form.price) <= 0) e.price = t('common.required')
-    if (p.isFood) {
-      if (!form.ingredients.trim()) e.ingredients = t('common.required')
-      if (!form.vegType) e.vegType = t('common.required')
-    } else if (!form.material.trim()) {
-      e.material = t('common.required')
-    }
-    if (!form.madeToOrder && form.stock === '') e.stock = t('common.required')
-    if (submitting) {
-      if (!form.packSize || Number(form.packSize) <= 0) e.packSize = t('common.required')
-      if (needsPieceCount(form.unit) && (!form.piecesPerPack || Number(form.piecesPerPack) <= 0)) {
-        e.piecesPerPack = t('common.required')
-      }
-    }
+  function validate(submit: boolean): boolean {
+    if (p.status === 'DRAFT' && !submit) return true
+    const e = listingProblems(listing)
+    if (form.cropId === 'other' && !form.categoryId) e.categoryId = t('common.required')
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
   /**
-   * `submit` is what puts a draft on sale. Saving on
-   * its own never moves the status, so she can fix a typo on a draft without
-   * it leaving her hands.
+   * `submit` is what puts a draft on sale. Saving on its own never moves the
+   * status, so he can fix a typo on a draft without it leaving his hands.
    */
   async function save(submit: boolean) {
     if (!validate(submit)) return
@@ -159,20 +137,10 @@ export default function EditProduct() {
     setServerError('')
     try {
       await api.updateProduct(p.id, {
+        ...listing,
+        stock: Number(form.stock) || 0,
         imageUrl: form.imageUrl || undefined,
         imagePublicId: form.imagePublicId || undefined,
-        name: form.name.trim(),
-        categoryId: form.categoryId,
-        ingredients: p.isFood ? form.ingredients : undefined,
-        vegType: p.isFood && form.vegType ? form.vegType : undefined,
-        material: p.isFood ? undefined : form.material,
-        price: Number(form.price),
-        mrp: Number(form.mrp) || 0,
-        unit: form.unit,
-        packSize: Number(form.packSize) || undefined,
-        piecesPerPack: needsPieceCount(form.unit) ? Number(form.piecesPerPack) || undefined : undefined,
-        stock: form.madeToOrder ? 0 : Number(form.stock),
-        madeToOrder: form.madeToOrder,
         ...(submit ? { status: 'LIVE' as const } : {}),
       })
       toast(t(submit ? 'ok.productPublished' : 'ok.productUpdated'))
@@ -189,7 +157,9 @@ export default function EditProduct() {
     }
   }
 
-  const canSubmit = p.status === 'DRAFT'
+  const numeric = (k: 'price' | 'stock' | 'minOrder') => (e: { target: { value: string } }) =>
+    set(k, e.target.value.replace(/\D/g, ''))
+  const unitWord = t(`unit.${form.unit}`)
 
   return (
     <>
@@ -210,6 +180,16 @@ export default function EditProduct() {
           />
         </Field>
 
+        <Field label={t('prod.crop')} error={errors.cropId} required>
+          <CropPicker value={form.cropId} onPick={(id) => set('cropId', id)} categories={categories} />
+        </Field>
+
+        {form.cropId === 'other' && (
+          <Field label={t('prod.otherCategory')} error={errors.categoryId} required>
+            <CategoryPicker value={form.categoryId} onPick={(id) => set('categoryId', id)} categories={categories} />
+          </Field>
+        )}
+
         <Field label={t('prod.name')} error={errors.name} required>
           <VoiceInput
             value={form.name}
@@ -219,166 +199,51 @@ export default function EditProduct() {
           />
         </Field>
 
-        <Field label={t('prod.category')} error={errors.categoryId} required>
-          <div className="wrap-row">
-            {visibleCats.map((c) => (
-              <button
-                key={c.id}
-                className={`chip ${form.categoryId === c.id ? 'chip--on' : ''}`}
-                onClick={() => set('categoryId', c.id)}
-              >
-                {lang === 'mr' ? c.mr : c.en}
-              </button>
-            ))}
-          </div>
+        <Field label={t('prod.unit')} error={errors.unit} required>
+          <UnitPicker value={form.unit} onPick={(u) => set('unit', u)} />
         </Field>
-
-        {p.isFood ? (
-          <>
-            <Field
-              label={t('prod.ingredients')}
-              hint={t('prod.ingredientsHint')}
-              error={errors.ingredients}
-              required
-            >
-              <VoiceInput
-                value={form.ingredients}
-                onChange={(v) => set('ingredients', v)}
-                error={!!errors.ingredients}
-                multiline
-              />
-            </Field>
-
-            <Field label={t('prod.vegType')} error={errors.vegType} required>
-              <div className="yesno">
-                <Choice
-                  selected={form.vegType === 'veg'}
-                  onSelect={() => set('vegType', 'veg')}
-                  icon={<VegMark type="veg" />}
-                  title={t('prod.veg')}
-                />
-                <Choice
-                  selected={form.vegType === 'nonveg'}
-                  onSelect={() => set('vegType', 'nonveg')}
-                  icon={<VegMark type="nonveg" />}
-                  title={t('prod.nonveg')}
-                />
-              </div>
-            </Field>
-          </>
-        ) : (
-          <Field
-            label={t('prod.material')}
-            hint={t('prod.materialHint')}
-            error={errors.material}
-            required
-          >
-            <VoiceInput
-              value={form.material}
-              onChange={(v) => set('material', v)}
-              error={!!errors.material}
-              multiline
-            />
-          </Field>
-        )}
 
         <Field label={t('prod.price')} hint={t('prod.priceHint')} error={errors.price} required htmlFor="price">
-          <TextInput
-            id="price"
-            inputMode="numeric"
-            value={form.price}
-            error={!!errors.price}
-            onChange={(e) => set('price', e.target.value.replace(/[^0-9]/g, ''))}
-          />
-        </Field>
-
-        <Field label={`${t('prod.mrp')} (${t('common.optional')})`} htmlFor="mrp">
-          <TextInput
-            id="mrp"
-            inputMode="numeric"
-            value={form.mrp}
-            onChange={(e) => set('mrp', e.target.value.replace(/[^0-9]/g, ''))}
-          />
-        </Field>
-
-        <Field label={t('prod.unit')} required>
-          <div className="wrap-row">
-            {UNITS.map((u) => (
-              <button
-                key={u}
-                className={`chip ${form.unit === u ? 'chip--on' : ''}`}
-                onClick={() => set('unit', u)}
-              >
-                {t(`unit.${u}`)}
-              </button>
-            ))}
-          </div>
-        </Field>
-
-        {/* The size the price is for, beside the unit it counts in. Locked
-            with the rest of what the listing IS once her edits run out. */}
-        <Field
-          label={t('prod.packSize')}
-          hint={t('prod.packSizeHint')}
-          error={errors.packSize}
-          required
-          htmlFor="packSize"
-        >
           <div className="row" style={{ gap: 'var(--s2)' }}>
-            <TextInput
-              id="packSize"
-              inputMode="numeric"
-              value={form.packSize}
-              error={!!errors.packSize}
-              onChange={(e) => set('packSize', e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="500"
-            />
-            <strong style={{ flex: 'none' }}>{t(`unit.${form.unit}`)}</strong>
+            <TextInput id="price" inputMode="numeric" value={form.price} error={!!errors.price} onChange={numeric('price')} />
+            <strong style={{ flex: 'none' }}>/ {unitWord}</strong>
           </div>
         </Field>
-
-        {needsPieceCount(form.unit) && (
-          <Field
-            label={t('prod.piecesPerPack')}
-            hint={t('prod.piecesPerPackHint')}
-            error={errors.piecesPerPack}
-            required
-            htmlFor="piecesPerPack"
-          >
-            <TextInput
-              id="piecesPerPack"
-              inputMode="numeric"
-              value={form.piecesPerPack}
-              error={!!errors.piecesPerPack}
-              onChange={(e) => set('piecesPerPack', e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="6"
-            />
-          </Field>
-        )}
 
         <Field label={t('prod.stock')} error={errors.stock} required htmlFor="stock">
+          <div className="row" style={{ gap: 'var(--s2)' }}>
+            <TextInput id="stock" inputMode="numeric" value={form.stock} error={!!errors.stock} onChange={numeric('stock')} />
+            <strong style={{ flex: 'none' }}>{unitWord}</strong>
+          </div>
+        </Field>
+
+        <Field label={t('prod.minOrder')} hint={t('prod.minOrderHint')} error={errors.minOrder} required htmlFor="minOrder">
+          <div className="row" style={{ gap: 'var(--s2)' }}>
+            <TextInput id="minOrder" inputMode="numeric" value={form.minOrder} error={!!errors.minOrder} onChange={numeric('minOrder')} />
+            <strong style={{ flex: 'none' }}>{unitWord}</strong>
+          </div>
+        </Field>
+
+        <Field label={t('prod.harvestDate')} error={errors.harvestDate} required htmlFor="harvestDate">
           <TextInput
-            id="stock"
-            inputMode="numeric"
-            value={form.stock}
-            error={!!errors.stock}
-            disabled={form.madeToOrder}
-            onChange={(e) => set('stock', e.target.value.replace(/[^0-9]/g, ''))}
+            id="harvestDate"
+            type="date"
+            max={todayIso()}
+            value={form.harvestDate}
+            error={!!errors.harvestDate}
+            onChange={(e) => set('harvestDate', e.target.value)}
           />
         </Field>
 
-        <Choice
-          selected={form.madeToOrder}
-          onSelect={() => set('madeToOrder', !form.madeToOrder)}
-          icon={<IconWaiting />}
-          title={t('prod.madeToOrder')}
-        />
+        <Field label={t('prod.cultivation')} error={errors.cultivation} required>
+          <CultivationPicker value={form.cultivation} onPick={(c) => set('cultivation', c)} />
+        </Field>
 
         <Button onClick={() => void save(false)} disabled={busy}>
           {t('common.save')}
         </Button>
 
-        {canSubmit && (
+        {p.status === 'DRAFT' && (
           <Button variant="ghost" onClick={() => void save(true)} disabled={busy}>
             {t('upl.publish')}
           </Button>

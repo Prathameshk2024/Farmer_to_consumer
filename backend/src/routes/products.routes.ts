@@ -1,42 +1,41 @@
 import { Router } from 'express'
 import type { Product } from '@shared/types.js'
-import {
-  canSellNow, initialListingStatus, fssaiProblem, normalizeFssai, sizeProblems,
-} from '@shared/farmer.js'
+import { canSellNow, initialListingStatus } from '@shared/farmer.js'
+import { categoryFor, listingProblems } from '@shared/produce.js'
 import { getDb, newId, save } from '../db/store.js'
+import { CATEGORIES, isCategoryId } from '../db/seed.js'
 import { requireRole } from '../middleware/auth.js'
 import { destroyImage } from './uploads.routes.js'
 
 export const productsRouter: Router = Router()
 
+const CHECK_MR = 'माहिती तपासा'
+const CATEGORY_MR = 'प्रकार निवडा'
+
 /**
- * What a listing must have before the public can see it.
+ * What a listing must have before the public can see it: the shared rules,
+ * plus a category the catalogue knows.
  *
- * Shared by "publish a new product" and "publish a draft she saved earlier",
+ * Shared by "publish a new product" and "publish a draft he saved earlier",
  * because a draft that skipped the check on the way in would otherwise reach
  * the catalogue by the back door.
  */
-function listingProblems(b: Partial<Product>): Record<string, string> {
-  const fields: Record<string, string> = {}
-  if (!b.name?.trim()) fields.name = 'उत्पादनाचे नाव आवश्यक आहे'
-  if (!b.categoryId) fields.categoryId = 'प्रकार निवडा'
-  if (!b.price || Number(b.price) <= 0) fields.price = 'किंमत टाका'
-  // How much one of these IS. A price without it cannot be compared with the
-  // shop next door - see sizeProblems in shared/src/farmer.ts.
-  Object.assign(fields, sizeProblems(b))
-
-  if (b.isFood) {
-    if (!b.ingredients?.trim()) fields.ingredients = 'यात काय आहे ते सांगा'
-    if (!b.vegType) fields.vegType = 'शाकाहारी की मांसाहारी ते निवडा'
-    // Never required - most home kitchens are under the threshold - but a
-    // number that cannot be a licence is refused rather than published.
-    const fssai = fssaiProblem(b.fssai)
-    if (fssai) fields.fssai = fssai
-  } else if (!b.material?.trim()) {
-    fields.material = 'कोणत्या वस्तूपासून बनवले ते सांगा'
-  }
+function publishProblems(p: Partial<Product>): Record<string, string> {
+  const fields = listingProblems(p)
+  if (!isCategoryId(p.categoryId)) fields.categoryId = CATEGORY_MR
   return fields
 }
+
+/**
+ * A categoryId that is not in the list is refused outright, draft or not -
+ * it would otherwise sit in the database as a filter no buyer can reach.
+ */
+function unknownCategory(sent: unknown): boolean {
+  return sent != null && sent !== '' && !isCategoryId(sent)
+}
+
+/** Numbers arrive from a form as text; store them as numbers. */
+const NUMERIC = ['price', 'stock', 'minOrder'] as const
 
 /** Her own products, drafts included. */
 productsRouter.get('/mine', requireRole('farmer'), (req, res) => {
@@ -64,40 +63,39 @@ productsRouter.post('/', requireRole('farmer'), (req, res) => {
     res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
     return
   }
-
-  const fields = listingProblems(b)
-
-  if (!asDraft && Object.keys(fields).length) {
-    res.status(400).json({ error: 'Validation failed', messageMr: 'माहिती तपासा', fields })
+  if (unknownCategory(b.categoryId)) {
+    res.status(400).json({ error: 'Unknown category', messageMr: CATEGORY_MR, fields: { categoryId: CATEGORY_MR } })
     return
   }
 
+  const categoryId = categoryFor(b.cropId, b.categoryId) ?? ''
   const product: Product = {
     id: newId('p'),
     farmerId,
-    emoji: b.emoji ?? '📦',
+    cropId: b.cropId ?? '',
+    name: String(b.name ?? '').trim(),
+    categoryId,
     imageUrl: b.imageUrl,
     imagePublicId: b.imagePublicId,
-    name: (b.name ?? '').trim(),
-    nameEn: b.nameEn,
-    categoryId: b.categoryId ?? '',
-    isFood: !!b.isFood,
-    // Stamped from her farmer record - one source of truth.
-    ingredients: b.isFood ? b.ingredients : undefined,
-    vegType: b.isFood ? b.vegType : undefined,
-    fssai: b.isFood ? normalizeFssai(b.fssai) || undefined : undefined,
-    material: b.isFood ? undefined : b.material,
+    emoji: b.emoji ?? CATEGORIES.find((c) => c.id === categoryId)?.icon ?? '📦',
+    // A draft may still be missing these; publishing checks them.
+    unit: b.unit!,
     price: Number(b.price ?? 0),
-    mrp: Number(b.mrp ?? 0),
-    unit: b.unit ?? 'piece',
-    packSize: Number(b.packSize) > 0 ? Number(b.packSize) : undefined,
-    piecesPerPack: Number(b.piecesPerPack) > 0 ? Number(b.piecesPerPack) : undefined,
-    stock: b.madeToOrder ? 0 : Number(b.stock ?? 0),
-    madeToOrder: !!b.madeToOrder,
+    stock: Number(b.stock ?? 0),
+    minOrder: Number(b.minOrder ?? 1),
+    harvestDate: String(b.harvestDate ?? ''),
+    cultivation: b.cultivation!,
+    description: String(b.description ?? '').trim() || undefined,
     // LIVE at once for a verified farmer - see initialListingStatus.
     status: initialListingStatus(asDraft),
     views: 0,
     createdAt: new Date().toISOString(),
+  }
+
+  const fields = publishProblems(product)
+  if (!asDraft && Object.keys(fields).length) {
+    res.status(400).json({ error: 'Validation failed', messageMr: CHECK_MR, fields })
+    return
   }
 
   db.products.push(product)
@@ -115,67 +113,63 @@ productsRouter.patch('/:id', requireRole('farmer'), (req, res) => {
     return
   }
 
+  // Every field of the listing may change, as often as he likes.
   const allowed = [
-    'name', 'nameEn', 'emoji', 'categoryId', 'price', 'mrp', 'unit', 'stock',
-    'packSize', 'piecesPerPack', 'fssai',
-    'madeToOrder', 'ingredients', 'vegType', 'material',
-    'imageUrl', 'imagePublicId',
+    'cropId', 'name', 'categoryId', 'emoji', 'unit', 'price', 'stock', 'minOrder',
+    'harvestDate', 'cultivation', 'description', 'imageUrl', 'imagePublicId',
   ] as const
 
   const patch: Record<string, unknown> = {}
   for (const key of allowed) if (key in req.body) patch[key] = req.body[key]
+  for (const key of NUMERIC) if (key in patch) patch[key] = Number(patch[key])
 
-  /**
-   * The licence number is checked on the way in HERE too, not only when a
-   * listing is first submitted.
-   *
-   * `listingProblems` runs on a submission, so without this an edit was the
-   * way round it: a live listing could be given "oops" as its FSSAI number
-   * and publish it to buyers as if somebody had looked. Blank still clears
-   * it - a woman whose licence lapsed must be able to take the number down.
-   */
-  if ('fssai' in patch) {
-    const problem = fssaiProblem(patch.fssai)
-    if (problem) {
-      res.status(400).json({
-        error: 'Invalid FSSAI number',
-        messageMr: problem,
-        fields: { fssai: problem },
-      })
-      return
-    }
-    patch.fssai = normalizeFssai(patch.fssai) || undefined
+  if (unknownCategory(patch.categoryId)) {
+    res.status(400).json({ error: 'Unknown category', messageMr: CATEGORY_MR, fields: { categoryId: CATEGORY_MR } })
+    return
   }
 
   const current = db.products[i]!
+  const merged = { ...current, ...patch } as Product
+  merged.categoryId = categoryFor(merged.cropId, merged.categoryId) ?? ''
 
-  // Pausing and un-pausing is the only status change a farmer may make herself.
+  // Pausing and un-pausing is the only status change a farmer may make himself.
   if (req.body.status === 'PAUSED' || req.body.status === 'LIVE') {
-    if (current.status === 'LIVE' || current.status === 'PAUSED') patch.status = req.body.status
+    if (current.status === 'LIVE' || current.status === 'PAUSED') merged.status = req.body.status
   }
 
-  /**
-   * Putting a draft on sale. The same checks as a new listing, so "save as
-   * draft" is never a way round them.
-   */
   if (req.body.status === 'LIVE' && current.status === 'DRAFT') {
+    // Putting a draft on sale: the same checks as a new listing, so "save as
+    // draft" is never a way round them.
     const farmer = db.farmers.find((s) => s.id === req.auth!.farmerId)!
     if (!canSellNow(farmer)) {
       res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
       return
     }
-    const fields = listingProblems({ ...current, ...patch } as Product)
+    const fields = publishProblems(merged)
     if (Object.keys(fields).length) {
-      res.status(400).json({ error: 'Validation failed', messageMr: 'माहिती तपासा', fields })
+      res.status(400).json({ error: 'Validation failed', messageMr: CHECK_MR, fields })
       return
     }
-    patch.status = initialListingStatus(false)
+    merged.status = initialListingStatus(false)
+  } else if (merged.status !== 'DRAFT') {
+    // An edit to a listing on sale may not make it wrong. Only the fields he
+    // touched are judged: a tomato listed 61 days ago must still be pausable,
+    // and its stale harvest date is not what he came to change.
+    const touched = new Set([...Object.keys(patch), ...('cropId' in patch ? ['categoryId'] : [])])
+    const fields = Object.fromEntries(
+      Object.entries(publishProblems(merged)).filter(([k]) => touched.has(k)
+        // A minimum is judged against the stock, so changing either judges both.
+        || (k === 'minOrder' && touched.has('stock'))),
+    )
+    if (Object.keys(fields).length) {
+      res.status(400).json({ error: 'Validation failed', messageMr: CHECK_MR, fields })
+      return
+    }
   }
 
-  const merged = { ...current, ...patch } as Product
   db.products[i] = merged
   save()
-  res.json({ product: db.products[i] })
+  res.json({ product: merged })
 })
 
 /**

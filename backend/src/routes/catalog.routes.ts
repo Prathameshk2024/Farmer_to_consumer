@@ -7,6 +7,7 @@ import {
 } from '../db/reviews.js'
 import { publicFarmer } from '../db/publicFarmer.js'
 import { canSellNow } from '@shared/farmer.js'
+import { cropById } from '@shared/crops.js'
 import { requireRole } from '../middleware/auth.js'
 
 /** Public, unauthenticated. This is what a shopper and a scanned QR both hit. */
@@ -40,7 +41,7 @@ catalogRouter.get('/categories', (_req, res) => {
 
 catalogRouter.get('/products', (req, res) => {
   const db = getDb()
-  const { categoryId, q, pincode, farmerId } = req.query as Record<string, string | undefined>
+  const { categoryId, cropId, cultivation, q, pincode, farmerId } = req.query as Record<string, string | undefined>
 
   const farmerById = new Map(db.farmers.map((s) => [s.id, s]))
 
@@ -60,18 +61,21 @@ catalogRouter.get('/products', (req, res) => {
     list = list.filter((p) => serviceable.has(p.farmerId))
   }
 
+  if (cropId) list = list.filter((p) => p.cropId === cropId)
+  if (cultivation) list = list.filter((p) => p.cultivation === cultivation)
+
   if (q?.trim()) {
     const needle = q.trim().toLowerCase()
-    list = list.filter(
-      (p) =>
-        p.name.toLowerCase().includes(needle) ||
-        (p.nameEn ?? '').toLowerCase().includes(needle),
-    )
+    // The crop's own labels too: a buyer typing "onion" finds a listing the
+    // farmer named "लाल कांदा".
+    list = list.filter((p) => {
+      const crop = cropById(p.cropId)
+      return [p.name, crop?.mr, crop?.en].some((s) => (s ?? '').toLowerCase().includes(needle))
+    })
   }
 
-  // Attach the farmer card each listing needs, which the law requires to be
-  // displayed on every food listing. The cart and checkout run entirely off
-  // it. What is on it, and why, is in db/publicFarmer.ts.
+  // Attach the farmer card each listing needs. The cart and checkout run
+  // entirely off it. What is on it, and why, is in db/publicFarmer.ts.
   //
   // Each product carries its OWN stars, from the ratings of buyers who
   // received it - worked out here on every request, never stored.

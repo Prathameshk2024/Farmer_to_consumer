@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Category, Unit } from '@shared/types.js'
-import { canSellNow, needsPieceCount } from '@shared/farmer.js'
-import { sizeLabel } from '../../lib/productSize.js'
+import type { Category, Cultivation } from '@shared/types.js'
+import { canSellNow } from '@shared/farmer.js'
+import { cropById } from '@shared/crops.js'
+import { categoryFor, listingProblems } from '@shared/produce.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { useAuth } from '../../store/AuthContext.js'
 import { api, ApiError } from '../../lib/api.js'
@@ -13,26 +14,43 @@ import {
 } from './productDraft.js'
 import ProductImage from '../../components/ProductImage.js'
 import {
-  AppBar, Button, Card, Choice, Dots, EmptyState, Field,
-  Loading, Notice, Rupees, TextInput, VoiceInput, useAsync,
-} from '../../components/ui.js'
+  CategoryPicker, CropPicker, CultivationPicker, CultivationPill, PricePerUnit, UnitPicker, todayIso,
+  useHarvestLabel,
+} from '../../components/Produce.js'
 import {
-  IconBack, IconFood, IconNext, IconProduct, IconWaiting, VegMark,
-} from '../../components/icons.js'
+  AppBar, Button, Card, Dots, EmptyState, Field,
+  Loading, Notice, TextInput, VoiceInput, useAsync,
+} from '../../components/ui.js'
+import { IconBack, IconNext } from '../../components/icons.js'
 import { PageTour } from '../../components/Walkthrough.js'
 
-const UNITS: Unit[] = ['kg', 'g', 'piece', 'dozen', 'litre', 'ml', 'set']
-const STEPS = ['photo', 'basics', 'food', 'details', 'price', 'stock', 'preview'] as const
+const STEPS = [
+  'crop', 'photo', 'name', 'unit', 'price', 'quantity', 'harvest', 'cultivation', 'review',
+] as const
+type Step = (typeof STEPS)[number]
+
+/** Which listing fields each step answers, so the shared rules can be asked one screen at a time. */
+const STEP_FIELDS: Partial<Record<Step, string[]>> = {
+  crop: ['cropId', 'categoryId'],
+  name: ['name'],
+  unit: ['unit'],
+  price: ['price'],
+  quantity: ['stock', 'minOrder'],
+  harvest: ['harvestDate'],
+  cultivation: ['cultivation'],
+}
 
 /**
- * The upload wizard. One question per screen, one photo from her gallery.
+ * The listing wizard. One question per screen.
  *
- * Step 3 is the branch everything depends on: food asks for the ingredients
- * and veg/non-veg, non-food asks what it is made of. Every extra field is a
- * place a first-time farmer abandons.
+ * The crop comes first because it answers three things at once: the category
+ * (the server derives it), a name to start from, and the picture a buyer
+ * expects. Everything after it is a number or a tap. The rules for each
+ * answer are `listingProblems` in shared/src/produce.ts - the same function
+ * the server runs - so a screen that lets him past is one the server accepts.
  *
- * The product NAME uses voice input, because a farmer who speaks Marathi
- * fluently may still be unable to type it on a phone keyboard.
+ * The NAME still takes voice input, because a farmer who speaks Marathi
+ * fluently may be unable to type it on a phone keyboard.
  */
 export default function UploadProduct() {
   const t = useT()
@@ -40,13 +58,14 @@ export default function UploadProduct() {
   const nav = useNavigate()
   const { toast } = useToast()
   const { session } = useAuth()
+  const harvested = useHarvestLabel()
 
   const [me, loadingMe] = useAsync(() => api.me(), [])
   const [catData] = useAsync(() => api.categories(), [])
 
   /* The draft belongs to ONE farmer. Read it from the session rather than
      from api.me(), which has not answered yet at first render - and a draft
-     keyed on nothing is how a stranger's photo reached the next woman to
+     keyed on nothing is how a stranger's photo reached the next farmer to
      register on the same phone. */
   const farmerId = session?.farmerId
 
@@ -57,7 +76,7 @@ export default function UploadProduct() {
   const [serverError, setServerError] = useState('')
 
   /* Set when Cloudinary is off. There is nothing else to ask for then, so the
-     photo step stops being a wall she cannot get past. */
+     photo step stops being a wall he cannot get past. */
   const [photoOff, setPhotoOff] = useState(false)
 
   const [d, setD] = useState<Draft>(restored?.d ?? BLANK)
@@ -66,11 +85,10 @@ export default function UploadProduct() {
     writeDraft(localStorage, farmerId, step, d)
   }, [farmerId, step, d])
 
-  /* One route, seven screens. A step change is not a navigation, so nothing
+  /* One route, nine screens. A step change is not a navigation, so nothing
      moves the scroll on its own and the next question opened at whatever
      height the last answer left - usually its own foot. */
   useEffect(() => { window.scrollTo(0, 0) }, [step])
-
 
   type Key = keyof typeof d
   const set = <K extends Key>(k: K, v: (typeof d)[K]) => {
@@ -104,36 +122,32 @@ export default function UploadProduct() {
   }
 
   const categories: Category[] = catData?.categories ?? []
-  // A category with no `food` flag belongs to both halves - that is `other`,
-  // and it has to be reachable whichever answer she gave on the food step.
-  const visibleCats = categories.filter(
-    (c) => d.isFood === null || c.food === undefined || c.food === d.isFood,
-  )
+  const catLabel = (c: { mr: string; en: string }) => (lang === 'mr' ? c.mr : c.en)
+  const cropLabel = (id: string) => {
+    const crop = cropById(id)
+    return crop ? catLabel(crop) : ''
+  }
 
-  function validate(which: (typeof STEPS)[number]): boolean {
+  /** The listing as it would be sent. */
+  const listing = {
+    cropId: d.cropId,
+    categoryId: categoryFor(d.cropId, d.categoryId) ?? '',
+    name: d.name.trim(),
+    unit: d.unit,
+    price: Number(d.price),
+    stock: d.stock === '' ? NaN : Number(d.stock),
+    minOrder: Number(d.minOrder),
+    harvestDate: d.harvestDate,
+    cultivation: (d.cultivation || undefined) as Cultivation | undefined,
+  }
+
+  function validate(which: Step): boolean {
+    const all = listingProblems(listing)
     const e: Record<string, string> = {}
+    for (const k of STEP_FIELDS[which] ?? []) if (all[k]) e[k] = all[k]!
+    // `other` has no category of its own; he picks one on the same screen.
+    if (which === 'crop' && d.cropId === 'other' && !d.categoryId) e.categoryId = t('common.required')
     if (which === 'photo' && !photoOff && !d.imageUrl) e.photo = t('common.required')
-    if (which === 'basics' && !d.name.trim()) e.name = t('common.required')
-    if (which === 'food' && d.isFood === null) e.isFood = t('common.required')
-    if (which === 'details') {
-      if (!d.categoryId) e.categoryId = t('common.required')
-      if (d.isFood) {
-        if (!d.ingredients.trim()) e.ingredients = t('common.required')
-        if (!d.vegType) e.vegType = t('common.required')
-      } else if (!d.material.trim()) {
-        e.material = t('common.required')
-      }
-    }
-    if (which === 'price') {
-      if (!d.price || Number(d.price) <= 0) e.price = t('common.required')
-      if (!d.packSize || Number(d.packSize) <= 0) e.packSize = t('common.required')
-      if (needsPieceCount(d.unit) && (!d.piecesPerPack || Number(d.piecesPerPack) <= 0)) {
-        e.piecesPerPack = t('common.required')
-      }
-    }
-    // Made-to-order is an answer, so it satisfies the question. A woman who
-    // cooks each order fresh has no shelf to count.
-    if (which === 'stock' && !d.madeToOrder && d.stock === '') e.stock = t('common.required')
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -145,9 +159,9 @@ export default function UploadProduct() {
 
   /**
    * Backwards never validates and never clears a field - `d` is one object
-   * that outlives every step - so she can go back from the preview, change the
-   * price, and come forward to find everything else exactly as she left it.
-   * The error markers are cleared, because a red box on a screen she is only
+   * that outlives every step - so he can go back from the review, change the
+   * price, and come forward to find everything else exactly as he left it.
+   * The error markers are cleared, because a red box on a screen he is only
    * revisiting reads as a new mistake.
    */
   function goToStep(target: number) {
@@ -160,27 +174,28 @@ export default function UploadProduct() {
     else goToStep(step - 1)
   }
 
+  function pickCrop(id: string) {
+    setD((cur) => ({
+      ...cur,
+      cropId: id,
+      categoryId: id === 'other' ? cur.categoryId : '',
+      // The crop's name is a starting point, not a decision: replaced only
+      // while he has not written his own.
+      name: !cur.name || cur.name === cropLabel(cur.cropId) ? (id === 'other' ? '' : cropLabel(id)) : cur.name,
+    }))
+    setErrors({})
+  }
+
   async function publish(asDraft: boolean) {
     setBusy(true)
     setServerError('')
     try {
       await api.createProduct({
-        emoji: '📦',
+        ...listing,
+        stock: Number(d.stock) || 0,
+        cultivation: listing.cultivation,
         imageUrl: d.imageUrl || undefined,
         imagePublicId: d.imagePublicId || undefined,
-        name: d.name.trim(),
-        categoryId: d.categoryId,
-        isFood: !!d.isFood,
-        ingredients: d.isFood ? d.ingredients : undefined,
-        vegType: d.isFood && d.vegType ? d.vegType : undefined,
-        material: d.isFood ? undefined : d.material,
-        price: Number(d.price),
-        mrp: Number(d.mrp) || 0,
-        unit: d.unit,
-        packSize: Number(d.packSize) || undefined,
-        piecesPerPack: needsPieceCount(d.unit) ? Number(d.piecesPerPack) || undefined : undefined,
-        stock: d.madeToOrder ? 0 : Number(d.stock),
-        madeToOrder: d.madeToOrder,
         asDraft,
       })
       clearDraft(localStorage, farmerId)
@@ -198,6 +213,9 @@ export default function UploadProduct() {
     }
   }
 
+  const numeric = (k: 'price' | 'stock' | 'minOrder') => (e: { target: { value: string } }) =>
+    set(k, e.target.value.replace(/\D/g, ''))
+
   return (
     <>
       <AppBar
@@ -211,7 +229,21 @@ export default function UploadProduct() {
       </div>
 
       <div className="screen stack" data-wt="up-body">
-        {/* ---------- 1. photo ---------------------------------- */}
+        {/* ---------- 1. crop, grouped as the market is ---------- */}
+        {STEPS[step] === 'crop' && (
+          <>
+            <Field label={t('prod.crop')} hint={t('prod.cropHint')} error={errors.cropId} required>
+              <CropPicker value={d.cropId} onPick={pickCrop} categories={categories} />
+            </Field>
+            {d.cropId === 'other' && (
+              <Field label={t('prod.otherCategory')} error={errors.categoryId} required>
+                <CategoryPicker value={d.categoryId} onPick={(id) => set('categoryId', id)} categories={categories} />
+              </Field>
+            )}
+          </>
+        )}
+
+        {/* ---------- 2. photo ---------------------------------- */}
         {STEPS[step] === 'photo' && (
           <Field
             label={t('prod.photos')}
@@ -231,8 +263,8 @@ export default function UploadProduct() {
           </Field>
         )}
 
-        {/* ---------- 2. name, with VOICE TYPING ----------------- */}
-        {STEPS[step] === 'basics' && (
+        {/* ---------- 3. name, pre-filled, with VOICE TYPING ------ */}
+        {STEPS[step] === 'name' && (
           <Field label={t('prod.name')} hint={t('prod.nameHint')} error={errors.name} required>
             <VoiceInput
               value={d.name}
@@ -243,212 +275,100 @@ export default function UploadProduct() {
           </Field>
         )}
 
-        {/* ---------- 3. THE BRANCH ------------------------------ */}
-        {STEPS[step] === 'food' && (
-          <Field label={t('prod.isFood')} error={errors.isFood} required>
-            <div className="stack-sm">
-              <Choice
-                selected={d.isFood === true}
-                onSelect={() => { set('isFood', true); set('categoryId', '') }}
-                icon={<IconFood />}
-                title={t('prod.isFoodYes')}
-                sub={t('reg.sellsFoodHint')}
-              />
-              <Choice
-                selected={d.isFood === false}
-                onSelect={() => { set('isFood', false); set('categoryId', '') }}
-                icon={<IconProduct />}
-                title={t('prod.isFoodNo')}
-              />
-            </div>
+        {/* ---------- 4. unit ----------------------------------- */}
+        {STEPS[step] === 'unit' && (
+          <Field label={t('prod.unit')} hint={t('prod.unitHint')} error={errors.unit} required>
+            <UnitPicker value={d.unit} onPick={(u) => set('unit', u)} />
           </Field>
         )}
 
-        {/* ---------- 4. four fields for food, one for not ------- */}
-        {STEPS[step] === 'details' && (
-          <>
-            <Field label={t('prod.category')} error={errors.categoryId} required>
-              <div className="wrap-row">
-                {visibleCats.map((c) => (
-                  <button
-                    key={c.id}
-                    className={`chip ${d.categoryId === c.id ? 'chip--on' : ''}`}
-                    onClick={() => set('categoryId', c.id)}
-                  >
-                    {lang === 'mr' ? c.mr : c.en}
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            {d.isFood ? (
-              <>
-
-                <Field label={t('prod.ingredients')} hint={t('prod.ingredientsHint')} error={errors.ingredients} required>
-                  <VoiceInput
-                    value={d.ingredients}
-                    onChange={(v) => set('ingredients', v)}
-                    error={!!errors.ingredients}
-                    multiline
-                    placeholder={t('ph.ingredients')}
-                  />
-                </Field>
-
-                <Field label={t('prod.vegType')} error={errors.vegType} required>
-                  <div className="yesno">
-                    <Choice selected={d.vegType === 'veg'} onSelect={() => set('vegType', 'veg')} icon={<VegMark type="veg" />} title={t('prod.veg')} />
-                    <Choice selected={d.vegType === 'nonveg'} onSelect={() => set('vegType', 'nonveg')} icon={<VegMark type="nonveg" />} title={t('prod.nonveg')} />
-                  </div>
-                </Field>
-              </>
-            ) : (
-              <Field label={t('prod.material')} hint={t('prod.materialHint')} error={errors.material} required>
-                <VoiceInput
-                  value={d.material}
-                  onChange={(v) => set('material', v)}
-                  error={!!errors.material}
-                  multiline
-                  placeholder={t('ph.material')}
-                />
-                <div className="wrap-row" style={{ marginTop: 'var(--s2)' }}>
-                  {/* The word she taps is the word that gets stored, so it
-                      follows the language she is reading in. */}
-                  {['cotton', 'silk', 'wool', 'clay', 'wood', 'brass', 'bamboo', 'jute'].map((m) => (
-                    <button
-                      key={m}
-                      className="chip"
-                      onClick={() => set('material', t(`mat.${m}`))}
-                    >
-                      {t(`mat.${m}`)}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-            )}
-          </>
-        )}
-
-        {/* ---------- 5. price ---------------------------------- */}
+        {/* ---------- 5. price for ONE unit ---------------------- */}
         {STEPS[step] === 'price' && (
-          <>
-            <Field label={t('prod.price')} hint={t('prod.priceHint')} error={errors.price} required htmlFor="price">
+          <Field label={t('prod.price')} hint={t('prod.priceHint')} error={errors.price} required htmlFor="price">
+            <div className="row" style={{ gap: 'var(--s2)' }}>
               <TextInput
                 id="price"
                 inputMode="numeric"
                 value={d.price}
                 error={!!errors.price}
-                onChange={(e) => set('price', e.target.value.replace(/\D/g, ''))}
-                placeholder="220"
+                onChange={numeric('price')}
+                placeholder={t('ph.price')}
               />
-            </Field>
-            <Field label={`${t('prod.mrp')} (${t('common.optional')})`} htmlFor="mrp">
-              <TextInput
-                id="mrp"
-                inputMode="numeric"
-                value={d.mrp}
-                onChange={(e) => set('mrp', e.target.value.replace(/\D/g, ''))}
-                placeholder="250"
-              />
-            </Field>
-            <Field label={t('prod.unit')} required>
-              <div className="wrap-row">
-                {UNITS.map((u) => (
-                  <button
-                    key={u}
-                    className={`chip ${d.unit === u ? 'chip--on' : ''}`}
-                    onClick={() => set('unit', u)}
-                  >
-                    {t(`unit.${u}`)}
-                  </button>
-                ))}
-              </div>
-            </Field>
+              <strong style={{ flex: 'none' }}>/ {t(`unit.${d.unit}`)}</strong>
+            </div>
+          </Field>
+        )}
 
-            {/* The size the price is FOR. Asked next to the unit she has just
-                chosen, so the two read as one answer: "500" then "ग्रॅम". */}
-            <Field
-              label={t('prod.packSize')}
-              hint={t('prod.packSizeHint')}
-              error={errors.packSize}
-              required
-              htmlFor="packSize"
-            >
+        {/* ---------- 6. how much, and the smallest order -------- */}
+        {STEPS[step] === 'quantity' && (
+          <>
+            <Field label={t('prod.stock')} hint={t('prod.stockHint')} error={errors.stock} required htmlFor="stock">
               <div className="row" style={{ gap: 'var(--s2)' }}>
                 <TextInput
-                  id="packSize"
+                  id="stock"
                   inputMode="numeric"
-                  value={d.packSize}
-                  error={!!errors.packSize}
-                  onChange={(e) => set('packSize', e.target.value.replace(/\D/g, ''))}
-                  placeholder="500"
+                  value={d.stock}
+                  error={!!errors.stock}
+                  onChange={numeric('stock')}
+                  placeholder={t('ph.stock')}
                 />
                 <strong style={{ flex: 'none' }}>{t(`unit.${d.unit}`)}</strong>
               </div>
             </Field>
-
-            {/* A set of four ladoos and a set of twenty are the same word. */}
-            {needsPieceCount(d.unit) && (
-              <Field
-                label={t('prod.piecesPerPack')}
-                hint={t('prod.piecesPerPackHint')}
-                error={errors.piecesPerPack}
-                required
-                htmlFor="piecesPerPack"
-              >
+            <Field label={t('prod.minOrder')} hint={t('prod.minOrderHint')} error={errors.minOrder} required htmlFor="minOrder">
+              <div className="row" style={{ gap: 'var(--s2)' }}>
                 <TextInput
-                  id="piecesPerPack"
+                  id="minOrder"
                   inputMode="numeric"
-                  value={d.piecesPerPack}
-                  error={!!errors.piecesPerPack}
-                  onChange={(e) => set('piecesPerPack', e.target.value.replace(/\D/g, ''))}
-                  placeholder="6"
+                  value={d.minOrder}
+                  error={!!errors.minOrder}
+                  onChange={numeric('minOrder')}
+                  placeholder="1"
                 />
-              </Field>
-            )}
-          </>
-        )}
-
-        {/* ---------- 6. how many ------------------------------- */}
-        {STEPS[step] === 'stock' && (
-          <>
-            <Field label={t('prod.stock')} hint={t('prod.stockHint')} error={errors.stock} required htmlFor="stock">
-              <TextInput
-                id="stock"
-                inputMode="numeric"
-                value={d.stock}
-                error={!!errors.stock}
-                disabled={d.madeToOrder}
-                onChange={(e) => set('stock', e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="10"
-              />
+                <strong style={{ flex: 'none' }}>{t(`unit.${d.unit}`)}</strong>
+              </div>
             </Field>
-
-            {/* The other honest answer: she makes it when the order comes. */}
-            <Choice
-              selected={d.madeToOrder}
-              onSelect={() => set('madeToOrder', !d.madeToOrder)}
-              icon={<IconWaiting />}
-              title={t('prod.madeToOrder')}
-              sub={t('prod.madeToOrderHint')}
-            />
           </>
         )}
 
-        {/* ---------- 7. preview -------------------------------- */}
-        {STEPS[step] === 'preview' && (
+        {/* ---------- 7. harvest date ---------------------------- */}
+        {STEPS[step] === 'harvest' && (
+          <Field label={t('prod.harvestDate')} hint={t('prod.harvestDateHint')} error={errors.harvestDate} required htmlFor="harvestDate">
+            <TextInput
+              id="harvestDate"
+              type="date"
+              max={todayIso()}
+              value={d.harvestDate}
+              error={!!errors.harvestDate}
+              onChange={(e) => set('harvestDate', e.target.value)}
+            />
+          </Field>
+        )}
+
+        {/* ---------- 8. how it was grown ------------------------ */}
+        {STEPS[step] === 'cultivation' && (
+          <Field label={t('prod.cultivation')} error={errors.cultivation} required>
+            <CultivationPicker value={d.cultivation} onPick={(c) => set('cultivation', c)} />
+          </Field>
+        )}
+
+        {/* ---------- 9. review ---------------------------------- */}
+        {STEPS[step] === 'review' && (
           <>
             <div className="section-title">{t('prod.preview')}</div>
             <p className="small muted" style={{ margin: 0 }}>{t('reg.reviewHint')}</p>
 
-            {/* Straight back to the screen that asked, with everything she has
+            {/* Straight back to the screen that asked, with everything he has
                 already typed still in place. */}
             <div className="wrap-row">
               {([
+                ['crop', t('prod.crop')],
                 ['photo', t('prod.photos')],
-                ['basics', t('prod.name')],
-                ['details', t('prod.category')],
+                ['name', t('prod.name')],
                 ['price', t('prod.price')],
-                ['stock', t('prod.stock')],
+                ['quantity', t('prod.stock')],
+                ['harvest', t('prod.harvestDate')],
+                ['cultivation', t('prod.cultivation')],
               ] as const).map(([key, label]) => (
                 <button
                   key={key}
@@ -465,49 +385,27 @@ export default function UploadProduct() {
               <div className="row" style={{ alignItems: 'flex-start' }}>
                 <ProductImage
                   src={d.imageUrl || undefined}
-                  categoryId={d.categoryId}
+                  categoryId={listing.categoryId}
                   size={80}
                   className="tile__img"
                 />
                 <div className="stack-sm grow" style={{ gap: 4 }}>
                   <strong style={{ fontSize: 'var(--t-md)' }}>{d.name}</strong>
-                  <div className="row" style={{ gap: 8 }}>
-                    <strong style={{ fontSize: 'var(--t-lg)' }}><Rupees value={Number(d.price)} /></strong>
-                    <span className="small dim">
-                      / {sizeLabel(
-                        {
-                          unit: d.unit,
-                          packSize: Number(d.packSize) || undefined,
-                          piecesPerPack: Number(d.piecesPerPack) || undefined,
-                        },
-                        t,
-                      )}
-                    </span>
+                  <PricePerUnit price={listing.price} unit={d.unit} />
+                  <div className="small dim">{harvested(d.harvestDate)}</div>
+                  <div className="small">
+                    {t('prod.inStock')}: {d.stock} {t(`unit.${d.unit}`)}
+                    {listing.minOrder > 1 && <> · {t('prod.minOrderShort', { n: listing.minOrder, unit: t(`unit.${d.unit}`) })}</>}
                   </div>
-                  {d.isFood && d.vegType && (
-                    <span className={`pill pill--${d.vegType === 'veg' ? 'ok' : 'danger'}`}>
-                      <VegMark type={d.vegType} />{' '}
-                      {d.vegType === 'veg' ? t('prod.veg') : t('prod.nonveg')}
-                    </span>
-                  )}
+                  {d.cultivation && <CultivationPill cultivation={d.cultivation} />}
                 </div>
               </div>
-
-              <hr className="divider" />
-
-              {d.isFood ? (
-                <div className="stack-sm small">
-                  <div><span className="dim">{t('cus.ingredients')}: </span>{d.ingredients}</div>
-                </div>
-              ) : (
-                <div className="small"><span className="dim">{t('cus.material')}: </span>{d.material}</div>
-              )}
             </Card>
 
             <Notice tone="ok">{t('prod.liveNow')}</Notice>
 
-            {/* Said at the moment she commits, not buried in a policy page.
-                Publishing is hers now; this is the other half of that. */}
+            {/* Said at the moment he commits, not buried in a policy page.
+                Publishing is his now; this is the other half of that. */}
             <Notice tone="warn">{t('prod.responsibility')}</Notice>
 
             {serverError && <Notice tone="danger">{serverError}</Notice>}

@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { CartItem } from '@shared/types.js'
-import { canAddFrom, cartFarmer, cartFarmerName } from '../src/store/cartRules.js'
+import { canAddFrom, cartFarmer, cartFarmerName, lineMinOrder, stepLine } from '../src/store/cartRules.js'
 
 /**
  * ONE FARMER OWNS THE CART.
@@ -19,7 +19,7 @@ import { canAddFrom, cartFarmer, cartFarmerName } from '../src/store/cartRules.j
 
 const item = (over: Partial<CartItem> = {}): CartItem => ({
   productId: 'p1', farmerId: 's1', farmerName: 'हंजगी गृह उद्योग',
-  name: 'लोणचं', emoji: '🥭', price: 200, unit: 'kg', qty: 1, ...over,
+  name: 'टोमॅटो', emoji: '🍅', price: 40, unit: 'kg', minOrder: 1, qty: 1, ...over,
 })
 
 test('an empty cart accepts anybody', () => {
@@ -36,7 +36,7 @@ test('the first item decides whose cart it is', () => {
 })
 
 test('more from the same shop is always allowed', () => {
-  // The limit is one FARMER, not one product. Five jars from one shop is
+  // The limit is one FARMER, not one product. Five crops from one farm is
   // exactly the cart this rule is trying to produce.
   const cart = [item(), item({ productId: 'p2' }), item({ productId: 'p3' })]
   assert.equal(canAddFrom(cart, 's1'), true)
@@ -61,4 +61,17 @@ test('a cart saved before the name was stored still locks', () => {
   const legacy = [item({ farmerName: undefined })]
   assert.equal(canAddFrom(legacy, 's2'), false)
   assert.equal(cartFarmerName(legacy), undefined)
+})
+
+test('a line steps between the farmer\'s minimum and his stock', () => {
+  const line = item({ minOrder: 5, qty: 5 })
+  assert.equal(stepLine(line, 12, 1), 6)
+  assert.equal(stepLine(line, 12, -1), 0, 'below the minimum the line goes, because she tapped −')
+  assert.equal(stepLine(item({ minOrder: 5, qty: 12 }), 12, 1), 12, 'no more than he has')
+})
+
+test('a line saved before the minimum existed is read as minimum 1', () => {
+  const legacy = { ...item({ qty: 2 }), minOrder: undefined } as unknown as CartItem
+  assert.equal(lineMinOrder(legacy), 1)
+  assert.equal(stepLine(legacy, 10, -1), 1)
 })
