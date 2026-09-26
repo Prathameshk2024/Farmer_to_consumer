@@ -11,6 +11,7 @@
     "test": "node --import tsx --test \"tests/**/*.test.ts\"",
     "backfill:customers": "node --import tsx --env-file-if-exists=.env scripts/backfill-customers.ts",
     "purge:demo": "node --import tsx --env-file-if-exists=.env scripts/purge-demo-data.ts",
+    "admin": "node --import tsx --env-file-if-exists=.env scripts/admin.ts",
     "admin:users": "node --import tsx --env-file-if-exists=.env scripts/admins.ts",
     "backup": "node --import tsx --env-file-if-exists=.env scripts/backup.ts",
     "restore": "node --import tsx --env-file-if-exists=.env scripts/restore.ts"

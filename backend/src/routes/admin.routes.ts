@@ -1,10 +1,10 @@
 import { Router, type Request } from 'express'
-import type { AdminStats, ReadinessBand } from '@shared/types.js'
+import type { AdminStats } from '@shared/types.js'
 import { canSellNow } from '@shared/farmer.js'
-import { BAND_LABEL } from '@shared/readiness.js'
 import { summarizeReviews } from '@shared/review.js'
 import { getDb, save } from '../db/store.js'
 import { documentCount, startsWithinFreeReads } from '../db/firestore.js'
+import { fdriBandCounts } from '../db/analytics.js'
 import { appendNotice as notifyFarmer } from '../db/notices.js'
 import { requireRole } from '../middleware/auth.js'
 import { findCustomer } from '../db/customers.js'
@@ -131,11 +131,6 @@ adminRouter.get('/stats', (_req, res) => {
     return false
   })
 
-  const bands: Record<ReadinessBand, number> = {
-    starter: 0, basic: 0, advanced: 0, digital: 0,
-  }
-  for (const s of db.farmers) bands[s.readinessBand] += 1
-
   const bandOf = (v: number) =>
     v === 0 ? '₹0' : v < 1000 ? '< ₹1,000' : v <= 5000 ? '₹1,000-5,000' : '> ₹5,000'
   const perFarmer = new Map<string, number>()
@@ -182,13 +177,10 @@ adminRouter.get('/stats', (_req, res) => {
       label,
       v: earningBandCounts.get(label) ?? 0,
     })),
-    readinessBands: (Object.keys(bands) as ReadinessBand[]).map((band) => ({
-      band,
-      v: bands[band],
-    })),
+    fdriBands: fdriBandCounts(db.farmers),
   }
 
-  res.json({ stats, bandLabels: BAND_LABEL })
+  res.json({ stats })
 })
 
 adminRouter.post('/farmers/:id/verify', (req, res) => {
@@ -611,11 +603,11 @@ adminRouter.get('/impact', (_req, res) => {
       villages: byVillage.size,
     },
     byVillage: [...byVillage.entries()].map(([code, row]) => ({ code, ...row })),
-    readiness: db.farmers.map((s) => ({
+    fdri: db.farmers.map((s) => ({
       farmerCode: s.farmerCode,
       village: s.village,
-      score: s.readinessScore,
-      band: s.readinessBand,
+      score: s.fdriScore,
+      band: s.fdriBand,
     })),
   })
 })

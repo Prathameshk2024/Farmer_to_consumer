@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BAND_LABEL } from '@shared/readiness.js'
+import { cropById } from '@shared/crops.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { useAuth } from '../../store/AuthContext.js'
 import { api } from '../../lib/api.js'
 import { Avatar } from '../../components/Avatar.js'
 import {
-  AppBar, Button, Card, ConfirmSheet, CopyValue, EmptyState,
+  AppBar, Button, Card, ConfirmSheet, CopyValue, EmptyState, FdriPill,
   LanguagePicker, Loading, Notice, Pill, Rupees, SectionTitle, useAsync,
 } from '../../components/ui.js'
 import {
@@ -62,29 +62,14 @@ export function FarmerProfile() {
           </div>
         </Card>
 
-        {/* Digital Readiness Index - measured, not just self-reported. */}
+        {/* The FDRI from registration: ten answers, one mark each. */}
         <Card>
           <div className="row-between">
             <div>
-              <div className="small dim">{t('prof.readiness')}</div>
-              <strong style={{ fontSize: 'var(--t-lg)' }}>{farmer.readinessScore} / 100</strong>
+              <div className="small dim">{t('reg.fdriScore')}</div>
+              <strong className="num" style={{ fontSize: 'var(--t-lg)' }}>{farmer.fdriScore} / 10</strong>
             </div>
-            <Pill tone="info">
-              {lang === 'mr' ? BAND_LABEL[farmer.readinessBand].mr : BAND_LABEL[farmer.readinessBand].en}
-            </Pill>
-          </div>
-          <div
-            style={{
-              height: 10, borderRadius: 5, background: 'var(--surface-2)',
-              border: '1px solid var(--line)', marginTop: 'var(--s3)', overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                width: `${farmer.readinessScore}%`, height: '100%',
-                background: 'var(--series4)',
-              }}
-            />
+            <FdriPill band={farmer.fdriBand} />
           </div>
         </Card>
 
@@ -127,14 +112,11 @@ export function FarmerProfile() {
             <Row label={t('reg.taluka')} value={farmer.taluka} />
             <Row label={t('reg.district')} value={farmer.district} />
             <Row label={t('reg.pincode')} value={farmer.pincode} />
-            {farmer.age && <Row label={t('reg.age')} value={String(farmer.age)} />}
-            {farmer.yearsInBusiness != null && (
-              <Row label={t('reg.years')} value={`${farmer.yearsInBusiness} ${t('reg.yearsUnit')}`} />
-            )}
-            {farmer.monthlyCapacity != null && (
-              <Row label={t('reg.capacity')} value={String(farmer.monthlyCapacity)} />
-            )}
-            {farmer.shgName && <Row label={t('reg.shgName')} value={farmer.shgName} />}
+            <Row
+              label={t('reg.crops')}
+              value={(farmer.crops ?? []).map((id) => cropById(id)?.[lang]).filter(Boolean).join(', ')}
+            />
+            <Row label={t('reg.location')} value={t(farmer.locationConsent ? 'reg.locationOn' : 'reg.locationOff')} />
           </div>
         </Card>
 

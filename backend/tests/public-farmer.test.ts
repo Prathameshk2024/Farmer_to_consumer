@@ -3,13 +3,14 @@ import assert from 'node:assert/strict'
 import type { Farmer } from '@shared/types.js'
 import { publicFarmer } from '../src/db/publicFarmer.js'
 import { NO_RATING } from '../src/db/reviews.js'
+import { cleanFdri } from '@shared/fdri.js'
 
 /**
  * WHAT A STRANGER MAY LEARN ABOUT A FARMER.
  *
  * The product page used to send her entire record to anyone holding a product
  * id - phone, admin notices, the reason she was blocked, her answers to the
- * digital-readiness questions - while the comment on the orders route promised
+ * questionnaire - while the comment on the orders route promised
  * her number was on no public endpoint. The public card is an allow-list now,
  * and this file is the list.
  */
@@ -17,14 +18,15 @@ import { NO_RATING } from '../src/db/reviews.js'
 function farmer(): Farmer {
   return {
     id: 's1', farmerCode: 'F2C-ANADUR-001', name: 'सुनीता पाटील', photo: '', phone: '9822011223',
-    whatsapp: '9822011223', age: 38, education: '10 वी',
+    whatsapp: '9822011223', ageGroup: '36-50', education: 'secondary', landholding: 'small',
     village: 'अणदूर', villageCode: 'ANADUR', taluka: 'तुळजापूर', district: 'धाराशिव', pincode: '413603',
-    shopName: 'सुनीता गृहउद्योग', shopSlug: 'sunita', about: 'घरगुती लोणची', businessType: 'shg',
-    shgName: 'जिजाऊ बचत गट', yearsInBusiness: 6, monthlyCapacity: 200, sellsFood: true,
+    lat: 17.99364, lng: 76.23361, locationConsent: true,
+    shopName: 'सुनीता गृहउद्योग', shopSlug: 'sunita', about: 'जिजाऊ शेतमाल',
+    crops: ['tomato', 'onion'], farmerTypes: ['vegetable'], sellingChannels: ['trader'], problems: ['lowPrice'],
     upiId: 'sunita@ybl', upiVerified: true, upiQrUrl: 'https://example.test/qr.png', upiQrPublicId: 'qr/1',
     upiQrReady: true,
-    digital: { smartphone: true, internet: true, upi: true, whatsappBusiness: false, socialMedia: false, digitalMarketing: false },
-    readinessScore: 4, readinessBand: 'basic',
+    fdri: cleanFdri({ smartphone: true, internet: true, whatsapp: true, digitalPayment: true }),
+    fdriScore: 4, fdriBand: 'moderate',
     isOpen: true, deliveryFee: 30, freeDeliveryAbove: 500, minOrder: 100, dispatch: '1', pincodes: ['413603'],
     status: 'ACTIVE', blockedAt: undefined, blockReason: 'old reason', verifiedAt: '2026-08-02T00:00:00Z', verifiedBy: 'admin',
     notices: [{ id: 'n1', at: '2026-09-01T00:00:00Z', kind: 'BLOCKED', note: 'private' }],
@@ -38,10 +40,35 @@ function farmer(): Farmer {
  */
 test('the public card carries exactly the allow-listed fields', () => {
   assert.deepEqual(Object.keys(publicFarmer(farmer(), NO_RATING)).sort(), [
-    'deliveryFee', 'farmerCode', 'freeDeliveryAbove', 'id', 'minOrder', 'name', 'photo', 'pincodes',
-    'rating', 'ratingCount', 'shopName', 'shopSlug', 'upiId', 'upiQrReady', 'upiQrUrl',
+    'crops', 'deliveryFee', 'farmerCode', 'freeDeliveryAbove', 'id', 'lat', 'lng', 'minOrder', 'name',
+    'photo', 'pincodes', 'rating', 'ratingCount', 'shopName', 'shopSlug', 'upiId', 'upiQrReady', 'upiQrUrl',
     'village',
   ])
+})
+
+/**
+ * Her questionnaire answers are research data, not a shop window: a buyer
+ * has no business knowing her age group, her land or how she scored.
+ */
+test('the questionnaire and her phone stay off the card', () => {
+  const card = publicFarmer(farmer(), NO_RATING) as unknown as Record<string, unknown>
+  for (const key of ['phone', 'fdri', 'fdriScore', 'fdriBand', 'ageGroup', 'education', 'landholding', 'locationConsent']) {
+    assert.equal(key in card, false, key)
+  }
+})
+
+/** Two decimals is the village, not the house (global constraint). */
+test('the public point is rounded; the exact one never leaves', () => {
+  const card = publicFarmer(farmer(), NO_RATING)
+  assert.equal(card.lat, 17.99)
+  assert.equal(card.lng, 76.23)
+  assert.equal(JSON.stringify(card).includes('17.99364'), false)
+})
+
+test('no consent, no point on the card', () => {
+  const card = publicFarmer({ ...farmer(), locationConsent: false }, NO_RATING)
+  assert.equal('lat' in card, false)
+  assert.equal('lng' in card, false)
 })
 
 test('her phone, admin notices and block reason never reach the public', () => {

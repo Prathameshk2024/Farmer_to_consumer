@@ -1,4 +1,5 @@
-import type { Order, FarmerWeek, WeekDay } from '@shared/types.js'
+import type { Order, Farmer, FarmerWeek, WeekDay } from '@shared/types.js'
+import type { FdriBand } from '@shared/fdri.js'
 import type { Db } from './seed.js'
 
 /**
@@ -113,4 +114,13 @@ export function farmerWeek(db: Db, farmerId: string, now = Date.now()): FarmerWe
     ordered: paid.length,
     repeatCustomers,
   }
+}
+
+/**
+ * How many farmers sit in each FDRI band, every band present even at zero,
+ * in the paper's order - the dashboard draws the three as one chart.
+ */
+export function fdriBandCounts(farmers: Pick<Farmer, 'fdriBand'>[]): { band: FdriBand; v: number }[] {
+  const bands: FdriBand[] = ['low', 'moderate', 'high']
+  return bands.map((band) => ({ band, v: farmers.filter((f) => f.fdriBand === band).length }))
 }

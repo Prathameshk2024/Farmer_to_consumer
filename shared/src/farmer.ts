@@ -1,5 +1,6 @@
 import type { Product, ProductStatus, Farmer, Unit } from './types.js'
 import { upiProblem } from './payment.js'
+import { cropById } from './crops.js'
 
 /**
  * Selling is free. There are no packs, slots or edit limits: a farmer who can
@@ -126,38 +127,19 @@ export function samePhone(a: string | undefined, b: string | undefined): boolean
 }
 
 /**
- * A shop description composed from what she told us at registration.
+ * A shop description composed from what the farmer told us at registration.
  *
- * `about` is optional, and most women skip it - it is the one free-text field
- * in a long form, on a phone, in Marathi. Left empty her shop opens with a
- * name and nothing else, which reads to a customer like an abandoned listing.
- *
- * This only fills the gap; anything she writes herself replaces it.
+ * `about` is optional and most people skip it. Left empty, the shop opens
+ * with a name and nothing else, which reads to a buyer like an abandoned
+ * listing. This only fills the gap; anything the farmer writes replaces it.
  */
-export function defaultAbout(s: {
-  shopName: string
-  village: string
-  businessType?: 'individual' | 'shg' | 'udyam'
-  shgName?: string
-  sellsFood?: boolean
-  yearsInBusiness?: number
-}): string {
-  const parts: string[] = []
-
-  parts.push(
-    s.sellsFood
-      ? `${s.shopName} - ${s.village} येथून घरगुती पदार्थ.`
-      : `${s.shopName} - ${s.village} येथून हस्तनिर्मित वस्तू.`,
-  )
-
-  if (s.businessType === 'shg' && s.shgName?.trim()) {
-    parts.push(`${s.shgName.trim()} या बचत गटाच्या सदस्या.`)
-  }
-
-  if (s.yearsInBusiness && s.yearsInBusiness > 0) {
-    parts.push(`${s.yearsInBusiness} वर्षांचा अनुभव.`)
-  }
-
+export function defaultAbout(s: { shopName: string; village: string; crops?: string[] }): string {
+  const crops = (s.crops ?? [])
+    .map((id) => cropById(id))
+    .filter((c) => c && c.id !== 'other')
+    .map((c) => c!.mr)
+  const parts = [`${s.shopName} - ${s.village} येथून थेट शेतमाल.`]
+  if (crops.length) parts.push(`${crops.join(', ')}.`)
   return parts.join(' ').replace(/\s+/g, ' ').trim()
 }
 
@@ -223,23 +205,13 @@ export function buildUpiLink(opts: {
   return `upi://pay?${p.toString()}`
 }
 
-/** Education options - kept short, and phrased the way a survey would ask. */
-export const EDUCATION_LEVELS: { value: string; mr: string; en: string }[] = [
-  { value: 'none', mr: 'शिक्षण नाही', en: 'No formal schooling' },
-  { value: 'primary', mr: '4 थीपर्यंत', en: 'Up to 4th' },
-  { value: 'middle', mr: '7 वीपर्यंत', en: 'Up to 7th' },
-  { value: 'secondary', mr: '10 वी', en: '10th' },
-  { value: 'higher', mr: '12 वी', en: '12th' },
-  { value: 'graduate', mr: 'पदवी', en: 'Graduate' },
-]
-
 /**
  * WHAT SHE MAY CHANGE ABOUT HERSELF, AND WHAT IT HAS TO LOOK LIKE.
  *
  * The allow-list on `PATCH /farmers/me` decides WHICH fields can move - her
  * status and her farmer code are not on it and never will be. This
  * decides whether the values she sent make sense, and it runs on both sides
- * for the usual two reasons: the form can say "18 to 90" the instant she types
+ * for the usual two reasons: the form can say "10 digits" the instant she types
  * it, and the server can refuse a delivery fee of -500 typed by something that
  * is not the form.
  *
@@ -249,8 +221,8 @@ export const EDUCATION_LEVELS: { value: string; mr: string; en: string }[] = [
  */
 export function validateFarmerProfile(
   p: Partial<Pick<Farmer,
-    | 'name' | 'shopName' | 'about' | 'whatsapp' | 'age' | 'yearsInBusiness'
-    | 'monthlyCapacity' | 'deliveryFee' | 'freeDeliveryAbove' | 'minOrder'
+    | 'name' | 'shopName' | 'about' | 'whatsapp'
+    | 'deliveryFee' | 'freeDeliveryAbove' | 'minOrder'
     | 'upiId' | 'pincodes'
   >>,
 ): Record<string, string> {
@@ -261,7 +233,6 @@ export function validateFarmerProfile(
   if ('name' in p && blank(p.name)) f.name = 'नाव आवश्यक आहे'
   if ('shopName' in p && blank(p.shopName)) f.shopName = 'दुकानाचे नाव आवश्यक आहे'
 
-  if (p.age != null && (p.age < 18 || p.age > 90)) f.age = 'वय 18 ते 90 दरम्यान असावे'
   if (p.whatsapp && !isValidPhone(p.whatsapp)) f.whatsapp = '10 अंकी मोबाईल नंबर टाका'
   // The reason, not "बरोबर नाही" - a second rejection of the same string with
   // the same words behind it is where she stops trying and puts in a wrong one.
@@ -272,8 +243,6 @@ export function validateFarmerProfile(
 
   // Money and counts: never negative, and never a number that is not one.
   const positive: [keyof typeof p, string][] = [
-    ['yearsInBusiness', 'वर्षे बरोबर लिहा'],
-    ['monthlyCapacity', 'संख्या बरोबर लिहा'],
     ['deliveryFee', 'रक्कम बरोबर लिहा'],
     ['freeDeliveryAbove', 'रक्कम बरोबर लिहा'],
     ['minOrder', 'रक्कम बरोबर लिहा'],

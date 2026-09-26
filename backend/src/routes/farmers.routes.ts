@@ -1,15 +1,21 @@
 import { Router } from 'express'
-import type { DigitalProfile, Farmer } from '@shared/types.js'
+import type { Farmer } from '@shared/types.js'
 import {
-  defaultAbout, fssaiProblem, isValidPhone, isValidPincode, normalizeFssai,
+  defaultAbout, isValidPhone, isValidPincode,
   normalizePhone, validateFarmerProfile, canSellNow,
 } from '@shared/farmer.js'
+import { cleanFdri, fdriBand, fdriScore } from '@shared/fdri.js'
+import { isValidLatLng } from '@shared/geo.js'
+import { cropById } from '@shared/crops.js'
+import {
+  AGE_GROUPS, EDUCATION_LEVELS, FARMER_TYPES, LANDHOLDINGS, SELLING_CHANNELS, SELLING_PROBLEMS,
+  pick, pickMany,
+} from '@shared/profile.js'
 import { upiProblem } from '@shared/payment.js'
 import { passwordProblemMr } from '@shared/password.js'
 import { closeReasonProblem, confirmProblem } from '@shared/accountClose.js'
 import { openOrdersForFarmer, requestFarmerClose, restoreFarmer } from '../db/accountClose.js'
 import { makeShopSlug, makeFarmerCode, villageCode } from '@shared/farmerCode.js'
-import { computeReadiness, readinessBand, recomputeForFarmer } from '@shared/readiness.js'
 import { getDb, newId, save } from '../db/store.js'
 import { buyersForFarmer } from '../db/customers.js'
 import { farmerProductReviews, farmerRating } from '../db/reviews.js'
@@ -33,29 +39,51 @@ interface RegisterBody {
   /** Checked by passwordProblemMr; stored only as a hash, in `credentials`. */
   password: string
   name: string
-  age?: number
-  education?: string
   whatsapp?: string
   village: string
   taluka: string
   district: string
   pincode: string
-  shopName: string
   about?: string
-  businessType: Farmer['businessType']
-  shgName?: string
-  yearsInBusiness?: number
-  monthlyCapacity?: number
-  sellsFood: boolean
-  fssai?: string
   upiId: string
-  upiQrUrl?: string
-  upiQrPublicId?: string
-  digital: DigitalProfile
+  // Everything below is cleaned through the lists in profile.ts, crops.ts and
+  // fdri.ts, so the type here is only what a well-behaved client sends.
+  lat?: number
+  lng?: number
+  locationConsent?: boolean
+  crops?: string[]
+  ageGroup?: string
+  education?: string
+  landholding?: string
+  farmerTypes?: string[]
+  sellingChannels?: string[]
+  problems?: string[]
+  fdri?: Record<string, boolean>
   deliveryFee?: number
   minOrder?: number
   freeDeliveryAbove?: number
   dispatch?: Farmer['dispatch']
+}
+
+/** Crop ids a client sent, kept only if crops.ts knows them, each once. */
+function cleanCrops(raw: unknown): string[] {
+  return Array.isArray(raw) ? [...new Set(raw.filter((id) => typeof id === 'string' && cropById(id)))] : []
+}
+
+/**
+ * The questionnaire, cleaned. A client can send anything; a value that is not
+ * on the list is dropped rather than refused, because every one of these is
+ * optional and a refusal would stop a registration over a survey answer.
+ */
+function cleanProfile(b: Record<string, unknown>) {
+  return {
+    ageGroup: pick(AGE_GROUPS, b.ageGroup),
+    education: pick(EDUCATION_LEVELS, b.education),
+    landholding: pick(LANDHOLDINGS, b.landholding),
+    farmerTypes: pickMany(FARMER_TYPES, b.farmerTypes),
+    sellingChannels: pickMany(SELLING_CHANNELS, b.sellingChannels),
+    problems: pickMany(SELLING_PROBLEMS, b.problems),
+  }
 }
 
 /**
@@ -95,13 +123,11 @@ farmersRouter.post('/register', (req, res) => {
   if (pwFault) fields.password = pwFault
   if (!b.name?.trim()) fields.name = 'नाव आवश्यक आहे'
   if (!b.village?.trim()) fields.village = 'गाव आवश्यक आहे'
-  if (!b.shopName?.trim()) fields.shopName = 'दुकानाचे नाव आवश्यक आहे'
   if (!isValidPincode(b.pincode)) fields.pincode = '6 अंकी पिनकोड टाका'
   const upiFault = upiProblem(b.upiId)
   if (upiFault) fields.upiId = upiFault
-  const fssaiFault = fssaiProblem(b.fssai)
-  if (fssaiFault) fields.fssai = fssaiFault
-  if (b.age != null && (b.age < 18 || b.age > 90)) fields.age = 'वय 18 ते 90 दरम्यान असावे'
+  const crops = cleanCrops(b.crops)
+  if (crops.length === 0) fields.crops = 'किमान एक पीक निवडा'
 
   if (Object.keys(fields).length) {
     res.status(400).json({ error: 'Validation failed', messageMr: 'माहिती तपासा', fields })
@@ -117,17 +143,12 @@ farmersRouter.post('/register', (req, res) => {
     return
   }
 
-  const digital: DigitalProfile = {
-    smartphone: !!b.digital?.smartphone,
-    internet: !!b.digital?.internet,
-    upi: !!b.digital?.upi,
-    whatsappBusiness: !!b.digital?.whatsappBusiness,
-    socialMedia: !!b.digital?.socialMedia,
-    digitalMarketing: !!b.digital?.digitalMarketing,
-  }
-  // Baseline score: self-reported only. The four measured factors stay at zero
-  // until she actually does them, which is what makes before/after meaningful.
-  const score = computeReadiness(digital)
+  const fdri = cleanFdri(b.fdri)
+  const score = fdriScore(fdri)
+  // Only with an explicit yes, and only a point that can be a farm here.
+  const located = b.locationConsent === true && isValidLatLng(b.lat, b.lng)
+  // The shop is the farmer: a name, not a brand. Editable later.
+  const name = b.name.trim()
 
   const farmerCode = makeFarmerCode(b.village, db.farmers.map((s) => s.farmerCode))
   const id = newId('s')
@@ -135,45 +156,27 @@ farmersRouter.post('/register', (req, res) => {
   const farmer: Farmer = {
     id,
     farmerCode,
-    name: b.name.trim(),
-    photo: '👩',
+    name,
+    photo: '',
     phone: normalizePhone(phone),
     whatsapp: normalizePhone(b.whatsapp || phone),
-    age: b.age,
-    education: b.education,
+    ...cleanProfile(b as unknown as Record<string, unknown>),
+    crops,
     village: b.village.trim(),
     villageCode: villageCode(b.village),
     taluka: b.taluka?.trim() ?? '',
     district: b.district?.trim() ?? '',
     pincode: b.pincode.trim(),
-    shopName: b.shopName.trim(),
-    shopSlug: makeShopSlug(b.shopName, farmerCode),
-    // Her shop opens with a description whether or not she wrote one.
-    about: b.about?.trim() || defaultAbout({
-      shopName: b.shopName.trim(),
-      village: b.village.trim(),
-      businessType: b.businessType ?? 'individual',
-      shgName: b.shgName?.trim(),
-      sellsFood: !!b.sellsFood,
-      yearsInBusiness: b.yearsInBusiness,
-    }),
-    businessType: b.businessType ?? 'individual',
-    shgName: b.shgName?.trim(),
-    yearsInBusiness: b.yearsInBusiness,
-    monthlyCapacity: b.monthlyCapacity,
-    sellsFood: !!b.sellsFood,
-    fssai: b.sellsFood ? normalizeFssai(b.fssai) || undefined : undefined,
+    ...(located ? { lat: b.lat, lng: b.lng, locationConsent: true } : {}),
+    shopName: name,
+    shopSlug: makeShopSlug(name, farmerCode),
+    // The shop opens with a description whether or not one was written.
+    about: b.about?.trim() || defaultAbout({ shopName: name, village: b.village.trim(), crops }),
     upiId: b.upiId.trim(),
     upiVerified: false,
-    // Her own bank's QR, if she photographed it during registration. It is
-    // optional: a QR can still be generated from the UPI id above, and one
-    // more required upload is one more place a first-time user stops.
-    upiQrUrl: b.upiQrUrl,
-    upiQrPublicId: b.upiQrPublicId,
-    upiQrReady: !!b.upiQrUrl,
-    digital,
-    readinessScore: score,
-    readinessBand: readinessBand(score),
+    fdri,
+    fdriScore: score,
+    fdriBand: fdriBand(score),
     isOpen: true,
     deliveryFee: Number(b.deliveryFee ?? 0),
     freeDeliveryAbove: Number(b.freeDeliveryAbove ?? 0),
@@ -272,15 +275,28 @@ farmersRouter.patch('/me', requireRole('farmer'), (req, res) => {
   // farmer sets her own status to ACTIVE.
   const allowed = [
     'name', 'photo', 'whatsapp', 'about', 'shopName', 'isOpen', 'deliveryFee',
-    'freeDeliveryAbove', 'minOrder', 'dispatch', 'pincodes', 'monthlyCapacity',
-    'age', 'education', 'yearsInBusiness', 'shgName', 'digital',
+    'freeDeliveryAbove', 'minOrder', 'dispatch', 'pincodes',
     'upiQrUrl', 'upiQrReady',
   ] as const
+  // Cleaned rather than copied: codes off the lists in profile.ts and crops.ts.
+  const profileKeys = ['ageGroup', 'education', 'landholding', 'farmerTypes', 'sellingChannels', 'problems'] as const
 
   const current = db.farmers[i]!
   const patch: Partial<Farmer> = {}
   for (const key of allowed) {
     if (key in req.body) (patch as Record<string, unknown>)[key] = req.body[key]
+  }
+  const profile = cleanProfile(req.body)
+  for (const key of profileKeys) {
+    if (key in req.body) (patch as Record<string, unknown>)[key] = profile[key]
+  }
+  if ('crops' in req.body) {
+    const crops = cleanCrops(req.body.crops)
+    if (crops.length === 0) {
+      res.status(400).json({ error: 'Validation failed', messageMr: 'किमान एक पीक निवडा', fields: { crops: 'किमान एक पीक निवडा' } })
+      return
+    }
+    patch.crops = crops
   }
 
   // UPI changes re-enter verification: otherwise it is an account-takeover route.
@@ -304,21 +320,41 @@ farmersRouter.patch('/me', requireRole('farmer'), (req, res) => {
   }
 
   const next = { ...current, ...patch }
-
-  // Keep the readiness index in step with what she actually has now.
-  const products = db.products.filter((p) => p.farmerId === next.id)
-  const completed = db.orders.filter((o) => o.farmerId === next.id && o.status === 'DELIVERED')
-  const { score, band } = recomputeForFarmer(next, {
-    productCount: products.length,
-    productsWithDetail: products.filter((p) => p.ingredients || p.material).length,
-    completedOrders: completed.length,
-  })
-  next.readinessScore = score
-  next.readinessBand = band
-
   db.farmers[i] = next
   save()
   res.json({ farmer: next })
+})
+
+/**
+ * The farm on a map: set with an explicit tap, or cleared.
+ *
+ * Its own route rather than two more keys on PATCH /me, because consent is
+ * the point: this is the only way `locationConsent` becomes true, and it
+ * becomes true only together with a point that can be a farm here. Clearing
+ * removes the point and the yes together, so the public card drops it at once.
+ */
+farmersRouter.patch('/me/location', requireRole('farmer'), (req, res) => {
+  const farmer = getDb().farmers.find((s) => s.id === req.auth!.farmerId)
+  if (!farmer) {
+    res.status(404).json({ error: 'Farmer not found' })
+    return
+  }
+  if (req.body?.clear === true) {
+    delete farmer.lat
+    delete farmer.lng
+    delete farmer.locationConsent
+  } else {
+    const { lat, lng } = req.body ?? {}
+    if (!isValidLatLng(lat, lng)) {
+      res.status(400).json({ error: 'Bad location', messageMr: 'ठिकाण मिळाले नाही. पुन्हा प्रयत्न करा.' })
+      return
+    }
+    farmer.lat = lat
+    farmer.lng = lng
+    farmer.locationConsent = true
+  }
+  save()
+  res.json({ farmer })
 })
 
 /* ------------------------------------------------------------------ */

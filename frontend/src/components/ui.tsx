@@ -12,10 +12,12 @@ import NotificationBell from './NotificationBell.js'
 import logo from '../assets/logo.png'
 import { useToast } from '../store/ToastContext.js'
 import {
-  IconBack, IconCheck, IconCopy, IconEmpty, IconMic,
-  IconMicStop, IconMinus, IconNo, IconPlus, IconWaiting, IconWarn, IconYes,
+  IconBack, IconCheck, IconCopy, IconDown, IconEmpty, IconGrowth, IconMap, IconMic,
+  IconMicStop, IconMinus, IconNo, IconPlus, IconUp, IconWaiting, IconWarn, IconYes,
   type IconType,
 } from './icons.js'
+import type { FdriBand } from '@shared/fdri.js'
+import { isValidLatLng } from '@shared/geo.js'
 
 /* ================================================================== */
 /* Buttons                                                             */
@@ -432,7 +434,7 @@ export function Choice({
   )
 }
 
-/** The yes/no pair used for the six digital-readiness questions. */
+/** The yes/no pair: the ten FDRI questions, and any other single yes or no. */
 export function YesNo({
   value, onChange,
 }: {
@@ -444,6 +446,67 @@ export function YesNo({
     <div className="yesno">
       <Choice selected={value === true} onSelect={() => onChange(true)} icon={<IconYes />} title={t('common.yes')} />
       <Choice selected={value === false} onSelect={() => onChange(false)} icon={<IconNo />} title={t('common.no')} />
+    </div>
+  )
+}
+
+/**
+ * An FDRI band as a pill: tone, icon and word together, never colour alone.
+ */
+const FDRI_BAND_LOOK: Record<FdriBand, { tone: 'warn' | 'info' | 'ok'; Icon: IconType }> = {
+  low: { tone: 'warn', Icon: IconDown },
+  moderate: { tone: 'info', Icon: IconGrowth },
+  high: { tone: 'ok', Icon: IconUp },
+}
+
+export function FdriPill({ band }: { band: FdriBand }) {
+  const t = useT()
+  const { tone, Icon } = FDRI_BAND_LOOK[band]
+  return <Pill tone={tone} icon={<Icon />}>{t(`fdri.band.${band}`)}</Pill>
+}
+
+/**
+ * "Use my location": the tap is the consent, so nothing is read before it.
+ *
+ * Denied, unavailable, timed out, or a point outside India (a phone reporting
+ * 0,0, a VPN's Europe) all end the same way: `reg.locationFailed`, and the
+ * screen around it still lets the farmer skip. A location is never required.
+ */
+export function LocationButton({
+  onFound, label,
+}: {
+  onFound: (p: { lat: number; lng: number }) => void
+  label?: string
+}) {
+  const t = useT()
+  const [state, setState] = useState<'idle' | 'busy' | 'failed'>('idle')
+
+  function locate() {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setState('failed')
+      return
+    }
+    setState('busy')
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        if (!isValidLatLng(coords.latitude, coords.longitude)) {
+          setState('failed')
+          return
+        }
+        setState('idle')
+        onFound({ lat: coords.latitude, lng: coords.longitude })
+      },
+      () => setState('failed'),
+      { enableHighAccuracy: true, timeout: 15000 },
+    )
+  }
+
+  return (
+    <div className="stack-sm">
+      <Button onClick={locate} disabled={state === 'busy'}>
+        <IconMap aria-hidden="true" /> {state === 'busy' ? t('reg.locating') : label ?? t('reg.useLocation')}
+      </Button>
+      {state === 'failed' && <Notice tone="warn">{t('reg.locationFailed')}</Notice>}
     </div>
   )
 }

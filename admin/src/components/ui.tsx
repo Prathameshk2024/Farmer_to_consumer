@@ -2,10 +2,11 @@ import {
   useCallback, useEffect, useRef, useState,
   type ButtonHTMLAttributes, type ReactNode,
 } from 'react'
-import { useI18n } from '../i18n/I18nProvider.js'
+import { useI18n, useT } from '../i18n/I18nProvider.js'
 import { ApiError } from '../lib/api.js'
 import { useToast } from '../store/ToastContext.js'
-import { IconCopy, IconEmpty, IconWarn, type IconType } from './icons.js'
+import { IconCopy, IconEmpty, IconImpact, IconWarn, IconYes, type IconType } from './icons.js'
+import type { FdriBand } from '@shared/fdri.js'
 
 /* ------------------------------------------------------------------ */
 /* Primitives                                                          */
@@ -38,6 +39,19 @@ export function Pill({
 }) {
   const cls = tone === 'neutral' ? '' : `pill--${tone}`
   return <span className={`pill ${cls}`}>{children}</span>
+}
+
+/** An FDRI band: tone, icon and word together - never colour alone. */
+const FDRI_BAND_LOOK: Record<FdriBand, { tone: 'warn' | 'info' | 'ok'; Icon: IconType }> = {
+  low: { tone: 'warn', Icon: IconWarn },
+  moderate: { tone: 'info', Icon: IconImpact },
+  high: { tone: 'ok', Icon: IconYes },
+}
+
+export function FdriBandPill({ band }: { band: FdriBand }) {
+  const t = useT()
+  const { tone, Icon } = FDRI_BAND_LOOK[band]
+  return <Pill tone={tone}><Icon aria-hidden="true" /> {t(`fdri.band.${band}`)}</Pill>
 }
 
 export function Card({ children, flush }: { children: ReactNode; flush?: boolean }) {

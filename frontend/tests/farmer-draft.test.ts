@@ -6,7 +6,7 @@ import {
 
 /**
  * The registration wizard keeps a half-filled form on the device, so that
- * leaving it does not throw six screens of answers away.
+ * leaving it does not throw ten screens of answers away.
  *
  * It is keyed by PHONE for the same reason the product draft is keyed by
  * farmer: on a field coordinator's handset one woman registers after another,
@@ -25,7 +25,10 @@ function fakeStore() {
   }
 }
 
-const typed = { ...EMPTY, name: 'सुनीता पाटील', villagePreset: 'चिवरी', upiId: 'sunita@ybl' }
+const typed = {
+  ...EMPTY, name: 'सुनीता पाटील', villagePreset: 'चिवरी', upiId: 'sunita@ybl',
+  crops: ['tomato'], fdri: { smartphone: true, internet: false },
+}
 
 test('a draft one woman typed is invisible to the next on the same phone', () => {
   const store = fakeStore()
@@ -42,6 +45,8 @@ test('the same woman gets her answers back, on the step she left', () => {
   assert.equal(back?.step, 3)
   assert.equal(back?.d.name, 'सुनीता पाटील')
   assert.equal(back?.d.upiId, 'sunita@ybl')
+  assert.deepEqual(back?.d.crops, ['tomato'])
+  assert.deepEqual(back?.d.fdri, { smartphone: true, internet: false }, 'a no is kept as a no, not lost as unanswered')
 })
 
 test('the key is the phone, however it was spelled', () => {
@@ -77,7 +82,9 @@ test('a draft from an older build is filled in rather than trusted', () => {
   const back = readDraft(store, '9822011223')
   assert.equal(back?.d.name, 'फक्त नाव')
   assert.equal(back?.d.upiId, '', 'a field added later still comes back defined')
-  assert.equal(back?.d.sellsFood, null)
+  assert.deepEqual(back?.d.crops, [], 'a list added later comes back as an empty list')
+  assert.deepEqual(back?.d.fdri, {})
+  assert.equal(back?.d.lat, null)
 })
 
 test('a stored step beyond the wizard is clamped, not obeyed', () => {

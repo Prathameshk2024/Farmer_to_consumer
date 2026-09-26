@@ -1,6 +1,7 @@
 import type {
-  AdminStats, Complaint, Order, Product, RatingSummary, ReadinessBand, Report, Review, Farmer,
+  AdminStats, Complaint, Order, Product, RatingSummary, Report, Review, Farmer,
 } from '@shared/types.js'
+import type { FdriBand } from '@shared/fdri.js'
 
 /**
  * The one seam between the console and the API.
@@ -202,7 +203,7 @@ export interface ImpactReport {
     villages: number
   }
   byVillage: { code: string; village: string; farmers: number; earned: number }[]
-  readiness: { farmerCode: string; village: string; score: number; band: ReadinessBand }[]
+  fdri: { farmerCode: string; village: string; score: number; band: FdriBand }[]
 }
 
 /**
@@ -235,7 +236,7 @@ export const api = {
   logout: () => post<{ ok: true }>('/auth/logout'),
 
   stats: () =>
-    get<{ stats: AdminStats; bandLabels: Record<string, unknown> }>('/admin/stats'),
+    get<{ stats: AdminStats }>('/admin/stats'),
 
   /** status: ALL (default) | LIVE | PAUSED | DRAFT | REPORTED */
   products: (status = 'ALL') =>

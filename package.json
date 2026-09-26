@@ -13,7 +13,7 @@
     "dev": "concurrently -n api,web -c green,cyan \"npm:dev:api\" \"npm:dev:web\"",
     "dev:api": "npm --workspace @f2c/backend run dev",
     "dev:web": "npm --workspace @f2c/frontend run dev",
-    "admin": "tsx backend/scripts/admin.ts",
+    "admin": "npm --workspace @f2c/backend run admin --",
     "build": "npm --workspace @f2c/backend run build && npm --workspace @f2c/frontend run build && npm --workspace @f2c/admin run build",
     "typecheck": "npm --workspace @f2c/backend run typecheck && npm --workspace @f2c/frontend run typecheck && npm --workspace @f2c/admin run typecheck",
     "test": "npm --workspace @f2c/backend run test && npm --workspace @f2c/frontend run test && npm --workspace @f2c/admin run test",

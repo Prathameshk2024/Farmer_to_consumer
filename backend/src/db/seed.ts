@@ -1,8 +1,7 @@
 import type {
   Category, Complaint, Customer, Order, Product, Report, Review, Farmer,
 } from '@shared/types.js'
-import { computeReadiness, readinessBand } from '@shared/readiness.js'
-import type { DigitalProfile } from '@shared/types.js'
+import { FDRI_INDICATORS, cleanFdri, fdriBand, fdriScore } from '@shared/fdri.js'
 import { deriveCustomersFromOrders } from './customers.js'
 import type { AdminUser, AuthEvent, Credential, PasswordRequest, SessionRecord } from '../auth/types.js'
 
@@ -98,130 +97,95 @@ export const CATEGORIES: Category[] = [
   { id: 'other',      icon: '📦', mr: 'इतर',                en: 'Other' },
 ]
 
-const digital = (
-  s: boolean, i: boolean, u: boolean, w: boolean, sm: boolean, dm: boolean,
-): DigitalProfile => ({
-  smartphone: s, internet: i, upi: u,
-  whatsappBusiness: w, socialMedia: sm, digitalMarketing: dm,
-})
-
-/** Score a seed farmer with plausible measured factors so the index isn't flat. */
-function scored(d: DigitalProfile, measured: [boolean, boolean, boolean, boolean]) {
-  const score = computeReadiness(d, {
-    hasBranding: measured[0],
-    hasPackagingDetail: measured[1],
-    hasOnlineOrders: measured[2],
-    hasDigitalFinance: measured[3],
-  })
-  return { readinessScore: score, readinessBand: readinessBand(score) }
+/**
+ * A seed farmer's FDRI: the first `yes` indicators answered yes, in the
+ * paper's order. Every demo farmer lands in the moderate band (4-7).
+ */
+function fdriOf(yes: number) {
+  const fdri = cleanFdri(Object.fromEntries(FDRI_INDICATORS.slice(0, yes).map((k) => [k, true])))
+  const score = fdriScore(fdri)
+  return { fdri, fdriScore: score, fdriBand: fdriBand(score) }
 }
 
 const now = Date.now()
 const hoursAgo = (h: number) => new Date(now - h * 3600_000).toISOString()
 const daysAgo = (d: number) => new Date(now - d * 86_400_000).toISOString()
 
-const d1 = digital(true, true, true, true, false, false)
-const d2 = digital(true, true, true, true, true, true)
-const d3 = digital(true, false, false, true, false, false)
-
 export function seed(): Db {
+  /**
+   * The four farmers on the poster, all in अणदूर. No passwords: a demo
+   * farmer gets one with `npm run admin -- set-password <phone> <password>`.
+   */
+  const place = {
+    village: 'अणदूर', villageCode: 'ANADUR', taluka: 'तुळजापूर', district: 'धाराशिव', pincode: '413603',
+    locationConsent: true,
+  } as const
+  const shop = {
+    upiVerified: true, isOpen: true, deliveryFee: 20, freeDeliveryAbove: 500, minOrder: 100,
+    dispatch: 'same', pincodes: ['413603', '413601'], status: 'ACTIVE',
+    verifiedAt: daysAgo(60), verifiedBy: 'seed', rating: 0, ratingCount: 0, qrScans: 0, qrOrders: 0,
+  } as const
   const farmers: Farmer[] = [
     {
-      id: 's1',
-      farmerCode: 'F2C-ANADUR-001',
-      name: 'सुनीता पाटील', photo: '👩🏽', phone: '9822011223', whatsapp: '9822011223',
-      age: 38, education: 'secondary',
-      village: 'आणदुर', villageCode: 'ANADUR', taluka: 'तुळजापूर', district: 'धाराशिव', pincode: '413601',
-      shopName: 'सुनीता गृहउद्योग', shopSlug: 'sunitagruhaudyoga-f2c-anadur-001',
-      about: 'गेली 12 वर्षे आम्ही घरी लोणची आणि मसाले बनवतो. सर्व पदार्थ घरचेच.',
-      businessType: 'shg', shgName: 'जिजाऊ बचत गट',
-      yearsInBusiness: 12, monthlyCapacity: 120,
-      sellsFood: true,
-      upiId: 'sunita@ybl', upiVerified: true,
-      digital: d1, ...scored(d1, [true, true, true, true]),
-      isOpen: true, deliveryFee: 20, freeDeliveryAbove: 500, minOrder: 100,
-      dispatch: 'same', pincodes: ['413601', '413602', '413604'],
-      status: 'ACTIVE', verifiedAt: daysAgo(90), verifiedBy: 'seed', rating: 4.6, ratingCount: 38,
-      qrScans: 41, qrOrders: 7, createdAt: daysAgo(90),
+      ...place, ...shop, pincodes: [...shop.pincodes],
+      id: 's1', farmerCode: 'F2C-ANADUR-001',
+      name: 'राजेश पाटील', photo: '', phone: '9822011223', whatsapp: '9822011223',
+      ageGroup: '36-50', education: 'secondary', landholding: 'small',
+      farmerTypes: ['vegetable'], sellingChannels: ['trader', 'weekly'], problems: ['lowPrice', 'middlemen'],
+      crops: ['tomato'], lat: 17.9941, lng: 76.2329,
+      shopName: 'राजेश पाटील', shopSlug: 'rajesh-patil-f2c-anadur-001',
+      about: 'राजेश पाटील - अणदूर येथून थेट शेतमाल. टोमॅटो.',
+      upiId: 'rajeshpatil@ybl', ...fdriOf(5), createdAt: daysAgo(60),
     },
     {
-      id: 's2',
-      farmerCode: 'F2C-JEVALI-001',
-      name: 'मंगल जाधव', photo: '👩🏻', phone: '9764455661', whatsapp: '9764455661',
-      age: 45, education: 'middle',
-      village: 'जेवळी', villageCode: 'JEVALI', taluka: 'तुळजापूर', district: 'धाराशिव', pincode: '413603',
-      shopName: 'मंगल हातमाग', shopSlug: 'mangalahatamaga-f2c-jevali-001',
-      about: 'बचत गटातर्फे आम्ही हातमागाच्या साड्या आणि चादरी बनवतो.',
-      businessType: 'shg', shgName: 'सावित्री बचत गट',
-      yearsInBusiness: 8, monthlyCapacity: 25,
-      sellsFood: false,
-      upiId: 'mangalj@okicici', upiVerified: true,
-      digital: d2, ...scored(d2, [true, true, true, true]),
-      isOpen: true, deliveryFee: 40, freeDeliveryAbove: 1500, minOrder: 0,
-      dispatch: '23', pincodes: ['413603', '413601'],
-      status: 'ACTIVE', verifiedAt: daysAgo(90), verifiedBy: 'seed', rating: 4.8, ratingCount: 21,
-      qrScans: 12, qrOrders: 2, createdAt: daysAgo(60),
+      ...place, ...shop, pincodes: [...shop.pincodes],
+      id: 's2', farmerCode: 'F2C-ANADUR-002',
+      name: 'सविता कांबळे', photo: '', phone: '9764455661', whatsapp: '9764455661',
+      ageGroup: '25-35', education: 'higher', landholding: 'small',
+      farmerTypes: ['vegetable'], sellingChannels: ['weekly', 'direct'], problems: ['transport'],
+      crops: ['okra'], lat: 17.9918, lng: 76.2361,
+      shopName: 'सविता कांबळे', shopSlug: 'savita-kamble-f2c-anadur-002',
+      about: 'सविता कांबळे - अणदूर येथून थेट शेतमाल. भेंडी.',
+      upiId: 'savitak@okicici', ...fdriOf(6), createdAt: daysAgo(50),
     },
     {
-      id: 's3',
-      farmerCode: 'F2C-BHOSGA-001',
-      name: 'कविता शिंदे', photo: '👩🏾', phone: '9890033441',
-      age: 31, education: 'higher',
-      village: 'भोसगा', villageCode: 'BHOSGA', taluka: 'तुळजापूर', district: 'धाराशिव', pincode: '413604',
-      shopName: 'कविता गृहउद्योग', shopSlug: 'kavitagruhaudyoga-f2c-bhosga-001',
-      about: 'सणासुदीला लागणारे सर्व घरगुती पदार्थ.',
-      businessType: 'individual',
-      yearsInBusiness: 3, monthlyCapacity: 60,
-      sellsFood: true,
-      upiId: 'kavitas@paytm', upiVerified: false,
-      digital: d3, ...scored(d3, [false, true, false, false]),
-      isOpen: true, deliveryFee: 0, freeDeliveryAbove: 0, minOrder: 150,
-      dispatch: '1', pincodes: ['413604', '413601'],
-      status: 'ACTIVE', verifiedAt: daysAgo(90), verifiedBy: 'seed', rating: 4.4, ratingCount: 12,
-      qrScans: 5, qrOrders: 0, createdAt: daysAgo(20),
+      ...place, ...shop, pincodes: [...shop.pincodes],
+      id: 's3', farmerCode: 'F2C-ANADUR-003',
+      name: 'गणेश जगदाळे', photo: '', phone: '9890033441', whatsapp: '9890033441',
+      ageGroup: '51-60', education: 'middle', landholding: 'medium',
+      farmerTypes: ['vegetable', 'grain'], sellingChannels: ['apmc', 'trader'], problems: ['lowPrice', 'storage'],
+      crops: ['onion'], lat: 17.9962, lng: 76.2297,
+      shopName: 'गणेश जगदाळे', shopSlug: 'ganesh-jagdale-f2c-anadur-003',
+      about: 'गणेश जगदाळे - अणदूर येथून थेट शेतमाल. कांदा.',
+      upiId: 'ganeshj@paytm', ...fdriOf(4), createdAt: daysAgo(40),
+    },
+    {
+      ...place, ...shop, pincodes: [...shop.pincodes],
+      id: 's4', farmerCode: 'F2C-ANADUR-004',
+      name: 'लक्ष्मी शिंदे', photo: '', phone: '9850012345', whatsapp: '9850012345',
+      ageGroup: '36-50', education: 'primary', landholding: 'small',
+      farmerTypes: ['grain'], sellingChannels: ['trader'], problems: ['noInfo', 'latePayment'],
+      crops: ['gram'], lat: 17.9905, lng: 76.2342,
+      shopName: 'लक्ष्मी शिंदे', shopSlug: 'lakshmi-shinde-f2c-anadur-004',
+      about: 'लक्ष्मी शिंदे - अणदूर येथून थेट शेतमाल. हरभरा.',
+      upiId: 'lakshmis@ybl', ...fdriOf(4), createdAt: daysAgo(30),
     },
   ]
 
+  // One listing per farmer, their poster crop, in the current product shape.
+  // ponytail: Task 7 reshapes products for produce; this is the minimum that type-checks until then.
+  const listing = {
+    categoryId: 'farm', isFood: true, vegType: 'veg', unit: 'kg', packSize: 1, status: 'LIVE',
+  } as const
   const products: Product[] = [
-    { id: 'p1', farmerId: 's1', emoji: '🫙', name: 'आंब्याचे लोणचे', nameEn: 'Mango Pickle',
-      categoryId: 'pickle', isFood: true,
-      ingredients: 'कैरी, मोहरी, मेथी, हळद, तिखट, तेल, मीठ', vegType: 'veg',
-      price: 220, mrp: 250, unit: 'kg', stock: 12, status: 'LIVE', views: 184, createdAt: daysAgo(80) },
-    { id: 'p2', farmerId: 's1', emoji: '🌶️', name: 'कांदा लसूण मसाला', nameEn: 'Kanda Lasun Masala',
-      categoryId: 'pickle', isFood: true,
-      ingredients: 'लाल मिरची, कांदा, लसूण, खोबरे, तीळ, मीठ', vegType: 'veg',
-      price: 180, mrp: 200, unit: 'g', stock: 8, status: 'LIVE', views: 141, createdAt: daysAgo(75) },
-    { id: 'p3', farmerId: 's1', emoji: '🥟', name: 'तांदळाचे पापड', nameEn: 'Rice Papad',
-      categoryId: 'namkeen', isFood: true,
-      ingredients: 'तांदूळ पीठ, जिरे, मीठ, पापडखार', vegType: 'veg',
-      price: 90, mrp: 0, unit: 'g', stock: 0, status: 'LIVE', views: 63, createdAt: daysAgo(40) },
-    { id: 'p4', farmerId: 's1', emoji: '🍯', name: 'घरगुती तूप', nameEn: 'Homemade Ghee',
-      categoryId: 'food', isFood: true,
-      ingredients: 'गाईचे दूध', vegType: 'veg',
-      price: 650, mrp: 700, unit: 'litre', stock: 4, status: 'LIVE', views: 0, createdAt: hoursAgo(20) },
-    { id: 'p5', farmerId: 's2', emoji: '🥻', name: 'पैठणी साडी', nameEn: 'Paithani Saree',
-      categoryId: 'textile', isFood: false, material: 'रेशीम, जरी',
-      price: 8500, mrp: 11000, unit: 'piece', stock: 2, status: 'LIVE', views: 312, createdAt: daysAgo(55) },
-    { id: 'p6', farmerId: 's2', emoji: '🧣', name: 'सुती दुपट्टा', nameEn: 'Cotton Dupatta',
-      categoryId: 'textile', isFood: false, material: 'सुती कापड',
-      price: 450, mrp: 600, unit: 'piece', stock: 15, status: 'LIVE', views: 97, createdAt: daysAgo(50) },
-    { id: 'p7', farmerId: 's2', emoji: '🧺', name: 'बांबूची टोपली', nameEn: 'Bamboo Basket',
-      categoryId: 'handicraft', isFood: false, material: 'बांबू',
-      price: 340, mrp: 0, unit: 'piece', stock: 6, status: 'LIVE', views: 55, createdAt: daysAgo(30) },
-    { id: 'p8', farmerId: 's2', emoji: '🪡', name: 'भरतकाम उशी कव्हर', nameEn: 'Embroidered Cushion Cover',
-      categoryId: 'embroidery', isFood: false, material: 'सुती कापड, रेशमी धागा',
-      price: 280, mrp: 350, unit: 'set', stock: 9, status: 'LIVE', views: 44, createdAt: daysAgo(15) },
-    { id: 'p9', farmerId: 's3', emoji: '🍬', name: 'पुरणपोळी', nameEn: 'Puran Poli',
-      categoryId: 'sweets', isFood: true,
-      ingredients: 'गहू, हरभरा डाळ, गूळ, वेलची, तूप', vegType: 'veg',
-      price: 40, mrp: 0, unit: 'piece', stock: 0, madeToOrder: true, status: 'LIVE', views: 208, createdAt: daysAgo(18) },
-    { id: 'p10', farmerId: 's3', emoji: '🥮', name: 'बेसन लाडू', nameEn: 'Besan Ladoo',
-      categoryId: 'sweets', isFood: true,
-      ingredients: 'बेसन, साखर, तूप, वेलची', vegType: 'veg',
-      price: 380, mrp: 420, unit: 'kg', stock: 5, status: 'LIVE', views: 133, createdAt: daysAgo(12) },
-    { id: 'p11', farmerId: 's3', emoji: '🕯️', name: 'सुगंधी अगरबत्ती', nameEn: 'Incense Sticks',
-      categoryId: 'agarbatti', isFood: false, material: 'बांबू काडी, सुगंधी तेल',
-      price: 60, mrp: 80, unit: 'set', stock: 30, status: 'LIVE', views: 76, createdAt: daysAgo(6) },
+    { ...listing, id: 'p1', farmerId: 's1', emoji: '🍅', name: 'टोमॅटो', nameEn: 'Tomato',
+      ingredients: 'टोमॅटो', price: 40, mrp: 0, stock: 50, views: 0, createdAt: daysAgo(20) },
+    { ...listing, id: 'p2', farmerId: 's2', emoji: '🥒', name: 'भेंडी', nameEn: 'Okra',
+      ingredients: 'भेंडी', price: 35, mrp: 0, stock: 30, views: 0, createdAt: daysAgo(18) },
+    { ...listing, id: 'p3', farmerId: 's3', emoji: '🧅', name: 'कांदा', nameEn: 'Onion',
+      ingredients: 'कांदा', price: 28, mrp: 0, stock: 200, views: 0, createdAt: daysAgo(15) },
+    { ...listing, id: 'p4', farmerId: 's4', emoji: '🫘', name: 'हरभरा', nameEn: 'Gram',
+      ingredients: 'हरभरा', price: 60, mrp: 0, stock: 80, views: 0, createdAt: daysAgo(10) },
   ]
 
   const orders: Order[] = [
@@ -231,10 +195,9 @@ export function seed(): Db {
       address: 'फ्लॅट 302, शिवसागर अपार्टमेंट, विमाननगर, पुणे',
       landmark: 'सिम्बायोसिस कॉलेजजवळ', pincode: '413601',
       items: [
-        { productId: 'p1', name: 'आंब्याचे लोणचे', emoji: '🫙', qty: 1, price: 220 },
-        { productId: 'p2', name: 'कांदा लसूण मसाला', emoji: '🌶️', qty: 2, price: 180 },
+        { productId: 'p1', name: 'टोमॅटो', emoji: '🍅', qty: 5, price: 40 },
       ],
-      itemsTotal: 580, deliveryFee: 0, total: 580,
+      itemsTotal: 200, deliveryFee: 20, total: 220,
       paymentMode: 'UPI', paymentStatus: 'UPI_SUBMITTED', paymentUtr: '431209887654',
       status: 'PLACED', placedAt: hoursAgo(1),
       events: [{ to: 'PLACED', at: hoursAgo(1), by: 'customer' }],
@@ -242,9 +205,9 @@ export function seed(): Db {
     {
       id: 'F2C1042', farmerId: 's1', customerId: 'c2',
       customerName: 'अनिता कुलकर्णी', customerPhone: '9922334455',
-      address: 'घर क्र. 12, गणेश नगर, आणदुर', landmark: 'ग्रामपंचायत ऑफिससमोर', pincode: '413601',
-      items: [{ productId: 'p3', name: 'तांदळाचे पापड', emoji: '🥟', qty: 3, price: 90 }],
-      itemsTotal: 270, deliveryFee: 20, total: 290,
+      address: 'घर क्र. 12, गणेश नगर, अणदूर', landmark: 'ग्रामपंचायत ऑफिससमोर', pincode: '413601',
+      items: [{ productId: 'p1', name: 'टोमॅटो', emoji: '🍅', qty: 3, price: 40 }],
+      itemsTotal: 120, deliveryFee: 20, total: 140,
       paymentMode: 'COD', paymentStatus: 'COD_PENDING',
       status: 'PACKED', placedAt: hoursAgo(6),
       events: [
@@ -257,8 +220,8 @@ export function seed(): Db {
       id: 'F2C1039', farmerId: 's1', customerId: 'c3',
       customerName: 'सविता मोरे', customerPhone: '9765544332',
       address: 'मु. पो. रांजणगाव, ता. तुळजापूर', landmark: 'शाळेजवळ', pincode: '413602',
-      items: [{ productId: 'p1', name: 'आंब्याचे लोणचे', emoji: '🫙', qty: 2, price: 220 }],
-      itemsTotal: 440, deliveryFee: 20, total: 460,
+      items: [{ productId: 'p1', name: 'टोमॅटो', emoji: '🍅', qty: 4, price: 40 }],
+      itemsTotal: 160, deliveryFee: 20, total: 180,
       paymentMode: 'COD', paymentStatus: 'COD_PENDING',
       status: 'OUT_FOR_DELIVERY', placedAt: hoursAgo(28),
       events: [
@@ -271,9 +234,9 @@ export function seed(): Db {
     {
       id: 'F2C1031', farmerId: 's1', customerId: 'c4',
       customerName: 'रेखा भोसले', customerPhone: '9834455667',
-      address: 'सर्वे नं. 45, तुळजापूर रोड, आणदुर', pincode: '413601',
-      items: [{ productId: 'p2', name: 'कांदा लसूण मसाला', emoji: '🌶️', qty: 1, price: 180 }],
-      itemsTotal: 180, deliveryFee: 20, total: 200,
+      address: 'सर्वे नं. 45, तुळजापूर रोड, अणदूर', pincode: '413601',
+      items: [{ productId: 'p1', name: 'टोमॅटो', emoji: '🍅', qty: 5, price: 40 }],
+      itemsTotal: 200, deliveryFee: 20, total: 220,
       paymentMode: 'UPI', paymentStatus: 'UPI_CONFIRMED', paymentUtr: '430918776541',
       status: 'DELIVERED', placedAt: hoursAgo(9),
       events: [
@@ -289,8 +252,8 @@ export function seed(): Db {
       customerName: 'प्रिया देशमुख', customerPhone: '9011223344',
       address: 'फ्लॅट 302, शिवसागर अपार्टमेंट, विमाननगर, पुणे',
       landmark: 'सिम्बायोसिस कॉलेजजवळ', pincode: '413603',
-      items: [{ productId: 'p6', name: 'सुती दुपट्टा', emoji: '🧣', qty: 1, price: 450 }],
-      itemsTotal: 450, deliveryFee: 40, total: 490,
+      items: [{ productId: 'p2', name: 'भेंडी', emoji: '🥒', qty: 4, price: 35 }],
+      itemsTotal: 140, deliveryFee: 20, total: 160,
       paymentMode: 'COD', paymentStatus: 'COD_PENDING',
       status: 'ACCEPTED', placedAt: hoursAgo(9),
       events: [

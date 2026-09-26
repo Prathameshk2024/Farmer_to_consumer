@@ -10,6 +10,7 @@ import {
 } from '../src/db/accountClose.js'
 import { emptyDb, type Db } from '../src/db/seed.js'
 import { canSellNow } from '@shared/farmer.js'
+import { cleanFdri } from '@shared/fdri.js'
 
 /**
  * DELETING AN ACCOUNT.
@@ -35,29 +36,32 @@ function farmer(over: Partial<Farmer> = {}): Farmer {
     photo: 'https://res.cloudinary.com/x/image/upload/v1/smb/farmer/her.jpg',
     phone: '9822011223',
     whatsapp: '9822011223',
-    age: 38,
+    ageGroup: '36-50',
     education: 'secondary',
+    landholding: 'small',
+    farmerTypes: ['vegetable'],
+    sellingChannels: ['trader', 'weekly'],
+    problems: ['lowPrice'],
+    crops: ['tomato'],
     village: 'आणदुर',
     villageCode: 'ANADUR',
     taluka: 'तुळजापूर',
     district: 'धाराशिव',
     pincode: '413601',
+    lat: 17.99364,
+    lng: 76.23361,
+    locationConsent: true,
     shopName: 'सुनीता गृहउद्योग',
     shopSlug: 'sunita',
     about: 'घरचे लोणचे',
-    businessType: 'individual',
-    sellsFood: true,
     upiId: '9822011223@ybl',
     upiVerified: true,
     upiQrUrl: 'https://res.cloudinary.com/x/image/upload/v1/smb/qr/her.jpg',
     upiQrPublicId: 'smb/qr/her',
     upiQrReady: true,
-    digital: {
-      smartphone: true, internet: true, upi: true,
-      whatsappBusiness: false, socialMedia: false, digitalMarketing: false,
-    },
-    readinessScore: 60,
-    readinessBand: 'basic',
+    fdri: cleanFdri({ smartphone: true, internet: true, whatsapp: true, digitalPayment: true }),
+    fdriScore: 4,
+    fdriBand: 'moderate',
     isOpen: true,
     deliveryFee: 20,
     freeDeliveryAbove: 500,
@@ -189,9 +193,10 @@ test('every field that is HER is gone', () => {
     const emptied =
       left === undefined || left === '' ||
       (Array.isArray(left) && left.length === 0) ||
-      (field === 'digital' && Object.values(left as object).every((v) => v === false))
+      (field === 'fdri' && Object.values(left as object).every((v) => v === false))
     assert.ok(emptied, `${field} survived the deletion: ${JSON.stringify(left)}`)
   }
+  assert.equal(s.fdriScore, 0, 'a score is her answers, summed')
 })
 
 test('no session outlives the erasing, and none keeps her number', () => {

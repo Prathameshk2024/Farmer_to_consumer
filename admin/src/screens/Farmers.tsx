@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import type { FdriBand } from '@shared/fdri.js'
 import { useT } from '../i18n/I18nProvider.js'
 import { IconGo, IconFarmers } from '../components/icons.js'
 import { api, type FarmerRow } from '../lib/api.js'
@@ -8,7 +9,7 @@ import { SortSelect, useSort } from '../components/SortSelect.js'
 import { FARMER_SORTS, sortRows } from '../lib/sort.js'
 import { FarmerActions, StatusPill } from '../components/FarmerActions.js'
 import {
-  Button, Card, CopyValue, EmptyState, ErrorNote, Loading, useAsync,
+  Button, Card, CopyValue, EmptyState, ErrorNote, FdriBandPill, Loading, useAsync,
 } from '../components/ui.js'
 
 /**
@@ -27,11 +28,15 @@ export function Farmers() {
   const [q, setQ] = useState('')
   /** Everyone, or only those waiting for their one verification. */
   const [waiting, setWaiting] = useState(false)
+  /** One FDRI band, or every band - to find who training should reach first. */
+  const [band, setBand] = useState<FdriBand | ''>('')
   const [data, loading, error, reload] = useAsync(() => api.farmers(), [])
   const [sort, setSort] = useSort('farmers', FARMER_SORTS)
 
   const rows = useMemo(() => {
-    const all = (data?.farmers ?? []).filter((s) => !waiting || s.status === 'PENDING_VERIFICATION')
+    const all = (data?.farmers ?? []).filter(
+      (s) => (!waiting || s.status === 'PENDING_VERIFICATION') && (!band || s.fdriBand === band),
+    )
     const needle = q.trim().toLowerCase()
     const found = !needle
       ? all
@@ -41,7 +46,7 @@ export function Farmers() {
             .some((v) => String(v).toLowerCase().includes(needle)),
         )
     return sortRows(found, FARMER_SORTS, sort)
-  }, [data, q, sort, waiting])
+  }, [data, q, sort, waiting, band])
 
   return (
     <>
@@ -64,6 +69,18 @@ export function Farmers() {
           >
             <option value="">{t('c.all')}</option>
             <option value="waiting">{t('se.waitingVerification')}</option>
+          </select>
+          <select
+            className="select"
+            style={{ maxWidth: 240 }}
+            value={band}
+            onChange={(e) => setBand(e.target.value as FdriBand | '')}
+            aria-label={t('se.fdri')}
+          >
+            <option value="">{t('se.fdriAll')}</option>
+            {(['low', 'moderate', 'high'] as const).map((b) => (
+              <option key={b} value={b}>{t('se.fdri')}: {t(`fdri.band.${b}`)}</option>
+            ))}
           </select>
           <SortSelect options={FARMER_SORTS} value={sort} onChange={setSort} />
         </div>
@@ -104,7 +121,8 @@ function FarmerCard({ farmer, onDone }: { farmer: FarmerRow; onDone: () => void 
           </div>
           <div className="small dim-2">
             {t('se.products')}: <span className="num">{farmer.productCount}</span>
-            {' · '}{t('se.readiness')}: <span className="num">{farmer.readinessScore}</span>
+            {' · '}{t('se.fdri')}: <span className="num">{farmer.fdriScore}/10</span>{' '}
+            <FdriBandPill band={farmer.fdriBand} />
           </div>
 
           {/* Where her money goes. Read off this screen when a payout is made

@@ -1,10 +1,10 @@
-import type { BusinessType, DigitalProfile, DispatchTime } from '@shared/types.js'
+import type { FdriAnswers } from '@shared/fdri.js'
 import { normalizePhone } from '@shared/farmer.js'
 
 /**
  * THE HALF-FILLED REGISTRATION
  * ============================
- * Six screens of answers, kept on the device so that leaving the wizard does
+ * Ten screens of answers, kept on the device so that leaving the wizard does
  * not throw them away. Before this, everything lived in `useState`: a back
  * press on step 1, a reload, or the browser reclaiming the tab wiped the lot -
  * and she had to start the six screens again.
@@ -23,38 +23,35 @@ import { normalizePhone } from '@shared/farmer.js'
 
 export interface Draft {
   name: string
-  age: string
-  education: string
-  whatsapp: string
   villagePreset: string
   villageOther: string
   taluka: string
   district: string
   pincode: string
-  shopName: string
-  businessType: BusinessType
-  shgName: string
-  yearsInBusiness: string
-  monthlyCapacity: string
-  about: string
-  sellsFood: boolean | null
-  fssai: string
+  /** Set only by the "use my location" tap, and only with a point isValidLatLng accepts. */
+  lat: number | null
+  lng: number | null
+  crops: string[]
   upiId: string
-  dispatch: DispatchTime
-  digital: Partial<DigitalProfile>
+  ageGroup: string
+  education: string
+  landholding: string
+  farmerTypes: string[]
+  /** Unanswered stays absent, so the screen can tell "no" from "not asked yet". */
+  fdri: Partial<FdriAnswers>
+  sellingChannels: string[]
+  problems: string[]
 }
 
 export const EMPTY: Draft = {
-  name: '', age: '', education: '', whatsapp: '',
+  name: '',
   villagePreset: '', villageOther: '', taluka: '', district: '', pincode: '',
-  shopName: '', businessType: 'individual', shgName: '',
-  yearsInBusiness: '', monthlyCapacity: '', about: '',
-  sellsFood: null, fssai: '',
-  upiId: '', dispatch: 'same',
-  digital: {},
+  lat: null, lng: null, crops: [], upiId: '',
+  ageGroup: '', education: '', landholding: '', farmerTypes: [],
+  fdri: {}, sellingChannels: [], problems: [],
 }
 
-export const TOTAL_STEPS = 7
+export const TOTAL_STEPS = 10
 
 /** Only what a store must do, so tests need no browser. */
 export interface DraftStore {

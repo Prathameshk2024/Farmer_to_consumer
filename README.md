@@ -36,7 +36,11 @@ later, stop the API, delete `backend/data/db.json`, and start it again.
 
 - **Seller or customer:** any 10-digit number. With no SMS provider
   configured, the OTP screen shows the 6-digit code; only that code works.
-- **Seeded seller:** `9822011223` (Sunita, SMB-ANADUR-01).
+- **Seeded farmers:** the four from the poster, all in अणदूर: राजेश पाटील
+  `9822011223`, सविता कांबळे `9764455661`, गणेश जगदाळे `9890033441` and
+  लक्ष्मी शिंदे `9850012345`. Seeding never invents passwords, so give one a
+  demo password with the API stopped:
+  `npm run admin -- set-password 9822011223 123456`.
 - **Admin console:** there is no default account. Stop the API, then create
   one; the command asks for the password:
 

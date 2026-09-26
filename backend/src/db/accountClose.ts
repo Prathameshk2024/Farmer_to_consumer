@@ -1,5 +1,6 @@
 import type { Order, Farmer } from '@shared/types.js'
 import { openOrders, scrubDueAt } from '@shared/accountClose.js'
+import { cleanFdri } from '@shared/fdri.js'
 import type { Db } from './seed.js'
 import { destroyImage } from '../routes/uploads.routes.js'
 import { revokeAllForUser } from '../auth/sessions.js'
@@ -119,24 +120,26 @@ export function scrubFarmer(
   farmer.pincode = ''
   farmer.pincodes = []
   farmer.about = ''
-  farmer.shgName = ''
+  delete farmer.lat
+  delete farmer.lng
+  delete farmer.locationConsent
   farmer.upiId = ''
   farmer.upiVerified = false
   farmer.upiQrReady = false
   delete farmer.upiQrUrl
   delete farmer.upiQrPublicId
-  delete farmer.age
+  delete farmer.ageGroup
   delete farmer.education
-  delete farmer.yearsInBusiness
-  delete farmer.monthlyCapacity
+  delete farmer.landholding
+  farmer.farmerTypes = []
+  farmer.sellingChannels = []
+  farmer.problems = []
+  farmer.crops = []
   delete farmer.notices
   delete farmer.blockReason
-  farmer.digital = {
-    smartphone: false, internet: false, upi: false,
-    whatsappBusiness: false, socialMedia: false, digitalMarketing: false,
-  }
-  farmer.readinessScore = 0
-  farmer.readinessBand = 'starter'
+  farmer.fdri = cleanFdri({})
+  farmer.fdriScore = 0
+  farmer.fdriBand = 'low'
   farmer.isOpen = false
   farmer.status = 'CLOSED'
   farmer.closedAt = new Date(now).toISOString()

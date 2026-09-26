@@ -7,6 +7,9 @@
  * project is in TypeScript.
  */
 
+import type { FdriAnswers, FdriBand } from './fdri.js'
+import type { AgeGroup, Education, FarmerType, Landholding, SellingChannel, SellingProblem } from './profile.js'
+
 /* ------------------------------------------------------------------ */
 /* Roles & auth                                                        */
 /* ------------------------------------------------------------------ */
@@ -187,23 +190,7 @@ export type FarmerStatus =
   /** He asked for his account to be deleted. See shared/src/accountClose.ts. */
   | 'CLOSED'
 
-export type BusinessType = 'individual' | 'shg' | 'udyam'
-
 export type DispatchTime = 'same' | '1' | '23'
-
-/**
- * The six digital-usage answers behind the Digital Readiness Index.
- * Collected once at registration and re-measured after training, so the
- * before/after comparison the research design needs is possible at all.
- */
-export interface DigitalProfile {
-  smartphone: boolean
-  internet: boolean
-  upi: boolean
-  whatsappBusiness: boolean
-  socialMedia: boolean
-  digitalMarketing: boolean
-}
 
 /**
  * SOMETHING AN ADMIN DID TO HER ACCOUNT.
@@ -247,8 +234,16 @@ export interface Farmer {
   photo: string
   phone: string
   whatsapp?: string
-  age?: number
-  education?: string
+
+  // the paper's questionnaire (profile.ts): stored as codes, labelled on screen
+  ageGroup?: AgeGroup
+  education?: Education
+  landholding?: Landholding
+  farmerTypes: FarmerType[]
+  sellingChannels: SellingChannel[]
+  problems: SellingProblem[]
+  /** Crop ids from crops.ts. */
+  crops: string[]
 
   // location
   village: string
@@ -256,24 +251,18 @@ export interface Farmer {
   taluka: string
   district: string
   pincode: string
+  /**
+   * The exact point, only with her yes (`locationConsent`). The farmer and the
+   * admin see it; the public card gets it rounded (`publicLocation` in geo.ts).
+   */
+  lat?: number
+  lng?: number
+  locationConsent?: boolean
 
   // business
   shopName: string
   shopSlug: string
   about?: string
-  businessType: BusinessType
-  shgName?: string
-  yearsInBusiness?: number
-  /** Units she can make per month. Drives what admin can realistically promise. */
-  monthlyCapacity?: number
-  sellsFood: boolean
-  /**
-   * Her FSSAI licence number, asked once at registration and only if she
-   * sells food. Optional (see fssaiProblem), though the form does not say
-   * so: labelled "optional", nearly everyone skips it, including the women
-   * who hold a licence and gain by showing it.
-   */
-  fssai?: string
 
   // money in. `upiId` is collected at registration because she cannot be paid
   // without it. The payment QR is a SEPARATE, later step: it is generated from
@@ -285,10 +274,11 @@ export interface Farmer {
   upiQrPublicId?: string
   upiQrReady?: boolean
 
-  // digital readiness
-  digital: DigitalProfile
-  readinessScore: number
-  readinessBand: ReadinessBand
+  // Farmer Digital Readiness Index (fdri.ts): the ten answers, and the score
+  // and band computed from them when they were given.
+  fdri: FdriAnswers
+  fdriScore: number
+  fdriBand: FdriBand
 
   // shop settings
   isOpen: boolean
@@ -353,10 +343,12 @@ export type PublicFarmer = Pick<
   | 'id' | 'farmerCode' | 'name' | 'photo' | 'shopName' | 'shopSlug' | 'village'
   | 'deliveryFee' | 'freeDeliveryAbove' | 'minOrder' | 'pincodes'
   | 'upiId' | 'upiQrReady' | 'upiQrUrl'
-  | 'rating' | 'ratingCount'
->
-
-export type ReadinessBand = 'starter' | 'basic' | 'advanced' | 'digital'
+  | 'rating' | 'ratingCount' | 'crops'
+> & {
+  /** Rounded to two decimals, and only with her consent - `publicLocation`. */
+  lat?: number
+  lng?: number
+}
 
 /* ------------------------------------------------------------------ */
 /* Products                                                            */
@@ -555,7 +547,7 @@ export interface AdminStats {
   /** How many starts a day the Spark plan's 50,000 free reads cover at that size. */
   startsWithinFreeReads: number
   earningBands: { label: string; v: number }[]
-  readinessBands: { band: ReadinessBand; v: number }[]
+  fdriBands: { band: FdriBand; v: number }[]
 }
 
 /* ------------------------------------------------------------------ */

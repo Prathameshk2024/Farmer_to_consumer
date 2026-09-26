@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Farmer } from '@shared/types.js'
-import { EDUCATION_LEVELS } from '@shared/farmer.js'
+import { CROPS } from '@shared/crops.js'
+import { AGE_GROUPS, EDUCATION_LEVELS, FARMER_TYPES, LANDHOLDINGS } from '@shared/profile.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
 import PhotoPicker from '../../components/PhotoPicker.js'
 import {
-  AppBar, Button, Card, Field, Loading, Notice, SectionTitle,
+  AppBar, Button, Card, Choice, Field, LocationButton, Loading, Notice, SectionTitle,
   TextInput, VoiceInput, useAsync,
 } from '../../components/ui.js'
-import { IconBack } from '../../components/icons.js'
+import { IconBack, IconCheck } from '../../components/icons.js'
 
 /**
  * EDITING HER OWN DETAILS, AFTER REGISTRATION
@@ -33,24 +34,33 @@ import { IconBack } from '../../components/icons.js'
  *    be a form that verifies itself.
  *
  * Her UPI id is editable, and the server clears `upiVerified` when it changes.
+ *
+ * THE LOCATION is not part of Save. It goes to its own route the moment the
+ * farmer taps "change my location" or "remove location", because that tap is
+ * the consent - a location carried along with an unrelated save would not be.
  */
+
+type Opt = { value: string; mr: string; en: string }
+const CROP_OPTS: Opt[] = CROPS.map((c) => ({ value: c.id, mr: c.mr, en: c.en }))
+const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
 export default function EditProfile() {
   const t = useT()
   const { lang } = useI18n()
   const nav = useNavigate()
   const { toast } = useToast()
-  const [me, loading] = useAsync(() => api.me(), [])
+  const [me, loading, setMe] = useAsync(() => api.me(), [])
+  const [locBusy, setLocBusy] = useState(false)
 
   const [form, setForm] = useState<null | {
     name: string
     shopName: string
     about: string
     whatsapp: string
-    age: string
+    ageGroup: string
     education: string
-    shgName: string
-    yearsInBusiness: string
-    monthlyCapacity: string
+    landholding: string
+    farmerTypes: string[]
+    crops: string[]
     upiId: string
     upiQrUrl: string
   }>(null)
@@ -74,16 +84,16 @@ export default function EditProfile() {
     shopName: farmer.shopName,
     about: farmer.about ?? '',
     whatsapp: farmer.whatsapp ?? '',
-    age: farmer.age ? String(farmer.age) : '',
+    ageGroup: farmer.ageGroup ?? '',
     education: farmer.education ?? '',
-    shgName: farmer.shgName ?? '',
-    yearsInBusiness: farmer.yearsInBusiness != null ? String(farmer.yearsInBusiness) : '',
-    monthlyCapacity: farmer.monthlyCapacity != null ? String(farmer.monthlyCapacity) : '',
+    landholding: farmer.landholding ?? '',
+    farmerTypes: farmer.farmerTypes ?? [],
+    crops: farmer.crops ?? [],
     upiId: farmer.upiId,
     upiQrUrl: farmer.upiQrUrl ?? '',
   }
 
-  const set = (k: keyof typeof f, v: string) => {
+  const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => {
     setForm({ ...f, [k]: v })
     setErrors((e) => ({ ...e, [k]: '' }))
     setSaved(false)
@@ -93,7 +103,7 @@ export default function EditProfile() {
     const e: Record<string, string> = {}
     if (!f.name.trim()) e.name = t('common.required')
     if (!f.shopName.trim()) e.shopName = t('common.required')
-    if (f.age && (Number(f.age) < 18 || Number(f.age) > 90)) e.age = '18 - 90'
+    if (f.crops.length === 0) e.crops = t('reg.cropsRequired')
     setErrors(e)
     if (Object.keys(e).length) return
 
@@ -105,11 +115,12 @@ export default function EditProfile() {
         shopName: f.shopName.trim(),
         about: f.about.trim() || undefined,
         whatsapp: f.whatsapp || undefined,
-        age: f.age ? Number(f.age) : undefined,
-        education: f.education || undefined,
-        shgName: f.shgName.trim() || undefined,
-        yearsInBusiness: f.yearsInBusiness ? Number(f.yearsInBusiness) : undefined,
-        monthlyCapacity: f.monthlyCapacity ? Number(f.monthlyCapacity) : undefined,
+        // Cleaned against the same lists on the server; an unknown code is dropped.
+        ageGroup: (f.ageGroup || undefined) as Farmer['ageGroup'],
+        education: (f.education || undefined) as Farmer['education'],
+        landholding: (f.landholding || undefined) as Farmer['landholding'],
+        farmerTypes: f.farmerTypes as Farmer['farmerTypes'],
+        crops: f.crops,
         upiId: f.upiId.trim(),
         upiQrUrl: f.upiQrUrl || undefined,
         upiQrReady: !!f.upiQrUrl,
@@ -128,6 +139,45 @@ export default function EditProfile() {
     }
   }
 
+  /** Sent at once: the tap on the button is the consent. */
+  async function saveLocation(body: { lat: number; lng: number } | { clear: true }) {
+    setLocBusy(true)
+    setErr('')
+    try {
+      const res = await api.setMyLocation(body)
+      setMe({ farmer: res.farmer })
+      toast('clear' in body ? t('reg.locationRemoved') : t('reg.locationSaved'))
+    } catch (error) {
+      setErr(error instanceof ApiError ? error.messageMr ?? error.message : 'Network error')
+    } finally {
+      setLocBusy(false)
+    }
+  }
+
+  const label = (o: Opt) => o[lang]
+  const choices = (list: readonly Opt[], chosen: string, key: 'ageGroup' | 'education' | 'landholding') => (
+    <div className="stack-sm">
+      {list.map((o) => (
+        <Choice key={o.value} selected={chosen === o.value} onSelect={() => set(key, o.value)} title={label(o)} />
+      ))}
+    </div>
+  )
+  const chips = (list: readonly Opt[], chosen: string[], key: 'farmerTypes' | 'crops') => (
+    <div className="wrap-row">
+      {list.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={chosen.includes(o.value)}
+          className={`chip ${chosen.includes(o.value) ? 'chip--on' : ''}`}
+          onClick={() => set(key, toggle(chosen, o.value))}
+        >
+          {label(o)}
+        </button>
+      ))}
+    </div>
+  )
+
   return (
     <>
       <AppBar title={t('prof.edit')} backTo="/farmer/profile" />
@@ -141,31 +191,23 @@ export default function EditProfile() {
             <Field label={t('reg.name')} error={errors.name} required>
               <VoiceInput value={f.name} onChange={(v) => set('name', v)} error={!!errors.name} />
             </Field>
-            <Field label={t('reg.age')} error={errors.age} htmlFor="age">
-              <TextInput
-                id="age" inputMode="numeric" maxLength={2} value={f.age}
-                error={!!errors.age}
-                onChange={(e) => set('age', e.target.value.replace(/[^0-9]/g, ''))}
-              />
-            </Field>
-            <Field label={t('reg.education')}>
-              <div className="wrap-row">
-                {EDUCATION_LEVELS.map((lv) => (
-                  <button
-                    key={lv.value}
-                    className={`chip ${f.education === lv.value ? 'chip--on' : ''}`}
-                    onClick={() => set('education', lv.value)}
-                  >
-                    {lang === 'mr' ? lv.mr : lv.en}
-                  </button>
-                ))}
-              </div>
-            </Field>
             <Field label={`${t('reg.whatsapp')} (${t('common.optional')})`} htmlFor="wa">
               <TextInput
                 id="wa" inputMode="numeric" maxLength={10} value={f.whatsapp}
                 onChange={(e) => set('whatsapp', e.target.value.replace(/[^0-9]/g, ''))}
               />
+            </Field>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionTitle>{t('reg.s6')}</SectionTitle>
+          <div className="stack-sm">
+            <Field label={t('reg.age')}>{choices(AGE_GROUPS, f.ageGroup, 'ageGroup')}</Field>
+            <Field label={t('reg.education')}>{choices(EDUCATION_LEVELS, f.education, 'education')}</Field>
+            <Field label={t('reg.landholding')}>{choices(LANDHOLDINGS, f.landholding, 'landholding')}</Field>
+            <Field label={t('reg.farmerTypes')} hint={t('reg.pickMany')}>
+              {chips(FARMER_TYPES, f.farmerTypes, 'farmerTypes')}
             </Field>
           </div>
         </Card>
@@ -179,23 +221,28 @@ export default function EditProfile() {
             <Field label={t('reg.about')} hint={t('reg.aboutHint')}>
               <VoiceInput value={f.about} onChange={(v) => set('about', v)} multiline />
             </Field>
-            <Field label={t('reg.shgName')}>
-              <VoiceInput value={f.shgName} onChange={(v) => set('shgName', v)} />
+            <Field label={t('reg.crops')} hint={t('reg.pickMany')} error={errors.crops} required>
+              {chips(CROP_OPTS, f.crops, 'crops')}
             </Field>
-            <div className="row" style={{ gap: 'var(--s3)', alignItems: 'flex-start' }}>
-              <Field label={t('reg.years')} htmlFor="yrs">
-                <TextInput
-                  id="yrs" inputMode="numeric" maxLength={2} value={f.yearsInBusiness}
-                  onChange={(e) => set('yearsInBusiness', e.target.value.replace(/[^0-9]/g, ''))}
-                />
-              </Field>
-              <Field label={t('reg.capacity')} htmlFor="cap">
-                <TextInput
-                  id="cap" inputMode="numeric" value={f.monthlyCapacity}
-                  onChange={(e) => set('monthlyCapacity', e.target.value.replace(/[^0-9]/g, ''))}
-                />
-              </Field>
-            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionTitle>{t('reg.location')}</SectionTitle>
+          <div className="stack-sm">
+            <p className="small" style={{ margin: 0 }}>{t('reg.locationWhy')}</p>
+            {farmer.locationConsent && (
+              <Notice tone="ok"><IconCheck aria-hidden="true" /> {t('reg.locationOn')}</Notice>
+            )}
+            <LocationButton
+              label={t(farmer.locationConsent ? 'reg.locationChange' : 'reg.useLocation')}
+              onFound={(p) => void saveLocation(p)}
+            />
+            {farmer.locationConsent && (
+              <Button variant="ghost" disabled={locBusy} onClick={() => void saveLocation({ clear: true })}>
+                {t('reg.locationRemove')}
+              </Button>
+            )}
           </div>
         </Card>
 

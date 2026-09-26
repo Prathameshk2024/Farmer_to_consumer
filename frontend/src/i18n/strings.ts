@@ -227,28 +227,45 @@ const mr: Record<string, string> = {
 
   // ---- farmer registration wizard --------------------------------------
   'reg.title': 'नोंदणी', 'reg.step': 'पायरी', 'reg.of': 'पैकी',
-  'reg.s1': 'तुमची माहिती', 'reg.s2': 'गाव व पत्ता', 'reg.s3': 'तुमचा व्यवसाय',
-  'reg.s4': 'डिजिटल वापर', 'reg.s5': 'पैसे मिळण्याची माहिती', 'reg.s6': 'तपासा',
+  'reg.s0': 'तुमचे खाते', 'reg.s1': 'तुमचे नाव', 'reg.s2': 'गाव व पत्ता',
+  'reg.s3': 'शेताचे ठिकाण', 'reg.s4': 'तुमची पिके', 'reg.s5': 'पैसे मिळण्याची माहिती',
+  'reg.s6': 'तुमच्याबद्दल', 'reg.s7': 'डिजिटल वापर', 'reg.s8': 'माल कसा विकता?', 'reg.s9': 'तपासा',
+  'reg.locationWhy': 'ग्राहकांना तुमचे गाव नकाशावर दिसेल. घराचा नेमका पत्ता दिसणार नाही.',
+  'reg.useLocation': 'माझे ठिकाण वापरा', 'reg.locating': 'ठिकाण शोधत आहे…',
+  'reg.locationFailed': 'ठिकाण मिळाले नाही. ही पायरी सोडून पुढे जा; नंतर प्रोफाइलमधून जोडता येईल.',
+  'reg.locationSaved': 'ठिकाण मिळाले', 'reg.locationRemoved': 'ठिकाण काढले',
+  'reg.location': 'शेताचे ठिकाण', 'reg.locationOn': 'नकाशावर दिसते', 'reg.locationOff': 'दिलेले नाही',
+  'reg.locationChange': 'माझे ठिकाण बदला', 'reg.locationRemove': 'ठिकाण काढा',
+  'reg.crops': 'तुम्ही कोणती पिके घेता?', 'reg.cropsRequired': 'किमान एक पीक निवडा',
+  'reg.pickMany': 'एक किंवा जास्त निवडा',
+  'reg.landholding': 'तुमची शेती किती आहे?', 'reg.farmerTypes': 'तुमच्या शेतीचा प्रकार',
+  'reg.fdriTitle': 'दहा छोटे प्रश्न',
+  'reg.fdriHint': 'प्रत्येक प्रश्नाला होय किंवा नाही सांगा. यावरून प्रशिक्षणात कशाची गरज आहे ते कळते. काहीही चूक-बरोबर नाही.',
+  'reg.fdriScore': 'डिजिटल तयारी गुण', 'reg.fdriNote': 'प्रशिक्षणानंतर हे गुण वाढतील.',
+  'reg.channels': 'आत्ता माल कुठे विकता?', 'reg.problems': 'माल विकताना कोणत्या अडचणी येतात?',
+  'fdri.band.low': 'कमी', 'fdri.band.moderate': 'मध्यम', 'fdri.band.high': 'उच्च',
+
+
   'reg.name': 'तुमचे पूर्ण नाव', 'reg.nameHint': 'ग्राहकांना हेच नाव दिसेल',
   'reg.age': 'तुमचे वय', 'reg.education': 'तुमचे शिक्षण',
-  'reg.whatsapp': 'व्हॉट्सॲप नंबर', 'reg.whatsappHint': 'वेगळा असेल तरच भरा',
+  'reg.whatsapp': 'व्हॉट्सॲप नंबर',
   'reg.village': 'गाव', 'reg.villageOther': 'दुसरे गाव',
   'reg.taluka': 'तालुका', 'reg.district': 'जिल्हा', 'reg.pincode': 'पिनकोड',
   'reg.pincodeHint': '6 अंकी. हा नीट तपासा — तुमच्या वस्तू कोणत्या ग्राहकांना दिसतील हे यावरून ठरते.',
   'reg.shopName': 'दुकानाचे / व्यवसायाचे नाव',
-  'reg.shopNameHint': 'नाव नसेल तर तुमचे स्वतःचे नाव चालेल',
-  'reg.businessType': 'व्यवसायाचा प्रकार',
-  'reg.bizIndividual': 'वैयक्तिक', 'reg.bizShg': 'बचत गट सदस्य', 'reg.bizUdyam': 'उद्यम नोंदणीकृत',
-  'reg.shgName': 'बचत गटाचे नाव',
-  'reg.years': 'हा व्यवसाय किती वर्षांपासून करता?', 'reg.yearsUnit': 'वर्षे',
-  'reg.capacity': 'महिन्याला किती बनवू शकता?',
-  'reg.capacityHint': 'अंदाजे नग / किलो. यावरून ग्राहकाला किती लवकर मिळेल ते ठरते.',
+
+
+
+
+
+
+
   'reg.about': 'तुमच्या व्यवसायाबद्दल थोडे सांगा',
   'reg.aboutHint': 'दोन-तीन ओळी. ग्राहक हे वाचतात आणि त्यामुळे विक्री होते. बोलून सांगू शकता.',
-  'reg.sellsFood': 'तुम्ही खाद्यपदार्थ विकता का?',
-  'reg.fssai': 'FSSAI क्रमांक', 'reg.fssaiHint': 'अन्न परवान्यावरील 14 अंकी क्रमांक',
-  'reg.digitalTitle': 'तुम्ही आत्ता काय काय वापरता?',
-  'reg.digitalHint': 'फक्त होय किंवा नाही सांगा. यातून तुमचा डिजिटल स्कोअर ठरतो आणि प्रशिक्षणात कशाची गरज आहे ते कळते. काहीही चूक-बरोबर नाही.',
+
+
+
+
   'reg.upiTitle': 'पैसे कुठे मिळणार?',
   'reg.upiHint': 'ग्राहकांचे पैसे थेट तुमच्या खात्यात जातील. आम्ही पैसे ठेवत नाही. म्हणून हा नंबर दोनदा तपासा.',
   'reg.upiLabel': 'तुमचा UPI आयडी', 'reg.upiPlaceholder': 'उदा. sunita@ybl',
@@ -262,8 +279,8 @@ const mr: Record<string, string> = {
   'reg.submit': 'नोंदणी पूर्ण करा',
   'reg.yourId': 'तुमचा शेतकरी क्रमांक',
   'reg.idNote': 'हा क्रमांक तुमच्या पॅकिंगवर आणि पोस्टरवर छापला जाईल.',
-  'reg.readinessTitle': 'तुमचा डिजिटल स्कोअर',
-  'reg.readinessNote': 'प्रशिक्षणानंतर हा स्कोअर वाढेल.',
+
+
   'reg.doneTitle': 'नोंदणी झाली!',
 
   // ---- paying a farmer by UPI -------------------------------------------
@@ -632,7 +649,7 @@ const mr: Record<string, string> = {
   'prof.logoutConfirmTitle': 'बाहेर पडायचे का?',
   'prof.logoutConfirmCustomer': 'टोपलीतील वस्तू या फोनवर तशाच राहतील. पुन्हा आत येण्यासाठी पासवर्ड टाकावा लागेल.',
   'prof.verified': 'तपासले', 'prof.notVerified': 'तपासणी बाकी',
-  'prof.readiness': 'डिजिटल स्कोअर',
+
   'help.title': 'मदत व प्रशिक्षण', 'help.faq': 'नेहमीचे प्रश्न',
   'help.contact': 'आमच्याशी बोला', 'help.whatsapp': 'व्हॉट्सॲपवर मदत',
   'help.call': 'फोन करा', 'help.complaint': 'तक्रार नोंदवा',
@@ -710,7 +727,7 @@ const mr: Record<string, string> = {
   'ph.taluka': 'तालुक्याचे नाव',
   'ph.district': 'जिल्ह्याचे नाव',
   'ph.shopName': 'सुनीता गृहउद्योग',
-  'ph.shgName': 'जिजाऊ बचत गट',
+
   'ph.about': 'गेली 12 वर्षे आम्ही घरी लोणची बनवतो...',
   'ph.ingredients': 'गहू, गूळ, तूप, वेलची',
   'ph.material': 'कापूस, रेशीम, माती...',
@@ -945,28 +962,45 @@ const en: Record<string, string> = {
   'creg.nameRequired': 'Please enter your name',
 
   'reg.title': 'Registration', 'reg.step': 'Step', 'reg.of': 'of',
-  'reg.s1': 'About you', 'reg.s2': 'Village and address', 'reg.s3': 'Your business',
-  'reg.s4': 'Digital use', 'reg.s5': 'Where your money arrives', 'reg.s6': 'Check',
+  'reg.s0': 'Your account', 'reg.s1': 'Your name', 'reg.s2': 'Village and address',
+  'reg.s3': 'Your farm on the map', 'reg.s4': 'Your crops', 'reg.s5': 'Where your money arrives',
+  'reg.s6': 'About you', 'reg.s7': 'Digital use', 'reg.s8': 'How you sell', 'reg.s9': 'Check',
+  'reg.locationWhy': 'Buyers will see your village on a map, not your exact house.',
+  'reg.useLocation': 'Use my location', 'reg.locating': 'Finding your location…',
+  'reg.locationFailed': 'Your location could not be found. Skip this step; you can add it later from your profile.',
+  'reg.locationSaved': 'Location found', 'reg.locationRemoved': 'Location removed',
+  'reg.location': 'Farm location', 'reg.locationOn': 'Shown on the map', 'reg.locationOff': 'Not given',
+  'reg.locationChange': 'Change my location', 'reg.locationRemove': 'Remove location',
+  'reg.crops': 'What do you grow?', 'reg.cropsRequired': 'Pick at least one crop',
+  'reg.pickMany': 'Pick any that apply',
+  'reg.landholding': 'How much land do you farm?', 'reg.farmerTypes': 'What kind of farming',
+  'reg.fdriTitle': 'Ten quick questions',
+  'reg.fdriHint': 'Yes or no to each. It tells us what training would help. There is no wrong answer.',
+  'reg.fdriScore': 'Digital readiness score', 'reg.fdriNote': 'This score rises with training.',
+  'reg.channels': 'Where do you sell today?', 'reg.problems': 'What gets in the way when you sell?',
+  'fdri.band.low': 'Low', 'fdri.band.moderate': 'Moderate', 'fdri.band.high': 'High',
+
+
   'reg.name': 'Your full name', 'reg.nameHint': 'Customers will see this name',
   'reg.age': 'Your age', 'reg.education': 'Your education',
-  'reg.whatsapp': 'WhatsApp number', 'reg.whatsappHint': 'Only if different',
+  'reg.whatsapp': 'WhatsApp number',
   'reg.village': 'Village', 'reg.villageOther': 'Another village',
   'reg.taluka': 'Taluka', 'reg.district': 'District', 'reg.pincode': 'Pincode',
   'reg.pincodeHint': '6 digits. Check this carefully — it decides which customers can see your products.',
   'reg.shopName': 'Shop or business name',
-  'reg.shopNameHint': 'If you do not have one, your own name is fine',
-  'reg.businessType': 'Business type',
-  'reg.bizIndividual': 'Individual', 'reg.bizShg': 'SHG member', 'reg.bizUdyam': 'Udyam registered',
-  'reg.shgName': 'Name of the self-help group',
-  'reg.years': 'How many years have you run this business?', 'reg.yearsUnit': 'years',
-  'reg.capacity': 'How much can you make in a month?',
-  'reg.capacityHint': 'Roughly, in pieces or kg. It sets what we can promise a customer.',
+
+
+
+
+
+
+
   'reg.about': 'Tell us a little about your business',
   'reg.aboutHint': 'Two or three lines. Customers read this and it sells. You can speak it.',
-  'reg.sellsFood': 'Do you sell food items?',
-  'reg.fssai': 'FSSAI number', 'reg.fssaiHint': 'The 14-digit number on your food licence',
-  'reg.digitalTitle': 'What do you use today?',
-  'reg.digitalHint': 'Just yes or no. This sets your digital score and tells us what training you need. There is no wrong answer.',
+
+
+
+
   'reg.upiTitle': 'Where your money arrives',
   'reg.upiHint': 'Customer payments go straight into your account. We never hold your money — so check this twice.',
   'reg.upiLabel': 'Your UPI ID', 'reg.upiPlaceholder': 'e.g. sunita@ybl',
@@ -980,8 +1014,8 @@ const en: Record<string, string> = {
   'reg.submit': 'Complete registration',
   'reg.yourId': 'Your Farmer ID',
   'reg.idNote': 'This number goes on your packaging and your poster.',
-  'reg.readinessTitle': 'Your digital score',
-  'reg.readinessNote': 'This score will rise after training.',
+
+
   'reg.doneTitle': 'You are registered!',
 
   'pay.step1': 'Take a screenshot of this screen with the whole QR above in it: press the power button and the volume-down button at the same time.',
@@ -1331,7 +1365,7 @@ const en: Record<string, string> = {
   'prof.logoutConfirmTitle': 'Log out?',
   'prof.logoutConfirmCustomer': 'Your cart stays on this phone. You will need your password to sign back in.',
   'prof.verified': 'Verified', 'prof.notVerified': 'Not verified yet',
-  'prof.readiness': 'Digital score',
+
   'help.title': 'Help & Training', 'help.faq': 'Common questions',
   'help.contact': 'Talk to us', 'help.whatsapp': 'Help on WhatsApp',
   'help.call': 'Call us', 'help.complaint': 'Raise a complaint',
@@ -1403,7 +1437,7 @@ const en: Record<string, string> = {
   'ph.taluka': 'Taluka name',
   'ph.district': 'District name',
   'ph.shopName': 'Sunita Home Foods',
-  'ph.shgName': 'Jijau Bachat Gat',
+
   'ph.about': 'For twelve years I have made pickles at home...',
   'ph.ingredients': 'Wheat, jaggery, ghee, cardamom',
   'ph.material': 'Cotton, silk, clay...',

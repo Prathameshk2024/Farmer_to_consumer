@@ -1,11 +1,12 @@
 import type { PublicFarmer, RatingSummary, Farmer } from '@shared/types.js'
+import { publicLocation } from '@shared/geo.js'
 
 /**
  * THE ONLY SHAPE OF A FARMER THAT LEAVES THE API UNAUTHENTICATED.
  *
  * Built field by field rather than by deleting the private ones. The product
  * page used to return her whole record - phone, admin notices, block reason,
- * her digital-readiness answers - while a comment elsewhere promised her
+ * her questionnaire answers - while a comment elsewhere promised her
  * number was on no public endpoint. A deny-list cannot keep that promise: it
  * is only as current as the last person who remembered to extend it.
  *
@@ -14,6 +15,8 @@ import type { PublicFarmer, RatingSummary, Farmer } from '@shared/types.js'
  *    choosing between, and what the law wants beside a food listing.
  *  - delivery terms and pincodes - checkout needs them to price and warn.
  *  - UPI ID, QR image and whether it is set up - the thing a buyer pays to.
+ *  - crops and a point rounded to about a kilometre, only with her consent -
+ *    enough to find the village, not the house (`publicLocation`).
  *  - rating: her products' ratings taken together, passed in by the caller
  *    from `ratingsByFarmer` / `farmerRating`. Buyers rate products, never
  *    her directly; the stored `Farmer.rating` fields are never used.
@@ -39,5 +42,7 @@ export function publicFarmer(s: Farmer, rating: RatingSummary): PublicFarmer {
     upiQrUrl: s.upiQrUrl,
     rating: rating.average,
     ratingCount: rating.count,
+    crops: s.crops,
+    ...publicLocation(s),
   }
 }

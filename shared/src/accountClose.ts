@@ -20,7 +20,7 @@ import type { Order, OrderStatus } from './types.js'
  *    nothing is a blank shop name on somebody else's order screen.
  *
  * So `scrubFarmer` empties every field that is *her* - phone, name, photo,
- * address, UPI, the readiness answers, an admin's notes about her - and leaves
+ * address, UPI, the questionnaire and FDRI answers, an admin's notes about her - and leaves
  * an id, a status of CLOSED and the money trail. Her phone number goes back
  * into circulation: registration checks it against stored phones, and hers is
  * now blank, so she can start again from scratch if she ever wants to.
@@ -132,21 +132,26 @@ export const FARMER_PII_FIELDS = [
   'phone',
   'whatsapp',
   'photo',
-  'age',
+  'ageGroup',
   'education',
+  'landholding',
+  'farmerTypes',
+  'sellingChannels',
+  'problems',
+  'crops',
   'village',
   'villageCode',
   'taluka',
   'district',
   'pincode',
+  'lat',
+  'lng',
+  'locationConsent',
   'about',
-  'shgName',
-  'yearsInBusiness',
-  'monthlyCapacity',
   'upiId',
   'upiQrUrl',
   'upiQrPublicId',
-  'digital',
+  'fdri',
   'pincodes',
   'notices',
   'blockReason',

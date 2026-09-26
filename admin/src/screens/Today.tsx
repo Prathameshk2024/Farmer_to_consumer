@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useI18n, useT } from '../i18n/I18nProvider.js'
+import { useT } from '../i18n/I18nProvider.js'
 import { api } from '../lib/api.js'
 import { rupees } from '../lib/format.js'
 import { TopBar } from '../components/Shell.js'
@@ -20,23 +20,12 @@ import { Donut, RAMP_GREEN, RAMP_MAROON } from '../components/Donut.js'
 export function Today() {
   const t = useT()
   const nav = useNavigate()
-  const { lang } = useI18n()
   const [data, loading, error] = useAsync(() => api.stats(), [])
 
   if (loading) return <><TopBar title={t('today.title')} /><Loading /></>
   if (error) return <><TopBar title={t('today.title')} /><div className="body"><ErrorNote error={error} /></div></>
 
   const s = data!.stats
-
-  /**
-   * The readiness bands come back as enum keys; their wording lives on the
-   * server, next to the scoring that produces them, and rides along on the
-   * same response. Translating them here would put two sources of truth on
-   * the same five words.
-   */
-  const labels = data!.bandLabels as Record<string, { mr?: string; en?: string } | undefined>
-  const bandLabel = (band: string) =>
-    (lang === 'mr' ? labels[band]?.mr : labels[band]?.en) ?? band
 
   const queue = s.pendingVerification + s.stuckOrders
 
@@ -97,11 +86,11 @@ export function Today() {
             </Card>
 
             <Card>
-              <h3 className="chart__t">{t('today.readinessSpread')}</h3>
-              <p className="chart__d">{t('today.readinessSpreadSub')}</p>
+              <h3 className="chart__t">{t('today.fdriSpread')}</h3>
+              <p className="chart__d">{t('today.fdriSpreadSub')}</p>
               <Donut
-                slices={s.readinessBands.map((b) => ({
-                  label: bandLabel(b.band),
+                slices={s.fdriBands.map((b) => ({
+                  label: t(`fdri.band.${b.band}`),
                   value: b.v,
                 }))}
                 ramp={RAMP_GREEN}

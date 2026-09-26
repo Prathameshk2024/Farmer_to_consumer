@@ -8,9 +8,22 @@
  *
  *   npx tsx backend/scripts/admin.ts farmers
  *   npx tsx backend/scripts/admin.ts verify 9822011223
+ *   npm run admin -- set-password 9822011223 123456
+ *
+ * `set-password` is the exception: it writes the store directly, like
+ * admins.ts, because it exists for the seeded demo farmers, who have no
+ * password (seeding never invents credentials). Stop the API first - it holds
+ * the database in memory and would overwrite the new row. The password is on
+ * the command line, so it lands in shell history: a demo password only; a
+ * real farmer gets *Reset password* in the admin console.
  *
  * Env: API_URL (default http://localhost:4000), ADMIN_EMAIL, ADMIN_PASSWORD.
  */
+
+import { flush, getDb, initStore, save } from '../src/db/store.js'
+import { setCredential } from '../src/auth/credentials.js'
+import { normalizePhone } from '@shared/farmer.js'
+import { passwordProblemMr } from '@shared/password.js'
 
 const API = process.env.API_URL ?? 'http://localhost:4000'
 const EMAIL = process.env.ADMIN_EMAIL ?? 'admin@shantabazar.in'
@@ -90,8 +103,31 @@ async function farmers(): Promise<void> {
   console.log('')
 }
 
+/** A password for one farmer, by phone, straight into `credentials`. */
+async function setPassword(phoneArg: string | undefined, password: string | undefined): Promise<void> {
+  const problem = passwordProblemMr(password ?? '')
+  if (!phoneArg || problem) {
+    console.error(c.red(`\n  Usage: npm run admin -- set-password <phone> <password>\n  ${problem ?? ''}\n`))
+    process.exit(1)
+  }
+  await initStore()
+  const db = getDb()
+  const phone = normalizePhone(phoneArg)
+  const farmer = db.farmers.find((f) => f.phone === phone)
+  if (!farmer) {
+    console.error(c.red(`\n  No farmer has the phone ${phone}.\n`))
+    process.exit(1)
+  }
+  setCredential(db, { role: 'farmer', userId: farmer.id, phone, password: password! })
+  save()
+  await flush()
+  console.log(c.green(`\n  ✓ ${farmer.name} (${farmer.farmerCode}) can now sign in with ${phone}\n`))
+  process.exit(0)
+}
+
 async function main(): Promise<void> {
-  const [cmd = 'farmers', a1] = process.argv.slice(2)
+  const [cmd = 'farmers', a1, a2] = process.argv.slice(2)
+  if (cmd === 'set-password') return setPassword(a1, a2)
   await login()
 
   switch (cmd) {
@@ -102,6 +138,7 @@ async function main(): Promise<void> {
   Commands:
     farmers                     every farmer with status
     verify <id|phone|farmer-code>    verify a farmer once, after checking him
+    set-password <phone> <password>  a demo password for a seeded farmer (API stopped)
 `)
   }
 }

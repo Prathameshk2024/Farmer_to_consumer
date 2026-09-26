@@ -1,9 +1,10 @@
 import type {
-  Address, Category, Customer, DigitalProfile, Order, Product,
+  Address, Category, Customer, Order, Product,
   ProductRatingInput, PublicReview, PublicFarmer, RatingSummary, Review, Farmer, FarmerGroup,
   FarmerWeek, Session,
 } from '@shared/types.js'
 import type { ReportReason, ReportTarget } from '@shared/report.js'
+import type { FdriAnswers } from '@shared/fdri.js'
 import type { ComplaintSubject } from '@shared/complaint.js'
 
 /**
@@ -253,6 +254,9 @@ export const api = {
 
   updateMe: (patchBody: Partial<Farmer>) =>
     patch<{ farmer: Farmer }>('/farmers/me', patchBody),
+  /** The farm on the map, set by an explicit tap, or cleared. */
+  setMyLocation: (body: { lat: number; lng: number } | { clear: true }) =>
+    patch<{ farmer: Farmer }>('/farmers/me/location', body),
 
   /** Her buyers, derived from her own orders. Never anybody else's. */
   myBuyers: () => get<{ buyers: FarmerBuyer[] }>('/farmers/me/buyers'),
@@ -452,24 +456,23 @@ export interface FarmerRegistration {
   phone: string
   password: string
   name: string
-  age?: number
-  education?: string
   whatsapp?: string
   village: string
   taluka: string
   district: string
   pincode: string
-  shopName: string
   about?: string
-  businessType: Farmer['businessType']
-  shgName?: string
-  yearsInBusiness?: number
-  monthlyCapacity?: number
-  sellsFood: boolean
-  fssai?: string
   upiId: string
-  digital: DigitalProfile
-  deliveryFee?: number
-  minOrder?: number
+  lat?: number
+  lng?: number
+  locationConsent?: boolean
+  crops: string[]
+  ageGroup?: string
+  education?: string
+  landholding?: string
+  farmerTypes: string[]
+  sellingChannels: string[]
+  problems: string[]
+  fdri: FdriAnswers
   dispatch?: Farmer['dispatch']
 }

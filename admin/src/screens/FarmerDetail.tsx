@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
-import type { AdminNotice, DigitalProfile } from '@shared/types.js'
-import { BAND_LABEL, MAX_SCORE, SELF_REPORTED_FACTORS } from '@shared/readiness.js'
+import type { AdminNotice } from '@shared/types.js'
+import { FDRI_INDICATORS, FDRI_QUESTIONS } from '@shared/fdri.js'
+import { cropById } from '@shared/crops.js'
+import {
+  AGE_GROUPS, EDUCATION_LEVELS, FARMER_TYPES, LANDHOLDINGS, SELLING_CHANNELS, SELLING_PROBLEMS,
+} from '@shared/profile.js'
 import { useI18n, useT } from '../i18n/I18nProvider.js'
 import { api, type FarmerDetail as Detail } from '../lib/api.js'
 import { isStuck, maskedLabel, rupees, when } from '../lib/format.js'
@@ -13,7 +17,7 @@ import { ProductCard } from './Products.js'
 import { ReviewTable, SummaryText } from './Reviews.js'
 import { IconNo, IconProducts, IconYes } from '../components/icons.js'
 import {
-  Button, Card, CopyValue, EmptyState, ErrorNote, Loading, Notice, Pill, SectionTitle, useAsync,
+  Button, Card, CopyValue, EmptyState, ErrorNote, FdriBandPill, Loading, Notice, Pill, SectionTitle, useAsync,
   useErrorText,
 } from '../components/ui.js'
 
@@ -76,7 +80,7 @@ export function FarmerDetail() {
 
         <div className="chartgrid">
           <Business detail={data} />
-          <Readiness detail={data} />
+          <Fdri detail={data} />
           <ShopSettings detail={data} />
           <Decisions notices={farmer.notices ?? []} />
         </div>
@@ -220,7 +224,7 @@ function Numbers({ detail }: { detail: Detail }) {
       <Tile n={orders.length} label={t('sd.ordersAll')} />
       <Tile n={delivered} label={t('sd.delivered')} />
       <Tile n={rupees(earned)} label={t('sd.earned')} />
-      <Tile n={`${farmer.readinessScore}/${MAX_SCORE}`} label={t('se.readiness')} />
+      <Tile n={`${farmer.fdriScore}/10`} label={t('se.fdri')} />
     </div>
   )
 }
@@ -238,27 +242,43 @@ function Tile({ n, label }: { n: number | string; label: string }) {
 /* What she makes, and how she sells it                                 */
 /* ------------------------------------------------------------------ */
 
+type Opt = { value: string; mr: string; en: string }
+
 function Business({ detail }: { detail: Detail }) {
   const t = useT()
+  const { lang } = useI18n()
   const { farmer } = detail
+  const labelOf = (list: readonly Opt[], v: string | undefined) => list.find((o) => o.value === v)?.[lang] ?? '—'
+  const labelsOf = (list: readonly Opt[], vs: string[] | undefined) =>
+    list.filter((o) => (vs ?? []).includes(o.value)).map((o) => o[lang]).join(', ') || '—'
 
   return (
     <Card>
       <SectionTitle>{t('sd.business')}</SectionTitle>
       <dl className="kv">
-        <Row label={t('sd.businessType')}>{farmer.businessType}</Row>
-        <Row label={t('sd.food')}>{farmer.sellsFood ? t('c.yes') : t('c.no')}</Row>
-        {farmer.shgName && <Row label={t('sd.shg')}>{farmer.shgName}</Row>}
-        {farmer.yearsInBusiness != null && (
-          <Row label={t('sd.years')}><span className="num">{farmer.yearsInBusiness}</span></Row>
-        )}
-        {farmer.monthlyCapacity != null && (
-          <Row label={t('sd.capacity')}>
-            <span className="num">{farmer.monthlyCapacity}</span> {t('sd.perMonth')}
-          </Row>
-        )}
-        {farmer.age != null && <Row label={t('sd.age')}><span className="num">{farmer.age}</span></Row>}
-        {farmer.education && <Row label={t('sd.education')}>{farmer.education}</Row>}
+        <Row label={t('sd.crops')}>
+          {farmer.crops.map((id) => cropById(id)?.[lang] ?? id).join(', ') || '—'}
+        </Row>
+        <Row label={t('sd.age')}>{labelOf(AGE_GROUPS, farmer.ageGroup)}</Row>
+        <Row label={t('sd.education')}>{labelOf(EDUCATION_LEVELS, farmer.education)}</Row>
+        <Row label={t('sd.landholding')}>{labelOf(LANDHOLDINGS, farmer.landholding)}</Row>
+        <Row label={t('sd.farmerTypes')}>{labelsOf(FARMER_TYPES, farmer.farmerTypes)}</Row>
+        <Row label={t('sd.channels')}>{labelsOf(SELLING_CHANNELS, farmer.sellingChannels)}</Row>
+        <Row label={t('sd.problems')}>{labelsOf(SELLING_PROBLEMS, farmer.problems)}</Row>
+        {/* The exact point: only the admin and the farmer see it. Buyers get
+            it rounded to two decimals. */}
+        <Row label={t('sd.location')}>
+          {farmer.lat != null && farmer.lng != null ? (
+            <a
+              className="mono"
+              href={`https://www.openstreetmap.org/?mlat=${farmer.lat}&mlon=${farmer.lng}#map=15/${farmer.lat}/${farmer.lng}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {farmer.lat}, {farmer.lng}
+            </a>
+          ) : t('sd.noLocation')}
+        </Row>
         <Row label={t('sd.qr')}>
           <span className="num">{farmer.qrScans}</span> {t('sd.scans')}
           {' · '}<span className="num">{farmer.qrOrders}</span> {t('sd.ordersFromQr')}
@@ -296,7 +316,6 @@ function ShopSettings({ detail }: { detail: Detail }) {
           {farmer.minOrder > 0 ? rupees(farmer.minOrder) : t('c.none')}
         </Row>
         <Row label={t('sd.dispatch')}>{farmer.dispatch}</Row>
-        {farmer.fssai && <Row label={t('sd.fssai')}>{farmer.fssai}</Row>}
         {/* The pincodes she delivers to. An order outside them is refused by
             the API, so this is the answer to "why can she not see my area". */}
         <Row label={t('sd.serves')}>
@@ -308,55 +327,33 @@ function ShopSettings({ detail }: { detail: Detail }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Digital readiness                                                    */
+/* FDRI                                                                 */
 /* ------------------------------------------------------------------ */
 
 /**
- * Six answers she gave on the day she registered, and four things the platform
- * watched her do. The split is the whole point of the index - keep it visible,
- * or the before/after comparison reads as her opinion of herself changing.
+ * The paper's ten indicators as answered at registration, one mark each.
+ * Score, band (icon and word) and every answer, so an admin can read which
+ * indicator a low score came from.
  */
-function Readiness({ detail }: { detail: Detail }) {
+function Fdri({ detail }: { detail: Detail }) {
   const t = useT()
   const { lang } = useI18n()
   const { farmer } = detail
-  const band = BAND_LABEL[farmer.readinessBand]
 
   return (
     <Card>
-      <SectionTitle>{t('se.readiness')}</SectionTitle>
+      <SectionTitle>{t('se.fdri')}</SectionTitle>
 
       <div className="row" style={{ gap: 10, marginBottom: 10 }}>
-        <span className="num" style={{ fontSize: 26, fontWeight: 700 }}>
-          {farmer.readinessScore}
-        </span>
-        <span className="dim-2 small">/ {MAX_SCORE}</span>
-        <Pill tone="info">{lang === 'mr' ? band.mr : band.en}</Pill>
+        <span className="num" style={{ fontSize: 26, fontWeight: 700 }}>{farmer.fdriScore}</span>
+        <span className="dim-2 small">/ 10</span>
+        <FdriBandPill band={farmer.fdriBand} />
       </div>
 
-      <div className="small dim-2">{t('sd.selfReported')}</div>
-      <ul className="checks">
-        {SELF_REPORTED_FACTORS.map((f) => (
-          <Check key={f.key} on={farmer.digital[f.key as keyof DigitalProfile]}>
-            {lang === 'mr' ? f.mr : f.en}
-          </Check>
+      <ul className="checks" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', columnGap: 16 }}>
+        {FDRI_INDICATORS.map((k) => (
+          <Check key={k} on={farmer.fdri?.[k] === true}>{FDRI_QUESTIONS[k][lang]}</Check>
         ))}
-      </ul>
-
-      <div className="small dim-2" style={{ marginTop: 10 }}>{t('sd.measured')}</div>
-      <ul className="checks">
-        <Check on={!!farmer.about && farmer.about.length > 20 && detail.products.length > 0}>
-          {t('sd.mBranding')}
-        </Check>
-        <Check on={detail.products.some((p) => !!p.ingredients || !!p.imageUrl)}>
-          {t('sd.mPackaging')}
-        </Check>
-        <Check on={detail.orders.some((o) => o.status === 'DELIVERED')}>
-          {t('sd.mOnlineOrders')}
-        </Check>
-        <Check on={farmer.upiVerified && detail.orders.some((o) => o.status === 'DELIVERED')}>
-          {t('sd.mFinance')}
-        </Check>
       </ul>
     </Card>
   )

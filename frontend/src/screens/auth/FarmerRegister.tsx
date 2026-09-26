@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Farmer } from '@shared/types.js'
-import {
-  EDUCATION_LEVELS, FSSAI_DIGITS, fssaiProblem, isValidPhone, isValidPincode, isValidUpi, normalizePhone,
-} from '@shared/farmer.js'
+import { isValidPhone, isValidPincode, isValidUpi, normalizePhone } from '@shared/farmer.js'
 import { passwordProblemMr } from '@shared/password.js'
 import { PHONE_INPUT_MAX } from '../../lib/phone.js'
 import { upiProblem } from '@shared/payment.js'
 import { VILLAGES, makeFarmerCode, villageCode } from '@shared/farmerCode.js'
+import { FDRI_INDICATORS, FDRI_QUESTIONS, cleanFdri, fdriBand, fdriScore } from '@shared/fdri.js'
+import { CROPS } from '@shared/crops.js'
 import {
-  BAND_LABEL, computeReadiness, readinessBand, SELF_REPORTED_FACTORS,
-} from '@shared/readiness.js'
+  AGE_GROUPS, EDUCATION_LEVELS, FARMER_TYPES, LANDHOLDINGS, SELLING_CHANNELS, SELLING_PROBLEMS,
+} from '@shared/profile.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { useAuth } from '../../store/AuthContext.js'
 import { api, ApiError } from '../../lib/api.js'
@@ -19,51 +19,63 @@ import {
   clearDraft, EMPTY, readDraft, sessionStore, writeDraft, type Draft,
 } from './farmerDraft.js'
 import {
-  AppBar, Button, Card, Choice, Dots, Field, Notice,
+  AppBar, Button, Card, Choice, Dots, FdriPill, Field, LocationButton, Notice,
   TextInput, VoiceInput, YesNo,
 } from '../../components/ui.js'
 import {
-  IconAllClear, IconBack, IconCheck, IconGroup, IconIndividual, IconNext, IconWarn,
+  IconAllClear, IconBack, IconCheck, IconNext, IconWarn,
 } from '../../components/icons.js'
 
 /**
  * FARMER REGISTRATION WIZARD
  * ==========================
- * Six steps, one topic per screen, with progress dots so she can see the end
- * coming. Everything she is asked here comes from the programme's survey design:
- * personal details, village (which becomes her ID), business, digital usage,
- * and where her money arrives.
+ * Ten steps, one topic per screen, with progress dots so the end is in sight.
+ * What is asked comes from the research paper's questionnaire: who the farmer
+ * is, where the farm is, what grows there, where the money arrives, and the
+ * ten FDRI indicators.
  *
- * Nothing optional blocks a step. The only hard gates are the fields that are
- * unrecoverable if wrong: the UPI id and the pincode.
+ * Nothing optional blocks a step. The hard gates are the account, the name,
+ * the village and pincode, at least one crop, the UPI ID, and an answer to
+ * each FDRI question (an unanswered one would be scored as a no that was
+ * never given). The location is never required.
  *
  * GOING BACK IS FREE. Every answer lives in one `Draft` that is never cleared
- * between steps, so stepping back, changing one word and coming forward again
- * costs nothing - and the review step links to the screen each answer came
+ * between steps, and the review step links to the screen each answer came
  * from, so a mistake spotted at the end is one tap from being fixed rather
- * than a reason to start over. For a woman filling in six screens on a phone,
- * "I have to do it all again" is where the form gets abandoned.
+ * than a reason to start over.
  */
 
-const STEP_KEYS = ['reg.s0', 'reg.s1', 'reg.s2', 'reg.s3', 'reg.s4', 'reg.s5', 'reg.s6']
+const STEP_KEYS = [
+  'reg.s0', 'reg.s1', 'reg.s2', 'reg.s3', 'reg.s4',
+  'reg.s5', 'reg.s6', 'reg.s7', 'reg.s8', 'reg.s9',
+]
+const S = {
+  account: 0, name: 1, place: 2, location: 3, crops: 4,
+  upi: 5, about: 6, fdri: 7, market: 8, review: 9,
+} as const
 
+/** Add or remove one value from a multi-select list. */
+function toggle(list: string[], value: string): string[] {
+  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
+}
 
 export default function FarmerRegister() {
   const t = useT()
   const { lang } = useI18n()
+  const label = (o: { mr: string; en: string }) => o[lang]
   const nav = useNavigate()
   const { signIn, session } = useAuth()
   const { toast } = useToast()
   const [params, setParams] = useSearchParams()
-  // In the URL once step 1 is passed, so a reload finds her draft again.
+  // In the URL once step 1 is passed, so a reload finds the draft again.
   const [phone, setPhone] = useState(() => normalizePhone(params.get('phone') ?? ''))
   // Never in the draft: a password does not belong in browser storage. After a
-  // reload she types it again, and submit sends her back here if she has not.
+  // reload it is typed again, and submit sends the farmer back here if not.
   const [password, setPassword] = useState('')
   const [again, setAgain] = useState('')
 
-  // Keyed by HER phone, so a field coordinator registering woman after woman
-  // on one handset never shows the next one what the last one typed.
+  // Keyed by the phone being registered, so a field coordinator registering
+  // farmer after farmer on one handset never shows the next what the last typed.
   const store = useState(sessionStore)[0]
   const restored = useState(() => readDraft(store, phone))[0]
 
@@ -74,7 +86,7 @@ export default function FarmerRegister() {
     if (isValidPhone(phone)) writeDraft(store, phone, step, d)
   }, [store, phone, step, d])
 
-  /* One route, seven screens. A step change is not a navigation, so nothing
+  /* One route, ten screens. A step change is not a navigation, so nothing
      moves the scroll on its own and the next question opened at whatever
      height the last answer left - usually its own foot. */
   useEffect(() => { window.scrollTo(0, 0) }, [step])
@@ -85,12 +97,12 @@ export default function FarmerRegister() {
   const [created, setCreated] = useState<Farmer | null>(null)
 
   /**
-   * A woman who is already registered cannot register again.
+   * A farmer who is already registered cannot register again.
    *
-   * The server refuses it - her number is taken - but she should never see six
-   * screens of form before being told. Read once, at mount: the last thing
-   * this wizard does is sign her in, and re-reading it after that would pull
-   * the screen showing her new farmer code out from under her.
+   * The server refuses it - the number is taken - but ten screens of form
+   * should not come first. Read once, at mount: the last thing this wizard
+   * does is sign in, and re-reading it after that would pull the screen
+   * showing the new farmer code out from under them.
    */
   const alreadyRegistered = useState(() => session?.role === 'farmer')[0]
 
@@ -101,64 +113,43 @@ export default function FarmerRegister() {
 
   const village = d.villagePreset === '__other__' ? d.villageOther : d.villagePreset
 
-  // Preview her ID live, so the thing that goes on her packaging is not a
-  // surprise at the end.
+  // Preview the ID live, so what goes on the packaging is not a surprise at the end.
   const previewId = useMemo(
     () => (village ? makeFarmerCode(village, []) : ''),
     [village],
   )
 
-  // Baseline score: self-reported answers only. The four measured factors stay
-  // at zero until she actually does them on the platform.
-  const answered = SELF_REPORTED_FACTORS.filter((f) => d.digital[f.key] !== undefined).length
-  const score = computeReadiness({
-    smartphone: !!d.digital.smartphone,
-    internet: !!d.digital.internet,
-    upi: !!d.digital.upi,
-    whatsappBusiness: !!d.digital.whatsappBusiness,
-    socialMedia: !!d.digital.socialMedia,
-    digitalMarketing: !!d.digital.digitalMarketing,
-  })
+  const answered = FDRI_INDICATORS.filter((k) => d.fdri[k] !== undefined).length
+  const score = fdriScore(d.fdri)
 
   function validate(which: number): boolean {
     const e: Record<string, string> = {}
-    if (which === 0) {
+    if (which === S.account) {
       if (!isValidPhone(phone)) e.phone = t('onb.phoneInvalid')
       const pw = passwordProblemMr(password)
       if (pw) e.password = pw
       else if (again !== password) e.again = t('auth.mismatch')
     }
-    if (which === 1) {
-      if (!d.name.trim()) e.name = t('common.required')
-      if (d.age && (Number(d.age) < 18 || Number(d.age) > 90)) e.age = '18 - 90'
-    }
-    if (which === 2) {
+    if (which === S.name && !d.name.trim()) e.name = t('common.required')
+    if (which === S.place) {
       if (!village.trim()) e.villagePreset = t('common.required')
       if (!isValidPincode(d.pincode)) e.pincode = t('reg.pincodeHint')
     }
-    if (which === 3) {
-      if (!d.shopName.trim()) e.shopName = t('common.required')
-      if (d.sellsFood === null) e.sellsFood = t('common.required')
-      // Blank is fine. Wrong is not - see fssaiProblem.
-      const fssai = d.sellsFood ? fssaiProblem(d.fssai) : null
-      if (fssai) e.fssai = fssai
-    }
-    if (which === 4 && answered < SELF_REPORTED_FACTORS.length) {
-      e.digital = t('common.required')
-    }
-    // The reason, not the example again. "उदा. sunita@ybl" under a box she
-    // has already filled in tells her nothing about what she got wrong.
-    if (which === 5) {
+    if (which === S.crops && d.crops.length === 0) e.crops = t('reg.cropsRequired')
+    // The reason, not the example again. "उदा. sunita@ybl" under a box that
+    // is already filled in says nothing about what is wrong with it.
+    if (which === S.upi) {
       const upiFault = upiProblem(d.upiId)
       if (upiFault) e.upiId = upiFault
     }
+    if (which === S.fdri && answered < FDRI_INDICATORS.length) e.fdri = t('common.required')
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
   function next() {
     if (!validate(step)) return
-    if (step === 0) {
+    if (step === S.account) {
       setPhone(normalizePhone(phone))
       setParams({ phone: normalizePhone(phone) }, { replace: true })
     }
@@ -167,8 +158,8 @@ export default function FarmerRegister() {
 
   /**
    * Going back never validates and never clears an answer. It does clear the
-   * error markers, because a red box on a screen she is only revisiting reads
-   * as a new problem she has just caused.
+   * error markers, because a red box on a screen that is only being revisited
+   * reads as a new problem just caused.
    */
   function goToStep(target: number) {
     setErrors({})
@@ -183,38 +174,30 @@ export default function FarmerRegister() {
 
   async function submit() {
     // After a reload the draft is back but the password is not.
-    if (!validate(0)) { setStep(0); return }
+    if (!validate(S.account)) { setStep(S.account); return }
     setBusy(true)
     setServerError('')
+    const located = d.lat != null && d.lng != null
     try {
       const res = await api.registerFarmer({
         phone,
         password,
         name: d.name.trim(),
-        age: d.age ? Number(d.age) : undefined,
-        education: d.education || undefined,
-        whatsapp: d.whatsapp || undefined,
         village: village.trim(),
         taluka: d.taluka.trim(),
         district: d.district.trim(),
         pincode: d.pincode.trim(),
-        shopName: d.shopName.trim(),
-        about: d.about.trim() || undefined,
-        businessType: d.businessType,
-        shgName: d.shgName.trim() || undefined,
-        yearsInBusiness: d.yearsInBusiness ? Number(d.yearsInBusiness) : undefined,
-        monthlyCapacity: d.monthlyCapacity ? Number(d.monthlyCapacity) : undefined,
-        sellsFood: !!d.sellsFood,
-        fssai: d.sellsFood ? d.fssai || undefined : undefined,
         upiId: d.upiId.trim(),
-        digital: {
-          smartphone: !!d.digital.smartphone,
-          internet: !!d.digital.internet,
-          upi: !!d.digital.upi,
-          whatsappBusiness: !!d.digital.whatsappBusiness,
-          socialMedia: !!d.digital.socialMedia,
-          digitalMarketing: !!d.digital.digitalMarketing,
-        },
+        // Only a point the "use my location" tap produced, and with it the yes.
+        ...(located ? { lat: d.lat!, lng: d.lng!, locationConsent: true } : {}),
+        crops: d.crops,
+        ageGroup: d.ageGroup || undefined,
+        education: d.education || undefined,
+        landholding: d.landholding || undefined,
+        farmerTypes: d.farmerTypes,
+        sellingChannels: d.sellingChannels,
+        problems: d.problems,
+        fdri: cleanFdri(d.fdri),
       })
       clearDraft(store, phone)
       signIn(res.session)
@@ -233,9 +216,9 @@ export default function FarmerRegister() {
   }
 
   /* ------------------------------------------------------------ */
-  /* Done - show her the ID and the score, then send her to pay    */
+  /* Done - show the ID and the score, then on to the shop         */
   /* ------------------------------------------------------------ */
-  // Registered already, and not mid-wizard: her shop is where she belongs.
+  // Registered already, and not mid-wizard: the shop is where they belong.
   if (alreadyRegistered && !created) return <Navigate to="/farmer" replace />
 
   if (created) {
@@ -258,22 +241,7 @@ export default function FarmerRegister() {
             <p className="small muted" style={{ margin: 0 }}>{t('reg.idNote')}</p>
           </Card>
 
-          <Card>
-            <div className="row-between">
-              <div>
-                <div className="small dim">{t('reg.readinessTitle')}</div>
-                <strong style={{ fontSize: 'var(--t-lg)' }}>
-                  {created.readinessScore} / 100
-                </strong>
-              </div>
-              <span className="pill pill--info">
-                {lang === 'mr'
-                  ? BAND_LABEL[created.readinessBand].mr
-                  : BAND_LABEL[created.readinessBand].en}
-              </span>
-            </div>
-            <p className="small dim" style={{ marginBottom: 0 }}>{t('reg.readinessNote')}</p>
-          </Card>
+          <FdriCard score={created.fdriScore} />
 
           <Notice tone="warn">{t('biz.pendingVerification')}</Notice>
           <Button onClick={() => nav('/farmer', { replace: true })}>
@@ -282,6 +250,45 @@ export default function FarmerRegister() {
         </div>
       </div>
     )
+  }
+
+  const chips = (
+    list: readonly { value: string; mr: string; en: string }[],
+    chosen: string[],
+    onChange: (next: string[]) => void,
+  ) => (
+    <div className="wrap-row">
+      {list.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={chosen.includes(o.value)}
+          className={`chip ${chosen.includes(o.value) ? 'chip--on' : ''}`}
+          onClick={() => onChange(toggle(chosen, o.value))}
+        >
+          {label(o)}
+        </button>
+      ))}
+    </div>
+  )
+
+  const choices = (
+    list: readonly { value: string; mr: string; en: string }[],
+    chosen: string,
+    onChange: (v: string) => void,
+  ) => (
+    <div className="stack-sm">
+      {list.map((o) => (
+        <Choice key={o.value} selected={chosen === o.value} onSelect={() => onChange(o.value)} title={label(o)} />
+      ))}
+    </div>
+  )
+
+  const labelsOf = (list: readonly { value: string; mr: string; en: string }[], values: string[]) =>
+    list.filter((o) => values.includes(o.value)).map(label).join(', ')
+  const labelOf = (list: readonly { value: string; mr: string; en: string }[], value: string) => {
+    const o = list.find((x) => x.value === value)
+    return o ? label(o) : ''
   }
 
   return (
@@ -299,7 +306,7 @@ export default function FarmerRegister() {
 
       <div className="screen stack">
         {/* ---------- 0. the account ---------------------------- */}
-        {step === 0 && (
+        {step === S.account && (
           <>
             <Field label={t('auth.phone')} error={errors.phone} required htmlFor="phone">
               <TextInput
@@ -336,60 +343,21 @@ export default function FarmerRegister() {
           </>
         )}
 
-        {/* ---------- 1. about her ------------------------------- */}
-        {step === 1 && (
-          <>
-            <Field label={t('reg.name')} hint={t('reg.nameHint')} error={errors.name} required>
-              {/* Voice input: she can say her name rather than type Devanagari. */}
-              <VoiceInput
-                value={d.name}
-                onChange={(v) => set('name', v)}
-                error={!!errors.name}
-                placeholder={t('ph.fullName')}
-              />
-            </Field>
-
-            <Field label={t('reg.age')} error={errors.age} htmlFor="age">
-              <TextInput
-                id="age"
-                inputMode="numeric"
-                maxLength={2}
-                value={d.age}
-                error={!!errors.age}
-                onChange={(e) => set('age', e.target.value.replace(/\D/g, ''))}
-                placeholder="35"
-              />
-            </Field>
-
-            <Field label={t('reg.education')}>
-              <div className="wrap-row">
-                {EDUCATION_LEVELS.map((lv) => (
-                  <button
-                    key={lv.value}
-                    className={`chip ${d.education === lv.value ? 'chip--on' : ''}`}
-                    onClick={() => set('education', lv.value)}
-                  >
-                    {lang === 'mr' ? lv.mr : lv.en}
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            <Field label={`${t('reg.whatsapp')} (${t('common.optional')})`} hint={t('reg.whatsappHint')} htmlFor="wa">
-              <TextInput
-                id="wa"
-                inputMode="numeric"
-                maxLength={10}
-                value={d.whatsapp}
-                onChange={(e) => set('whatsapp', e.target.value.replace(/\D/g, ''))}
-                placeholder={phone}
-              />
-            </Field>
-          </>
+        {/* ---------- 1. the name -------------------------------- */}
+        {step === S.name && (
+          <Field label={t('reg.name')} hint={t('reg.nameHint')} error={errors.name} required>
+            {/* Voice input: the name can be said rather than typed in Devanagari. */}
+            <VoiceInput
+              value={d.name}
+              onChange={(v) => set('name', v)}
+              error={!!errors.name}
+              placeholder={t('ph.fullName')}
+            />
+          </Field>
         )}
 
         {/* ---------- 2. village -> the farmer code --------------- */}
-        {step === 2 && (
+        {step === S.place && (
           <>
             <Field label={t('reg.village')} error={errors.villagePreset} required>
               <div className="stack-sm">
@@ -410,7 +378,7 @@ export default function FarmerRegister() {
                   selected={d.villagePreset === '__other__'}
                   onSelect={() => {
                     // A listed village filled these in. They belong to that
-                    // village, not to the one she is about to say, so they go.
+                    // village, not to the one about to be said, so they go.
                     if (d.villagePreset !== '__other__') {
                       set('taluka', '')
                       set('district', '')
@@ -424,9 +392,9 @@ export default function FarmerRegister() {
 
             {d.villagePreset === '__other__' && (
               <Field label={t('reg.village')} required>
-                {/* A village that is not on the list is a name she may not know
-                    how to spell in Devanagari on a phone keyboard - so she is
-                    told, right here, that she can say it instead. */}
+                {/* A village that is not on the list is a name that may be
+                    hard to spell in Devanagari on a phone keyboard - so the
+                    farmer is told, right here, that it can be said instead. */}
                 <VoiceInput
                   value={d.villageOther}
                   onChange={(v) => set('villageOther', v)}
@@ -443,10 +411,10 @@ export default function FarmerRegister() {
               </Notice>
             )}
 
-            {/* Only a listed village fills these in. For any other she has to
-                give them herself, so they get the same microphone - one above
-                the other, because two boxes with a mic each do not fit across
-                a phone. */}
+            {/* Only a listed village fills these in. For any other they have
+                to be given, so they get the same microphone - one above the
+                other, because two boxes with a mic each do not fit across a
+                phone. */}
             {d.villagePreset === '__other__' ? (
               <>
                 <Field label={t('reg.taluka')}>
@@ -481,136 +449,41 @@ export default function FarmerRegister() {
                 value={d.pincode}
                 error={!!errors.pincode}
                 onChange={(e) => set('pincode', e.target.value.replace(/\D/g, ''))}
-                placeholder="413601"
+                placeholder="413603"
               />
             </Field>
           </>
         )}
 
-        {/* ---------- 3. her business ----------------------------- */}
-        {step === 3 && (
+        {/* ---------- 3. the farm on a map, only with a yes -------- */}
+        {step === S.location && (
           <>
-            <Field label={t('reg.shopName')} hint={t('reg.shopNameHint')} error={errors.shopName} required>
-              <VoiceInput
-                value={d.shopName}
-                onChange={(v) => set('shopName', v)}
-                error={!!errors.shopName}
-                placeholder={t('ph.shopName')}
-              />
-            </Field>
-
-            <Field label={t('reg.businessType')} required>
-              <div className="stack-sm">
-                <Choice selected={d.businessType === 'individual'} onSelect={() => set('businessType', 'individual')} icon={<IconIndividual />} title={t('reg.bizIndividual')} />
-                <Choice selected={d.businessType === 'shg'} onSelect={() => set('businessType', 'shg')} icon={<IconGroup />} title={t('reg.bizShg')} />
-              </div>
-            </Field>
-
-            {d.businessType === 'shg' && (
-              <Field label={t('reg.shgName')}>
-                <VoiceInput value={d.shgName} onChange={(v) => set('shgName', v)} placeholder={t('ph.shgName')} />
-              </Field>
+            <p style={{ margin: 0 }}>{t('reg.locationWhy')}</p>
+            {d.lat != null && d.lng != null ? (
+              <>
+                <Notice tone="ok"><IconCheck aria-hidden="true" /> {t('reg.locationSaved')}</Notice>
+                <Button variant="ghost" onClick={() => { set('lat', null); set('lng', null) }}>
+                  {t('reg.locationRemove')}
+                </Button>
+              </>
+            ) : (
+              <LocationButton onFound={(p) => { set('lat', p.lat); set('lng', p.lng) }} />
             )}
-
-            <div className="row" style={{ gap: 'var(--s3)', alignItems: 'flex-start' }}>
-              <Field label={t('reg.years')} htmlFor="yrs">
-                <TextInput
-                  id="yrs"
-                  inputMode="numeric"
-                  maxLength={2}
-                  value={d.yearsInBusiness}
-                  onChange={(e) => set('yearsInBusiness', e.target.value.replace(/\D/g, ''))}
-                  placeholder="5"
-                />
-              </Field>
-              <Field label={t('reg.capacity')} hint={t('reg.capacityHint')} htmlFor="cap">
-                <TextInput
-                  id="cap"
-                  inputMode="numeric"
-                  value={d.monthlyCapacity}
-                  onChange={(e) => set('monthlyCapacity', e.target.value.replace(/\D/g, ''))}
-                  placeholder="100"
-                />
-              </Field>
-            </div>
-
-            <Field label={t('reg.about')} hint={t('reg.aboutHint')}>
-              <VoiceInput
-                value={d.about}
-                onChange={(v) => set('about', v)}
-                multiline
-                placeholder={t('ph.about')}
-              />
-            </Field>
-
-            <Field label={t('reg.sellsFood')} hint={t('reg.sellsFoodHint')} error={errors.sellsFood} required>
-              <YesNo value={d.sellsFood} onChange={(v) => set('sellsFood', v)} />
-            </Field>
-
-            {/* Optional, but not labelled so: a field marked "optional" is one
-                nearly everybody skips, and a woman who holds a licence gains by
-                giving it. No required star either - blank still goes through. */}
-            {d.sellsFood && (
-              <Field label={t('reg.fssai')} hint={t('reg.fssaiHint')} error={errors.fssai} htmlFor="fssai">
-                <TextInput
-                  id="fssai"
-                  inputMode="numeric"
-                  value={d.fssai}
-                  error={!!errors.fssai}
-                  maxLength={FSSAI_DIGITS}
-                  onChange={(e) => set('fssai', e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="12345678901234"
-                />
-              </Field>
+            {d.lat == null && (
+              <Button variant="quiet" onClick={() => goToStep(step + 1)}>{t('common.skip')}</Button>
             )}
-
           </>
         )}
 
-        {/* ---------- 4. digital readiness ------------------------ */}
-        {step === 4 && (
-          <>
-            <div className="stack-sm">
-              <h2 className="h2">{t('reg.digitalTitle')}</h2>
-              <p className="small muted">{t('reg.digitalHint')}</p>
-            </div>
-
-            {SELF_REPORTED_FACTORS.map((f) => (
-              <Field key={f.key} label={lang === 'mr' ? f.mr : f.en}>
-                <YesNo
-                  value={d.digital[f.key] ?? null}
-                  onChange={(v) => set('digital', { ...d.digital, [f.key]: v })}
-                />
-              </Field>
-            ))}
-
-            {errors.digital && (
-              <div className="field__err">
-                <IconWarn aria-hidden="true" /> {errors.digital}
-              </div>
-            )}
-
-            {answered === SELF_REPORTED_FACTORS.length && (
-              <Card>
-                <div className="row-between">
-                  <div>
-                    <div className="small dim">{t('reg.readinessTitle')}</div>
-                    <strong style={{ fontSize: 'var(--t-lg)' }}>{score} / 100</strong>
-                  </div>
-                  <span className="pill pill--info">
-                    {lang === 'mr'
-                      ? BAND_LABEL[readinessBand(score)].mr
-                      : BAND_LABEL[readinessBand(score)].en}
-                  </span>
-                </div>
-                <p className="small dim" style={{ marginBottom: 0 }}>{t('reg.readinessNote')}</p>
-              </Card>
-            )}
-          </>
+        {/* ---------- 4. crops ------------------------------------ */}
+        {step === S.crops && (
+          <Field label={t('reg.crops')} hint={t('reg.pickMany')} error={errors.crops} required>
+            {chips(CROPS.map((c) => ({ value: c.id, mr: c.mr, en: c.en })), d.crops, (v) => set('crops', v))}
+          </Field>
         )}
 
         {/* ---------- 5. money in --------------------------------- */}
-        {step === 5 && (
+        {step === S.upi && (
           <>
             <div className="stack-sm">
               <h2 className="h2">{t('reg.upiTitle')}</h2>
@@ -641,12 +514,70 @@ export default function FarmerRegister() {
                 <IconCheck aria-hidden="true" /> <strong className="num">{d.upiId}</strong>
               </Notice>
             )}
-
           </>
         )}
 
-        {/* ---------- 6. review ----------------------------------- */}
-        {step === 6 && (
+        {/* ---------- 6. about the farmer ------------------------- */}
+        {step === S.about && (
+          <>
+            <Field label={t('reg.age')}>
+              {choices(AGE_GROUPS, d.ageGroup, (v) => set('ageGroup', v))}
+            </Field>
+            <Field label={t('reg.education')}>
+              {choices(EDUCATION_LEVELS, d.education, (v) => set('education', v))}
+            </Field>
+            <Field label={t('reg.landholding')}>
+              {choices(LANDHOLDINGS, d.landholding, (v) => set('landholding', v))}
+            </Field>
+            <Field label={t('reg.farmerTypes')} hint={t('reg.pickMany')}>
+              {chips(FARMER_TYPES, d.farmerTypes, (v) => set('farmerTypes', v))}
+            </Field>
+          </>
+        )}
+
+        {/* ---------- 7. the ten FDRI questions --------------------
+            The paper's instrument is a list, so this is the one screen
+            with ten questions on it; each row is a single tap. */}
+        {step === S.fdri && (
+          <>
+            <div className="stack-sm">
+              <h2 className="h2">{t('reg.fdriTitle')}</h2>
+              <p className="small muted">{t('reg.fdriHint')}</p>
+            </div>
+
+            {FDRI_INDICATORS.map((k) => (
+              <Field key={k} label={FDRI_QUESTIONS[k][lang]}>
+                <YesNo
+                  value={d.fdri[k] ?? null}
+                  onChange={(v) => set('fdri', { ...d.fdri, [k]: v })}
+                />
+              </Field>
+            ))}
+
+            {errors.fdri && (
+              <div className="field__err">
+                <IconWarn aria-hidden="true" /> {errors.fdri}
+              </div>
+            )}
+
+            {answered === FDRI_INDICATORS.length && <FdriCard score={score} />}
+          </>
+        )}
+
+        {/* ---------- 8. how the produce is sold today ------------ */}
+        {step === S.market && (
+          <>
+            <Field label={t('reg.channels')} hint={t('reg.pickMany')}>
+              {chips(SELLING_CHANNELS, d.sellingChannels, (v) => set('sellingChannels', v))}
+            </Field>
+            <Field label={t('reg.problems')} hint={t('reg.pickMany')}>
+              {chips(SELLING_PROBLEMS, d.problems, (v) => set('problems', v))}
+            </Field>
+          </>
+        )}
+
+        {/* ---------- 9. review ----------------------------------- */}
+        {step === S.review && (
           <>
             <h2 className="h2">{t('reg.reviewTitle')}</h2>
             <p className="small muted" style={{ margin: 0 }}>{t('reg.reviewHint')}</p>
@@ -663,29 +594,34 @@ export default function FarmerRegister() {
               <div className="stack-sm small">
                 {/* The step each answer belongs to, so "बदला" lands on the
                     screen that asked the question rather than at the start. */}
-                <Row label={t('reg.name')} value={d.name} onEdit={() => goToStep(1)} editLabel={t('common.edit')} />
-                <Row label={t('reg.age')} value={d.age} onEdit={() => goToStep(1)} editLabel={t('common.edit')} />
-                <Row label={t('reg.village')} value={village} onEdit={() => goToStep(2)} editLabel={t('common.edit')} />
-                <Row label={t('reg.pincode')} value={d.pincode} onEdit={() => goToStep(2)} editLabel={t('common.edit')} />
-                <Row label={t('reg.shopName')} value={d.shopName} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />
-                <Row label={t('reg.businessType')} value={t(d.businessType === 'shg' ? 'reg.bizShg' : 'reg.bizIndividual')} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />
-                {d.shgName && <Row label={t('reg.shgName')} value={d.shgName} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />}
-                {d.yearsInBusiness && <Row label={t('reg.years')} value={`${d.yearsInBusiness} ${t('reg.yearsUnit')}`} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />}
-                {d.monthlyCapacity && <Row label={t('reg.capacity')} value={d.monthlyCapacity} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />}
-                <Row label={t('reg.sellsFood')} value={d.sellsFood ? t('common.yes') : t('common.no')} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />
-                {d.sellsFood && d.fssai && <Row label={t('reg.fssai')} value={d.fssai} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />}
-                <Row label={t('reg.upiLabel')} value={d.upiId} onEdit={() => goToStep(5)} editLabel={t('common.edit')} />
-              </div>
-            </Card>
-
-            <Card>
-              <div className="stack-sm small">
+                <Row label={t('reg.name')} value={d.name} onEdit={() => goToStep(S.name)} editLabel={t('common.edit')} />
+                <Row label={t('reg.village')} value={village} onEdit={() => goToStep(S.place)} editLabel={t('common.edit')} />
+                <Row label={t('reg.pincode')} value={d.pincode} onEdit={() => goToStep(S.place)} editLabel={t('common.edit')} />
                 <Row
-                  label={t('reg.readinessTitle')}
-                  value={`${score} / 100 · ${lang === 'mr' ? BAND_LABEL[readinessBand(score)].mr : BAND_LABEL[readinessBand(score)].en}`}
-                  onEdit={() => goToStep(4)}
+                  label={t('reg.location')}
+                  value={d.lat != null ? t('reg.locationOn') : t('reg.locationOff')}
+                  onEdit={() => goToStep(S.location)}
                   editLabel={t('common.edit')}
                 />
+                <Row
+                  label={t('reg.crops')}
+                  value={labelsOf(CROPS.map((c) => ({ value: c.id, mr: c.mr, en: c.en })), d.crops)}
+                  onEdit={() => goToStep(S.crops)}
+                  editLabel={t('common.edit')}
+                />
+                <Row label={t('reg.upiLabel')} value={d.upiId} onEdit={() => goToStep(S.upi)} editLabel={t('common.edit')} />
+                <Row label={t('reg.age')} value={labelOf(AGE_GROUPS, d.ageGroup)} onEdit={() => goToStep(S.about)} editLabel={t('common.edit')} />
+                <Row label={t('reg.education')} value={labelOf(EDUCATION_LEVELS, d.education)} onEdit={() => goToStep(S.about)} editLabel={t('common.edit')} />
+                <Row label={t('reg.landholding')} value={labelOf(LANDHOLDINGS, d.landholding)} onEdit={() => goToStep(S.about)} editLabel={t('common.edit')} />
+                <Row label={t('reg.farmerTypes')} value={labelsOf(FARMER_TYPES, d.farmerTypes)} onEdit={() => goToStep(S.about)} editLabel={t('common.edit')} />
+                <Row
+                  label={t('reg.fdriScore')}
+                  value={<><span className="num">{score} / 10</span> · {t(`fdri.band.${fdriBand(score)}`)}</>}
+                  onEdit={() => goToStep(S.fdri)}
+                  editLabel={t('common.edit')}
+                />
+                <Row label={t('reg.channels')} value={labelsOf(SELLING_CHANNELS, d.sellingChannels)} onEdit={() => goToStep(S.market)} editLabel={t('common.edit')} />
+                <Row label={t('reg.problems')} value={labelsOf(SELLING_PROBLEMS, d.problems)} onEdit={() => goToStep(S.market)} editLabel={t('common.edit')} />
               </div>
             </Card>
 
@@ -717,9 +653,26 @@ export default function FarmerRegister() {
   )
 }
 
+/** The FDRI score out of ten, with its band as a pill (icon and word). */
+function FdriCard({ score }: { score: number }) {
+  const t = useT()
+  return (
+    <Card>
+      <div className="row-between">
+        <div>
+          <div className="small dim">{t('reg.fdriScore')}</div>
+          <strong className="num" style={{ fontSize: 'var(--t-lg)' }}>{score} / 10</strong>
+        </div>
+        <FdriPill band={fdriBand(score)} />
+      </div>
+      <p className="small dim" style={{ marginBottom: 0 }}>{t('reg.fdriNote')}</p>
+    </Card>
+  )
+}
+
 /**
  * One line of the review card. `onEdit` turns it into the way back to the
- * screen the answer came from, with everything she typed still in place.
+ * screen the answer came from, with everything typed still in place.
  */
 function Row({
   label, value, onEdit, editLabel,
