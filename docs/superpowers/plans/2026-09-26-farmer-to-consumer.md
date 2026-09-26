@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-26-farmer-to-consumer-design.md`. Read it before any task. Also read `CLAUDE.md` in the repo root once Task 1 has copied it. Every rule there still holds unless this plan removes it.
 
+**Phases:** see the Phases section — six phases, in order.
+
 ## Global Constraints
 
 - Cross-workspace imports: `import type { X } from '@shared/<file>.js'` — `.js` extension on a `.ts` file, always.
@@ -41,6 +43,23 @@
 3. **A pickup order a buyer tries to cancel after "ready for pickup"** — the buyer may cancel only while `PLACED`; the farmer's cancel must still work at `PACKED` for pickup. Test in Task 8.
 4. **A listing whose unit is `dozen` or `piece` asking for a mandi price** — Agmarknet is ₹/quintal, so the hint must omit the mandi line rather than print a wrong conversion. Test in Task 11.
 5. **Survey records with missing answers (coordinator skipped a question)** — research tables must count them as "not answered", never crash or drop the row. Test in Task 12.
+
+---
+
+## Phases
+
+Six phases, strictly in order. Each phase starts only when the previous phase's last task is green (`npm test`, `npm run typecheck`, `npm run build`) and committed, and each phase ends with a working, testable website. Only Phase 4 runs tasks in parallel.
+
+| Phase | Tasks | Delivers | Demo at the end |
+|---|---|---|---|
+| 1 — Foundation | 1–4 | Copy of the reference, app/push parts removed, free selling with one-time farmer verification, seller → farmer rename, `F2C-<VILLAGE>-<NNN>` codes | The reference site running as a farmer marketplace (login is still the reference's OTP until Phase 2) |
+| 2 — Accounts | 5 | Phone + password login, forgot-password request page, admin "Password requests" queue, admin reset with a temporary password | Register, log in, forget the password, request help, admin resets it, forced change |
+| 3 — Core marketplace | 6–8 | Farmer profile, consented location and FDRI; produce listings; home delivery and pickup | Full loop: farmer registers → admin verifies → listing → buyer orders → UPI/COD → delivery or pickup → review |
+| 4 — Trust & discovery | 9–11 (in parallel) | Traceability QR, maps, price hint, demand/supply chart, voice search | Every poster feature works |
+| 5 — Research | 12 | Survey entry, Tables 1–9, CSV export | The paper's tables come straight out of the admin console |
+| 6 — Look & launch | 13–14 | Leaf-green/maroon theme, branding, poster landing, Marathi-first pass; docs; deployment | Live website. Task 14's cloud steps stop and ask the user before creating any resource. |
+
+Phase 4 parallelism: Tasks 9, 10 and 11 touch different files except the dictionaries (`frontend/src/i18n/strings.ts`, `admin/src/i18n/strings.ts`), `frontend/src/lib/api.ts`, `admin/src/lib/api.ts`, `frontend/src/App.tsx` and `admin/src/App.tsx`/`Shell.tsx`. Run each in its own git worktree and merge them one at a time, re-running the full gate after each merge. Task 9's Trace page uses Task 10's `MapView` only if Task 10 has merged first; otherwise it keeps the OpenStreetMap link and Task 10 swaps it in.
 
 ---
 
