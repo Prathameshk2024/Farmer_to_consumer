@@ -104,3 +104,18 @@ test('another shop\'s product is refused and the cart is untouched', () => {
   assert.equal(r.ok, false)
   assert.equal(r.items, cart)
 })
+
+/**
+ * `add` answers from the items its render holds, then reapplies the same rule
+ * inside the updater. That is only sound if the rule is pure: the same items
+ * give the same answer, and the items passed in are never changed.
+ */
+test('addLine is pure, so add can answer before the updater runs', () => {
+  const cart = [item({ productId: 'p7' })]
+  const snapshot = JSON.stringify(cart)
+  const first = addLine(cart, tomato)
+  const again = addLine(cart, tomato)
+  assert.equal(first.ok, true)
+  assert.deepEqual(first, again)
+  assert.equal(JSON.stringify(cart), snapshot, 'the input cart is not mutated')
+})

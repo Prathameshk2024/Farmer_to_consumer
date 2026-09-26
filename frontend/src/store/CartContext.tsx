@@ -60,19 +60,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   /**
    * Returns false when nothing went in - another shop owns the cart, or there
-   * is nothing to add (`addLine` in cartRules). The check runs inside the
-   * updater because `items` in this closure can be a render behind a double
-   * tap.
+   * is nothing to add (`addLine` in cartRules is the one rule).
    */
   const add = useCallback((product: Product, qty?: number, farmerName?: string) => {
-    let ok = false
-    setItems((cur) => {
-      const next = addLine(cur, product, qty, farmerName)
-      ok = next.ok
-      return next.items
-    })
+    // The answer comes from the items this render holds, never from inside
+    // the updater: React 18 may run the updater later, and a result read out
+    // of it would be false when the item did go in. The updater reapplies the
+    // same rule to the latest state, so a double tap still cannot slip past it.
+    const { ok } = addLine(items, product, qty, farmerName)
+    if (ok) setItems((cur) => addLine(cur, product, qty, farmerName).items)
     return ok
-  }, [])
+  }, [items])
 
   const setQty = useCallback((productId: string, qty: number) => {
     setItems((cur) =>

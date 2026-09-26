@@ -29,6 +29,9 @@ test('a bad quantity in the second farmer\'s group refuses the whole cart and wr
   const r = buildOrders(db, cart(1.5), who)
   assert.equal(r.ok, false)
   assert.equal(!r.ok && r.status, 409)
+  // The buyer is told why, in Marathi, naming the product: a bare 409 is a button that does nothing.
+  assert.ok(!r.ok && r.body.messageMr.trim().length > 0)
+  assert.match(!r.ok ? r.body.messageMr : '', /भेंडी/)
   assert.equal(db.orders.length, before, 'the first farmer\'s order is not left behind')
 })
 
