@@ -802,6 +802,13 @@ const mr: Record<string, string> = {
   'hint.platform': 'इथे इतर शेतकरी: ₹{price} / {unit} ({n} जाहिराती)',
   'hint.mandi': '{market} बाजार समिती, {date}: ₹{price} / {unit}',
   'hint.note': 'हा फक्त अंदाज आहे. किंमत तुम्हीच ठरवा.',
+  'map.title': 'शेतकरी नकाशा',
+  'map.empty': 'नकाशावर अजून कोणी नाही',
+  'map.listTitle': 'नकाशावरील शेतकरी',
+  'map.all': 'सर्व',
+  'map.liveCount': 'विक्रीसाठी {n} उत्पादने',
+  'map.openShop': 'दुकान पहा',
+  'map.yourPoint': 'तुमचे ठिकाण',
 }
 
 const en: Record<string, string> = {
@@ -1553,6 +1560,13 @@ const en: Record<string, string> = {
   'hint.platform': 'Others here ask ₹{price} / {unit} ({n} listings)',
   'hint.mandi': '{market} APMC, {date}: ₹{price} / {unit}',
   'hint.note': 'This is only a guide. You set the price.',
+  'map.title': 'Farmer map',
+  'map.empty': 'No farmers on the map yet',
+  'map.listTitle': 'Farmers on this map',
+  'map.all': 'All',
+  'map.liveCount': '{n} on sale',
+  'map.openShop': 'See the shop',
+  'map.yourPoint': 'Your location',
 }
 
 export const dictionaries: Record<LangCode, Record<string, string>> = { mr, en }

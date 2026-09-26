@@ -14,7 +14,7 @@ import {
   Rupees, SectionTitle, VoiceInput, useAsync,
 } from '../../components/ui.js'
 import {
-  IconCart, IconCheck, IconMinus, IconNext, IconPlus, IconProduct, IconSearch,
+  IconCart, IconCheck, IconMap, IconMinus, IconNext, IconPlus, IconProduct, IconSearch,
 } from '../../components/icons.js'
 import { PageTour } from '../../components/Walkthrough.js'
 import { RatingLine, RatingSummaryCard, ReviewList } from '../../components/Reviews.js'
@@ -168,7 +168,14 @@ export function Explore() {
 
   return (
     <>
-      <AppBar brand title={t('app.name')} sub={t('app.nameShort')} />
+      <AppBar
+        brand title={t('app.name')} sub={t('app.nameShort')}
+        right={
+          <button type="button" className="appbar__btn appbar__btn--word" onClick={() => nav('/shop/map')}>
+            <IconMap aria-hidden="true" /><span>{t('map.title')}</span>
+          </button>
+        }
+      />
       <div className="screen stack">
         <VoiceInput
           data-wt="ex-search"

@@ -357,6 +357,13 @@ const mr: Record<string, string> = {
   'dm.crop': 'पीक',
   'dm.unit': 'एकक',
   'dm.empty': 'या काळात काहीही मागवलेले किंवा विक्रीस नाही',
+  'map.title': 'नकाशा',
+  'map.empty': 'नकाशावर अजून कोणी नाही',
+  'map.legend': 'नकाशावरील खुणा',
+  'map.legendFarmer': 'शेतकरी',
+  'map.legendSurvey': 'सर्वेक्षण',
+  'map.allCrops': 'सर्व पिके',
+  'map.allVillages': 'सर्व गावे',
 }
 
 const en: Record<string, string> = {
@@ -694,6 +701,13 @@ const en: Record<string, string> = {
   'dm.crop': 'Crop',
   'dm.unit': 'Unit',
   'dm.empty': 'Nothing ordered or listed in this period',
+  'map.title': 'Map',
+  'map.empty': 'No farmers on the map yet',
+  'map.legend': 'Map key',
+  'map.legendFarmer': 'Farmer',
+  'map.legendSurvey': 'Survey',
+  'map.allCrops': 'Every crop',
+  'map.allVillages': 'Every village',
 }
 
 export const dictionaries: Record<LangCode, Record<string, string>> = { mr, en }
