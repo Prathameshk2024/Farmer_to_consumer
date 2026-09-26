@@ -268,7 +268,7 @@ const mr: Record<string, string> = {
 
   'reg.upiTitle': 'पैसे कुठे मिळणार?',
   'reg.upiHint': 'ग्राहकांचे पैसे थेट तुमच्या खात्यात जातील. आम्ही पैसे ठेवत नाही. म्हणून हा नंबर दोनदा तपासा.',
-  'reg.upiLabel': 'तुमचा UPI आयडी', 'reg.upiPlaceholder': 'उदा. sunita@ybl',
+  'reg.upiLabel': 'तुमचा UPI आयडी', 'reg.upiPlaceholder': 'उदा. patil@ybl',
   'reg.upiWhere': 'PhonePe किंवा GPay उघडा — तिथे तुमचा UPI आयडी दिसेल.',
   'reg.upiQr': 'तुमचा पेमेंट QR (ऐच्छिक)',
   'reg.upiQrHint': 'तुमच्या बँकेच्या ॲपमधला QR चा फोटो काढा. ग्राहक हाच QR स्कॅन करेल. नंतरही टाकता येईल.',
@@ -407,7 +407,7 @@ const mr: Record<string, string> = {
   'ord.delivery': 'घरपोच',
   'chk.fulfilment': 'माल कसा घ्याल?',
   'chk.pickupChoice': 'शेतावरून नेणार',
-  'chk.noDelivery': 'टोपलीतील एक शेतकरी घरपोच देत नाही. त्याचा माल टोपलीतून काढा आणि त्याच्याकडे वेगळी ऑर्डर करा.',
+  'chk.noDelivery': 'टोपलीतील एक शेतकरी घरपोच देत नाही. त्या शेतकऱ्याचा माल टोपलीतून काढा आणि त्या शेतकऱ्याकडे वेगळी ऑर्डर करा.',
   'chk.pickupNote': 'ऑर्डर स्वीकारल्यावर शेतकरी माल तयार ठेवेल. तयार झाल्यावर तुम्हाला कळेल.',
   'prof.fulfilment': 'ग्राहकांना माल कसा मिळेल',
   'prof.offersDelivery': 'घरपोच पोहोचवू',
@@ -618,7 +618,7 @@ const mr: Record<string, string> = {
   'cus.firstAddress': 'वस्तू कुठे पोहोचवायच्या?',
   'cus.firstAddressSub': 'एकदा टाकला की पुढच्या वेळी लक्षात राहील.',
   'cus.addressLabel': 'या पत्त्याला नाव द्या',
-  'cus.addressLabelHint': 'उदा. घर, दुकान, माहेर',
+  'cus.addressLabelHint': 'उदा. घर, दुकान, शेत',
   'cus.addressLine': 'पूर्ण पत्ता',
   'cus.addressLineHint': 'घर क्रमांक, गल्ली, गाव',
   'cus.landmark': 'जवळची खूण',
@@ -726,7 +726,7 @@ const mr: Record<string, string> = {
   /* Example text inside empty inputs. These are shown, so they translate -
      an English UI with a Marathi example in the box is the same bug as an
      untranslated label. */
-  'ph.fullName': 'सुनीता पाटील',
+  'ph.fullName': 'पूर्ण नाव',
   'ph.village': 'गावाचे नाव',
   'ph.taluka': 'तालुक्याचे नाव',
   'ph.district': 'जिल्ह्याचे नाव',
@@ -1054,7 +1054,7 @@ const en: Record<string, string> = {
 
   'reg.upiTitle': 'Where your money arrives',
   'reg.upiHint': 'Customer payments go straight into your account. We never hold your money — so check this twice.',
-  'reg.upiLabel': 'Your UPI ID', 'reg.upiPlaceholder': 'e.g. sunita@ybl',
+  'reg.upiLabel': 'Your UPI ID', 'reg.upiPlaceholder': 'e.g. patil@ybl',
   'reg.upiWhere': 'Open PhonePe or GPay — your UPI ID is shown there.',
   'reg.upiQr': 'Your payment QR (optional)',
   'reg.upiQrHint': 'Photograph the QR in your bank app. This is what a customer scans. You can add it later instead.',
@@ -1486,7 +1486,7 @@ const en: Record<string, string> = {
   'unit.kg': 'kg', 'unit.piece': 'piece', 'unit.dozen': 'dozen',
   'unit.litre': 'litre',
 
-  'ph.fullName': 'Sunita Patil',
+  'ph.fullName': 'Full name',
   'ph.village': 'Village name',
   'ph.taluka': 'Taluka name',
   'ph.district': 'District name',

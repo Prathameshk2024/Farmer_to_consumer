@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { cropById } from '@shared/crops.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
@@ -10,6 +10,8 @@ import {
   AppBar, Button, Card, EmptyState, LanguagePicker, Loading, useAsync,
 } from '../../components/ui.js'
 import { IconBuy, IconCall, IconMap, IconProduct, IconWhatsapp } from '../../components/icons.js'
+
+const MapView = lazy(() => import('../../components/MapView.js'))
 
 /**
  * WHERE A PRINTED QR LANDS. Public: whoever scanned the sack may have no
@@ -84,7 +86,17 @@ export default function Trace() {
           </a>
         </div>
 
-        {/* ponytail: a plain map link until Task 10's MapView lands, then swap it in. */}
+        {/* The rounded village point, and a link to open it in a map app. */}
+        {farmer.lat != null && farmer.lng != null && (
+          <Suspense fallback={null}>
+            <MapView
+              pins={[{ id: farmer.id, lat: farmer.lat, lng: farmer.lng, label: farmer.name }]}
+              height={200}
+              center={[farmer.lat, farmer.lng]}
+              label={t('trace.map')}
+            />
+          </Suspense>
+        )}
         {farmer.lat != null && farmer.lng != null && (
           <a
             className="btn btn--quiet"
