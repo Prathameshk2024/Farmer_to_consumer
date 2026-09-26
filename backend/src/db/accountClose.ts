@@ -13,8 +13,8 @@ import { PLACEHOLDER_NAME } from './customers.js'
  *
  * `shared/src/accountClose.ts` says what the rule is and why a row survives
  * the person. This file does it, in two moments that are deliberately far
- * apart: `requestFarmerClose` shuts the shop and signs her out the instant she
- * asks, and `sweepClosedAccounts` empties the record a week later. A customer
+ * apart: `requestFarmerClose` shuts the shop and signs the farmer out the instant they
+ * ask, and `sweepClosedAccounts` empties the record a week later. A customer
  * has no week - `closeCustomer` does both at once.
  *
  * Nothing here calls `save()`. The routes and the sweep decide when to write,
@@ -30,14 +30,14 @@ export interface CloseRequest {
   note?: string
 }
 
-/** Her orders that still need somebody - the reason a close can be refused. */
+/** The farmer's orders that still need somebody - the reason a close can be refused. */
 export function openOrdersForFarmer(db: Db, farmerId: string): Order[] {
   return openOrders(db.orders.filter((o) => o.farmerId === farmerId))
 }
 
 export function openOrdersForCustomer(db: Db, customerId: string, phone: string): Order[] {
   // By id AND by phone: a customer row is rebuilt from orders, and an order
-  // placed before she had a row carries the phone but not the id.
+  // placed before the buyer had a row carries the phone but not the id.
   const digits = phone.replace(/\D/g, '')
   return openOrders(
     db.orders.filter(
@@ -47,11 +47,11 @@ export function openOrdersForCustomer(db: Db, customerId: string, phone: string)
 }
 
 /**
- * She asked. The shop closes now; the erasing is a week away.
+ * The farmer asked. The shop closes now; the erasing is a week away.
  *
- * CLOSED is not in `canSellNow`, so her listings leave the catalogue, her shop
+ * CLOSED is not in `canSellNow`, so their listings leave the catalogue, their shop
  * page stops answering and `POST /orders` refuses - all of it from the status
- * alone, with no product touched. If she comes back
+ * alone, with no product touched. If they come back
  * inside the week, `restoreFarmer` puts the status back and nothing else has
  * to be undone.
  */
@@ -67,19 +67,19 @@ export function requestFarmerClose(
   if (request.note) farmer.closeNote = request.note
   else delete farmer.closeNote
   // `isOpen` is left alone on purpose. CLOSED already hides the shop, and
-  // flipping the switch too meant a restore brought her back with the shop
+  // flipping the switch too meant a restore brought them back with the shop
   // still shut - the one thing restoring promises not to do.
 
-  // Every phone signed in as her, not just this one. She asked for the
+  // Every phone signed in as them, not just this one. They asked for the
   // account to end; a second handset still holding a live token has not.
   revokeAllForUser(db, farmer.id, 'logout', now)
   return farmer
 }
 
-/** She changed her mind inside the week. */
+/** The farmer changed their mind inside the week. */
 export function restoreFarmer(farmer: Farmer): Farmer {
-  // Back to what the verification says, not whatever she was before: a
-  // farmer who closed before an admin checked him must not come back verified.
+  // Back to what the verification says, not whatever they were before: a
+  // farmer who closed before an admin checked them must not come back verified.
   farmer.status = farmer.verifiedAt ? 'ACTIVE' : 'PENDING_VERIFICATION'
   delete farmer.closingAt
   delete farmer.closeReason
@@ -88,8 +88,8 @@ export function restoreFarmer(farmer: Farmer): Farmer {
 }
 
 /**
- * The erasing itself. Everything that is the woman goes; the shop's history
- * stays, holding no way back to her.
+ * The erasing itself. Everything that is the person goes; the shop's history
+ * stays, holding no way back to them.
  *
  * `FARMER_PII_FIELDS` in the shared rule is the list, and a test walks it
  * against this function - a new field on `Farmer` that nobody adds to the list
@@ -101,11 +101,11 @@ export function scrubFarmer(
   now = Date.now(),
   destroy: (publicId: string | undefined) => unknown = destroyImage,
 ): Farmer {
-  // Her bank's QR is a picture of her account. Best effort and not awaited,
+  // The farmer's bank QR is a picture of their account. Best effort and not awaited,
   // like every other image this app destroys: the record is what matters.
   void destroy(farmer.upiQrPublicId)
 
-  // Read before the scrub blanks it: her forgot-password requests are found by it.
+  // Read before the scrub blanks it: their forgot-password requests are found by it.
   forgetAuth(db, farmer.id, farmer.phone)
 
   farmer.name = CLOSED_SHOP_NAME
@@ -150,14 +150,14 @@ export function scrubFarmer(
 }
 
 /**
- * A buyer leaving. No week to think it over, because what she loses is a list
- * of addresses rather than her income - and her row is rebuilt from her phone
- * the moment she signs in again, which is what makes that a NEW account rather
+ * A buyer leaving. No week to think it over, because what the buyer loses is a list
+ * of addresses rather than an income - and their row is rebuilt from their phone
+ * the moment they sign in again, which is what makes that a NEW account rather
  * than the old one handed back.
  *
- * The phone and the address she typed are copied onto every order she placed,
- * and her first name onto every review she wrote. Those copies are the account
- * as far as she is concerned, so they go too; the stars, the words and the
+ * The phone and the address the buyer typed are copied onto every order they placed,
+ * and their first name onto every review they wrote. Those copies are the account
+ * as far as they are concerned, so they go too; the stars, the words and the
  * money stay, because they are the farmer's record of a sale that happened.
  */
 export function closeCustomer(db: Db, customerId: string, phone: string, now = Date.now()): void {
@@ -185,8 +185,8 @@ export function closeCustomer(db: Db, customerId: string, phone: string, now = D
 }
 
 /**
- * Her password and her forgot-password requests. The hash would otherwise let
- * her old number sign in to a closed account, and the requests carry her name.
+ * The password and forgot-password requests. The hash would otherwise let
+ * the old number sign in to a closed account, and the requests carry the name.
  */
 function forgetAuth(db: Db, userId: string, phone: string): void {
   removeCredential(db, userId)
@@ -194,11 +194,11 @@ function forgetAuth(db: Db, userId: string, phone: string): void {
 }
 
 /**
- * Sign her out everywhere and take her number and phone off the session rows.
+ * Sign the farmer out everywhere and take their number and phone off the session rows.
  *
  * Revoked rows are kept a week for auditing (`pruneSessions`), and each one
- * carried her full phone all that week. Worse, a farmer who
- * signed in during her seven days to look at the notice, and neither restored
+ * carried the full phone all that week. Worse, a farmer who
+ * signed in during their seven days to look at the notice, and neither restored
  * nor logged out, held a LIVE session into an erased shop. Blanking rather
  * than deleting the rows keeps this clear of `isBulkDelete`.
  */

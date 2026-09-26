@@ -6,7 +6,7 @@ process.env.SESSION_SECRET = 'test-secret-for-unit-tests'
 const { publiclyVisible } = await import('../src/routes/catalog.routes.js')
 
 /**
- * A farmer is checked once, by a person, and after that his produce goes
+ * A farmer is checked once, by a person, and after that their produce goes
  * straight on sale. Produce changes daily; a queue per listing would sell
  * yesterday's tomatoes. The check that remains is on the farmer.
  */

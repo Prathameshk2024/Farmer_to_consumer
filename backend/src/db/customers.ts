@@ -32,7 +32,7 @@ export function findCustomer(db: Db, customerId: string): Customer | undefined {
   return db.customers.find((c) => c.id === customerId)
 }
 
-/** Fetch her record, creating an empty one the first time she is seen. */
+/** Fetch the customer's record, creating an empty one the first time they are seen. */
 export function ensureCustomer(
   db: Db,
   customerId: string,
@@ -62,7 +62,7 @@ export function ensureCustomer(
 }
 
 /**
- * The checkout placeholder must never overwrite a name she actually gave us.
+ * The checkout placeholder must never overwrite a name the buyer actually gave us.
  * One anonymous order would otherwise erase it.
  */
 export const PLACEHOLDER_NAME = 'ग्राहक'
@@ -76,7 +76,7 @@ function isRealName(name: string): boolean {
  * A buyer's account: phone, name and password, on one screen.
  *
  * A row may already exist - a checkout, or the order backfill, makes one from
- * her phone. An empty one is adopted; one with addresses or orders is refused
+ * the phone. An empty one is adopted; one with addresses or orders is refused
  * with CLAIM_VIA_ADMIN, because typing a number proves nothing about it. What makes a
  * number taken is a CUSTOMER CREDENTIAL, not a row: a phone that only ever
  * ordered has no password yet, and a farmer's password on the same number is
@@ -160,8 +160,8 @@ export function addAddress(db: Db, customerId: string, input: AddressInput): Add
     landmark: input.landmark?.trim() || undefined,
     city: input.city?.trim() || undefined,
     pincode: input.pincode.trim(),
-    // The first address she saves is her default; there is nothing to compare
-    // it against and asking her to choose would be a pointless question.
+    // The first address the buyer saves is the default; there is nothing to compare
+    // it against and asking them to choose would be a pointless question.
     isDefault: customer.addresses.length === 0 || input.isDefault === true,
   }
 
@@ -180,7 +180,7 @@ export function updateAddress(
   const customer = findCustomer(db, customerId)
   if (!customer) return null
 
-  // Looked up only within her own addresses - somebody else's id finds nothing.
+  // Looked up only within the buyer's own addresses - somebody else's id finds nothing.
   const address = customer.addresses.find((a) => a.id === addressId)
   if (!address) return null
 
@@ -208,7 +208,7 @@ export function deleteAddress(db: Db, customerId: string, addressId: string): bo
 
   const [removed] = customer.addresses.splice(index, 1)
 
-  // Never leave her with addresses but no default - the checkout picker would
+  // Never leave a buyer with addresses but no default - the checkout picker would
   // have nothing to preselect.
   if (removed?.isDefault && customer.addresses.length > 0) {
     customer.addresses[0]!.isDefault = true
@@ -225,12 +225,12 @@ function clearOtherDefaults(customer: Customer, keepId: string): void {
 }
 
 /**
- * Record the customer behind an order she has just placed.
+ * Record the customer behind an order they have just placed.
  *
- * This is what makes checkout remember her: the delivery address she typed is
- * kept, so next time it is waiting for her instead of a blank form. There is
+ * This is what makes checkout remember the buyer: the delivery address they typed is
+ * kept, so next time it is waiting for them instead of a blank form. There is
  * no "save this address?" checkbox - for a first-time smartphone user one
- * fewer decision is worth more than the control, and she can edit them later.
+ * fewer decision is worth more than the control, and they can edit them later.
  */
 export function recordOrderCustomer(db: Db, order: Order): Customer {
   const customer = ensureCustomer(
@@ -240,7 +240,7 @@ export function recordOrderCustomer(db: Db, order: Order): Customer {
     order.customerName,
   )
 
-  // A pickup order's address is the farmer's pickup place, not hers.
+  // A pickup order's address is the farmer's pickup place, not the buyer's.
   if (order.fulfilment !== 'pickup' && order.address?.trim()) {
     addAddress(db, customer.id, {
       line: order.address,
@@ -292,8 +292,8 @@ export function deriveCustomersFromOrders(orders: Order[]): Customer[] {
   const customers: Customer[] = []
 
   for (const [phone, group] of byPhone) {
-    // Newest first: her latest order is the best evidence of her current name
-    // and of which address she is actually using.
+    // Newest first: the latest order is the best evidence of the current name
+    // and of which address the buyer is actually using.
     const sorted = [...group].sort((a, b) => (a.placedAt < b.placedAt ? 1 : -1))
     const newest = sorted[0]!
     const oldest = sorted[sorted.length - 1]!
@@ -309,7 +309,7 @@ export function deriveCustomersFromOrders(orders: Order[]): Customer[] {
         line: o.address.trim(),
         landmark: o.landmark?.trim() || undefined,
         pincode: o.pincode,
-        // First one appended came from the newest order, so it is the one she
+        // First one appended came from the newest order, so it is the one the buyer
         // used most recently.
         isDefault: addresses.length === 0,
       })
@@ -329,7 +329,7 @@ export function deriveCustomersFromOrders(orders: Order[]): Customer[] {
 }
 
 /* ------------------------------------------------------------------ */
-/* Her buyers                                                          */
+/* A farmer's buyers                                                   */
 /* ------------------------------------------------------------------ */
 
 export interface FarmerBuyer {
@@ -344,15 +344,15 @@ export interface FarmerBuyer {
   pincode: string
 }
 
-/** An order that never completed is not money she earned. */
+/** An order that never completed is not money the farmer earned. */
 const NOT_A_SALE = new Set(['CANCELLED', 'REJECTED'])
 
 /**
  * The buyers behind a farmer's own orders.
  *
- * Scoped to `farmerId` and built ONLY from orders belonging to her. She sees
- * nothing about a buyer beyond what her own order already told her - not the
- * addresses that buyer saved for somebody else, not her orders with another
+ * Scoped to `farmerId` and built ONLY from orders belonging to that farmer. The farmer sees
+ * nothing about a buyer beyond what their own order already said - not the
+ * addresses that buyer saved for somebody else, not the buyer's orders with another
  * farmer. That scoping is the whole privacy rule for this screen, which is why
  * it lives here rather than being assembled in the route.
  *
@@ -363,7 +363,7 @@ export function buyersForFarmer(db: Db, farmerId: string): FarmerBuyer[] {
   const mine = db.orders.filter((o) => o.farmerId === farmerId)
   const byCustomer = new Map<string, FarmerBuyer>()
 
-  // Newest first, so the first order seen for a buyer is her most recent and
+  // Newest first, so the first order seen for a buyer is their most recent and
   // supplies the name and address the farmer should be looking at.
   for (const o of [...mine].sort((a, b) => (a.placedAt < b.placedAt ? 1 : -1))) {
     let buyer = byCustomer.get(o.customerId)
@@ -372,7 +372,7 @@ export function buyersForFarmer(db: Db, farmerId: string): FarmerBuyer[] {
       buyer = {
         customerId: o.customerId,
         // The stored record is the better name: the order may carry the
-        // ग्राहक placeholder from a checkout where she never typed one.
+        // ग्राहक placeholder from a checkout where the buyer never typed one.
         name: findCustomer(db, o.customerId)?.name || o.customerName,
         phone: o.customerPhone,
         orderCount: 0,
@@ -385,7 +385,7 @@ export function buyersForFarmer(db: Db, farmerId: string): FarmerBuyer[] {
     }
 
     // A buyer whose every order fell through still belongs on the list, at
-    // zero. Dropping her would tell the farmer nobody ever tried.
+    // zero. Dropping them would tell the farmer nobody ever tried.
     if (!NOT_A_SALE.has(o.status)) {
       buyer.orderCount += 1
       buyer.totalSpent += o.total

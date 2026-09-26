@@ -4,7 +4,7 @@ import { cropById } from './crops.js'
 
 /**
  * Selling is free. There are no packs, slots or edit limits: a farmer who can
- * sell may list, change and remove his produce as often as the day needs.
+ * sell may list, change and remove their produce as often as the day needs.
  */
 export function farmerMayDelete(_status: ProductStatus): boolean {
   return true
@@ -12,7 +12,7 @@ export function farmerMayDelete(_status: ProductStatus): boolean {
 
 
 /**
- * A verified farmer's listing is on sale the moment he sends it. The person
+ * A verified farmer's listing is on sale the moment they send it. The person
  * check happens once, on the farmer (POST /admin/farmers/:id/verify), and
  * a listing that turns out wrong is reported and taken down.
  */
@@ -61,7 +61,7 @@ export function isValidPhone(value: string | undefined): boolean {
 export function normalizePhone(value: string | undefined): string {
   const digits = String(value ?? '').replace(/\D/g, '')
   // Strip a country code or a trunk prefix, so the stored number is always the
-  // same ten digits she types at login.
+  // same ten digits they type at login.
   if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2)
   if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1)
   return digits
@@ -96,11 +96,11 @@ export function isValidPincode(value: string | undefined): boolean {
 }
 
 /**
- * IS THIS SOMEWHERE SHE COULD PLAUSIBLY DELIVER?
+ * IS THIS SOMEWHERE THE FARMER COULD PLAUSIBLY DELIVER?
  *
  * Maharashtra pincodes start 40 through 44. Inside that, the decision is the
- * farmer's: the order reaches them and they accept or rejects it, whatever
- * their listed delivery areas say - a woman in 413004 knows perfectly well
+ * farmer's: the order reaches them and they accept or reject it, whatever
+ * their listed delivery areas say - a farmer in 413004 knows perfectly well
  * whether they can reach 413002, and the server guessing on their behalf
  * refused orders they wanted.
  *
@@ -119,7 +119,7 @@ export function isMaharashtraPincode(value: string | undefined): boolean {
  *
  * Every caller that only needs yes/no stays on this; `upiProblem` in
  * payment.js is the same check and says WHICH part is wrong, which is the only
- * useful thing to put under an input she has already typed once.
+ * useful thing to put under an input they have already typed once.
  */
 export function isValidUpi(value: string | undefined): boolean {
   return upiProblem(value) === null
@@ -128,14 +128,14 @@ export function isValidUpi(value: string | undefined): boolean {
 /**
  * Build the UPI intent link for an order.
  *
- * Generated from her stored UPI ID rather than the QR image she uploaded,
+ * Generated from the farmer's stored UPI ID rather than the QR image they uploaded,
  * because a generated link carries the exact amount. An uploaded screenshot has
  * no amount in it, so the customer types it by hand and can get it wrong.
  *
  * No `tr`. A transaction reference is a merchant field, and every payee here
  * is a personal UPI ID: a merchant field on a person's address is one more
  * thing a UPI app's risk check reads as a fake shop. The order id still
- * travels, in `tn`, which is what her bank statement shows anyway.
+ * travels, in `tn`, which is what their bank statement shows anyway.
  */
 export function buildUpiLink(opts: {
   upiId: string
@@ -158,12 +158,12 @@ export const PICKUP_PLACE_MIN = 3
 export const PICKUP_PLACE_MAX = 120
 
 /**
- * WHAT SHE MAY CHANGE ABOUT HERSELF, AND WHAT IT HAS TO LOOK LIKE.
+ * WHAT A FARMER MAY CHANGE ABOUT THEMSELVES, AND WHAT IT HAS TO LOOK LIKE.
  *
- * The allow-list on `PATCH /farmers/me` decides WHICH fields can move - her
- * status and her farmer code are not on it and never will be. This
- * decides whether the values she sent make sense, and it runs on both sides
- * for the usual two reasons: the form can say "10 digits" the instant she types
+ * The allow-list on `PATCH /farmers/me` decides WHICH fields can move - their
+ * status and farmer code are not on it and never will be. This
+ * decides whether the values they sent make sense, and it runs on both sides
+ * for the usual two reasons: the form can say "10 digits" the instant they type
  * it, and the server can refuse a delivery fee of -500 typed by something that
  * is not the form.
  *
@@ -187,7 +187,7 @@ export function validateFarmerProfile(
 
   if (p.whatsapp && !isValidPhone(p.whatsapp)) f.whatsapp = '10 अंकी मोबाईल नंबर टाका'
   // The reason, not "बरोबर नाही" - a second rejection of the same string with
-  // the same words behind it is where she stops trying and puts in a wrong one.
+  // the same words behind it is where the farmer stops trying and puts in a wrong one.
   if ('upiId' in p) {
     const problem = upiProblem(p.upiId)
     if (problem) f.upiId = problem
@@ -205,7 +205,7 @@ export function validateFarmerProfile(
     if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) f[key as string] = message
   }
 
-  // She delivers to pincodes, so a typo here is an order she never receives.
+  // The farmer delivers to pincodes, so a typo here is an order they never receive.
   if (p.pincodes && p.pincodes.some((code) => !isValidPincode(code))) {
     f.pincodes = '6 अंकी पिनकोड टाका'
   }

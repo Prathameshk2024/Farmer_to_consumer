@@ -40,7 +40,7 @@ test('no dictionary value is left empty', () => {
  *  - the college's name in Marathi, printed beside its English name;
  *  - the language chooser's subtitle, which deliberately shows the OTHER
  *    language so a Marathi speaker who lands on an English screen can find
- *    her way back.
+ *    their way back.
  *
  * Anything else in this list is a string somebody forgot to translate.
  */
@@ -129,8 +129,8 @@ test('a key missing from one language falls back to Marathi, not English', () =>
 })
 
 test('no English copy gives the farmer a gendered pronoun', () => {
-  // Farmers are men and women; the old copy was written for women only, and a
-  // later pass wrote "he". Buyers are anyone, so no pronoun is safe for them either.
+  // Farmers are anyone, and so are buyers: a gendered pronoun leaves somebody
+  // out. The old brand names are listed so neither can creep back into the copy.
   const bad = Object.entries(dictionaries.en)
     .filter(([, v]) => /\b(she|her|hers|herself|he|his|him|himself|women|woman|Shantai|Mahila)\b/i.test(v))
     .map(([k]) => k)

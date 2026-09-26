@@ -6,16 +6,16 @@ import {
 } from '../src/lib/scrollMemory.js'
 
 /**
- * WHERE SHE WAS READING.
+ * WHERE THEY WERE READING.
  *
  * Every route change used to run `window.scrollTo(0, 0)`, which is right going
- * forward - a product page opens at the top - and wrong coming back: she
+ * forward - a product page opens at the top - and wrong coming back: they
  * scrolls a long way down the catalogue, opens the tenth product, presses
- * back, and the list has forgotten her. On a phone that is thirty swipes to
- * return to where she was, so she stops browsing deep at all.
+ * back, and the list has forgotten them. On a phone that is thirty swipes to
+ * return to where they were, so they stop browsing deep at all.
  *
  * The position is kept per history entry, because the same path visited twice
- * is two different places she was reading.
+ * is two different places they were reading.
  */
 
 test('a position comes back for the entry that saved it', () => {
@@ -56,15 +56,15 @@ test('an entry can be forgotten', () => {
 })
 
 /* ------------------------------------------------------------------ */
-/* Getting her back there                                              */
+/* Getting them back there                                              */
 /* ------------------------------------------------------------------ */
 
 /**
  * A FAKE PAGE THAT GROWS, BECAUSE THE REAL ONE DOES.
  *
- * She comes back to the catalogue and for a moment it is a spinner one screen
+ * They come back to the catalogue and for a moment it is a spinner one screen
  * tall: the browser cannot scroll to the fortieth row of a page that short, so
- * it clamps her to the top. That clamp IS the bug people report as "back
+ * it clamps them to the top. That clamp IS the bug people report as "back
  * always goes to the first product". The restore has to wait for the list -
  * and then for the photographs, which change the height a second time.
  */
@@ -94,15 +94,15 @@ test('the restore lands once the list has rendered', () => {
   assert.equal(restorer.tick(), 'waiting')   // still fetching
   page.grow(2400)                            // the products arrive
   assert.equal(restorer.tick(), 'done')
-  assert.equal(page.y(), 1800, 'exactly where she was reading')
+  assert.equal(page.y(), 1800, 'exactly where they were reading')
 })
 
 /**
  * The photographs land after the rows do. Until the page is tall enough the
- * restore keeps her as far down as it can and carries her the rest of the way
- * afterwards, rather than leaving her at the top.
+ * restore keeps them as far down as it can and carries them the rest of the way
+ * afterwards, rather than leaving them at the top.
  */
-test('it keeps her as close as the page allows while it is still growing', () => {
+test('it keeps them as close as the page allows while it is still growing', () => {
   const page = fakePage(900)
   const restorer = makeRestorer(3000, page)
 
@@ -117,7 +117,7 @@ test('it keeps her as close as the page allows while it is still growing', () =>
 /**
  * A screen that is done growing and still refuses the position is a screen
  * where something else owns the scroll - a dialog, a focused input. Asking
- * again for six seconds would be a fight, and she would lose it either way.
+ * again for six seconds would be a fight, and they would lose it either way.
  */
 test('it stops once the page is tall enough, whatever came of it', () => {
   const page = fakePage(5000)
@@ -132,11 +132,11 @@ test('a position already restored asks for nothing', () => {
   const watched: ScrollHost = { ...page, to: (y) => { moved++; page.to(y) } }
 
   assert.equal(makeRestorer(1200, watched).tick(), 'done')
-  assert.equal(moved, 0, 'no scroll at all: she is already there')
+  assert.equal(moved, 0, 'no scroll at all: they are already there')
 })
 
 /** Sub-pixel layout means an exact match never arrives on a real phone. */
-test('near enough is where she was', () => {
+test('near enough is where they were', () => {
   assert.equal(landed(1800, 1799), true)
   assert.equal(landed(1800, 1780), false)
   assert.equal(reachable(1800, 1799), true)

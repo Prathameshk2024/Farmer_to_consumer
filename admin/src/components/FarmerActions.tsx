@@ -8,10 +8,10 @@ import { Button, Pill, useErrorText } from './ui.js'
 /**
  * Blocking and unblocking a farmer's account, in one place.
  *
- * They are offered from two screens - her row in the register and her own
+ * They are offered from two screens - the farmer's row in the register and their own
  * page - and the dialogs are the whole safeguard: each states what changes
- * for her tomorrow and waits for a second click. Two copies of that would
- * drift, and the copy that drifts is the one that stops saying "her products
+ * for them tomorrow and waits for a second click. Two copies of that would
+ * drift, and the copy that drifts is the one that stops saying "your products
  * will disappear from the app".
  */
 type Action = 'block' | null

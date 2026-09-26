@@ -6,7 +6,7 @@ import QRCode from 'qrcode'
  *
  * Everywhere a QR appears in this app it used to be a 🔳 placeholder, which
  * meant the screen implied data we did not have. This encodes actual values:
- * her shop URL, or a `upi://pay?…` intent built from the UPI ID she gave at
+ * their shop URL, or a `upi://pay?…` intent built from the UPI ID they gave at
  * registration.
  *
  * Generated locally rather than through an image service, because the app has
@@ -16,7 +16,7 @@ import QRCode from 'qrcode'
 /**
  * Dark leaf green on white (7.9:1): enough contrast for any scanner, and it keeps the code
  * on-brand instead of dropping a black square into a warm page. Shared with
- * the saved copy, so the picture in her gallery is the one she saw on screen.
+ * the saved copy, so the picture in their gallery is the one they saw on screen.
  */
 export const QR_COLOURS = { dark: '#1b5e20ff', light: '#ffffffff' }
 

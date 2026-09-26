@@ -5,8 +5,8 @@
  * and repairs the customer id on those orders.
  *
  * Why the ids need repairing: the seeded orders carry `c1`..`c4`, while login
- * issues `c-<phone>`. They never match, so a woman logging in today sees an
- * empty order history while her orders sit in the database.
+ * issues `c-<phone>`. They never match, so a buyer logging in today sees an
+ * empty order history while their orders sit in the database.
  *
  * Reports and changes nothing unless `--commit` is passed. Safe to run twice -
  * customers are keyed by derived id and orders already carrying the right id
@@ -85,7 +85,7 @@ async function main(): Promise<void> {
     return
   }
 
-  // Upsert rather than replace: an address she added through the app after
+  // Upsert rather than replace: an address the buyer added through the app after
   // ordering is not in the order history, and must not be thrown away.
   for (const derived of plan.customers) {
     const existing = db.customers.find((c) => c.id === derived.id)

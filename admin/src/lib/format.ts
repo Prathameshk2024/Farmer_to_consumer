@@ -34,8 +34,8 @@ export function waited(iso: string, now = Date.now()): { n: number; unit: 'min' 
  * The customer's details, as the ORDERS LIST is allowed to see them.
  *
  * An admin chasing a stuck order needs to know which order and which farmer.
- * She does not need the buyer's name, phone and home address on screen while
- * she does it - that is a list of women's home addresses on a console that
+ * The admin does not need the buyer's name, phone and home address on screen
+ * while doing it - that is a list of people's home addresses on a console that
  * will live at a public URL.
  *
  * The full details stay one click away inside a specific order, where looking
@@ -73,7 +73,7 @@ export function maskedLabel(order: Order): string {
 /**
  * An order nobody has moved for too long.
  *
- * The thresholds mirror /admin/stats exactly - 24 hours once she has accepted
+ * The thresholds mirror /admin/stats exactly - 24 hours once the farmer has accepted
  * or packed it, 12 once it is out for delivery. Two different numbers on two
  * screens for the same idea is how an admin stops trusting either.
  */

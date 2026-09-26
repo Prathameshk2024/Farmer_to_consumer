@@ -9,7 +9,7 @@ const { submitPasswordRequest, closePasswordRequest, resetUserPassword, removePa
 const { hit, LIMITS, resetAllLimits } = await import('../src/auth/rateLimit.js')
 
 /**
- * "Forgot password" is a request to a person: the farmer leaves his number,
+ * "Forgot password" is a request to a person: the farmer leaves their number,
  * an admin calls that number and reads out a temporary password. The page is
  * public, so it must not answer the question "does this number have an
  * account?", and a farmer who taps the button five times must still be one
@@ -38,7 +38,7 @@ test('the account is noted only when there is one', () => {
   const byPhone = (p: string) => db.passwordRequests.find((r) => r.phone === p)!
   assert.equal(byPhone('9822011223').matchedUserId, 'f1')
   assert.equal(byPhone('9822099999').matchedUserId, undefined)
-  assert.equal(byPhone('9822099999').status, 'OPEN', 'still queued: he may have registered on another number')
+  assert.equal(byPhone('9822099999').status, 'OPEN', 'still queued: they may have registered on another number')
 })
 
 test('a farmer request does not match a buyer account on the same phone', () => {
@@ -56,17 +56,17 @@ test('asking again while one is open refreshes it instead of adding a row', () =
 
 test('after the first is closed, a new request is a new row', () => {
   ask('9822011223')
-  closePasswordRequest(db, db.passwordRequests[0].id, 'DISMISSED', 'admin@college', 'called, he remembered it')
+  closePasswordRequest(db, db.passwordRequests[0].id, 'DISMISSED', 'admin@college', 'called, they remembered it')
   ask('9822011223')
   assert.equal(db.passwordRequests.length, 2)
-  assert.equal(db.passwordRequests[0].closeReason, 'called, he remembered it')
+  assert.equal(db.passwordRequests[0].closeReason, 'called, they remembered it')
 })
 
 test('a bad phone, or a missing name or village, is refused and nothing is stored', () => {
   assert.equal(ask('12345').status, 400)
   assert.equal(submitPasswordRequest(db, { role: 'farmer', phone: '9822011223', name: ' ', village: 'अणदूर' }).status, 400)
   assert.equal(submitPasswordRequest(db, { role: 'farmer', phone: '9822011223', name: 'राजेश पाटील' }).status, 400,
-    'a farmer also gives his village, so the admin can tell two Rajesh Patils apart')
+    'a farmer also gives their village, so the admin can tell two Rajesh Patils apart')
   assert.equal(db.passwordRequests.length, 0)
 })
 

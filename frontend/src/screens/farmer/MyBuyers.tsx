@@ -8,14 +8,14 @@ import {
 import { IconBuyers, IconCall } from '../../components/icons.js'
 
 /**
- * Who buys from her.
+ * Who buys from them.
  *
- * A shopkeeper knows her regulars by face. Selling through an app takes that
+ * A shopkeeper knows their regulars by face. Selling through an app takes that
  * away, so this gives it back: who came back, how often, and how long since.
  *
- * Everything shown here she has already seen on her own order screens - this
- * only gathers it. The server derives the list from her orders alone, so a
- * buyer's dealings with any other farmer are not hers to see.
+ * Everything shown here they have already seen on their own order screens - this
+ * only gathers it. The server derives the list from their orders alone, so a
+ * buyer's dealings with any other farmer are not theirs to see.
  */
 export function MyBuyers() {
   const t = useT()

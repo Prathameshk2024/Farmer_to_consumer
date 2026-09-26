@@ -42,7 +42,7 @@ export function normalizeLegacyRows(
     } else if (s.status === 'ACTIVE' && !s.verifiedAt) {
       // Selling before verification existed: already let in by an admin.
       // Stamped so that unblock and restore, which key on `verifiedAt`, do
-      // not drop him back to waiting.
+      // not drop them back to waiting.
       s.verifiedAt = new Date().toISOString()
       s.verifiedBy = 'legacy'
       changed++

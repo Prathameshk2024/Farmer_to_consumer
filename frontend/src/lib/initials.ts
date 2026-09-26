@@ -7,7 +7,7 @@
  * THE DEVANAGARI PROBLEM
  * `name.slice(0, 1)` on सुनीता yields स. That is not how the name starts: the
  * ु is a separate code point belonging to the same syllable, and slicing drops
- * it to print a letter she would not recognise as hers. What is wanted is the
+ * it to print a letter they would not recognise as theirs. What is wanted is the
  * first written syllable - the akshara - which is सु.
  *
  * Two things make that more than a character class:

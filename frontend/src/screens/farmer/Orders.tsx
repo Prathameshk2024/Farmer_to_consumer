@@ -23,7 +23,7 @@ import {
 
 const TABS: { id: string; labelKey: string; statuses?: OrderStatus[] }[] = [
   { id: 'action', labelKey: 'biz.needsAction' },
-  // ACCEPTED, PACKED and OUT_FOR_DELIVERY are one tab: from her side they are
+  // ACCEPTED, PACKED and OUT_FOR_DELIVERY are one tab: from their side they are
   // the same order, in hand and not yet delivered. Splitting them gave three
   // tabs that were each empty most of the time.
   { id: 'accepted', labelKey: 'ord.accepted', statuses: ['ACCEPTED', 'PACKED', 'OUT_FOR_DELIVERY'] },
@@ -104,7 +104,7 @@ export function FarmerOrderDetail() {
   const [confirm, setConfirm] = useState<FarmerAction | null>(null)
   const [actionErr, setActionErr] = useState('')
   const [rejectOpen, setRejectOpen] = useState(false)
-  /** The Accept she has tapped, while she is being asked how long it will take. */
+  /** The Accept they have tapped, while they are being asked how long it will take. */
   const [estimateFor, setEstimateFor] = useState<FarmerAction | null>(null)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -136,7 +136,7 @@ export function FarmerOrderDetail() {
       const res = await api.advanceOrder(order.id, action.to, extra)
       setData({ ...data!, order: res.order })
       setRejectOpen(false)
-      // Names the state she just moved it to, not a generic "saved" - the
+      // Names the state they just moved it to, not a generic "saved" - the
       // whole doubt on this screen is which step the order is on now.
       toast(`${t('ok.orderUpdated')}: ${t(statusLabelKey(res.order.status, res.order.fulfilment))}`)
     } catch (e) {
@@ -172,8 +172,8 @@ export function FarmerOrderDetail() {
           <strong style={{ fontSize: 'var(--t-lg)' }}><Rupees value={order.total} /></strong>
         </div>
 
-        {/* What she promised this buyer when she accepted, so she can see it
-            on the screen where she decides what to do next. */}
+        {/* What they promised this buyer when they accepted, so the buyer can see it
+            on the screen where they decide what to do next. */}
         {order.deliveryEstimate && (
           <Notice tone="info" title={t('ord.etaLabel')}>{order.deliveryEstimate}</Notice>
         )}
@@ -181,8 +181,8 @@ export function FarmerOrderDetail() {
         <OrderEndedNotice order={order} viewer="farmer" />
         <RefundNotice order={order} viewer="farmer" />
 
-        {/* What this buyer said about each product on the order, where she
-            can match it to what she sent. Read-only: see farmer/Reviews.tsx. */}
+        {/* What this buyer said about each product on the order, where they
+            can match it to what they sent. Read-only: see farmer/Reviews.tsx. */}
         {data.reviews?.length > 0 && (
           <div>
             <SectionTitle>{t('rev.fromBuyer')}</SectionTitle>
@@ -261,7 +261,7 @@ export function FarmerOrderDetail() {
           <div className="stack-sm">
             <div className="section-title">{t('ord.customer')}</div>
             <strong>{order.customerName}</strong>
-            {/* On pickup this is her own pickup place, labelled so. */}
+            {/* On pickup this is their own pickup place, labelled so. */}
             <div className="small muted">{order.fulfilment === 'pickup' ? `${t('ord.pickup')}: ${order.address}` : order.address}</div>
             {order.landmark && <div className="small dim">{order.landmark}</div>}
             <div className="small dim num">{order.pincode}</div>
@@ -289,7 +289,7 @@ export function FarmerOrderDetail() {
         {actionErr && <Notice tone="danger">{actionErr}</Notice>}
 
         {/* Below everything and outside the action bar, on purpose: the bar
-            is where her thumb goes forty times a day to move orders along,
+            is where their thumb goes forty times a day to move orders along,
             and "cancel" must never be the button that happens to be there. */}
         {farmerCanCancel(order.status) && (
           <Button variant="ghost" disabled={busy} onClick={() => setCancelOpen(true)}>
@@ -343,8 +343,8 @@ export function FarmerOrderDetail() {
       />
 
       {/* "Yes" and "when?" are one moment for the buyer, so they are one
-          moment here: she cannot accept without being asked how long it will
-          take. She may still decline to answer - a promise nobody asked her
+          moment here: they cannot accept without being asked how long it will
+          take. They may still decline to answer - a promise nobody asked them
           to keep is worse than no promise - and the chips are there because
           typing Marathi is the barrier, not knowing the answer. */}
       {estimateFor && (
@@ -433,17 +433,17 @@ export function Timeline({ order }: { order: Order }) {
  * HOW LONG WILL IT TAKE?
  *
  * The buyer's next question after "yes" is always "when?", and until now the
- * app had no answer: she accepted, and the order screen said ACCEPTED and
- * nothing about time. So Accept asks her, at the one moment she knows - she
- * has just read the address, the quantity and what is on her shelf.
+ * app had no answer: they accepted, and the order screen said ACCEPTED and
+ * nothing about time. So Accept asks them, at the one moment they know - they
+ * has just read the address, the quantity and what is on their shelf.
  *
- * Her words, not a date picker. The honest answer in a village with one bus a
+ * Their words, not a date picker. The honest answer in a village with one bus a
  * day is "two days" or "Thursday, after the market", and a calendar would
- * make her invent a precision she does not have. The chips are the common
+ * make them invent a precision they do not have. The chips are the common
  * answers, because typing Marathi is the barrier here, not knowing the reply.
  *
  * Answering is not compulsory: "I will say later" accepts the order without a
- * promise. A time she was pushed into inventing is worse for the buyer than
+ * promise. A time they were pushed into inventing is worse for the buyer than
  * no time at all.
  */
 function DeliveryEstimateSheet({

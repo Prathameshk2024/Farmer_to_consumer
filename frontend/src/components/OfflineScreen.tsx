@@ -5,21 +5,21 @@ import { useOnline } from '../lib/useOnline.js'
 import { IconCheck, IconOffline } from './icons.js'
 
 /**
- * WHAT SHE SEES WHEN THE INTERNET GOES.
+ * WHAT THEY SEE WHEN THE INTERNET GOES.
  *
  * Without this a dropped connection surfaced as whatever the current screen
  * did with a failed fetch - a spinner that never ends, or an error that
- * reads like the app is broken. That tells a woman nothing she can act on,
- * and the one thing she can do is turn data back on.
+ * reads like the app is broken. That tells the user nothing they can act on,
+ * and the one thing they can do is turn data back on.
  *
  * Only a connection lost AFTER the site loaded reaches this. With no network
  * at launch the APK never loads the site at all, so that screen belongs to the
  * wrapper (`renderError` in its `app/index.tsx`), not to this file.
  *
  * It is drawn OVER the app, never instead of it. The routes underneath stay
- * mounted, so a half-filled form or the product wizard is exactly where she
+ * mounted, so a half-filled form or the product wizard is exactly where they
  * left it when the connection returns, and the screen goes away by itself on
- * the `online` event - she does not have to find the retry button at all.
+ * the `online` event - they do not have to find the retry button at all.
  */
 export default function OfflineScreen() {
   const t = useT()

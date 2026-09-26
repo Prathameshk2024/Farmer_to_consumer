@@ -14,7 +14,7 @@ const {
  * THE REGISTRY IS WHAT MAKES A SESSION REVOCABLE.
  *
  * Before it existed, "log out" cleared localStorage and nothing else: the
- * token stayed valid for its whole seven-day window, so a woman who signed out
+ * token stayed valid for its whole seven-day window, so a person who signed out
  * on a borrowed phone had not signed out of anything, and a stolen token could
  * not be killed at all without changing the signing key and ejecting every
  * user on the platform at once.
@@ -62,7 +62,7 @@ test('revoking twice is not an error the second time', () => {
   assert.equal(revokeSession(db, session.id, 'logout'), false)
 })
 
-test('her phone was stolen: every device signs out at once', () => {
+test('the phone was stolen: every device signs out at once', () => {
   const db = emptyDb()
   for (let i = 0; i < 3; i++) {
     createSession(db, { role: 'farmer', userId: 's1', farmerId: 's1' })
@@ -128,7 +128,7 @@ test('signing in on an eleventh device retires the oldest, not the newest', () =
 })
 
 test('pruning drops what nothing can use, and keeps recent revocations', () => {
-  // Revoked rows are kept a week so "was this token used after she logged
+  // Revoked rows are kept a week so "was this token used after they logged
   // out?" is still answerable.
   const now = Date.now()
   const db = emptyDb()

@@ -27,7 +27,7 @@ export interface Session {
   farmerId?: string
   /** Present only for customers. */
   customerId?: string
-  /** An admin reset the password: she must choose a new one before anything else. */
+  /** An admin reset the password: the user must choose a new one before anything else. */
   mustChangePassword?: boolean
 }
 
@@ -112,10 +112,10 @@ export interface Order {
   events: OrderEvent[]
   sourceShareCode?: string
   /**
-   * How long the farmer said the delivery would take, in her own words - "2
-   * दिवसांत", "उद्या संध्याकाळी". Asked at the moment she ACCEPTS, because
-   * that is the first time she knows: she has just read the address, the
-   * quantity and what is on her shelf. Free text rather than a date, because
+   * How long the farmer said the delivery would take, in their own words - "2
+   * दिवसांत", "उद्या संध्याकाळी". Asked at the moment they ACCEPT, because
+   * that is the first time they know: they have just read the address, the
+   * quantity and what is on their shelf. Free text rather than a date, because
    * the honest answer to "when?" in a village with one bus is a phrase, not a
    * timestamp - and a false precision is worse than none.
    *
@@ -133,8 +133,8 @@ export interface Order {
  * One buyer's word on ONE PRODUCT from one delivered order. The rules are in
  * `review.ts`.
  *
- * A product, not the farmer: the public reads what a jar of pickle was like,
- * not a score for the woman who made it. And keyed to an order, so only
+ * A product, not the farmer: the public reads what a bag of onions was like,
+ * not a score for the farmer who grew it. And keyed to an order, so only
  * somebody who actually received the product may rate it - one order, one
  * voice per product in it.
  */
@@ -144,12 +144,12 @@ export interface Review {
   productId: string
   /** The name on the order line, copied - a deleted listing keeps its reviews readable. */
   productName: string
-  /** Whose product. For her own reviews list and the admin console; never public. */
+  /** Whose product. For the farmer's own reviews list and the admin console; never public. */
   farmerId: string
   customerId: string
   /**
    * First name only, copied when written. Everyone can read a review, and a
-   * full name beside a village is enough to find a woman's house.
+   * full name beside a village is enough to find somebody's house.
    */
   customerName: string
   /** 1 to 5. */
@@ -197,18 +197,18 @@ export type FarmerStatus =
   | 'PENDING_VERIFICATION'
   | 'ACTIVE'
   | 'BLOCKED'
-  /** He asked for his account to be deleted. See shared/src/accountClose.ts. */
+  /** The farmer asked for their account to be deleted. See shared/src/accountClose.ts. */
   | 'CLOSED'
 
 export type DispatchTime = 'same' | '1' | '23'
 
 /**
- * SOMETHING AN ADMIN DID TO HER ACCOUNT.
+ * SOMETHING AN ADMIN DID TO A FARMER'S ACCOUNT.
  *
- * Every other line in her updates list is derived from an order, because the
+ * Every other line in the farmer's updates list is derived from an order, because the
  * order already records what happened and when. An admin decision leaves no
  * such trail: a verified account is just a status that changed, so "you were
- * verified, on Tuesday" cannot be reconstructed after the fact. This is the smallest thing that can be: an append-only list on her own
+ * verified, on Tuesday" cannot be reconstructed after the fact. This is the smallest thing that can be: an append-only list on their own
  * record, trimmed, written by the same handler that made the change.
  */
 export type AdminNoticeKind = 'VERIFIED' | 'BLOCKED' | 'UNBLOCKED' | 'PRODUCT_REJECTED'
@@ -221,13 +221,13 @@ export interface AdminNotice {
   n?: number
   /**
    * WHAT the decision was about - the product's name. Kept apart from the
-   * reason so each side can be labelled in her own language: "dustbin" and
+   * reason so each side can be labelled in its own language: "dustbin" and
    * "कारण: Invalid" read as two facts, where "dustbin - Invalid" reads as a
    * product with a strange name.
    */
   subject?: string
   /**
-   * WHY, in the admin's own words. Shown to her as written, so keep it plain.
+   * WHY, in the admin's own words. Shown to the farmer as written, so keep it plain.
    * Older rows carry the subject and the reason joined in here; they are
    * printed as they stand.
    */
@@ -262,7 +262,7 @@ export interface Farmer {
   district: string
   pincode: string
   /**
-   * The exact point, only with her yes (`locationConsent`). The farmer and the
+   * The exact point, only with the farmer's yes (`locationConsent`). The farmer and the
    * admin see it; the public card gets it rounded (`publicLocation` in geo.ts).
    */
   lat?: number
@@ -274,10 +274,10 @@ export interface Farmer {
   shopSlug: string
   about?: string
 
-  // money in. `upiId` is collected at registration because she cannot be paid
+  // money in. `upiId` is collected at registration because the farmer cannot be paid
   // without it. The payment QR is a SEPARATE, later step: it is generated from
-  // that UPI ID (or she uploads her bank's own QR image), and `upiQrReady`
-  // records that she has actually been through that step.
+  // that UPI ID (or the farmer uploads their bank's own QR image), and `upiQrReady`
+  // records that they have actually been through that step.
   upiId: string
   upiVerified: boolean
   upiQrUrl?: string
@@ -298,12 +298,12 @@ export interface Farmer {
   dispatch: DispatchTime
   pincodes: string[]
   /**
-   * She brings it to the door. Registration sets true; an older row without
+   * The farmer brings it to the door. Registration sets true; an older row without
    * it reads as true (`?? true`), because every farmer delivered before.
    */
   offersDelivery?: boolean
   /**
-   * The buyer may collect it here. A spot she chose to publish, so the public
+   * The buyer may collect it here. A spot the farmer chose to publish, so the public
    * card shows it without the home-location consent - still rounded.
    */
   pickup?: { place: string; lat?: number; lng?: number }
@@ -311,35 +311,35 @@ export interface Farmer {
   // platform
   status: FarmerStatus
   /**
-   * When an admin blocked her, and why. Her own screens read these to tell
-   * her what happened - a blocked farmer who is simply shown an empty shop
-   * has no idea whether the app is broken or she has been removed.
+   * When an admin blocked the farmer, and why. Their own screens read these to tell
+   * them what happened - a blocked farmer who is simply shown an empty shop
+   * has no idea whether the app is broken or they have been removed.
    */
   blockedAt?: string
   blockReason?: string
   /**
-   * SHE ASKED FOR THE ACCOUNT TO BE DELETED.
+   * THE FARMER ASKED FOR THE ACCOUNT TO BE DELETED.
    *
-   * `closingAt` is when the erasing happens - a week after she asked, so a
-   * woman who did not understand what she was confirming can still stop it by
-   * signing in. Her shop is hidden from the moment she asks, because `status`
+   * `closingAt` is when the erasing happens - a week after they asked, so a
+   * farmer who did not understand what they were confirming can still stop it by
+   * signing in. The shop is hidden from the moment they ask, because `status`
    * is already CLOSED. `closedAt` is stamped when the scrub has actually run;
    * a row with `closedAt` holds no personal data at all.
    */
   closingAt?: string
   closedAt?: string
-  /** Why she left, as a code from CLOSE_REASONS; `closeNote` has words only for "other". */
+  /** Why they left, as a code from CLOSE_REASONS; `closeNote` has words only for "other". */
   closeReason?: string
   closeNote?: string
   /** When an admin checked this farmer, and who. Absent until then. */
   verifiedAt?: string
   verifiedBy?: string
-  /** Admin decisions about her account, newest last. Trimmed on write. */
+  /** Admin decisions about the farmer's account, newest last. Trimmed on write. */
   notices?: AdminNotice[]
   /**
    * Stored values are legacy and never read. On every public answer both are
-   * replaced by her products' ratings taken together (`summarizeReviews` over
-   * every visible review of her products) - see `publicFarmer`.
+   * replaced by the farmer's products' ratings taken together (`summarizeReviews` over
+   * every visible review of their products) - see `publicFarmer`.
    */
   rating: number
   ratingCount: number
@@ -349,11 +349,11 @@ export interface Farmer {
 }
 
 /**
- * A farmer as ANYONE may see her - the "sold by" card, the shop page, checkout.
+ * A farmer as ANYONE may see them - the "sold by" card, the shop page, checkout.
  *
  * An allow-list, on purpose. The version before this was a deny-list that
  * named seven private fields and let everything else through, so every field
- * added to Farmer afterwards - admin notices, the reason she was blocked -
+ * added to Farmer afterwards - admin notices, the reason they were blocked -
  * went public the day it was added. Adding a field here is now a decision.
  * `backend/src/db/publicFarmer.ts` builds it; `backend/tests/public-farmer.test.ts`
  * holds the list.
@@ -365,7 +365,7 @@ export type PublicFarmer = Pick<
   | 'upiId' | 'upiQrReady' | 'upiQrUrl'
   | 'rating' | 'ratingCount' | 'crops'
 > & {
-  /** Rounded to two decimals, and only with her consent - `publicLocation`. */
+  /** Rounded to two decimals, and only with the farmer's consent - `publicLocation`. */
   lat?: number
   lng?: number
   offersDelivery: boolean
@@ -386,7 +386,7 @@ export interface Product {
   farmerId: string
   /** A crop id from crops.ts. `other` is the only crop whose category the farmer picks. */
   cropId: string
-  /** Pre-filled from the crop's label; his own words if he changed it. */
+  /** Pre-filled from the crop's label; the farmer's own words if they changed it. */
   name: string
   /** Set by the server from the crop, except for `other`. */
   categoryId: string
@@ -399,9 +399,9 @@ export interface Product {
   unit: Unit
   /** Rupees for ONE unit: ₹40 / किलो. */
   price: number
-  /** Whole units he has to sell. 0 means sold out for now. */
+  /** Whole units the farmer has to sell. 0 means sold out for now. */
   stock: number
-  /** The fewest units he sends in one order - a trip for 1 kg may not pay. */
+  /** The fewest units the farmer sends in one order - a trip for 1 kg may not pay. */
   minOrder: number
   /** YYYY-MM-DD. Buyers read "harvested N days ago" from it (produce.ts). */
   harvestDate: string
@@ -441,8 +441,8 @@ export interface Address {
 /**
  * A customer, keyed by phone number.
  *
- * Her addresses live inside this document rather than in a collection of their
- * own. She has two or three, they are only ever read alongside the rest of her
+ * The customer's addresses live inside this document rather than in a collection of their
+ * own. There are two or three, they are only ever read alongside the rest of the
  * record, and embedding keeps a checkout write atomic instead of split across
  * two documents.
  *
@@ -451,7 +451,7 @@ export interface Address {
  * time an order is cancelled, and goes wrong silently.
  */
 export interface Customer {
-  /** `c-<phone>` - derived, so it always matches the id inside her token. */
+  /** `c-<phone>` - derived, so it always matches the id inside their token. */
   id: string
   phone: string
   name: string
@@ -494,7 +494,7 @@ export interface FarmerGroup {
   /**
    * No charge is set, so the buyer is told to ask the farmer rather than told
    * it is free. False when a farmer's own free-delivery minimum is met - that
-   * "free" is her promise.
+   * "free" is the farmer's promise.
    */
   deliveryToAsk: boolean
   total: number
@@ -579,8 +579,8 @@ export interface Report {
   /** Only 'other' carries words; every other reason is the code alone. */
   note?: string
   /**
-   * Who flagged it - a buyer, or the farmer the review is about. She is the
-   * person an abusive review is aimed at, so she gets the same way out as
+   * Who flagged it - a buyer, or the farmer the review is about. The farmer is the
+   * person an abusive review is aimed at, so they get the same way out as
    * anyone reading it.
    */
   byUserId: string
@@ -595,9 +595,9 @@ export interface Report {
  * A complaint somebody raised from Help & Training.
  *
  * Stored with who wrote it, because that is the whole difference between
- * this and a WhatsApp message: an admin can open his account, see the order he
- * is asking about, and answer. Her name and number are copied in so the queue
- * can be read and she can be rung back without a lookup per row.
+ * this and a WhatsApp message: an admin can open their account, see the order they
+ * are asking about, and answer. The writer's name and number are copied in so the queue
+ * can be read and they can be rung back without a lookup per row.
  */
 export interface Complaint {
   id: string

@@ -51,6 +51,6 @@ export const IconCopy: IconType = FiCopy
 export const IconEmpty: IconType = FiInbox
 export const IconBack: IconType = FiChevronLeft
 
-/* --- yes / no, for a list of things she does and does not have ----- */
+/* --- yes / no, for a list of things a farmer does and does not have ----- */
 export const IconYes: IconType = FiCheck
 export const IconNo: IconType = FiX

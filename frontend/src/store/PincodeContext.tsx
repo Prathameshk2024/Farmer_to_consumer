@@ -7,12 +7,12 @@ import { api } from '../lib/api.js'
 /**
  * PINCODE + SERVICEABILITY — asked once, reused everywhere.
  *
- * The customer sets her pincode once (on Explore, or wherever she first needs
+ * The customer sets their pincode once (on Explore, or wherever they first need
  * it) and every screen downstream reads it from here:
  *
  *   entry → validate → serviceability → catalog filtering → checkout
  *
- * It is persisted, so she is not asked again on her next visit, and the answer
+ * It is persisted, so they are not asked again on their next visit, and the answer
  * comes from the server's view of which farmers actually cover that pincode -
  * there is no hard-coded list of serviceable areas anywhere in the app.
  */
@@ -61,7 +61,7 @@ export function PincodeProvider({ children }: { children: ReactNode }) {
       try {
         localStorage.setItem(KEY, res.pincode)
       } catch {
-        /* private mode - she will be asked again next visit */
+        /* private mode - they will be asked again next visit */
       }
       return res
     } catch {

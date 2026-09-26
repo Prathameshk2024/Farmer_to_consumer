@@ -4,8 +4,8 @@ import {
 } from './compress.js'
 
 /**
- * Every image this app uploads - product photos, her bank's QR, the payment
- * screenshot she sends the admin - goes through `uploadImage` below, so every
+ * Every image this app uploads - product photos, their bank's QR, the payment
+ * screenshot they send the admin - goes through `uploadImage` below, so every
  * one of them is compressed on the phone before a byte is sent.
  *
  * The file goes straight from the phone to Cloudinary using a signature our
@@ -14,7 +14,7 @@ import {
  * Before it leaves the device it is downscaled and re-encoded. A modern phone
  * camera produces 3-6MB per shot; on a village 4G connection that is close to
  * a minute of uploading, and it is the single most likely place a farmer gives
- * up halfway through adding her first product.
+ * up halfway through adding their first product.
  */
 
 // The numbers live in compress.ts so tests can reach them without a browser;

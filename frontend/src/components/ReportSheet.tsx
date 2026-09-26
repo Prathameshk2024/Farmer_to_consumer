@@ -11,20 +11,20 @@ import { Button, Choice, Notice, VoiceInput } from './ui.js'
  * "THIS SHOULD NOT BE HERE."
  *
  * One sheet for every kind of report, because the shape is always the same:
- * what is wrong, in her words where the list cannot say it, and then it is
- * gone from her hands. It is deliberately NOT a conversation - she is not
+ * what is wrong, in their words where the list cannot say it, and then it is
+ * gone from their hands. It is deliberately NOT a conversation - they are not
  * asked to argue with a farmer, and nothing is shown to the farmer.
  *
  * Two screens, not one: the reason, then a plain confirmation that somebody
  * will look. Sending has to feel like it landed somewhere, or the next time
- * she sees something wrong she will not bother.
+ * they see something wrong they will not bother.
  */
 export function ReportSheet({
   targetType, targetId, title, open, onClose,
 }: {
   targetType: ReportTarget
   targetId: string
-  /** What she is reporting, so the sheet can name it back to her. */
+  /** What they are reporting, so the sheet can name it back to them. */
   title?: string
   open: boolean
   onClose: () => void

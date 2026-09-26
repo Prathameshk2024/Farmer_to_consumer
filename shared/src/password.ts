@@ -3,7 +3,7 @@
  *
  * Six characters, and digits alone are fine. A farmer who has never had a
  * password remembers a number - a PIN, a date - and a composition rule
- * would only push him to write it on the phone's back cover. Five tries per
+ * would only push them to write it on the phone's back cover. Five tries per
  * fifteen minutes is what makes six digits enough.
  */
 export const MIN_PASSWORD = 6

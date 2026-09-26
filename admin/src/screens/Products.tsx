@@ -26,9 +26,9 @@ type Tab = 'LIVE' | 'REPORTED'
  * Moderation is mostly looking, so the photo leads.
  *
  * There is no review queue here, and that is deliberate. A verified farmer's
- * listing goes on sale the moment he sends it - produce changes daily, and a
+ * listing goes on sale the moment the farmer sends it - produce changes daily, and a
  * queue per listing would sell yesterday's tomatoes. What this screen does is
- * the other direction: take a live listing down, with a reason he reads.
+ * the other direction: take a live listing down, with a reason the farmer reads.
  */
 export function Products() {
   const t = useT()
@@ -72,8 +72,8 @@ export function Products() {
 /**
  * One listing, with whatever action its status allows.
  *
- * Exported because her own page shows the same listings, and the take-down
- * flow - a reason he reads - must be the same one in both places. A second copy is a second thing to keep in
+ * Exported because the farmer page shows the same listings, and the take-down
+ * flow - a reason the farmer reads - must be the same one in both places. A second copy is a second thing to keep in
  * step, and the half that falls behind is the half that stops explaining
  * itself.
  */
@@ -89,7 +89,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
   const [err, setErr] = useState('')
 
   /**
-   * Taking a listing down deletes it; the reason reaches him as a notice.
+   * Taking a listing down deletes it; the reason reaches the farmer as a notice.
    */
   const live = product.status === 'LIVE'
 
@@ -121,7 +121,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
 
         <div className="grow">
           <div className="row wrap" style={{ gap: 8 }}>
-            {/* Her words, rendered exactly as she wrote them. */}
+            {/* The farmer's words, rendered exactly as written. */}
             <span className="strong">{product.name}</span>
             {live && <Pill tone="ok">{t('pr.liveTab')}</Pill>}
           </div>
@@ -141,7 +141,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
           </div>
 
           {/* What the buyers actually said, each with its reason, because
-              "three reports" is a number and "two say the photo is not hers"
+              "three reports" is a number and "two say the photo is not theirs"
               is a decision. Nobody's name: a report is anonymous to everyone
               but the database. */}
           {!!product.reports?.length && (
@@ -165,7 +165,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
         {!rejecting && (
           <div className="row">
             {/* Looked at, and it stays up. One annoyed buyer must not be able
-                to empty a woman's shop, so closing the reports is a decision
+                to empty a farmer's shop, so closing the reports is a decision
                 an admin makes as deliberately as taking the listing down. */}
             {!!product.reports?.length && (
               <Button
@@ -214,7 +214,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
 }
 
 /**
- * Cloudinary photo when there is one, her chosen emoji when there is not -
+ * Cloudinary photo when there is one, the farmer's chosen emoji when there is not -
  * the farmer app falls back the same way when image uploads are switched off.
  */
 function ProductThumb({ product }: { product: ProductRow }) {

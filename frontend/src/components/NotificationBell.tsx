@@ -9,15 +9,15 @@ import {
 import { IconBell } from './icons.js'
 
 /**
- * The bell in the app bar, carrying a count of what happened while she was away.
+ * The bell in the app bar, carrying a count of what happened while they were away.
  *
  * It fetches its own orders rather than taking `useAsync` from `ui.tsx`: the
  * bar lives in `ui.tsx`, so importing back the other way would be a cycle
  * between the two files that every screen loads.
  *
- * The count is DERIVED from her own orders (see lib/notifications.ts) - no new
+ * The count is DERIVED from their own orders (see lib/notifications.ts) - no new
  * endpoint, no polling, no second copy of facts the app already holds. It is
- * read when the bar mounts, which is each time she opens a screen.
+ * read when the bar mounts, which is each time they open a screen.
  */
 export default function NotificationBell() {
   const t = useT()
@@ -29,7 +29,7 @@ export default function NotificationBell() {
     if (!session || session.role === 'admin') return
     let alive = true
 
-    // A farmer's list also holds what an admin decided about her account, so
+    // A farmer's list also holds what an admin decided about their account, so
      // the badge has to count both or it disagrees with the screen it opens.
     Promise.all([
       api.myOrders(),

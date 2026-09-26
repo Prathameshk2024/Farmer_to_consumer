@@ -9,10 +9,10 @@ import {
  *
  * Anyone can list anything in this market, and after an admin has approved a
  * listing the only people looking at it are buyers. So a buyer needs a way to
- * say "this is wrong" from the screen where she found it - which is also what
+ * say "this is wrong" from the screen where they found it - which is also what
  * Google Play requires of an app carrying what its users write.
  *
- * The reason is the part that matters. "Spoiled food" and "that is not her
+ * The reason is the part that matters. "Spoiled food" and "that is not their
  * photograph" are different problems with different answers, and a queue of
  * reports that all say "inappropriate" cannot be triaged by anybody.
  */
@@ -34,7 +34,7 @@ test('"other" has to say what is wrong', () => {
 })
 
 test('a named reason needs no words', () => {
-  // She picked "does not look safe to eat". Making her type as well is how a
+  // The buyer picked "does not look safe to eat". Making them type as well is how a
   // report stops being worth the trouble.
   assert.deepEqual(reportProblems({ reason: 'scam' }), {})
 })

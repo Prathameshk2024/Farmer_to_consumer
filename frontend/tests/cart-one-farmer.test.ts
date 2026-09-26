@@ -6,14 +6,14 @@ import { addLine, canAddFrom, cartFarmer, cartFarmerName, lineMinOrder, stepLine
 /**
  * ONE FARMER OWNS THE CART.
  *
- * A cart that mixed farmers was honest about the data - each farmer is her
- * own order, her own delivery, her own UPI - and hard on the woman holding
+ * A cart that mixed farmers was honest about the data - each farmer is their
+ * own order, their own delivery, their own UPI - and hard on the buyer holding
  * the phone, who put three things in one basket and was asked to make three
- * payments. The first shop she adds from now owns the cart until she empties
+ * payments. The first shop they add from now owns the cart until they empty
  * it or orders from it.
  *
  * What must never happen is the cart clearing itself: these tests pin that
- * the rule only ever REFUSES, and that the refusal can name the shop she is
+ * the rule only ever REFUSES, and that the refusal can name the shop they are
  * already buying from.
  */
 
@@ -43,7 +43,7 @@ test('more from the same shop is always allowed', () => {
 })
 
 test('emptying the cart hands it back to anybody', () => {
-  // Her way out, and the reason the refusal points at the cart: removing the
+  // Their way out, and the reason the refusal points at the cart: removing the
   // last item is what unlocks the rest of the market.
   assert.equal(canAddFrom([], 's2'), true)
 })
@@ -63,11 +63,11 @@ test('a cart saved before the name was stored still locks', () => {
   assert.equal(cartFarmerName(legacy), undefined)
 })
 
-test('a line steps between the farmer\'s minimum and his stock', () => {
+test('a line steps between the farmer\'s minimum and their stock', () => {
   const line = item({ minOrder: 5, qty: 5 })
   assert.equal(stepLine(line, 12, 1), 6)
-  assert.equal(stepLine(line, 12, -1), 0, 'below the minimum the line goes, because she tapped −')
-  assert.equal(stepLine(item({ minOrder: 5, qty: 12 }), 12, 1), 12, 'no more than he has')
+  assert.equal(stepLine(line, 12, -1), 0, 'below the minimum the line goes, because they tapped −')
+  assert.equal(stepLine(item({ minOrder: 5, qty: 12 }), 12, 1), 12, 'no more than they have')
 })
 
 test('a line saved before the minimum existed is read as minimum 1', () => {

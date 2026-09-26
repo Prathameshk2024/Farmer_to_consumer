@@ -70,9 +70,9 @@ export function setToken(token: string | null): void {
  *    `X-Session-Token`. That landed in `wb.token` only. On the next reload
  *    AuthContext wrote the ORIGINAL token back over it, so the window never
  *    actually slid and a farmer was signed out exactly seven days after login
- *    however much she had used the app in between;
+ *    however much they had used the app in between;
  *  - a 401 cleared `wb.token` and left `wb.session` sitting there, so the UI
- *    still believed she was signed in while every request failed.
+ *    still believed they were signed in while every request failed.
  *
  * So the two events that change a session are published here, and AuthContext
  * is the one place that acts on them. Nothing else clears a session - not a
@@ -99,7 +99,7 @@ export function onSessionExpired(fn: ExpiryListener): () => void {
 
 /**
  * The server says this session may only change its password (an admin reset
- * it). AuthContext marks the session, and the router sends her to /password.
+ * it). AuthContext marks the session, and the router sends them to /password.
  */
 export function onMustChangePassword(fn: ExpiryListener): () => void {
   mustChangeListeners.add(fn)
@@ -181,7 +181,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // 401 means the SERVER rejected this token - expired, or signed with a
   // different secret. `requireRole` answers 403 for the wrong role, so this is
   // never "not allowed here"; it is "there is no session any more". Telling
-  // AuthContext is the only way she gets back to the phone screen instead of
+  // AuthContext is the only way they get back to the phone screen instead of
   // tapping a shop that answers 401 to everything.
   if (res.status === 401 && token) {
     setToken(null)
@@ -259,7 +259,7 @@ export const api = {
   setMyLocation: (body: { lat: number; lng: number } | { clear: true }) =>
     patch<{ farmer: Farmer }>('/farmers/me/location', body),
 
-  /** Her buyers, derived from her own orders. Never anybody else's. */
+  /** Their buyers, derived from their own orders. Never anybody else's. */
   myBuyers: () => get<{ buyers: FarmerBuyer[] }>('/farmers/me/buyers'),
 
   farmerById: (id: string) => get<{ farmer: PublicFarmer }>(`/farmers/${id}`),
@@ -275,7 +275,7 @@ export const api = {
   updateProduct: (id: string, body: Partial<Product>) =>
     patch<{ product: Product }>(`/products/${id}`, body),
 
-  /** Any of his own listings - a sold-out crop is his to take down. */
+  /** Any of their own listings - a sold-out crop is theirs to take down. */
   deleteProduct: (id: string) => del<{ ok: true }>(`/products/${id}`),
 
   /* ---------------- catalog (public) ---------------- */
@@ -291,7 +291,7 @@ export const api = {
     )
   },
 
-  /** `farmer` is the public card only - never her phone. See db/publicFarmer.ts. */
+  /** `farmer` is the public card only - never their phone. See db/publicFarmer.ts. */
   product: (id: string) => get<{ product: CatalogProduct; farmer?: PublicFarmer }>(`/catalog/products/${id}`),
 
   /** What buyers said about one product. Public, as far as the product is. */
@@ -316,10 +316,10 @@ export const api = {
   mapPins: (categoryId?: string) =>
     get<{ pins: MapPinRow[] }>(`/catalog/map${categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : ''}`),
 
-  /* ---------------- her own record ---------------- */
+  /* ---------------- their own record ---------------- */
 
   /**
-   * Her customer record, addresses included. Created empty on first call.
+   * Their customer record, addresses included. Created empty on first call.
    *
    * This replaced `addresses()`, which hit an unauthenticated endpoint and
    * returned the same two seeded addresses to everybody.
@@ -356,8 +356,8 @@ export const api = {
   /* ---------------- orders ---------------- */
 
   /**
-   * `toRate` comes back for a customer only: her delivered orders still
-   * waiting for a rating, newest first. The app does not let her past them.
+   * `toRate` comes back for a customer only: their delivered orders still
+   * waiting for a rating, newest first. The app does not let them past them.
    */
   myOrders: () => get<{ orders: Order[]; toRate?: string[] }>('/orders/mine'),
 
@@ -373,8 +373,8 @@ export const api = {
     post<{ reviews: Review[] }>(`/orders/${id}/review`, { ratings }),
 
   /**
-   * Every visible review of her products, each naming the product, and the
-   * rating buyers see on her card - her products' ratings taken together.
+   * Every visible review of their products, each naming the product, and the
+   * rating buyers see on their card - their products' ratings taken together.
    */
   myReviews: () => get<{ reviews: PublicReview[]; summary: RatingSummary }>('/farmers/me/reviews'),
 
@@ -395,14 +395,14 @@ export const api = {
     post<{ order: Order }>(`/orders/${id}/advance`, { to, ...extra }),
 
   /**
-   * Something has gone wrong and she needs a person. Recorded against her
+   * Something has gone wrong and they need a person. Recorded against their
    * account, so an admin can open it and answer - see complaints.routes.ts.
    */
   raiseComplaint: (body: { subject: ComplaintSubject; message: string }) =>
     post<{ ok: true }>('/complaints', body),
 
   /**
-   * Her number, so a buyer can ask what delivery costs before she commits to
+   * Their number, so a buyer can ask what delivery costs before they commit to
    * an order. Fetched on the tap, never carried in the catalogue - see the
    * route's comment for why.
    */

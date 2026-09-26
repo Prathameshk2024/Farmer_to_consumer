@@ -56,9 +56,9 @@ export function AppBar({
   right?: ReactNode
   backTo?: string
   /**
-   * शांताबाई's portrait beside the title. On the screens she arrives at - the
+   * The Farmers to Consumer logo beside the title. On the screens they arrive at - the
    * four tabs and the login doors - and nowhere deeper, because a detail
-   * screen already told her where she is and the header space belongs to the
+   * screen already told them where they are and the header space belongs to the
    * back button and the title. The mark carries its own gold ring; never add
    * a border or a background here or it prints a second one.
    */
@@ -227,7 +227,7 @@ export function TextInput({
  *
  * Each field owns one recogniser and dictates into itself and nothing else.
  * The alternative - a single mic in the header that types into whichever field
- * was last touched - was tidier on screen and worse in the hand: a woman who
+ * was last touched - was tidier on screen and worse in the hand: a farmer who
  * pressed it after scrolling had no way to tell where the words would land,
  * and there was nothing on the field itself to say it could be spoken.
  *
@@ -235,9 +235,9 @@ export function TextInput({
  * speech engine (iOS Safari) simply renders the plain box - the field still
  * works, and nothing is missing except the shortcut.
  *
- * Speech APPENDS rather than replaces. She says a name, sees it wrong, and
+ * Speech APPENDS rather than replaces. They say a name, see it wrong, and
  * fixes the last word by hand; overwriting what is already there would throw
- * away the correction she just made.
+ * away the correction they just made.
  */
 export function VoiceInput({
   value, onChange, error, multiline, lang: langOverride, speakHint, ...rest
@@ -250,7 +250,7 @@ export function VoiceInput({
   /**
    * Say, under the box, that it can be spoken. For fields that are hard to
    * type - a village name that is not on our list. Where this phone cannot
-   * listen, it points at the microphone on her keyboard instead, which works
+   * listen, it points at the microphone on their keyboard instead, which works
    * in any box.
    */
   speakHint?: boolean
@@ -281,7 +281,7 @@ export function VoiceInput({
    * on a phone, and the handle only ever produced a box stretched out of
    * shape. So the height follows the text - `resize: none` in the stylesheet,
    * and the height set from `scrollHeight` on every change and whenever the
-   * value arrives from outside, which is what an edit screen loading her
+   * value arrives from outside, which is what an edit screen loading their
    * saved words does.
    */
   const boxRef = useRef<HTMLTextAreaElement | null>(null)
@@ -353,7 +353,7 @@ export function VoiceInput({
         </button>
       </div>
 
-      {/* Live text under the field she is speaking into, so it is obvious
+      {/* Live text under the field they are speaking into, so it is obvious
           which box the words are going to. */}
       {voice.listening && (
         <div className="field__hint" role="status">
@@ -378,7 +378,7 @@ export function VoiceInput({
  * It used to be every language laid out permanently on the profile screen -
  * two big rows taking a third of the card to express a setting that is changed
  * once, if ever. Now it shows what is CURRENTLY set, and the list only appears
- * when she asks for it.
+ * when they ask for it.
  *
  * A native <select> on purpose. Android renders it as a full-screen list with
  * system-sized rows, which is a better picker than anything drawn here would
@@ -600,7 +600,7 @@ export function ConfirmSheet({
  * while the fetch goes out to replace it. That is what makes Back look like
  * nothing happened: the scroll can be put back before the browser paints,
  * instead of after a spinner has collapsed the page to one screen. Give it to
- * a screen she returns to; leave it off anything that must never be a moment
+ * a screen they return to; leave it off anything that must never be a moment
  * out of date.
  */
 export function useAsync<T>(
@@ -625,10 +625,10 @@ export function useAsync<T>(
      *
      * Screens render a spinner INSTEAD of their content while this is true, so
      * flipping it on a refetch replaced a tall list with one short spinner -
-     * and the browser, with nowhere left to scroll, clamped her to the top.
+     * and the browser, with nowhere left to scroll, clamped them to the top.
      * From the outside that is "the page jumped up when I did something at the
      * bottom". Keeping the old data on screen until the new data lands has no
-     * such effect, and is what she expects anyway - for the SAME screen.
+     * such effect, and is what they expect anyway - for the SAME screen.
      */
     fn()
       .then((data) => {
@@ -649,9 +649,9 @@ export function useAsync<T>(
 }
 
 /**
- * A value she copies rather than retypes - her UPI ID.
+ * A value they copy rather than retype - their UPI ID.
  *
- * She reads this one out over the phone and types it into a bank app, and a
+ * They read this one out over the phone and type it into a bank app, and a
  * UPI ID wrong by one character pays a stranger with no way back. The toast is
  * the whole point: the clipboard is invisible, so without it a copy the
  * browser refused looks exactly like one that worked.

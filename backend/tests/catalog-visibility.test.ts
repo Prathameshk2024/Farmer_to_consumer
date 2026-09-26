@@ -11,9 +11,9 @@ import { publiclyVisible } from '../src/routes/catalog.routes.js'
  * readable by id is not hidden at all - it is findable by anyone who tries the
  * id, and ids are short and sequential enough to try.
  *
- * This matters most for the states a farmer chose: a DRAFT she has not
- * finished, a PAUSED one she has taken
- * down for the week. Those are her decisions about her own shop, and a
+ * This matters most for the states a farmer chose: a DRAFT they have not
+ * finished, a PAUSED one they have taken
+ * down for the week. Those are the farmer's decisions about their own shop, and a
  * stranger reading them out of the API is the same failure whichever way round
  * it happens.
  */
@@ -41,7 +41,7 @@ test('nothing but LIVE is readable, however the id was come by', () => {
 /**
  * The shop's state overrides the listing's. A blocked farmer's products are
  * off the shelf even though each one still says LIVE - otherwise blocking
- * removes her from the list and leaves her whole catalogue readable by id.
+ * removes the farmer from the list and leaves their whole catalogue readable by id.
  */
 test('a blocked or unverified shop takes its live listings with it', () => {
   const states: FarmerStatus[] = ['PENDING_VERIFICATION', 'BLOCKED', 'CLOSED']

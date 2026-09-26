@@ -7,7 +7,7 @@ import { emptyDb, seed } from '../src/db/seed.js'
  *
  * initStore() seeds when it finds nothing stored, which is right for a fresh
  * clone and wrong for production: one transient empty read would put three
- * invented women and eleven invented products in front of real customers.
+ * invented farmers and eleven invented products in front of real customers.
  * Seeding is opt-in now, and this is the shape it falls back to instead.
  */
 

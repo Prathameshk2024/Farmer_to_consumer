@@ -3,13 +3,13 @@ import assert from 'node:assert/strict'
 import { initialsOf } from '../src/lib/initials.js'
 
 /**
- * Farmers are shown by their initials rather than by a shared 👩, and almost
+ * Farmers are shown by their initials rather than by one shared emoji, and almost
  * every one of those names is in Devanagari - where the obvious implementation
  * is quietly wrong.
  *
  * `'सुनीता'.slice(0, 1)` is स. The ु that makes it सु is a separate code
- * point, so slicing drops it and prints a letter she would not recognise as
- * the start of her own name. That is the bug this file exists to prevent, and
+ * point, so slicing drops it and prints a letter they would not recognise as
+ * the start of their own name. That is the bug this file exists to prevent, and
  * it is invisible to anyone testing with Latin names.
  */
 
@@ -54,7 +54,7 @@ test('extra whitespace does not become an initial', () => {
 })
 
 test('a nameless record renders nothing rather than a stray letter', () => {
-  // A customer who has not given her name yet is a real state - see the
+  // A customer who has not given their name yet is a real state - see the
   // customer registration flow - and an empty circle is the honest picture.
   for (const empty of ['', '   ', undefined]) {
     assert.equal(initialsOf(empty), '')

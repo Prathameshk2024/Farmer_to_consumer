@@ -21,7 +21,7 @@ import type { AdminUser } from './types.js'
  *    the same answer whoever clicked it.
  *
  * Emails are normalised to lower case for lookup but stored as typed, so a
- * coordinator sees her own capitalisation and still cannot create a second
+ * coordinator sees their own capitalisation and still cannot create a second
  * account by shifting a letter.
  */
 

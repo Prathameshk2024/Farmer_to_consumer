@@ -98,7 +98,7 @@ function shortDate(iso: string): string {
 }
 
 /**
- * One review. `showProduct` names the product it is about - on her list and
+ * One review. `showProduct` names the product it is about - on their list and
  * on an order - and is left off on the product's own page, where it is obvious.
  */
 export function ReviewItem({
@@ -114,8 +114,8 @@ export function ReviewItem({
    * listing itself, turned the product screen into a column of "Report" and
    * made the word meaningless. So the buyer reports the LISTING, at the foot
    * of the product page, and this is on for the farmer only: an abusive
-   * review is aimed at her, and My Reviews is the one screen where she reads
-   * them all. Not her order screen, which shows the same words again.
+   * review is aimed at them, and My Reviews is the one screen where they read
+   * them all. Not their order screen, which shows the same words again.
    */
   reportable?: boolean
 }) {
@@ -211,7 +211,7 @@ export function StarPicker({
 /**
  * EVERY PRODUCT ON ONE ORDER, RATED ON ONE SCREEN.
  *
- * A star row per product, and a box for words under each that she may leave
+ * A star row per product, and a box for words under each that they may leave
  * empty. The send button stays off until every product has stars - the same
  * check the server runs - and nothing is sent until then.
  */
@@ -219,7 +219,7 @@ export function RateOrderForm({
   order, reviews, onSaved, onCancel,
 }: {
   order: Order
-  /** Ratings already given, when she is changing them. */
+  /** Ratings already given, when they are changing them. */
   reviews?: PublicReview[]
   onSaved: (reviews: Review[]) => void
   /** Only when changing. The first rating has no way out. */
@@ -307,7 +307,7 @@ export function RateOrderForm({
 }
 
 /**
- * WHAT SHE SAID ABOUT THIS ORDER, on the order screen.
+ * WHAT THEY SAID ABOUT THIS ORDER, on the order screen.
  *
  * Asking is the gate's job (below), so this only shows the ratings once they
  * exist - with "change" while the month is open, and a note on any an admin
@@ -362,19 +362,19 @@ export function OrderRatings({
 }
 
 /**
- * THE RATING SCREEN SHE CANNOT GO PAST.
+ * THE RATING SCREEN THEY CANNOT GO PAST.
  *
  * Mounted once, in the customer layout, over every customer screen. While any
  * delivered order is unrated (the server's `toRate`), it covers the whole app
  * - bottom tabs included - with that order's rating form, and there is no
  * close button: rating what arrived comes before anything else. Rating one
- * order brings up the next; rating the last lets her go. The server refuses a
+ * order brings up the next; rating the last lets them go. The server refuses a
  * new order while any are waiting, so the rule holds without this screen too.
  *
- * Checked when the app opens, when she comes back to it, every two minutes
+ * Checked when the app opens, when they come back to it, every two minutes
  * while it is open, and on moving between screens (at most every 30 seconds,
- * for rural data) - so an order the farmer marks delivered while she is
- * browsing is asked about within moments rather than on her next visit.
+ * for rural data) - so an order the farmer marks delivered while they are
+ * browsing is asked about within moments rather than on their next visit.
  *
  * `onBlockingChange` lets the layout make everything behind the screen inert,
  * so a keyboard or screen reader cannot reach the tabs underneath either.

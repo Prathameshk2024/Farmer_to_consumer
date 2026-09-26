@@ -5,8 +5,8 @@ import catSpices from '../assets/categories/masala.jpg'
  *
  * It is deliberately a photo of the CATEGORY, never of the product: a bowl of
  * spices above a farmer's turmeric is honest about being a category picture,
- * while a specific-looking photo of someone else's tomatoes is not. His own
- * photo replaces it the moment he uploads one.
+ * while a specific-looking photo of someone else's tomatoes is not. Their own
+ * photo replaces it the moment they upload one.
  *
  * Only `spices` has an honest photograph today. Every other category keeps the
  * icon fallback on purpose - a wrong photo is worse than none, and there is no

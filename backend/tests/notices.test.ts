@@ -4,7 +4,7 @@ import type { Farmer } from '@shared/types.js'
 import { NOTICE_LIMIT, appendNotice } from '../src/db/notices.js'
 
 /**
- * An admin verifies him and his produce goes on sale. Nothing tells him unless
+ * An admin verifies a farmer and their produce goes on sale. Nothing tells them unless
  * the decision is written down as it is made, because afterwards there is
  * nothing to reconstruct it from - `status` is simply a different word.
  */
@@ -24,7 +24,7 @@ test('a decision is recorded as it is made', () => {
   }])
 })
 
-/** She reads them newest-first, but they are appended, so order matters. */
+/** The farmer reads them newest-first, but they are appended, so order matters. */
 test('decisions accumulate in the order they were made', () => {
   const s = farmer()
   appendNotice(s, 'VERIFIED', {}, '2026-09-01T00:00:00.000Z')
@@ -35,7 +35,7 @@ test('decisions accumulate in the order they were made', () => {
 })
 
 /**
- * This list travels inside her farmer document on every read she makes, so it
+ * This list travels inside the farmer document on every read they make, so it
  * is not allowed to grow forever - the oldest go first.
  */
 test('the trail is trimmed to the newest few', () => {

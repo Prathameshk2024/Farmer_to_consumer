@@ -7,14 +7,14 @@ import type { Order, OrderEvent, OrderStatus } from './types.js'
  * reasons, and both land on the one CANCELLED state the machine already has.
  * The event's `by` says who; its `reason` says why.
  *
- * THE BUYER, ONLY BEFORE SHE ACCEPTS. Until then nothing has happened: no
+ * THE BUYER, ONLY BEFORE THE FARMER ACCEPTS. Until then nothing has happened: no
  * money has moved (a UPI buyer pays after acceptance) and nothing has been
- * picked or packed. After she says yes she may already be harvesting for it,
- * so a buyer who wants out from there has to ask her - "customer asked to
- * cancel" is on her list for exactly that.
+ * picked or packed. After the farmer says yes they may already be harvesting for it,
+ * so a buyer who wants out from there has to ask them - "customer asked to
+ * cancel" is on their list for exactly that.
  *
  * THE FARMER, AT ANY STEP AFTER ACCEPTING, UP TO THE DOORSTEP. Before
- * acceptance she already has Reject. DELIVERED is the end: goods in the
+ * acceptance they already have Reject. DELIVERED is the end: goods in the
  * buyer's hand are not un-delivered by a button, and a dispute there is a
  * conversation, not a state.
  *
@@ -88,10 +88,10 @@ export function endingEvent(order: Pick<Order, 'status' | 'events'>): OrderEvent
  * WHAT THE FARMER OWES BACK ON A CANCELLED ORDER.
  *
  * This app moves no money, so it cannot refund any: whatever the buyer paid
- * is in the farmer's account and only she can send it back. The sheet says so
- * the moment she cancels, and her order screen keeps saying it afterwards.
+ * is in the farmer's account and only they can send it back. The sheet says so
+ * the moment they cancel, and their order screen keeps saying it afterwards.
  *
- * - `confirmed` - she has already said the money arrived.
+ * - `confirmed` - the farmer has already said the money arrived.
  * - `claimed`   - the buyer typed a UTR; it may or may not have arrived.
  * - `none`      - nothing was reported. Not the same as nothing was paid: a
  *                 buyer can pay before typing the UTR, or hand over cash.

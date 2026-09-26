@@ -15,7 +15,7 @@ import { hmac, timingEqual } from './crypto.js'
  *  - a token cannot assert an identity the server did not issue, even in
  *    principle, because there is no identity in it to tamper with;
  *  - the session can be revoked. Deleting the record kills the token
- *    instantly, which is what makes "log out" and "her phone was stolen" mean
+ *    instantly, which is what makes "log out" and "the phone was stolen" mean
  *    something. Before this, both were client-side wishes.
  *
  * `iat` and `role` stay because they let an ancient token be thrown out before
@@ -38,11 +38,11 @@ export interface TokenClaims {
  * and blocks farmers and can read every buyer's home address, and it is
  * used at a desk where signing in again costs a few seconds - so it is short.
  * A farmer's token is on a phone in a village, and signing in again means typing a
- * password she rarely uses, so fifteen days is the kinder trade: a woman who
+ * password they rarely use, so fifteen days is the kinder trade: a farmer who
  * sells at the weekly bazaar and opens the app every other week is not sent
  * back through the login screen each time. Past fifteen days with no use at all, the
  * session ends - a phone put down and forgotten, or passed to someone else,
- * does not stay signed in to her shop indefinitely.
+ * does not stay signed in to their shop indefinitely.
  *
  * This is an IDLE window, not an absolute one: every authenticated request
  * slides it forward, so somebody using the app regularly is never signed out

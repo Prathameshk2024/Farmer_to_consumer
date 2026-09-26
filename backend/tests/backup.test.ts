@@ -46,7 +46,7 @@ test('the backup mirrors deletions, so a restore does not bring back what was re
 
 test('a live project that lost more than half a collection is not copied over the backup', () => {
   // 10 September 2026: farmers and products briefly empty in the live
-  // project. A backup taken then must keep its six women, not delete them.
+  // project. A backup taken then must keep its six farmers, not delete them.
   const problems = shrinkProblems(
     { farmers: 0, products: 0, orders: 40 },
     { farmers: 6, products: 13, orders: 40 },
@@ -70,18 +70,18 @@ test('an empty live read is refused against any non-empty backup, however small'
 })
 
 test('targets are read from the environment, with a mistake named rather than skipped', () => {
-  const account = JSON.stringify({ project_id: 'smb-backup-a', client_email: 'x@y', private_key: 'k' })
+  const account = JSON.stringify({ project_id: 'f2c-backup-a', client_email: 'x@y', private_key: 'k' })
   const { targets, problems } = readTargets(
     {
       BACKUP_TARGETS: 'a, b, c',
       BACKUP_A_FIREBASE_SERVICE_ACCOUNT: Buffer.from(account).toString('base64'),
-      BACKUP_A_CLOUDINARY_URL: 'cloudinary://key:secret@smb-backup',
+      BACKUP_A_CLOUDINARY_URL: 'cloudinary://key:secret@f2c-backup',
       BACKUP_B_CLOUDINARY_URL: 'not a url',
     },
     'f2c',
   )
-  assert.equal(targets[0]!.firestore!.projectId, 'smb-backup-a')
-  assert.equal(targets[0]!.cloudinary!.cloudName, 'smb-backup')
+  assert.equal(targets[0]!.firestore!.projectId, 'f2c-backup-a')
+  assert.equal(targets[0]!.cloudinary!.cloudName, 'f2c-backup')
   assert.equal(problems.length, 2)
   assert.match(problems[0]!, /BACKUP_B_CLOUDINARY_URL is malformed/)
   assert.match(problems[1]!, /"c" has neither/)
@@ -176,7 +176,7 @@ test('a downloaded photo goes back under the public_id it was saved from', () =>
 
 test('a restore describes the shrink in its own direction', () => {
   const [problem] = shrinkProblems({ farmers: 1 }, { farmers: 19 }, {
-    source: 'in the file', sourceWhole: 'the file', target: 'shantaimahilabajar',
+    source: 'in the file', sourceWhole: 'the file', target: 'f2c-live',
   })
-  assert.equal(problem, 'farmers: 19 in shantaimahilabajar, only 1 in the file')
+  assert.equal(problem, 'farmers: 19 in f2c-live, only 1 in the file')
 })

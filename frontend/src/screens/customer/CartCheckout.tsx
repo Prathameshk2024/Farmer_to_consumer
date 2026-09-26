@@ -35,15 +35,15 @@ import { PageTour, TourMenu } from '../../components/Walkthrough.js'
 /**
  * "ASK THE FARMER" WITH SOMETHING TO ASK WITH.
  *
- * Delivery is a hint rather than a price for most farmers here - she writes
+ * Delivery is a hint rather than a price for most farmers here - they write
  * one pincode at registration and works the rest out per order - so the cart
- * says what delivery costs is hers to tell, and until now a buyer had no way
+ * says what delivery costs is theirs to tell, and until now a buyer had no way
  * to ask without first placing the order.
  *
- * Her number is not in the catalogue and must not be: `publicFarmer` is an
- * allow-list and her phone is deliberately outside it. So the button fetches
+ * Their number is not in the catalogue and must not be: `publicFarmer` is an
+ * allow-list and their phone is deliberately outside it. So the button fetches
  * it when a buyer actually taps, which is a buyer asking one farmer a
- * question rather than a directory of village women's phone numbers attached
+ * question rather than a directory of farmers' phone numbers attached
  * to their names. Once it is here, Call and WhatsApp replace the button.
  */
 function AskFarmerButton({ farmerId }: { farmerId: string }) {
@@ -136,7 +136,7 @@ export function Cart() {
   }
 
   /**
-   * How many of this she may still add.
+   * How many of this they may still add.
    *
    * Read from the catalogue rather than from the cart line, because the cart
    * is written to localStorage and a crop that was in stock on Tuesday may be
@@ -156,7 +156,7 @@ export function Cart() {
   /**
    * The rest of this shop's window, on the cart itself.
    *
-   * The cart is locked to one farmer, so this is the entire set of things she
+   * The cart is locked to one farmer, so this is the entire set of things they
    * can still add to this order - and the catalogue is already loaded for the
    * farmer cards above, so it costs nothing to ask. What is already in the
    * cart is left out: it is listed in full a few lines up, with its own
@@ -174,7 +174,7 @@ export function Cart() {
       <div className="screen stack" data-wt="cart-list">
         {/* One farmer owns the cart now, so this fires only for a cart saved
             in localStorage before that rule existed. It stays because the
-            alternative is dropping her items to make the screen tidy. */}
+            alternative is dropping their items to make the screen tidy. */}
         {groups.length > 1 && <Notice tone="info">{t('cus.perFarmerNote')}</Notice>}
 
         {groups.map((g) => (
@@ -222,7 +222,7 @@ export function Cart() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     {/* min 0: a − below the farmer's minimum takes the line
-                        out (cartStep), which is how she empties a cart to
+                        out (cartStep), which is how they empty a cart to
                         reach another shop. */}
                     <Stepper
                       value={i.qty}
@@ -254,7 +254,7 @@ export function Cart() {
                 <>
                   <div className="dim">{t('cart.deliveryAskHint')}</div>
                   {/* The question the line above raises, with the means to ask
-                      it. Her number is fetched on the tap rather than carried
+                      it. Their number is fetched on the tap rather than carried
                       in the catalogue - see the route in catalog.routes.ts. */}
                   <AskFarmerButton farmerId={g.farmerId} />
                 </>
@@ -530,7 +530,7 @@ export function Checkout() {
         {/* NOTHING IS PAID HERE ANY MORE.
             The buyer pays after the farmer has accepted - their area list is a
             hint now, so a rejection is ordinary, and a rejected prepaid order
-            leaves the money with a woman who has no way to send it back. */}
+            leaves the money with a farmer who has no way to send it back. */}
         {mode === 'UPI' && <Notice tone="info">{t('cus.payAfterAccept')}</Notice>}
 
         <Card>
@@ -538,8 +538,8 @@ export function Checkout() {
             <strong>{t(noDeliveryTotal ? 'cus.grandTotalNoDelivery' : 'cus.grandTotal')}</strong>
             <strong style={{ fontSize: 'var(--t-lg)' }}><Rupees value={grand} /></strong>
           </div>
-          {/* Said again on the last screen before she commits: this total
-              is not everything she may be asked for at the door. */}
+          {/* Said again on the last screen before they commit: this total
+              is not everything they may be asked for at the door. */}
           {!pickup && groups.some((g) => g.deliveryToAsk) && (
             <div className="small dim" style={{ marginTop: 6 }}>{t('cart.deliveryAskHint')}</div>
           )}
@@ -606,7 +606,7 @@ export function OrderPlaced() {
 
 /**
  * The buyer's tabs. A finished order is not something to scroll past every
- * time she checks on the one coming today, so delivered orders have their own
+ * time they check on the one coming today, so delivered orders have their own
  * section, and so do the ones that were called off.
  */
 type MyOrderTab = 'active' | 'completed' | 'cancelled'
@@ -690,7 +690,7 @@ export function TrackOrder() {
 
 
   /**
-   * Back from her UPI app. The reference number is the only thing tying a
+   * Back from their UPI app. The reference number is the only thing tying a
    * payment to this order, and the tap after paying is Back - so the box gets
    * scrolled to and focused rather than waiting to be found.
    */
@@ -720,7 +720,7 @@ export function TrackOrder() {
     : ''
 
   async function pay() {
-    // The same check the server runs, so she is told what is wrong with the
+    // The same check the server runs, so they are told what is wrong with the
     // number while it is still on screen rather than after a round trip.
     const problem = utrProblem(utr)
     if (problem) {
@@ -755,7 +755,7 @@ export function TrackOrder() {
       <AppBar title={t('track.title')} onBack={() => nav(-1)} />
       <div className="screen stack">
         {/* What was ordered, then which order it is, then where it is - the
-            order a delivery app puts them in, and the order she asks. */}
+            order a delivery app puts them in, and the order they ask. */}
         <div className="stack-sm">
           {order.items.map((i) => (
             <div key={i.productId} className="row">
@@ -774,20 +774,20 @@ export function TrackOrder() {
 
         <OrderStatusBox order={order} />
 
-        {/* On pickup the order's address is where she collects it. */}
+        {/* On pickup the order's address is where they collect it. */}
         {order.fulfilment === 'pickup' && (
           <Notice tone="info" title={t('ord.pickup')}>{order.address}</Notice>
         )}
 
-        {/* What the farmer said it would take, in her own words, given at the
-            moment she accepted. Directly under the status, because "when?"
+        {/* What the farmer said it would take, in their own words, given at the
+            moment they accepted. Directly under the status, because "when?"
             is the question the status does not answer. It is not a guarantee
-            and does not pretend to be one - it is what she said. */}
+            and does not pretend to be one - it is what they said. */}
         {order.deliveryEstimate && (
           <Notice tone="info" title={t('ord.etaLabel')}>{order.deliveryEstimate}</Notice>
         )}
 
-        {/* What she said about each product, under the status that turned
+        {/* What they said about each product, under the status that turned
             green. Asking for it is RateOrderGate's job, over the whole app. */}
         <OrderRatings
           order={order}
@@ -838,7 +838,7 @@ export function TrackOrder() {
 
         {/* Backing out is free until the farmer says yes: nothing is paid and
             nothing is cooking. After that the button is gone and the screen
-            says who to ring instead, rather than leaving her to wonder where
+            says who to ring instead, rather than leaving them to wonder where
             it went - the call button is right above. */}
         {customerCanCancel(order.status) && (
           <Button variant="ghost" onClick={() => setCancelOpen(true)}>{t('cancel.button')}</Button>
@@ -851,10 +851,10 @@ export function TrackOrder() {
           <Card>
             <SectionTitle>{t('cus.payNowTitle')}</SectionTitle>
             <div className="stack-sm">
-              {/* The QR carries the amount, and she cannot read a QR. Paying
+              {/* The QR carries the amount, and they cannot read a QR. Paying
                   the wrong number into a UPI app is the one mistake nobody on
                   either side can undo, so the figure is on the screen, in the
-                  size of the thing she is being asked to do. */}
+                  size of the thing they are being asked to do. */}
               <div className="center">
                 <div className="small dim">{t('cus.amountToPay')}</div>
                 <div className="hero-num"><Rupees value={order.total} /></div>
@@ -875,7 +875,7 @@ export function TrackOrder() {
                   {/* One phone cannot scan its own screen, and a pay link to a
                       personal UPI ID is declined by PhonePe and Google Pay. A
                       screenshot of this QR, scanned from the gallery inside
-                      her UPI app, is a payment those apps accept, amount
+                      their UPI app, is a payment those apps accept, amount
                       included. */}
                   <PaySteps />
                   {/* The other route those apps accept: paste the ID. Copyable,
@@ -902,7 +902,7 @@ export function TrackOrder() {
               </Field>
               {/* A live button under a number that cannot be a UTR reads as
                   "this is fine, press me". It is the last thing standing
-                  between her and an order nobody can match to a payment. */}
+                  between them and an order nobody can match to a payment. */}
               <Button onClick={() => void pay()} disabled={paying || !isValidUtr(utr)}>
                 {paying ? t('common.loading') : t('cus.paidSubmit')}
               </Button>
@@ -1136,7 +1136,7 @@ export function CustomerProfile() {
 
         {/* Far from Log out, for the reason the farmer's is - see
             components/CloseAccount.tsx. A buyer loses an address book rather
-            than an income, so there is no week to change her mind and the
+            than an income, so there is no week to change their mind and the
             sheet says so plainly instead. */}
         <Card>
           <div className="stack-sm">
@@ -1150,7 +1150,7 @@ export function CustomerProfile() {
 
       {/* The same step the farmer gets. Getting back in costs an SMS code, and
           the one worry a shopper has about leaving - "will my cart go?" - is
-          answered before she decides: it stays on this phone. */}
+          answered before they decide: it stays on this phone. */}
       <ConfirmSheet
         open={logoutOpen}
         title={t('prof.logoutConfirmTitle')}

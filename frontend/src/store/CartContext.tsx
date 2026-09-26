@@ -25,7 +25,7 @@ interface CartValue {
   farmerName?: string
   /** False when the cart already belongs to a different shop. */
   canAdd: (farmerId: string) => boolean
-  /** False when nothing went in: the cart belongs to another shop, or there is nothing to add. The first add is his minimum. */
+  /** False when nothing went in: the cart belongs to another shop, or there is nothing to add. The first add is their minimum. */
   add: (p: Product, qty?: number, farmerName?: string) => boolean
   setQty: (productId: string, qty: number) => void
   /** One + or − on a line, bounded by the farmer's minimum and `stock` (see cartRules). */

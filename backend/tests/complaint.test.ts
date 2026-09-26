@@ -5,11 +5,11 @@ import {
 } from '@shared/complaint.js'
 
 /**
- * WHEN SOMETHING HAS GONE WRONG AND SHE NEEDS A PERSON.
+ * WHEN SOMETHING HAS GONE WRONG AND SOMEBODY NEEDS A PERSON.
  *
  * Help & Training answers the questions that have answers; a complaint is the
  * other kind - the order that never arrived, the buyer who will not pay.
- * Those need somebody to open HER account, so it is recorded against it
+ * Those need somebody to open THEIR account, so it is recorded against it
  * rather than left as a message on one person's phone. WhatsApp is still
  * offered beside it for the thing that cannot wait for a queue.
  */
@@ -29,7 +29,7 @@ test('every subject on the list is one the server takes', () => {
 
 /**
  * The floor matters more than the ceiling. "problem" is not something anybody
- * can act on, and sending it wastes her time as much as the admin's.
+ * can act on, and sending it wastes their time as much as the admin's.
  */
 test('it has to say enough to act on', () => {
   assert.equal('message' in complaintProblems({ subject: 'order', message: 'अडचण' }), true)

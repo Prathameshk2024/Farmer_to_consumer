@@ -6,21 +6,21 @@ import { farmerWeek, fdriBandCounts, startOfWeek } from '../src/db/analytics.js'
 
 /**
  * "My growth" showed "not enough information yet" to every real farmer on the
- * platform, however much she had sold.
+ * platform, however much they had sold.
  *
  * Two separate reasons, and both are covered here:
  *
  *  1. the endpoint answered out of a hard-coded table that held one invented
  *     week for the demo farmer `s1` and nothing for anybody else, so a real
- *     woman's own orders were never read;
+ *     farmer's own orders were never read;
  *  2. the screen then hid itself below FIVE orders in the current week -
  *     which is to say it hid itself at exactly the moment a first sale would
- *     have been worth showing her.
+ *     have been worth showing them.
  *
  * The rule that decides every number below: money is counted on DELIVERY, not
- * on the order being placed, because delivery is when she was paid. The
+ * on the order being placed, because delivery is when the farmer was paid. The
  * "earned today" tile on My Business uses the same rule, and if the two ever
- * disagree she will trust neither.
+ * disagree the farmer will trust neither.
  */
 
 const DAY = 86_400_000
@@ -94,7 +94,7 @@ test('money lands on the day it was DELIVERED, not the day it was ordered', () =
 
   const week = farmerWeek(db, 's1', now)!
   assert.equal(week.days[0]!.v, 0, 'Monday, when it was ordered')
-  assert.equal(week.days[2]!.v, 500, 'Wednesday, when she was paid')
+  assert.equal(week.days[2]!.v, 500, 'Wednesday, when the farmer was paid')
 })
 
 test('an order that was cancelled or rejected is not earnings', () => {
@@ -132,16 +132,16 @@ test('an order older than two weeks is in neither total', () => {
   const week = farmerWeek(db, 's1', now)!
   assert.equal(week.days.reduce((n, d) => n + d.v, 0), 0)
   assert.equal(week.lastWeekTotal, 0)
-  // She has still earned before, so she still gets a chart rather than null.
+  // The farmer has still earned before, so they still get a chart rather than null.
   assert.equal(week.ordered, 1)
 })
 
-test('another farmer orders never reach her chart', () => {
+test('another farmer orders never reach their chart', () => {
   const now = Date.now()
   const at = startOfWeek(now) + DAY
   const db = dbWith([
     delivered('mine', 100, at),
-    delivered('hers', 5000, at, { farmerId: 's2' }),
+    delivered('theirs', 5000, at, { farmerId: 's2' }),
   ])
 
   assert.equal(farmerWeek(db, 's1', now)!.days.reduce((n, d) => n + d.v, 0), 100)

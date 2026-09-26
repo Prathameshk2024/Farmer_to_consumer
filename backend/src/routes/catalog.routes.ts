@@ -32,7 +32,7 @@ export function publiclyVisible(
 ): boolean {
   if (!product || !farmer) return false
   // `canSellNow` is the verification: an unverified farmer's live listing
-  // stays off the shelf until an admin has checked him once.
+  // stays off the shelf until an admin has checked them once.
   return product.status === 'LIVE' && canSellNow(farmer) && !!farmer.isOpen
 }
 
@@ -104,7 +104,7 @@ catalogRouter.get('/products', (req, res) => {
   //
   // Each product carries its OWN stars, from the ratings of buyers who
   // received it - worked out here on every request, never stored.
-  // Her card carries HER rating: every product of hers, taken together.
+  // The farmer's card carries THEIR rating: every product of theirs, taken together.
   const ratings = ratingsByProduct(db)
   const farmerRatings = ratingsByFarmer(db)
   const withFarmer = list.map((p) => {
@@ -196,7 +196,7 @@ catalogRouter.get('/products/:id/reviews', (req, res) => {
 /**
  * Share-QR landing. Records the scan, then the client redirects to the shop.
  * In production this endpoint also stamps the Play Store referrer so the
- * Install Referrer API can route a fresh install to her shop.
+ * Install Referrer API can route a fresh install to the farmer's shop.
  */
 catalogRouter.post('/share/:slug/scan', (req, res) => {
   const db = getDb()
@@ -218,16 +218,16 @@ catalogRouter.post('/share/:slug/scan', (req, res) => {
  * this once, stores the answer, and every later screen reuses it.
  */
 /**
- * HER NUMBER, TO ASK WHAT DELIVERY COSTS - AND NOT A DIGIT SOONER.
+ * THE FARMER'S NUMBER, TO ASK WHAT DELIVERY COSTS - AND NOT A DIGIT SOONER.
  *
- * Delivery is a hint rather than a price for most farmers: she writes one
+ * Delivery is a hint rather than a price for most farmers: they write one
  * pincode at registration and works the rest out per order, so the cart says
- * "ask the farmer" and the buyer had no way to ask until she had committed to
+ * "ask the farmer" and the buyer had no way to ask until they had committed to
  * an order. This is that way.
  *
  * It is NOT on the public farmer card (`publicFarmer` is an allow-list and
- * her phone is deliberately absent): the catalogue is readable by anyone at
- * all, and a village woman's phone number attached to her name and village is
+ * their phone is deliberately absent): the catalogue is readable by anyone at
+ * all, and a farmer's phone number attached to their name and village is
  * not something to hand out with a product listing. Here it takes a signed-in
  * buyer asking for one farmer, one at a time, which is the difference between
  * answering a customer and publishing a directory.
@@ -271,7 +271,7 @@ catalogRouter.get('/serviceability', (req, res) => {
     serviceable: farmers.length > 0 && productCount > 0,
     farmerCount: farmers.length,
     productCount,
-    // Shown when nothing is available, so she knows where the platform HAS
+    // Shown when nothing is available, so the buyer knows where the platform HAS
     // reached rather than just being told "no".
     nearbyVillages: [
       ...new Set(

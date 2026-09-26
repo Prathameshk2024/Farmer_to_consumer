@@ -6,7 +6,7 @@ import {
 
 /**
  * A village is not a dropdown entry. Its code becomes the middle of every ID
- * printed on a woman's packaging and her QR poster, and the serial after it is
+ * printed on a farmer's packaging and QR poster, and the serial after it is
  * counted per village so that F2C-YELI-007 tells a field coordinator where to
  * go. That makes adding a village a data change with two obligations, and this
  * file is where both are checked.
@@ -24,9 +24,9 @@ test('येळी is one of the supported villages', () => {
  * EACH VILLAGE CARRIES ITS OWN TALUKA.
  *
  * Every row used to say तुळजापूर - true of the first village and then copied
- * down the list, which put four women in the wrong taluka on their own farmer
- * records. The taluka is printed with her address and is how a coordinator
- * works out whose round she is on, so this pins the four that are not
+ * down the list, which put four farmers in the wrong taluka on their own farmer
+ * records. The taluka is printed with the farmer's address and is how a coordinator
+ * works out whose round they are on, so this pins the four that are not
  * Tuljapur. Correct one only against the register.
  */
 test('the taluka is the village\'s own, not the first one on the list', () => {
@@ -51,7 +51,7 @@ test('all six survey villages are in धाराशिव', () => {
 test('every fixed village code matches what transliteration would produce', () => {
   // The table exists to pin spellings, not to contradict the transliterator.
   // A code that disagrees means the same village would get two different IDs
-  // depending on whether she picked it from the list or typed it in.
+  // depending on whether the farmer picked it from the list or typed it in.
   for (const v of VILLAGES) {
     assert.equal(
       villageCode(v.mr),
@@ -71,7 +71,7 @@ test('every village code is plain uppercase Latin', () => {
 
 test('no two villages share a code', () => {
   // Sharing one would merge two villages' serials into a single run, and the
-  // ID would stop saying where she is.
+  // ID would stop saying where the farmer is.
   const codes = VILLAGES.map((v) => v.code)
   assert.equal(new Set(codes).size, codes.length, `duplicate code in ${codes.join(', ')}`)
 })

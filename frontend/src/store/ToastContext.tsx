@@ -12,7 +12,7 @@ import { IconAllClear, IconClose, IconWarn } from '../components/icons.js'
  * changed; a profile was saved and nothing at all happened. On a fast laptop
  * that reads as "instant". On a cheap phone on a village connection it reads
  * as "did that go through?", and the answer people reach for is to press the
- * button again - which is how an order gets accepted twice and how a woman
+ * button again - which is how an order gets accepted twice and how a user
  * stops trusting the app.
  *
  * So every completed action ends with a line on the screen that names what
@@ -34,7 +34,7 @@ interface Toast {
 }
 
 interface ToastValue {
-  /** Say what just happened. Past tense, in her language, from the dictionary. */
+  /** Say what just happened. Past tense, in their language, from the dictionary. */
   toast: (text: string, tone?: ToastTone) => void
 }
 
@@ -44,7 +44,7 @@ const ToastContext = createContext<ToastValue | null>(null)
  * Four seconds.
  *
  * Long enough to read a short Marathi sentence without hurrying, short enough
- * that it is gone before she needs the space. Anything she must act on is a
+ * that it is gone before they need the space. Anything they must act on is a
  * Notice on the screen itself, not a message that removes itself.
  */
 const DWELL_MS = 4000

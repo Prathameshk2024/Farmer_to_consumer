@@ -13,8 +13,8 @@ import { useI18n } from '../i18n/I18nProvider.js'
  *
  * The limitation, stated so nobody discovers it during an argument: every
  * action is recorded against that one identity, so `verifiedBy` on a verified
- * farmer says "admin@shantabazar.in" no matter which member of staff clicked
- * it. The moment two people share the login, "who verified him?" has one
+ * farmer says "admin@example.com" no matter which member of staff clicked
+ * it. The moment two people share the login, "who verified this farmer?" has one
  * answer for everybody. Per-person accounts is a backend change.
  */
 
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     // Tell the server first - the request reads the token before it is
-    // cleared. Not awaited: she must end up signed out on this desk whether or
+    // cleared. Not awaited: the admin must end up signed out on this desk whether or
     // not the network cooperates, and the session idles out on its own.
     void api.logout().catch(() => {
       /* offline - nothing more this side can do */

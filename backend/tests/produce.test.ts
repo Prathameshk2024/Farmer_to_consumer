@@ -17,7 +17,7 @@ test('price, stock and minimum order must make sense together', () => {
   assert.ok(listingProblems({ ...good, price: 0 }, now).price)
   assert.ok(listingProblems({ ...good, stock: -1 }, now).stock)
   assert.ok(listingProblems({ ...good, minOrder: 0 }, now).minOrder)
-  assert.ok(listingProblems({ ...good, minOrder: 300 }, now).minOrder, 'more than he has')
+  assert.ok(listingProblems({ ...good, minOrder: 300 }, now).minOrder, 'more than the farmer has')
 })
 
 test('a harvest date cannot be tomorrow', () => {
@@ -45,7 +45,7 @@ test('the cart steps between the minimum and the stock', () => {
   const p = { minOrder: 5, stock: 12 }
   assert.equal(cartStep(p, 5, -1), 0, 'below the minimum the line goes')
   assert.equal(cartStep(p, 5, 1), 6)
-  assert.equal(cartStep(p, 12, 1), 12, 'no more than he has')
+  assert.equal(cartStep(p, 12, 1), 12, 'no more than the farmer has')
   assert.equal(cartStep(p, 0, 1), 5, 'the first tap adds the minimum')
 })
 
@@ -61,8 +61,8 @@ test('a date that does not exist is refused, not aged as NaN', () => {
 })
 
 /**
- * Less on the shelf than his minimum is nothing a buyer may order - a line of
- * 0, or of 3 when he sends 5, would be refused at checkout.
+ * Less on the shelf than the farmer's minimum is nothing a buyer may order - a line of
+ * 0, or of 3 when they send 5, would be refused at checkout.
  */
 test('the first tap adds nothing when the stock is below the minimum', () => {
   assert.equal(cartStep({ minOrder: 5, stock: 0 }, 0, 1), 0)
@@ -79,7 +79,7 @@ test('a description past 500 characters is refused', () => {
 /**
  * The cart steps between the minimum and the stock on the buyer's phone; the
  * server holds the same rule, because a phone can send anything. The message
- * names the product, the number and the unit, so she knows what to change.
+ * names the product, the number and the unit, so the farmer knows what to change.
  */
 test('an order quantity must be whole, at least the minimum, at most the stock', () => {
   const tomato = { name: 'टोमॅटो', unit: 'kg' as const, minOrder: 2, stock: 150 }

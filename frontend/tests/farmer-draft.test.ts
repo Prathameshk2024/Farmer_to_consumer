@@ -9,7 +9,7 @@ import {
  * leaving it does not throw ten screens of answers away.
  *
  * It is keyed by PHONE for the same reason the product draft is keyed by
- * farmer: on a field coordinator's handset one woman registers after another,
+ * farmer: on a field coordinator's handset one farmer registers after another,
  * and a single shared key would show the next one a stranger's name, village
  * and UPI id already filled in.
  */
@@ -30,14 +30,14 @@ const typed = {
   crops: ['tomato'], fdri: { smartphone: true, internet: false },
 }
 
-test('a draft one woman typed is invisible to the next on the same phone', () => {
+test('a draft one farmer typed is invisible to the next on the same phone', () => {
   const store = fakeStore()
   writeDraft(store, '9822011223', 3, typed)
 
   assert.equal(readDraft(store, '9764455661'), null)
 })
 
-test('the same woman gets her answers back, on the step she left', () => {
+test('the same farmer gets their answers back, on the step they left', () => {
   const store = fakeStore()
   writeDraft(store, '9822011223', 3, typed)
 
@@ -50,7 +50,7 @@ test('the same woman gets her answers back, on the step she left', () => {
 })
 
 test('the key is the phone, however it was spelled', () => {
-  // The number arrives from what she typed and from a query string; one of those
+  // The number arrives from what they typed and from a query string; one of those
   // could carry spaces or a +91 and must not open a second drawer.
   assert.equal(draftKey('+91 98220 11223'), draftKey('9822011223'))
 })
@@ -64,8 +64,8 @@ test('no phone means no draft, rather than a shared one', () => {
 })
 
 test('finishing registration clears it', () => {
-  // Otherwise her details sit in the tab until it is closed, and re-entering
-  // the wizard after registering would restore a form she already submitted.
+  // Otherwise their details sit in the tab until it is closed, and re-entering
+  // the wizard after registering would restore a form they already submitted.
   const store = fakeStore()
   writeDraft(store, '9822011223', 5, typed)
   clearDraft(store, '9822011223')

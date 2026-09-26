@@ -8,7 +8,7 @@ const { createSession, revokeAllForUser } = await import('../src/auth/sessions.j
 
 /**
  * After an admin reset, the temporary password has been read out over the
- * phone, so two people know it. Until she replaces it, the session opens only
+ * phone, so two people know it. Until the user replaces it, the session opens only
  * the door that replaces it (and the one that leaves).
  */
 
@@ -29,7 +29,7 @@ test('a must-change session is refused everywhere but the password change', () =
   const r = call('/api/farmers/me', true)
   assert.equal(r.passed, false)
   assert.equal(r.status, 403)
-  assert.equal(r.body.code, 'MUST_CHANGE_PASSWORD', 'the client tells this 403 apart and sends her to /password')
+  assert.equal(r.body.code, 'MUST_CHANGE_PASSWORD', 'the client tells this 403 apart and sends them to /password')
 
   assert.equal(call('/api/auth/password', true).passed, true)
   assert.equal(call('/api/auth/logout?x=1', true).passed, true)

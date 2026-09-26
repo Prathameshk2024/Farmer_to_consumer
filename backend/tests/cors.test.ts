@@ -24,13 +24,13 @@ test('an explicit star means the same thing', () => {
 })
 
 test('one origin becomes a one-item list', () => {
-  assert.deepEqual(parseCorsOrigin('https://bazar.vercel.app'), ['https://bazar.vercel.app'])
+  assert.deepEqual(parseCorsOrigin('https://f2c.vercel.app'), ['https://f2c.vercel.app'])
 })
 
 test('two origins are split, which is the case this exists for', () => {
   assert.deepEqual(
-    parseCorsOrigin('https://bazar.vercel.app,https://admin-bazar.vercel.app'),
-    ['https://bazar.vercel.app', 'https://admin-bazar.vercel.app'],
+    parseCorsOrigin('https://f2c.vercel.app,https://f2c-admin.vercel.app'),
+    ['https://f2c.vercel.app', 'https://f2c-admin.vercel.app'],
   )
 })
 

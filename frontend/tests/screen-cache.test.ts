@@ -8,9 +8,9 @@ import {
 /**
  * WHAT A SCREEN DRAWS IN ITS FIRST FRAME.
  *
- * The cache exists so Back looks like nothing happened: the list she left is
+ * The cache exists so Back looks like nothing happened: the list they left is
  * on screen at full height before the browser paints, and the scroll can go
- * back to where she was. It saves no server reads - every screen still fetches
+ * back to where they were. It saves no server reads - every screen still fetches
  * - and it must never show one screen's answer at another screen's address.
  *
  * That last rule is the one that broke. Product A and product B are the same
@@ -39,8 +39,8 @@ test('moving to a product seen before shows its own last answer at once', () => 
 })
 
 /**
- * The refetch of the screen she is on keeps what she is reading. A spinner in
- * its place collapses the page and the browser clamps her scroll to the top.
+ * The refetch of the screen they are on keeps what they are reading. A spinner in
+ * its place collapses the page and the browser clamps their scroll to the top.
  */
 test('the same screen keeps what it holds while it refetches', () => {
   assert.equal(shownFor(onA, productA, 'product:A'), onA)
@@ -53,7 +53,7 @@ test('a screen with no cache key still drops the previous id', () => {
   assert.equal(shown.loading, true)
 })
 
-test('Back to a screen she has seen paints its last answer in the first frame', () => {
+test('Back to a screen they have seen paints its last answer in the first frame', () => {
   writeCache('catalog', ['p1', 'p2'])
   const shown = openScreen<string[]>(screenIdentity([], 'catalog'), 'catalog')
   assert.deepEqual(shown.data, ['p1', 'p2'])
@@ -76,9 +76,9 @@ test('past 40 screens the one visited longest ago goes first', () => {
   assert.equal(readCache('s40'), 40)
 })
 
-/** On a field coordinator's phone the next woman must not see this one's shop. */
+/** On a field coordinator's phone the next farmer must not see this one's shop. */
 test('ending a session forgets every screen', () => {
-  writeCache('farmer:products', ['her pickle'])
+  writeCache('farmer:products', ['their pickle'])
   clearScreenCache()
   assert.equal(readCache('farmer:products'), undefined)
 })

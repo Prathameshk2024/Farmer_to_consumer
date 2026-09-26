@@ -5,7 +5,7 @@
  * this programme work in Marathi, and an English-only console would quietly
  * decide who is allowed to administer it. The toggle is one click.
  *
- * DATA IS NEVER TRANSLATED. A farmer's name, her village, her product title
+ * DATA IS NEVER TRANSLATED. A farmer's name, village, product title
  * are rendered exactly as stored. Only the console's own chrome lives here.
  *
  * Both dictionaries must hold identical keys - tests/i18n.test.ts fails the
@@ -243,7 +243,7 @@ const mr: Record<string, string> = {
   'sd.reviews': 'त्यांच्या उत्पादनांना मिळालेले अभिप्राय',
   'sd.payment': 'पैसे',
 
-  /* ---- what an admin did to her account -------------------------- */
+  /* ---- what an admin did to a farmer's account ------------------- */
   'nt.VERIFIED': 'तपासणी पूर्ण झाली',
   'nt.BLOCKED': 'खाते बंद केले',
   'nt.UNBLOCKED': 'खाते सुरू केले',
@@ -252,7 +252,7 @@ const mr: Record<string, string> = {
   'st.PENDING_VERIFICATION': 'तपासणी बाकी',
   'st.ACTIVE': 'सक्रिय',
   'st.BLOCKED': 'बंद',
-  // She closed it herself. Not the same as blocked, and the register must not
+  // The farmer closed it themselves. Not the same as blocked, and the register must not
   // make it look like a decision somebody here took.
   'st.CLOSED': 'खाते बंद केले',
 
@@ -589,7 +589,7 @@ const en: Record<string, string> = {
   'sd.reviews': 'Reviews of their products',
   'sd.payment': 'Payment',
 
-  /* ---- what an admin did to her account -------------------------- */
+  /* ---- what an admin did to a farmer's account ------------------- */
   'nt.VERIFIED': 'Farmer verified',
   'nt.BLOCKED': 'Account blocked',
   'nt.UNBLOCKED': 'Account unblocked',

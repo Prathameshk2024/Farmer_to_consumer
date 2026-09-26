@@ -11,8 +11,8 @@ import { useT } from '../i18n/I18nProvider.js'
  * in this market, farmers and the college alike, is a personal UPI ID. Nothing
  * in the link can change that; tested on real phones, 14 September 2026.
  *
- * What those same apps do accept is a payment she starts inside them: scanning
- * a QR picked from her gallery, or pasting a UPI ID. So she takes a screenshot
+ * What those same apps do accept is a payment they start inside them: scanning
+ * a QR picked from their gallery, or pasting a UPI ID. So they take a screenshot
  * of the QR, and the steps say where to take it.
  *
  * There used to be a "Save QR to phone" button here. Inside the APK's WebView
@@ -25,7 +25,7 @@ import { useT } from '../i18n/I18nProvider.js'
 
 /**
  * The steps, written out one action each. Scanning from the gallery is a menu
- * she has probably never opened, so each tap gets its own line.
+ * they have probably never opened, so each tap gets its own line.
  */
 export function PaySteps({ screenshot = false }: { screenshot?: boolean }) {
   const t = useT()
@@ -36,8 +36,8 @@ export function PaySteps({ screenshot = false }: { screenshot?: boolean }) {
       <li>{t('pay.step3')}</li>
       <li>{t('pay.step4')}</li>
       <li>{t('pay.step5')}</li>
-      {/* Where proof is asked for, the step to capture it comes BEFORE she
-          leaves the success screen - it is gone once she presses back. */}
+      {/* Where proof is asked for, the step to capture it comes BEFORE they
+          leave the success screen - it is gone once they press back. */}
       {screenshot && <li>{t('pay.stepScreenshot')}</li>}
       <li>{t('pay.step6')}</li>
     </ol>

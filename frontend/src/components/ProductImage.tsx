@@ -13,7 +13,7 @@ import { IconProduct } from './icons.js'
  *
  * There is deliberately no cache of our own here. There was one: every card
  * `fetch()`ed its photo into a blob the moment it mounted, which downloaded a
- * whole catalogue's photos while she looked at the first four - `loading="lazy"`
+ * whole catalogue's photos while they looked at the first four - `loading="lazy"`
  * could not stop a fetch it never saw - and evicting a blob revoked a URL a
  * card on screen was still using, so Back to a long list swapped real photos
  * for stock ones. The photos never touched our server or database, so it

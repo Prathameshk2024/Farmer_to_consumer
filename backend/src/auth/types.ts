@@ -85,7 +85,7 @@ export interface PasswordRequest {
   village?: string
   /** The account this phone had when the request came in. Absent when none. */
   matchedUserId?: string
-  /** When he last asked. Asking again while OPEN moves this; it adds no row. */
+  /** When they last asked. Asking again while OPEN moves this; it adds no row. */
   at: string
   status: 'OPEN' | 'DONE' | 'DISMISSED'
   closedAt?: string

@@ -188,7 +188,7 @@ export interface FarmerDetail {
   earned: number
   /** Hidden ones included and marked. */
   reviews: Review[]
-  /** Visible reviews only - what her shop page shows. */
+  /** Visible reviews only - what the farmer's shop page shows. */
   rating: RatingSummary
 }
 
@@ -254,7 +254,7 @@ export const api = {
   /** Looked at, and the listing stays up. The reports close; the row does not. */
   clearReports: (id: string) => post<{ ok: true }>(`/admin/products/${id}/clear-reports`, {}),
 
-  /** Take a listing down: deletes it, and he is told the reason. */
+  /** Take a listing down: deletes it, and the farmer is told the reason. */
   takeDownProduct: (id: string, reason: string) =>
     post<{ product: Product }>(`/admin/products/${id}/moderate`, { approve: false, reason }),
 
@@ -271,10 +271,10 @@ export const api = {
 
   farmerDetail: (id: string) => get<FarmerDetail>(`/admin/farmers/${id}`),
 
-  /** Checked once, by a person; his live listings go public at once. */
+  /** Checked once, by a person; their live listings go public at once. */
   verifyFarmer: (id: string) => post<{ farmer: Farmer }>(`/admin/farmers/${id}/verify`, {}),
 
-  /** The reason is shown to her in her own app, so it is not optional noise. */
+  /** The reason is shown to the farmer in their own app, so it is not optional noise. */
   blockFarmer: (id: string, blocked: boolean, reason?: string) =>
     post<{ farmer: Farmer }>(`/admin/farmers/${id}/block`, { blocked, reason }),
 

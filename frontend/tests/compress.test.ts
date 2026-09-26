@@ -7,9 +7,9 @@ import {
 /**
  * EVERY IMAGE IS COMPRESSED BEFORE IT LEAVES THE PHONE.
  *
- * Product photos, her bank's QR and the payment screenshot all go through one
+ * Product photos, their bank's QR and the payment screenshot all go through one
  * upload path. A 4MB camera photo or a 2MB screenshot PNG on village 4G is the
- * upload a woman gives up on; a few hundred KB is not. The canvas work needs a
+ * upload a farmer gives up on; a few hundred KB is not. The canvas work needs a
  * browser, so these hold the numbers it runs on.
  */
 

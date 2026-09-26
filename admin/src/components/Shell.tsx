@@ -15,7 +15,7 @@ import {
  * Sidebar plus working area.
  *
  * The badges are the point of the sidebar: an admin's job here is a queue, and
- * the counts are what tells her whether there is one. They come from
+ * the counts are what tells the admin whether there is one. They come from
  * /admin/stats, which already computes all three, so no extra request.
  */
 export function Shell() {
@@ -29,11 +29,11 @@ export function Shell() {
    * The comment that used to sit here said nothing changes without an admin
    * doing it - and that was wrong in exactly the case that matters. A farmer
    * registers and then cannot sell anything at all until somebody here
-   * verifies him; he has no way to hurry that along, and nobody at this desk
-   * had any way to know he was waiting short of reloading the page.
+   * verifies them; the farmer has no way to hurry that along, and nobody at this desk
+   * had any way to know anyone was waiting short of reloading the page.
    *
    * One request a minute against an endpoint that reads an in-memory snapshot
-   * is cheap. Anything faster would be spending a woman's Firestore quota to
+   * is cheap. Anything faster would be spending the Firestore quota to
    * tell an admin something a minute sooner.
    *
    * Only while the tab is visible. The API runs with CPU always allocated, so

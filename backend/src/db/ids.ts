@@ -14,7 +14,7 @@ export function newId(prefix: string): string {
 }
 
 /**
- * A short id a woman can read down a phone line - F2C4821, not F2Cm8k2x9q.
+ * A short id a person can read down a phone line - F2C4821, not F2Cm8k2x9q.
  *
  * Four digits is 9,000 ids, and the birthday bound puts an even chance of a
  * repeat at about 112 of them, so the caller hands in a way to ask whether one
@@ -31,7 +31,7 @@ export function newShortId(prefix: string, taken: (id: string) => boolean): stri
     const id = `${prefix}${1000 + Math.floor(Math.random() * 9000)}`
     if (!taken(id)) return id
   }
-  // Too crowded to draw from. A long id is uglier on a receipt and still hers.
+  // Too crowded to draw from. A long id is uglier on a receipt and still theirs.
   // Bounded, not `while (taken)`: this runs inside a request, and a checkout
   // that never answers is worse than one that fails and says so.
   for (let i = 0; i < 100; i += 1) {

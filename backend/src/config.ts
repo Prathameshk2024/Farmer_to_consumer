@@ -174,7 +174,7 @@ export const usingCloudinary = cloudinary !== null
 
 /**
  * The key session tokens are signed with. Sessions carry a customer id, and a
- * customer id now unlocks her saved home addresses - so an unsigned token
+ * customer id now unlocks their saved home addresses - so an unsigned token
  * would let anyone read anyone's address by editing a base64 string.
  *
  * Development gets a fixed fallback so the repo still runs with no .env at
@@ -203,7 +203,7 @@ export const SESSION_SECRET = readSessionSecret()
  *
  * Off unless asked for. It used to be automatic, which is right for a fresh
  * clone and badly wrong for a live one: customers would be shown three
- * invented women and eleven invented products alongside the real ones, and a
+ * invented farmers and eleven invented products alongside the real ones, and a
  * single empty read would be enough to put them there.
  */
 export const SEED_DEMO_DATA = /^(1|true|yes)$/i.test(firstOf('SEED_DEMO_DATA') ?? '')

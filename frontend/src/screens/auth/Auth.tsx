@@ -105,8 +105,8 @@ export function LoginScreen() {
 /**
  * FORGOT PASSWORD IS A REQUEST TO A PERSON
  * ========================================
- * Public. She leaves her number, name and (a farmer) village; an admin calls
- * that number and reads out a temporary password. What she sees after sending
+ * Public. They leave their number, name and (a farmer) village; an admin calls
+ * that number and reads out a temporary password. What they see after sending
  * is the same whatever the server knows about the number.
  */
 export function ForgotPasswordScreen() {

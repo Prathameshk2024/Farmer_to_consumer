@@ -28,7 +28,7 @@ import { SESSION_ABSOLUTE_MS, SESSION_IDLE_MS } from './tokens.js'
  *
  * A limit is needed because logging in is unauthenticated up to the password check, so
  * without one the collection is a place anybody can write to indefinitely.
- * Ten is generous for a woman with a phone and a shared family tablet, and the
+ * Ten is generous for a farmer with a phone and a shared family tablet, and the
  * oldest is evicted rather than the newest refused - being unable to sign in
  * on the device in your hand is a far worse failure than an old session
  * ending.
@@ -141,7 +141,7 @@ export function revokeAllForUser(
   return n
 }
 
-/** Her signed-in devices, newest first. Revoked ones are not shown. */
+/** A user's signed-in devices, newest first. Revoked ones are not shown. */
 export function liveSessionsForUser(db: Db, userId: string, now = Date.now()): SessionRecord[] {
   return db.sessions
     .filter((s) => s.userId === userId && findLiveSession(db, s.id, now))
@@ -163,7 +163,7 @@ function evictOldest(db: Db, userId: string, now: number): void {
  * Drop rows nothing can use any more.
  *
  * Without this the collection only grows: every login of every customer, for
- * ever. Revoked rows are kept a week so "was this token used after she logged
+ * ever. Revoked rows are kept a week so "was this token used after they logged
  * out?" is still answerable, then go.
  */
 export function pruneSessions(db: Db, now = Date.now()): number {
@@ -183,7 +183,7 @@ export function pruneSessions(db: Db, now = Date.now()): number {
  * A coarse device label from the User-Agent, for the "signed in on" list.
  *
  * Deliberately lossy. The full string is a fingerprinting surface and is not
- * needed: she has to recognise which of her own devices a row is, and "Android
+ * needed: the user has to recognise which of their own devices a row is, and "Android
  * phone" does that.
  */
 export function describeClient(userAgent: string | undefined): string {

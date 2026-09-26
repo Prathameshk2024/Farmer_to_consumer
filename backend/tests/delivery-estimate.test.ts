@@ -8,12 +8,12 @@ import {
  * "YES" AND "WHEN?" ARE ONE MOMENT.
  *
  * A buyer whose order was accepted used to be told ACCEPTED and nothing about
- * time. The farmer is asked as she accepts, because that is the moment she
- * knows: she has just read the address, the quantity and what is on her shelf.
+ * time. The farmer is asked as they accept, because that is the moment they
+ * know: they have just read the address, the quantity and what is on their shelf.
  *
- * Her words, not a date. The honest answer in a village with one bus a day is
- * "two days" or "Thursday, after the market"; a calendar would make her invent
- * a precision she does not have.
+ * Their words, not a date. The honest answer in a village with one bus a day is
+ * "two days" or "Thursday, after the market"; a calendar would make them invent
+ * a precision they do not have.
  */
 
 test('accepting is where the question belongs, and nowhere else', () => {
@@ -27,13 +27,13 @@ test('accepting is where the question belongs, and nowhere else', () => {
 })
 
 test('saying nothing stores nothing', () => {
-  // Skipping is allowed: a time she was pushed into inventing is worse for
+  // Skipping is allowed: a time they were pushed into inventing is worse for
   // the buyer than no time at all.
   assert.equal(cleanDeliveryEstimate(undefined), undefined)
   assert.equal(cleanDeliveryEstimate('   '), undefined)
 })
 
-test('what she typed is what the buyer reads', () => {
+test('what the farmer typed is what the buyer reads', () => {
   assert.equal(cleanDeliveryEstimate('  2 दिवसांत  '), '2 दिवसांत')
   assert.equal(cleanDeliveryEstimate('उद्या\n संध्याकाळी'), 'उद्या संध्याकाळी')
 })

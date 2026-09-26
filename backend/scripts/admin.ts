@@ -26,7 +26,7 @@ import { normalizePhone } from '@shared/farmer.js'
 import { passwordProblemMr } from '@shared/password.js'
 
 const API = process.env.API_URL ?? 'http://localhost:4000'
-const EMAIL = process.env.ADMIN_EMAIL ?? 'admin@shantabazar.in'
+const EMAIL = process.env.ADMIN_EMAIL ?? 'admin@example.com'
 const PASSWORD = process.env.ADMIN_PASSWORD ?? 'changeme'
 
 const c = {
@@ -79,7 +79,7 @@ async function login(): Promise<void> {
 
 interface FarmerRow { id: string; name: string; phone: string; farmerCode: string; status: string }
 
-/** One farmer at a time, by phone, id or farmer code - after an admin has checked him. */
+/** One farmer at a time, by phone, id or farmer code - after an admin has checked them. */
 async function verify(target: string | undefined): Promise<void> {
   const r = await call<{ farmers: FarmerRow[] }>('/api/admin/farmers')
   const farmer = r.farmers.find((s) => s.id === target || s.phone === target || s.farmerCode === target)
@@ -137,7 +137,7 @@ async function main(): Promise<void> {
       console.log(`
   Commands:
     farmers                     every farmer with status
-    verify <id|phone|farmer-code>    verify a farmer once, after checking him
+    verify <id|phone|farmer-code>    verify a farmer once, after checking them
     set-password <phone> <password>  a demo password for a seeded farmer (API stopped)
 `)
   }

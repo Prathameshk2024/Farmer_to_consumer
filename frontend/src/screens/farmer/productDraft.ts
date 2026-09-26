@@ -5,8 +5,8 @@ import { UNITS } from '@shared/produce.js'
  * The half-filled product the upload wizard keeps on the device.
  *
  * A farmer leaves this screen for ordinary reasons - most often to change the
- * language from her profile - and unmounting it used to throw away everything
- * he had typed and send him back to the first question again. So it is written
+ * language from their profile - and unmounting it used to throw away everything
+ * they had typed and send them back to the first question again. So it is written
  * down.
  *
  * It is written down PER FARMER. The first version used one shared key, and on
@@ -46,11 +46,11 @@ export const draftKey = (farmerId: string) => `wb.draft.product.${farmerId}`
 export type DraftStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
 /**
- * Has she actually begun?
+ * Have they actually begun?
  *
  * Opening the wizard and walking away must leave nothing behind - otherwise
  * every farmer who so much as glanced at the screen gets a draft restored at
- * her next visit, which is its own kind of confusing.
+ * their next visit, which is its own kind of confusing.
  */
 export function hasStarted(d: Draft): boolean {
   return (Object.keys(BLANK) as (keyof Draft)[]).some((k) => d[k] !== BLANK[k])
@@ -61,7 +61,7 @@ export function readDraft(
   farmerId: string | undefined,
 ): { step: number; d: Draft } | null {
   // Existing installs still hold the shared key. Left in place it would keep
-  // handing one woman's product to the next, so reading is what clears it.
+  // handing one farmer's product to the next, so reading is what clears it.
   try {
     store.removeItem(LEGACY_DRAFT_KEY)
   } catch {
@@ -107,7 +107,7 @@ export function writeDraft(
   try {
     store.setItem(draftKey(farmerId), JSON.stringify({ farmerId, step, d }))
   } catch {
-    /* private mode - she loses the draft on leaving, as before */
+    /* private mode - they lose the draft on leaving, as before */
   }
 }
 

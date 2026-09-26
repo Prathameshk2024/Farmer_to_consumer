@@ -18,7 +18,7 @@ import { shouldRefresh, signToken, verifyToken } from '../auth/tokens.js'
  * is read from the RECORD, never from the token: `req.auth.farmerId` comes out
  * of the row in the database, so a token cannot assert an identity the server
  * did not issue even if the signing key were somehow forged. It also means
- * "log out" and "revoke her stolen phone" are real, because deleting the row
+ * "log out" and "revoke a stolen phone" are real, because deleting the row
  * kills every token pointing at it.
  *
  * To go live on Firebase Auth instead: mint a Firebase custom token after the
@@ -36,7 +36,7 @@ export interface AuthContext {
   customerId?: string
   /** The session this request is authenticated by. */
   sessionId: string
-  /** An admin reset her password: nothing but choosing a new one until she does. */
+  /** An admin reset the password: nothing but choosing a new one until they do. */
   mustChangePassword?: boolean
 }
 
@@ -61,7 +61,7 @@ export { SESSION_IDLE_MS, shouldRefresh, signToken, verifyToken } from '../auth/
  * once a session is past halfway a freshly stamped token goes back on
  * `X-Session-Token` for the client to swap in. That is what makes the expiry
  * an INACTIVITY timeout rather than a hard cutoff that would sign a farmer out
- * while she is packing an order.
+ * while they are packing an order.
  *
  * `lastSeenAt` is only PERSISTED every few minutes - see TOUCH_RESOLUTION_MS -
  * so an active session does not turn every request into a database write.
@@ -117,13 +117,13 @@ export function requireRole(...roles: Role[]) {
     if (!roles.includes(req.auth.role)) {
       // 403, not 401, and the difference matters to the client: 401 means the
       // session is dead and should be cleared, 403 means it is fine but this
-      // door is not hers. Conflating them signs people out for touching the
+      // door is not theirs. Conflating them signs people out for touching the
       // wrong URL.
       res.status(403).json({ error: 'Not allowed', messageMr: 'तुम्हाला परवानगी नाही' })
       return
     }
     // A temporary password was read out over the phone, so it is known to two
-    // people. Until she replaces it, it opens only the door that replaces it.
+    // people. Until the user replaces it, it opens only the door that replaces it.
     if ((req.auth.role === 'farmer' || req.auth.role === 'customer')
         && req.auth.mustChangePassword
         && !['/api/auth/password', '/api/auth/logout'].includes(req.originalUrl.split('?')[0]!)) {

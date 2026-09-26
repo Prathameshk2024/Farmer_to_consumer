@@ -8,14 +8,14 @@ import { requireRole } from '../middleware/auth.js'
  * COMPLAINTS FROM INSIDE THE APP.
  *
  * Help & Training answers the questions that have answers; this is for the
- * ones that need a person to open her account - the order that never
- * arrived, the buyer who will not pay. She can also reach the desk on
+ * ones that need a person to open their account - the order that never
+ * arrived, the buyer who will not pay. They can also reach the desk on
  * WhatsApp, and that is offered beside this, but a WhatsApp message lives on
  * one phone: it cannot be counted, assigned or found again next month. This
  * one is a record.
  *
- * Her name and number are copied onto the row rather than looked up per read,
- * so the queue can be read - and she can be rung back - without a join.
+ * The writer's name and number are copied onto the row rather than looked up per read,
+ * so the queue can be read - and they can be rung back - without a join.
  */
 export const complaintsRouter: Router = Router()
 

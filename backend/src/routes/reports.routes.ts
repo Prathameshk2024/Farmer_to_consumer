@@ -23,7 +23,7 @@ export const reportsRouter: Router = Router()
 reportsRouter.post('/', requireRole('customer', 'farmer'), (req, res) => {
   const db = getDb()
   // Either side may flag: a buyer reading a listing, and the farmer an
-  // abusive review is written about. Hers is the only complaint nobody else
+  // abusive review is written about. Theirs is the only complaint nobody else
   // is in a position to make.
   const byRole = req.auth!.role === 'farmer' ? 'farmer' as const : 'customer' as const
   const byUserId = (byRole === 'farmer' ? req.auth!.farmerId : req.auth!.customerId)!
@@ -54,7 +54,7 @@ reportsRouter.post('/', requireRole('customer', 'farmer'), (req, res) => {
   }
 
   /**
-   * One report per buyer per thing. A second tap is a woman making sure it
+   * One report per buyer per thing. A second tap is a buyer making sure it
    * went, not a second complaint, and counting it twice would make three
    * annoyed people look like a scandal in the admin queue.
    */

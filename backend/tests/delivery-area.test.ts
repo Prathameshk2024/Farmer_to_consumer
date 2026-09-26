@@ -3,25 +3,25 @@ import assert from 'node:assert/strict'
 import { isMaharashtraPincode } from '@shared/farmer.js'
 
 /**
- * WHO DECIDES WHETHER SHE CAN DELIVER THERE.
+ * WHO DECIDES WHETHER THE FARMER CAN DELIVER THERE.
  *
- * Her delivery-area list is one pincode - her own - written at registration
+ * The farmer's delivery-area list is one pincode - their own - written at registration
  * and never editable, so a buyer one village away was refused by the server
- * before the farmer ever saw the order. A woman in 413004 will happily carry a
- * jar of pickle to 413002; nobody asked her.
+ * before the farmer ever saw the order. A farmer in 413004 will happily carry a
+ * crate of onions to 413002; nobody asked them.
  *
  * So the list stops being a gate. Anywhere in Maharashtra the order reaches
- * her and she accepts or rejects it herself. Outside Maharashtra it is still
- * refused outright, because that is not a delivery she could make on a bus.
+ * the farmer and they accept or reject it themselves. Outside Maharashtra it is still
+ * refused outright, because that is not a delivery they could make on a bus.
  */
 
-test('a Maharashtra pincode is hers to decide', () => {
+test('a Maharashtra pincode is theirs to decide', () => {
   for (const code of ['400001', '413002', '413004', '421301', '431001', '445402']) {
     assert.equal(isMaharashtraPincode(code), true, code)
   }
 })
 
-test('anywhere else is refused before it reaches her', () => {
+test('anywhere else is refused before it reaches the farmer', () => {
   for (const code of ['110001', '560001', '395001', '500081', '700001']) {
     assert.equal(isMaharashtraPincode(code), false, code)
   }
@@ -29,7 +29,7 @@ test('anywhere else is refused before it reaches her', () => {
 
 /**
  * Goa is 403xxx, which sits inside the 40-44 band. It is not Maharashtra, and
- * a woman in Dharashiv is not delivering pickle to Panaji.
+ * a farmer in Dharashiv is not delivering onions to Panaji.
  */
 test('Goa is not Maharashtra', () => {
   for (const code of ['403001', '403507', '403806']) {

@@ -6,7 +6,7 @@ import { dictionaries } from '../src/i18n/strings.js'
  * THE MECHANICAL HALF OF docs/MARATHI-STYLE.md, for the console.
  *
  * The same sheet governs all three modules - an admin reading "भरणा" here and
- * a farmer reading "पेमेंट" in her own app are being shown two words for one
+ * a farmer reading "पेमेंट" in their own app are being shown two words for one
  * thing, and only one of them can look it up.
  *
  * Marathi ONLY. The English dictionary is an independent piece of writing, not
@@ -45,8 +45,8 @@ test('digits are Latin, never Devanagari', () => {
 })
 
 test('one word for one thing', () => {
-  // §4, across modules: the console and her app must not name the same object
-  // differently, because she is the one who has to recognise it in both.
+  // §4, across modules: the console and the farmer app must not name the same object
+  // differently, because the farmer is the one who has to recognise it in both.
   const banned: [RegExp, string][] = [
     [/UPI ID/, 'use "UPI आयडी"'],
     [/पाहा/, 'use "पहा"'],
@@ -72,8 +72,8 @@ test('no space before punctuation, and no doubled spaces', () => {
   assert.deepEqual(bad, [])
 })
 
-test('the farmer is शेतकरी, and no copy assumes a woman', () => {
-  // §4. The console names the farmers of an open programme, men and women.
+test('the farmer is शेतकरी, and no copy assumes a gender', () => {
+  // §4. The console names the farmers of an open programme, whoever they are.
   const bad = everything
     .filter((e) => /विक्रेत|उद्योजिका|महिला|शांताई/.test(e.value))
     .map((e) => e.where)

@@ -5,9 +5,9 @@ import type { Db } from '../src/db/seed.js'
 import { buyersForFarmer } from '../src/db/customers.js'
 
 /**
- * A farmer may only ever see buyers who have ordered from HER. The aggregation
+ * A farmer may only ever see buyers who have ordered from THEM. The aggregation
  * is the enforcement point, so these tests are the proof: an order belonging to
- * another farmer must not leak a name, a phone number or a rupee into her list.
+ * another farmer must not leak a name, a phone number or a rupee into their list.
  */
 
 function order(over: Partial<Order>): Order {
@@ -36,7 +36,7 @@ function dbWith(orders: Order[], customers: Db['customers'] = []): Db {
   return { farmers: [], products: [], orders, customers } as unknown as Db
 }
 
-test('a farmer sees only buyers who ordered from her', () => {
+test('a farmer sees only buyers who ordered from them', () => {
   const db = dbWith([
     order({ id: 'A1', farmerId: 's1', customerId: 'c-1', customerName: 'माझी ग्राहक', customerPhone: '9000000001' }),
     order({ id: 'B1', farmerId: 's2', customerId: 'c-2', customerName: 'दुसरीची ग्राहक', customerPhone: '9000000002' }),
@@ -52,7 +52,7 @@ test('a farmer sees only buyers who ordered from her', () => {
   )
 })
 
-test('a repeat buyer is one row carrying her order count', () => {
+test('a repeat buyer is one row carrying their order count', () => {
   const db = dbWith([
     order({ id: 'A1', total: 300, placedAt: '2026-09-01T00:00:00.000Z' }),
     order({ id: 'A2', total: 250, placedAt: '2026-09-04T00:00:00.000Z' }),
@@ -83,7 +83,7 @@ test('a buyer whose every order was cancelled still appears, at zero', () => {
 
   const [buyer] = buyersForFarmer(db, 's1')
 
-  assert.ok(buyer, 'she still tried to buy - hiding her would be misleading')
+  assert.ok(buyer, 'the buyer still tried to buy - hiding them would be misleading')
   assert.equal(buyer.orderCount, 0)
   assert.equal(buyer.totalSpent, 0)
 })
@@ -100,7 +100,7 @@ test('buyers are sorted with the most recent first', () => {
   )
 })
 
-test('the last order supplies the area shown next to her name', () => {
+test('the last order supplies the area shown next to their name', () => {
   const db = dbWith([
     order({ id: 'A1', address: 'जुना पत्ता', pincode: '413601', placedAt: '2026-08-01T00:00:00.000Z' }),
     order({ id: 'A2', address: 'नवा पत्ता', pincode: '413603', placedAt: '2026-09-04T00:00:00.000Z' }),

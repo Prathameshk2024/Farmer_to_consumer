@@ -9,7 +9,7 @@ import type { OrderRow, ProductRow, FarmerRow } from './api.js'
  * same rows.
  *
  * One table per list, because "highest" means a different number on each -
- * what she has earned, what a product costs, what an order came to - and a generic "sort by field" menu would make an admin
+ * what a farmer has earned, what a product costs, what an order came to - and a generic "sort by field" menu would make an admin
  * learn the data model to use it.
  */
 
@@ -55,7 +55,7 @@ export const FARMER_SORTS: SortOption<FarmerRow>[] = [
   oldestFirst((s) => s.createdAt),
   nameAZ((s) => s.name),
   nameZA((s) => s.name),
-  // Delivered orders only - the same definition her own page and the impact
+  // Delivered orders only - the same definition the farmer page and the impact
   // report use, computed on the server.
   highest('earnedHigh', 'sort.earnedHigh', (s) => s.earned),
 ]

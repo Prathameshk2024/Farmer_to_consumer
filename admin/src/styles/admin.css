@@ -2,7 +2,7 @@
  * The farmer app's palette, applied to a desk instead of a phone.
  *
  * Tokens are copied verbatim from frontend/src/styles/theme.css so the two
- * products look like one product. What changes is density and layout: she is
+ * products look like one product. What changes is density and layout: the farmer is
  * standing in a village with one thumb, the admin is sitting down with a mouse
  * and wants twenty rows on screen at once.
  */
@@ -508,7 +508,7 @@ table.t tr:last-child td { border-bottom: 0; }
 .confirm__d { font-size: 13.5px; color: var(--ink-2); margin-top: 4px; max-width: 62ch; }
 
 /* ================= a record, read as label / value =================
- * A description list rather than a table: these are facts about one woman,
+ * A description list rather than a table: these are facts about one farmer,
  * not rows to compare against each other, and a two-column grid keeps the
  * values lined up without any of a table's furniture.
  */

@@ -29,7 +29,7 @@ import type { Db } from './seed.js'
 
 /**
  * `addresses` is deliberately absent. It used to hold two seeded demo
- * addresses that every customer was shown as if they were her own; addresses
+ * addresses that every customer was shown as if they were their own; addresses
  * now live inside each customer document. Dropping the name from this list
  * stops the collection being read or diffed - the existing documents are left
  * in Firestore untouched, so restoring this entry is the whole rollback.
@@ -160,7 +160,7 @@ export async function seedInto(data: Db): Promise<void> {
  * THE DEAD-MAN'S SWITCH
  * =====================
  * On 10 September 2026 every farmer and every product vanished from Firestore:
- * six real women and thirteen listings, deleted in one batch because something
+ * six real farmers and thirteen listings, deleted in one batch because something
  * handed `persistDiff` an in-memory database with those two arrays empty. The
  * diff did exactly what it is written to do. Nothing was wrong with it, and
  * that is the problem - a whole collection disappearing is indistinguishable

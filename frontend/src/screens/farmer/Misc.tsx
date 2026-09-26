@@ -132,7 +132,7 @@ export function FarmerProfile() {
 
         {/* DELETING THE ACCOUNT IS NOT A NEIGHBOUR OF LOGGING OUT.
             Play requires the option and requires it to be findable; it does
-            not require it to sit under her thumb next to the button she
+            not require it to sit under their thumb next to the button they
             presses every week. Its own card at the very end, a quiet line
             rather than a red button, and everything that makes it hard to do
             by accident is inside the sheet. */}
@@ -191,14 +191,14 @@ export const SUPPORT_PHONE = '7057899018'
 
 export function FarmerHelp() {
   const t = useT()
-  /** Open while she is writing what went wrong. */
+  /** Open while they are writing what went wrong. */
   const [complaining, setComplaining] = useState(false)
 
   return (
     <>
       <AppBar brand title={t('help.title')} />
       <div className="screen stack">
-        {/* Her own screens first: a walkthrough runs on the real page,
+        {/* Their own screens first: a walkthrough runs on the real page,
             which is the fastest answer to "how do I do this". */}
         <div>
           <SectionTitle>{t('wt.title')}</SectionTitle>
@@ -244,7 +244,7 @@ export function FarmerHelp() {
 }
 
 /* ================================================================== */
-/* My Growth - her own past is the only benchmark, never a leaderboard */
+/* My Growth - their own past is the only benchmark, never a leaderboard */
 /* ================================================================== */
 
 export function FarmerGrowth() {
@@ -262,8 +262,8 @@ export function FarmerGrowth() {
 
   const week = data?.week
 
-  // Only when she has never earned at all. It used to hide below FIVE orders
-  // this week, which meant a woman with her first sale - the moment that most
+  // Only when they have never earned at all. It used to hide below FIVE orders
+  // this week, which meant a farmer with their first sale - the moment that most
   // deserves a chart - was told there was not enough information.
   if (!week) {
     return (

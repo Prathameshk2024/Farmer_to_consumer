@@ -8,7 +8,7 @@ const { isBulkDelete } = await import('../src/db/firestore.js')
 /**
  * THE DAY EVERY FARMER DISAPPEARED
  * ================================
- * 10 September 2026: six registered women and thirteen product listings were
+ * 10 September 2026: six registered farmers and thirteen product listings were
  * deleted from Firestore in a single batch. Something handed `persistDiff` an
  * in-memory database whose `farmers` and `products` arrays were empty, and the
  * diff did precisely what it is written to do - anything present at boot and
@@ -16,7 +16,7 @@ const { isBulkDelete } = await import('../src/db/firestore.js')
  *
  * They came back only because Firestore keeps one hour of version history even
  * when point-in-time recovery is off. One hour later there would have been
- * nothing left to recover, and six women would have been told to register
+ * nothing left to recover, and six farmers would have been told to register
  * again from scratch.
  *
  * The guard does not try to work out WHY a collection emptied. It refuses on

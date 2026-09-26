@@ -1,9 +1,9 @@
 /**
  * Page walkthroughs - one per bottom-nav section, not one for the whole app.
  *
- * A single tour after registration is over before she has anything to do with
- * it. Each screen explains ITSELF the first time she opens it, and never
- * again unless she asks for it from Help & Training.
+ * A single tour after registration is over before they have anything to do with
+ * it. Each screen explains ITSELF the first time they open it, and never
+ * again unless they ask for it from Help & Training.
  *
  * `sel` points at a control that is really on the screen. Nothing here draws
  * its own copy of a button: when a selector matches nothing - a gated wizard,
@@ -19,9 +19,9 @@ export interface TourStep {
   body: string
   /**
    * A stand-in for a screen that has nothing on it yet - an empty cart.
-   * Worth showing, not worth counting: a woman told "choose some products
+   * Worth showing, not worth counting: a buyer told "choose some products
    * first" has not yet been taught the cart, so seeing this must not spend
-   * her one automatic showing of the real thing.
+   * their one automatic showing of the real thing.
    */
   provisional?: boolean
 }
@@ -43,7 +43,7 @@ export function wantsTour(
 }
 
 /**
- * Did she actually see the walkthrough, or only a stand-in?
+ * Did they actually see the walkthrough, or only a stand-in?
  *
  * Only a real step closes the tour for good. A screen that had nothing to
  * point at offers itself again once it does.
@@ -83,13 +83,13 @@ export const TOURS: Record<TourId, TourStep[]> = {
   ],
   /* This screen holds one kind of thing, so the tour says one thing and
      rings one TILE. A ring around the whole grid is not a highlight, and the
-     second step used to point at the cart - answering a question she had not
-     asked, on a screen she was still reading. */
+     second step used to point at the cart - answering a question they had not
+     asked, on a screen they were still reading. */
   'shop.categories': [
     { sel: '[data-wt="cat-grid"] button', title: 'nav.categories', body: 'wt.ca1' },
   ],
   /* An empty basket first - it is the only thing on that screen, and "choose
-     products before you can order" is what she is missing. It disappears the
+     products before you can order" is what they are missing. It disappears the
      moment there is something in the cart, which is when the other three
      controls exist. */
   'shop.cart': [
@@ -122,11 +122,11 @@ export const TOUR_MENU: Record<'farmer' | 'customer', { id: TourId; to: string; 
 }
 
 /**
- * Which tours she has finished, on this device.
+ * Which tours they have finished, on this device.
  *
  * NOT keyed on the account and never cleared on sign-out: the point of the
- * flag is "this phone has been shown this screen", and re-teaching a woman
- * her own shop because she logged out once is the failure this prevents.
+ * flag is "this phone has been shown this screen", and re-teaching a farmer
+ * their own shop because they logged out once is the failure this prevents.
  */
 export const SEEN_KEY = 'wb.tours'
 
@@ -137,7 +137,7 @@ export function seenTours(store: TourStore): TourId[] {
   try {
     const raw = JSON.parse(store.getItem(SEEN_KEY) ?? '[]') as unknown
     // A hand-edited or half-written row means "shown nothing", never a crash
-    // on every screen she opens.
+    // on every screen they open.
     return Array.isArray(raw) ? (raw.filter((v) => typeof v === 'string') as TourId[]) : []
   } catch {
     return []
@@ -150,6 +150,6 @@ export function markTourSeen(store: TourStore, id: TourId): void {
     if (seen.includes(id)) return
     store.setItem(SEEN_KEY, JSON.stringify([...seen, id]))
   } catch {
-    /* private mode - she will be offered the walkthrough again */
+    /* private mode - they will be offered the walkthrough again */
   }
 }

@@ -36,7 +36,7 @@ export function sign(params: Record<string, string | number>, secret: string): s
 /**
  * A signature needs a signed-in caller. The registration wizard creates the
  * account before it asks for the payment QR, so a new farmer already has a
- * session by the time she uploads anything.
+ * session by the time they upload anything.
  */
 uploadsRouter.post('/signature', requireRole('farmer', 'customer', 'admin'), (req, res) => {
   if (!usingCloudinary || !cloudinary) {

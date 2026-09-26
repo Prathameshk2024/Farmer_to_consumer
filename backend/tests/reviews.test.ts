@@ -16,7 +16,7 @@ import {
  *
  * Once an order is delivered, the buyer rates every product in it - stars
  * required, words optional - before the app lets them do anything else. The
- * ratings belong to the products; a farmer's rating is her products' ratings
+ * ratings belong to the products; a farmer's rating is their products' ratings
  * taken together.
  */
 
@@ -147,7 +147,7 @@ test('a product shows its own stars; hidden reviews leave both the list and the 
   assert.deepEqual(p1.reviews.map((r) => r.orderId), ['A'])
   assert.deepEqual(p1.summary, { average: 5, count: 1, byStars: [0, 0, 0, 0, 1] })
   assert.equal(ratingsByProduct(db).get('p2')?.count, 2)
-  // Her own list: every visible review of her products, nothing hidden.
+  // The farmer's own list: every visible review of their products, nothing hidden.
   assert.equal(farmerProductReviews(db, 's1').length, 3)
 })
 
@@ -177,10 +177,10 @@ test('an old whole-order review becomes one review per product, once', () => {
 })
 
 /**
- * A farmer's rating is every visible review of her products, each counted
+ * A farmer's rating is every visible review of their products, each counted
  * once - a product rated often weighs more than one rated once.
  */
-test('a farmer is rated by all her products\' reviews together, hidden ones left out', () => {
+test('a farmer is rated by all their products\' reviews together, hidden ones left out', () => {
   const db = { reviews: [] as Review[] }
   writeRatings(db, order('DELIVERED', 'A'), [{ productId: 'p1', rating: 5 }, { productId: 'p2', rating: 5 }], soon)
   writeRatings(db, order('DELIVERED', 'B'), [{ productId: 'p1', rating: 5 }, { productId: 'p2', rating: 2 }], soon)

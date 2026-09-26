@@ -33,8 +33,8 @@ ordersRouter.get('/mine', requireRole('farmer', 'customer'), (req, res) => {
 
   res.json({
     orders: [...list].sort((a, b) => b.placedAt.localeCompare(a.placedAt)),
-    // Her delivered orders still waiting for a rating. Her app will not let
-    // her go on until this is empty - see RateOrderGate.
+    // The buyer's delivered orders still waiting for a rating. The app will not let
+    // them go on until this is empty - see RateOrderGate.
     toRate: auth.role === 'customer' ? ordersToRate(db, list) : undefined,
   })
 })
@@ -57,7 +57,7 @@ ordersRouter.get('/:id', requireRole('farmer', 'customer'), (req, res) => {
   }
 
   /**
-   * HER NUMBER, TO THE PERSON WHO ORDERED FROM HER - AND NOBODY ELSE.
+   * THE FARMER'S NUMBER, TO THE PERSON WHO ORDERED FROM THEM - AND NOBODY ELSE.
    *
    * It is not on any public farmer endpoint (`publicFarmer` in
    * db/publicFarmer.ts is an allow-list without it), so browsing the
@@ -66,15 +66,15 @@ ordersRouter.get('/:id', requireRole('farmer', 'customer'), (req, res) => {
    * produce needs to be able to ring the farmer sending it, and this route already
    * refuses anyone who is not one of the two parties, three lines up.
    *
-   * It used to be withheld until she ACCEPTED, which is exactly backwards -
+   * It used to be withheld until the farmer ACCEPTED, which is exactly backwards -
    * the gap between placing and accepting is the window in which a buyer most
-   * needs to reach her.
+   * needs to reach them.
    */
   const farmer = db.farmers.find((s) => s.id === order.farmerId)
 
   // One review per product on this order. The buyer sees their own whatever
   // became of them, so a hidden one can say so. The farmer sees only those
-  // still up: a review an admin took down is not hers to keep reading.
+  // still up: a review an admin took down is not theirs to keep reading.
   const reviews = db.reviews
     .filter((r) => r.orderId === order.id && (auth.role === 'customer' || !r.hidden))
     .map((r) => (auth.role === 'customer' ? r : toPublicReview(r)))
@@ -124,7 +124,7 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
     return
   }
 
-  // Rating what arrived comes first. Her app will not let her past the rating
+  // Rating what arrived comes first. The buyer's app will not let them past the rating
   // screen; this is the same rule where the app cannot be talked round.
   const unrated = ordersToRate(db, db.orders.filter((o) => o.customerId === auth.customerId))
   if (unrated.length) {
@@ -152,7 +152,7 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
     if (farmer && order.sourceShareCode === farmer.shopSlug) farmer.qrOrders += 1
   }
 
-  // Remember who she is and where she asked for it. A cart split across three
+  // Remember who the buyer is and where they asked for it. A cart split across three
   // farmers is three orders but one customer, so this runs once on the first.
   if (created[0]) recordOrderCustomer(db, created[0])
 
@@ -193,11 +193,11 @@ export function buildOrders(
   for (const g of b.groups) {
     const farmer = db.farmers.find((s) => s.id === g.farmerId)
     // A blocked, closed or unverified shop takes no new orders. Orders it
-    // already has carry on: she can still deliver them, or cancel and refund.
+    // already has carry on: the farmer can still deliver them, or cancel and refund.
     if (!farmer || !canSellNow(farmer) || !farmer.isOpen) {
       return refuse(409, 'Farmer unavailable', 'हा शेतकरी सध्या ऑर्डर घेत नाही')
     }
-    // Only what she offers. A row from before offersDelivery existed delivered.
+    // Only what the farmer offers. A row from before offersDelivery existed delivered.
     const offered = pickup ? !!farmer.pickup?.place : (farmer.offersDelivery ?? true)
     if (!offered) return refuse(400, 'Fulfilment not offered', 'हा शेतकरी ही सोय देत नाही')
     /**
@@ -220,8 +220,8 @@ export function buildOrders(
       if (!product || product.status !== 'LIVE' || product.farmerId !== farmer.id) {
         return refuse(409, 'Product unavailable', 'हे उत्पादन आता उपलब्ध नाही', i.productId)
       }
-      // Whole units, at least his minimum, no more than he has. Stock is
-      // NOT decremented by an order - the farmer keeps it current himself.
+      // Whole units, at least the farmer's minimum, no more than they have. Stock is
+      // NOT decremented by an order - the farmer keeps it current themselves.
       const problem = orderQtyProblem(product, i.qty)
       if (problem) return refuse(409, 'Invalid quantity', problem, product.id)
       items.push({
@@ -330,9 +330,9 @@ ordersRouter.post('/:id/advance', requireRole('farmer'), (req, res) => {
   })
 
   /**
-   * What she told the buyer it would take, kept only on acceptance.
+   * What the farmer told the buyer it would take, kept only on acceptance.
    *
-   * Accepting is the one moment she knows: she has just read the address and
+   * Accepting is the one moment the farmer knows: they have just read the address and
    * the quantity. Skipping the question is allowed - the buyer then sees no
    * promise rather than an invented one - so an empty answer clears nothing
    * and stores nothing.
@@ -343,7 +343,7 @@ ordersRouter.post('/:id/advance', requireRole('farmer'), (req, res) => {
   }
 
   // Cash is collected at the doorstep, so delivery and collection are the same
-  // moment. UPI is confirmed separately, by her, before she packs.
+  // moment. UPI is confirmed separately, by the farmer, before they pack.
   if (to === 'DELIVERED' && order.paymentMode === 'COD') {
     order.paymentStatus = 'COD_COLLECTED'
   }
@@ -416,14 +416,14 @@ ordersRouter.post('/:id/pay', requireRole('customer'), (req, res) => {
 
   /**
    * One transaction has one RRN, so the same twelve digits on a second order
-   * is either a slip - she paid once and typed it twice - or somebody walking
+   * is either a slip - the buyer paid once and typed it twice - or somebody walking
    * one real payment across several orders.
    *
    * A farmer confirms payments by eye, against a statement that shows each
    * reference once, and duplicates are exactly what that check cannot catch:
    * the line is there, it just is not for this order. An order has no admin
    * in the loop, so here it is refused outright. The same UTR on THIS order is left alone -
-   * that is a woman correcting a digit, not a second claim.
+   * that is a buyer correcting a digit, not a second claim.
    */
   const usedElsewhere = db.orders.some((o) => o.id !== order.id && o.paymentUtr === utr)
   if (usedElsewhere) {

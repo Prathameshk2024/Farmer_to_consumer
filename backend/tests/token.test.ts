@@ -54,12 +54,12 @@ test('rejects a token whose payload was swapped for another session', () => {
   // payload at somebody else's session.
   const mine = signToken(CLAIMS)
   const signature = mine.slice(mine.indexOf('.') + 1)
-  const hers = Buffer.from(
+  const theirs = Buffer.from(
     JSON.stringify({ ...CLAIMS, sid: 'sess_somebody_else' }),
     'utf8',
   ).toString('base64url')
 
-  assert.equal(verifyToken(`${hers}.${signature}`), null)
+  assert.equal(verifyToken(`${theirs}.${signature}`), null)
 })
 
 test('rejects a token whose signature was altered', () => {

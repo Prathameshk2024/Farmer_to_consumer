@@ -87,7 +87,7 @@ export function resetUserPassword(
   return { tempPassword }
 }
 
-/** Account close: his requests carry his name and number, so they go too. */
+/** Account close: their requests carry their name and number, so they go too. */
 export function removePasswordRequests(db: Db, userId: string, phone: string): void {
   const p = normalizePhone(phone)
   for (let i = db.passwordRequests.length - 1; i >= 0; i--) {

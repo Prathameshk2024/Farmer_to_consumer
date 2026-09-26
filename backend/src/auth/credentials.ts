@@ -64,7 +64,7 @@ export type ChangeReply =
  * POST /auth/password, minus the HTTP. The current-password check is a login
  * in all but name, so it spends the same per-phone budget (`login:phone:`):
  * a live session on an unlocked phone must not be a way to guess the owner's
- * PIN without limit and then lock her out.
+ * PIN without limit and then lock them out.
  */
 export function changeOwnPassword(
   db: Db,

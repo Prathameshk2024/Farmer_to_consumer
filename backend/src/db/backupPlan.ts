@@ -72,7 +72,7 @@ export function planCollection(
  * The same line the live app draws in `isBulkDelete`: no collection may lose
  * more than half its documents in one step. On 10 September the live project
  * held empty `farmers` and `products` for a few minutes; a backup taken in
- * those minutes would have faithfully deleted its own copy of six women. So a
+ * those minutes would have faithfully deleted its own copy of six farmers. So a
  * live project that has shrunk that far since the backup was taken is treated
  * as the problem, and the backup is left as the evidence.
  *

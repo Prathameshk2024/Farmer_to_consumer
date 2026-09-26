@@ -112,10 +112,10 @@ app.use('/api/insights', insightsRouter)
 app.use('/api/admin', adminRouter)
 
 /**
- * Her growth chart, computed from her own orders.
+ * The farmer's growth chart, computed from their own orders.
  *
  * Scoped to the signed-in farmer rather than to the id in the path: the id was
- * never checked, so any farmer could read another woman's weekly earnings by
+ * never checked, so any farmer could read another farmer's weekly earnings by
  * changing a number in the URL.
  */
 app.get('/api/analytics/farmer/:id/week', requireRole('farmer'), (req, res) => {
@@ -181,7 +181,7 @@ function startHousekeeping(): void {
   const timer = setInterval(() => {
     sweepLimits()
     if (pruneSessions(getDb()) > 0) save()
-    // A closed account is erased a week after she asked, and the same
+    // A closed account is erased a week after the farmer asked, and the same
     // reasoning applies: the week almost always contains a deploy.
     if (sweepClosedAccounts(getDb()) > 0) save()
   }, 15 * 60 * 1000)

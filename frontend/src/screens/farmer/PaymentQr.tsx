@@ -14,19 +14,19 @@ import { IconCheck, IconEdit, IconQr, IconWaiting } from '../../components/icons
 /**
  * FARMER PAYMENT QR — a real step, not something we pretend happened.
  *
- * Registration collects her UPI *ID*, because she cannot be paid without one.
+ * Registration collects their UPI *ID*, because they cannot be paid without one.
  * It does NOT collect a QR image. So this screen is where the payment QR
  * actually gets set up, after admin approval:
  *
- *   Registration → admin approval → SHE ADDS HER PAYMENT QR HERE → customers pay
+ *   Registration → admin approval → THEY ADD THEIR PAYMENT QR HERE → customers pay
  *
- * The QR is generated from her own UPI ID rather than uploaded, which is the
+ * The QR is generated from their own UPI ID rather than uploaded, which is the
  * better default: a generated code carries the exact order amount, while a
- * screenshot of her bank's QR carries none, leaving the customer to type the
- * figure by hand. She can still upload her bank's image if she prefers it.
+ * screenshot of their bank's QR carries none, leaving the customer to type the
+ * figure by hand. They can still upload their bank's image if they prefer it.
  *
- * Until she has been through this screen, `upiQrReady` is false and every
- * surface that would show her QR shows an empty state instead. Nothing is
+ * Until they have been through this screen, `upiQrReady` is false and every
+ * surface that would show their QR shows an empty state instead. Nothing is
  * invented.
  */
 export default function PaymentQr() {
@@ -47,7 +47,7 @@ export default function PaymentQr() {
   const hasUpi = isValidUpi(farmer.upiId)
   const ready = !!farmer.upiQrReady && hasUpi
 
-  // A sample amount, purely so she can see what a customer will scan. The real
+  // A sample amount, purely so they can see what a customer will scan. The real
   // code at checkout is built per order with that order's total.
   const sampleLink = hasUpi
     ? buildUpiLink({
@@ -110,7 +110,7 @@ export default function PaymentQr() {
           </Card>
         )}
 
-        {/* ---------- editing her UPI ID --------------------------- */}
+        {/* ---------- editing their UPI ID --------------------------- */}
         {editing && (
           <Card>
             <div className="stack">

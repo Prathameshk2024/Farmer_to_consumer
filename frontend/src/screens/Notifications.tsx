@@ -16,15 +16,15 @@ import {
 } from '../components/icons.js'
 
 /**
- * Everything that happened to her orders while she was not looking.
+ * Everything that happened to their orders while they were not looking.
  *
- * ONE SCREEN FOR BOTH SIDES. A farmer sees what her buyers did; a customer
- * sees what her farmer did. The list is the same shape either way - an order,
+ * ONE SCREEN FOR BOTH SIDES. A farmer sees what their buyers did; a customer
+ * sees what their farmer did. The list is the same shape either way - an order,
  * a new state, a time - and writing it twice would be two places for the
  * wording to drift.
  *
- * Opening this screen marks everything read. Not each row: she has just been
- * shown the lot, and leaving a badge up after she has looked is the fastest
+ * Opening this screen marks everything read. Not each row: they have just been
+ * shown the lot, and leaving a badge up after they have looked is the fastest
  * way to teach somebody to ignore a badge.
  */
 export default function Notifications() {
@@ -32,7 +32,7 @@ export default function Notifications() {
   const nav = useNavigate()
   const { session } = useAuth()
   const [data, loading] = useAsync(() => api.myOrders(), [])
-  /* Admin decisions live on her own farmer record, so this is the same call
+  /* Admin decisions live on their own farmer record, so this is the same call
      every farmer screen already makes - not a notifications endpoint. */
   const [meData] = useAsync(
     () => (session?.role === 'farmer' ? api.me() : Promise.resolve(null)),
@@ -40,7 +40,7 @@ export default function Notifications() {
   )
 
   /**
-   * The mark as it stood when she ARRIVED, held for the life of the screen.
+   * The mark as it stood when they ARRIVED, held for the life of the screen.
    *
    * Opening the list marks everything read a moment later, so reading the
    * mark again would put every row under "earlier" and the split would say
@@ -49,8 +49,8 @@ export default function Notifications() {
    */
   const [seenOnArrival] = useState(() => (session ? lastSeen(session.userId) : ''))
 
-  // Everything is marked read on arrival, not row by row: she has just been
-  // shown the lot, and leaving a badge up after she has looked is the fastest
+  // Everything is marked read on arrival, not row by row: they have just been
+  // shown the lot, and leaving a badge up after they have looked is the fastest
   // way to teach somebody to ignore a badge.
   useEffect(() => {
     if (session && !loading) markSeen(session.userId)
@@ -75,7 +75,7 @@ export default function Notifications() {
    * The old row put the state pill inside the title and ran the rest together
    * as "name · F2C5013 · 8/9/2026 11:01 pm", which is four facts printed as
    * one string. An order also says its sentence now ("तुम्हाला नवीन ऑर्डर आले
-   * आहे") rather than making her read the tag and work out who did it - the
+   * आहे") rather than making them read the tag and work out who did it - the
    * wording was already written for both sides, it was just not being shown
    * on the rows that had a product name to print.
    */
@@ -96,7 +96,7 @@ export default function Notifications() {
 
         <span className="notif__body">
           <span className="notif__head">
-            {/* An order is named after what is in it - she recognises her
+            {/* An order is named after what is in it - they recognise their
                 pickle order, not F2C5013 - and an admin decision has no
                 product, so it prints its sentence here instead. */}
             <span className="notif__title">{n.title ?? t(n.labelKey, n.vars)}</span>

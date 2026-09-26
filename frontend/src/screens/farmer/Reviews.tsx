@@ -5,11 +5,11 @@ import { RatingSummaryCard, ReviewList } from '../../components/Reviews.js'
 import { IconStar } from '../../components/icons.js'
 
 /**
- * WHAT BUYERS SAID ABOUT HER PRODUCTS.
+ * WHAT BUYERS SAID ABOUT THEIR PRODUCTS.
  *
  * Each review names the product it is about, newest first - the same words a
- * customer reads on that product's page - under her rating, which is those
- * same reviews taken together, exactly as buyers see it on her card. She cannot reply or remove anything, because a
+ * customer reads on that product's page - under their rating, which is those
+ * same reviews taken together, exactly as buyers see it on their card. They cannot reply or remove anything, because a
  * review a farmer could delete would be worth nothing to the next buyer; the
  * line under the list says who to ask about an abusive one.
  */

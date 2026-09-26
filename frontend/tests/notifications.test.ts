@@ -8,13 +8,13 @@ import {
 import { dictionaries } from '../src/i18n/strings.js'
 
 /**
- * The updates list is read by a woman waiting at home, not by the state
+ * The updates list is read by a buyer waiting at home, not by the state
  * machine. It used to print the machine's own label - "Packed", "Accepted" -
- * which says what the ORDER is, and leaves her to work out who did what to it.
+ * which says what the ORDER is, and leaves them to work out who did what to it.
  * Each side now gets a sentence aimed at itself.
  */
 
-test('the customer is told what happened to HER order', () => {
+test('the customer is told what happened to THEIR order', () => {
   assert.equal(
     dictionaries.en[noticeLabelKey('ACCEPTED', 'customer')],
     'Your order has been accepted',
@@ -72,8 +72,8 @@ test('a pickup order speaks of collecting, not delivering', () => {
 /**
  * An order walking its four states used to announce itself four times, the
  * rows identical apart from the verb and the same total printed on each. What
- * a woman waiting at home wants is one answer to "where is my order", not its
- * history read back to her as four separate pieces of news.
+ * a buyer waiting at home wants is one answer to "where is my order", not its
+ * history read back to them as four separate pieces of news.
  */
 function order(events: Order['events'], status: Order['status'] = 'DELIVERED'): Order {
   return {
@@ -116,11 +116,11 @@ test('the row is timed by the latest event however they are ordered', () => {
 })
 
 /**
- * The farmer's tag is the ORDER's state, not her buyer's last move.
+ * The farmer's tag is the ORDER's state, not their buyer's last move.
  *
  * A customer only ever causes PLACED and CANCELLED, so a tag drawn from the
  * other side's last event left every row on the farmer's list reading "new
- * order" for ever - including the ones she had packed and handed over herself.
+ * order" for ever - including the ones they had packed and handed over themselves.
  */
 test("the farmer's row shows where the order actually is", () => {
   const [row] = buildFeed([order(WALK, 'OUT_FOR_DELIVERY')], 'farmer')
@@ -132,7 +132,7 @@ test('the row is named after what is in the order, with the rest counted', () =>
   assert.equal(buildFeed([order(WALK)], 'customer')[0]?.title, 'आंब्याचे लोणचे +1')
 })
 
-/** Her own actions are not news to her - the farmer placed nothing. */
+/** Their own actions are not news to them - the farmer placed nothing. */
 test('an order with nothing from the other side is not a row at all', () => {
   const mineOnly = [{ to: 'ACCEPTED' as const, at: '2026-09-09T11:00:00.000Z', by: 'farmer' as const }]
   assert.deepEqual(buildFeed([order(mineOnly)], 'farmer'), [])
@@ -143,7 +143,7 @@ test('an order with nothing from the other side is not a row at all', () => {
 /* ------------------------------------------------------------------ */
 
 /**
- * An admin decision is told, not left to be noticed. These lines come off his
+ * An admin decision is told, not left to be noticed. These lines come off their
  * own farmer record, written by the admin handler.
  */
 function farmer(notices: AdminNotice[]): Farmer {
@@ -205,7 +205,7 @@ test('every admin line exists in both languages', () => {
  * THE FEED IS THE NEWS, NOT THE ARCHIVE.
  *
  * It kept every row for ever, so in the third week of September a farmer
- * opened it and read about the 8th: orders she had packed, delivered and been
+ * opened it and read about the 8th: orders they had packed, delivered and been
  * paid for, pushing today's news off the screen. A list where nothing leaves
  * teaches you that nothing in it is urgent.
  */
@@ -216,8 +216,8 @@ const ago = (days: number) => new Date(NOW - days * DAY).toISOString()
 const row = (over: Partial<Notice> = {}): Notice =>
   ({ id: 'n1', at: ago(1), labelKey: 'x', who: '', ...over })
 
-test('what she has read is kept a week, what she has not is kept a month', () => {
-  // The farmer who was away at a wedding still finds what she missed; the
+test('what they have read is kept a week, what they have not is kept a month', () => {
+  // The farmer who was away at a wedding still finds what they missed; the
   // delivered order from a fortnight ago is not news and does not come back.
   const seen = ago(0)
   const feed = [
@@ -228,7 +228,7 @@ test('what she has read is kept a week, what she has not is kept a month', () =>
   ]
   const kept = visibleFeed(feed, seen, NOW).map((n) => n.id)
 
-  assert.deepEqual(kept.sort(), ['read-recent'], 'only the week she has read')
+  assert.deepEqual(kept.sort(), ['read-recent'], 'only the week they have read')
 
   const keptUnread = visibleFeed(feed, ago(60), NOW).map((n) => n.id).sort()
   assert.deepEqual(keptUnread, ['read-old', 'read-recent', 'unread-old'])
@@ -237,14 +237,14 @@ test('what she has read is kept a week, what she has not is kept a month', () =>
 
 /**
  * "Your shop is paused" is not something that happened on a Tuesday. It is
- * what is true about her shop until she renews, so it outlives both windows.
+ * what is true about their shop until they renew, so it outlives both windows.
  */
 test('a standing row stays however old it is', () => {
   const paused = row({ id: 'sub-expired', at: ago(90), standing: true })
   assert.deepEqual(visibleFeed([paused], ago(0), NOW).map((n) => n.id), ['sub-expired'])
 })
 
-test('new and earlier are split on the mark from before she opened it', () => {
+test('new and earlier are split on the mark from before they opened it', () => {
   const feed = [row({ id: 'after', at: ago(0) }), row({ id: 'before', at: ago(4) })]
   const { fresh, earlier } = splitFeed(feed, ago(2))
   assert.deepEqual(fresh.map((n) => n.id), ['after'])
@@ -256,7 +256,7 @@ test('new and earlier are split on the mark from before she opened it', () => {
  * helping in its turn - "23 days ago" is arithmetic again - so it prints the
  * date instead.
  */
-test('the time is said the way she would say it', () => {
+test('the time is said the way they would say it', () => {
   assert.deepEqual(whenKey(ago(0), NOW), { key: 'when.today' })
   assert.deepEqual(whenKey(ago(1), NOW), { key: 'when.yesterday' })
   assert.deepEqual(whenKey(ago(3), NOW), { key: 'when.daysAgo', vars: { n: 3 } })

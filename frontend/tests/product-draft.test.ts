@@ -10,8 +10,8 @@ import {
  * work away.
  *
  * The first version of that keyed the draft on nothing at all, so ONE key held
- * whatever the last woman had typed. On a field coordinator's phone, where
- * farmer after farmer registers on the same handset, the next woman opened
+ * whatever the last farmer had typed. On a field coordinator's phone, where
+ * farmer after farmer registers on the same handset, the next farmer opened
  * "New product" and found a stranger's photo already on step 1. These tests
  * exist so that never happens again: a draft belongs to exactly one farmer.
  */
@@ -37,7 +37,7 @@ test('a draft one farmer typed is invisible to the next farmer on the same phone
   assert.equal(readDraft(store, 'sel_rekha'), null)
 })
 
-test('the same farmer gets her own draft back, on the step she left', () => {
+test('the same farmer gets their own draft back, on the step they left', () => {
   const store = fakeStore()
   writeDraft(store, 'sel_sunita', 3, typed)
 
@@ -71,7 +71,7 @@ test('a draft whose stored owner disagrees with its key is thrown away', () => {
   assert.equal(readDraft(store, 'sel_rekha'), null)
 })
 
-test('nothing is stored until she has actually typed something', () => {
+test('nothing is stored until they have actually typed something', () => {
   const store = fakeStore()
 
   assert.equal(hasStarted(BLANK), false)
@@ -83,7 +83,7 @@ test('nothing is stored until she has actually typed something', () => {
   assert.equal(store.size(), 1)
 })
 
-/** A photo alone is a start - she may well upload before she names anything. */
+/** A photo alone is a start - they may well upload before they name anything. */
 test('a photo with no words counts as started', () => {
   assert.equal(hasStarted({ ...BLANK, imageUrl: 'https://res.cloudinary.com/x/a.jpg' }), true)
 })
@@ -137,7 +137,7 @@ test('unreadable JSON is treated as no draft, never as a crash', () => {
   assert.equal(readDraft(store, 'sel_sunita'), null)
 })
 
-test('publishing clears only her own draft', () => {
+test('publishing clears only their own draft', () => {
   const store = fakeStore()
   writeDraft(store, 'sel_sunita', 2, typed)
   writeDraft(store, 'sel_rekha', 2, { ...BLANK, name: 'भेंडी' })
@@ -145,7 +145,7 @@ test('publishing clears only her own draft', () => {
   clearDraft(store, 'sel_sunita')
 
   assert.equal(readDraft(store, 'sel_sunita'), null)
-  assert.equal(readDraft(store, 'sel_rekha')?.d.name, 'भेंडी', 'hers is untouched')
+  assert.equal(readDraft(store, 'sel_rekha')?.d.name, 'भेंडी', 'theirs is untouched')
 })
 
 /** No farmer id yet - the wizard must not fall back to a shared bucket. */

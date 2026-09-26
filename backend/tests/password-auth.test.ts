@@ -71,7 +71,7 @@ test('five wrong guesses per phone, then a wait', () => {
  * Review fix: changing a password asks for the current one, and that check is
  * a login in all but name. Without the same per-phone budget, anyone holding a
  * live session - a phone left unlocked on a shop counter - could guess the
- * owner's six-digit PIN at leisure, then change it and lock her out.
+ * owner's six-digit PIN at leisure, then change it and lock them out.
  */
 test('the sixth wrong current password in the window is refused, like a sixth wrong login', async () => {
   const { changeOwnPassword } = await import('../src/auth/credentials.js')

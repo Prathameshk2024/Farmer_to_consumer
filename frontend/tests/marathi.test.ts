@@ -121,11 +121,11 @@ test('no space before punctuation, and no doubled spaces', () => {
   assert.deepEqual(bad, [])
 })
 
-test('the farmer is शेतकरी, and no copy assumes a woman', () => {
+test('the farmer is शेतकरी, and no copy assumes a gender', () => {
   /**
-   * §4. The reference market was for women and called every farmer विक्रेती;
-   * this one is for any farmer, so the word is शेतकरी and the feminine
-   * nouns and the old brand are gone from everything that ships.
+   * §4. Older copy called every farmer विक्रेती; this app is for any
+   * farmer, so the word is शेतकरी and the feminine nouns and the old
+   * brand name are gone from everything that ships.
    */
   const bad = everything
     .filter(({ value }) => /विक्रेत|उद्योजिका|महिला|शांताई/.test(value))

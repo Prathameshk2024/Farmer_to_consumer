@@ -20,11 +20,11 @@ import { Button, Choice, Field, Notice, VoiceInput } from './ui.js'
  *
  * A single stray tap on a phone held in a kitchen must never be enough, and
  * each question states a consequence rather than asking "are you sure?" twice:
- * the second has to tell her something the first did not.
+ * the second has to tell them something the first did not.
  *
- * The farmer then gets a fourth screen that is not a question: what she owes
+ * The farmer then gets a fourth screen that is not a question: what they owe
  * back. This app cannot refund anybody, so if the buyer paid, the money is in
- * her account and only she can return it. It is shown AFTER the cancel went
+ * their account and only they can return it. It is shown AFTER the cancel went
  * through, as its own screen, because a line of small print on a confirmation
  * is read by nobody, and it closes only on "I understand" - not on a tap
  * outside the sheet. The buyer has no fourth screen: a buyer may cancel only
@@ -126,7 +126,7 @@ export function CancelOrderSheet({
             )}
 
             {/* Disabled until the answer is complete - the same check the
-                server runs - so she is never told off after pressing it. */}
+                server runs - so they are never told off after pressing it. */}
             <div className="btn-row">
               <Button variant="quiet" onClick={close}>{t('cancel.keep')}</Button>
               <Button
@@ -147,7 +147,7 @@ export function CancelOrderSheet({
               <p className="body muted">{farmer ? t('cancel.sel.q3Sub') : t('cancel.cus.q3Sub')}</p>
             </div>
 
-            {/* Before the last tap, not only after it: whether she owes money
+            {/* Before the last tap, not only after it: whether they owe money
                 back is part of deciding whether to cancel at all. */}
             {farmer && owed !== 'none' && (
               <Notice tone="warn">{t('cancel.sel.q3Paid', { total: order.total })}</Notice>
@@ -187,11 +187,11 @@ export function CancelOrderSheet({
  *
  * The farmer's side is the one that matters: the app cannot refund anybody,
  * so this is the only thing standing between a cancelled paid order and a
- * buyer who is simply out of pocket. It is the last screen of her cancel sheet
- * (`always`, so she is told to return any cash or advance even when nothing
+ * buyer who is simply out of pocket. It is the last screen of their cancel sheet
+ * (`always`, so they are told to return any cash or advance even when nothing
  * was reported), and it stays on the cancelled order's screen afterwards for
  * as long as money was reported - one screen closed too quickly must not be
- * the only time she was told.
+ * the only time they were told.
  *
  * The buyer's side only says where their money is and who to call.
  */

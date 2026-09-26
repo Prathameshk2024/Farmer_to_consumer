@@ -10,7 +10,7 @@ import { IconClose, IconGallery } from './icons.js'
  * Choose one product photo from the gallery, then upload it to Cloudinary.
  *
  * One photo, one button. Once a photo is in, "choose from gallery" goes dead
- * rather than silently replacing what she already picked - a second tap at
+ * rather than silently replacing what they already picked - a second tap at
  * that point is nearly always a mis-tap. Removing the photo brings it back.
  *
  * If Cloudinary is not configured the component says so and tells the wizard,
@@ -55,7 +55,7 @@ export default function PhotoPicker({
         setDisabled(true)
         onUnavailable?.()
       } else if (err instanceof FileTooLargeError) {
-        // Name the limit AND what she picked. "Too big" on its own leaves her
+        // Name the limit AND what they picked. "Too big" on its own leaves them
         // guessing which photo to try next.
         setError(t('photo.tooBig', {
           max: MAX_UPLOAD_MB,
@@ -84,7 +84,7 @@ export default function PhotoPicker({
         hidden
         onChange={(e) => {
           void handle(e.target.files?.[0])
-          // Clearing the input is what lets her remove a photo and then pick
+          // Clearing the input is what lets them remove a photo and then pick
           // the very same file again - onChange never fires twice for one value.
           e.target.value = ''
         }}
@@ -140,8 +140,8 @@ export default function PhotoPicker({
         <IconGallery aria-hidden="true" /> {label ?? t('photo.choose')}
       </Button>
 
-      {/* Said up front. A limit she only meets by breaking it is a limit that
-          costs her an upload and a retry on a slow connection. */}
+      {/* Said up front. A limit they only meet by breaking it is a limit that
+          costs them an upload and a retry on a slow connection. */}
       {!imageUrl && (
         <div className="tiny dim center">{t('photo.limit', { max: MAX_UPLOAD_MB })}</div>
       )}

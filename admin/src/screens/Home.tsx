@@ -13,9 +13,9 @@ import {
 /**
  * Where an admin lands after signing in.
  *
- * Two jobs, in this order: say whether anything needs doing, then get her to
+ * Two jobs, in this order: say whether anything needs doing, then get the admin to
  * the right section in one click. The queue comes first because a farmer who
- * has registered cannot sell anything until somebody verifies him - that is a
+ * has registered cannot sell anything until somebody verifies them - that is a
  * person waiting, not a metric.
  *
  * The numbers underneath are context, not the point. The full dashboard lives

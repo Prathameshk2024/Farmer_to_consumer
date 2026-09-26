@@ -14,7 +14,7 @@ import { Donut, RAMP_GREEN, RAMP_MAROON } from '../components/Donut.js'
  *
  * Nobody signs into an admin console to admire a GMV figure. What needs doing
  * is gold and clickable; what is merely true sits quiet underneath. A farmer
- * who has registered cannot sell anything until he is verified, which is why
+ * who has registered cannot sell anything until verified, which is why
  * these come first.
  */
 export function Today() {

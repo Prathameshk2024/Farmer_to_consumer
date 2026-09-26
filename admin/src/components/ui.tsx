@@ -215,7 +215,7 @@ export function CopyValue({
             .writeText(value)
             .then(() => toast(copiedText))
             // Insecure context, or permission refused. Say so rather than let
-            // her walk away believing she has it.
+            // the admin walk away believing it was copied.
             .catch(() => toast(label, 'warn'))
         }}
       >

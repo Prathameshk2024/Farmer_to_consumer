@@ -88,7 +88,7 @@ export function BuyerTracker({ order }: { order: Order }) {
 }
 
 /**
- * The one-line answer at the top of her order - "Delivered, May 24" in green
+ * The one-line answer at the top of their order - "Delivered, May 24" in green
  * with a tick - that opens into the tracker. Open while the order is on its
  * way, because then the steps are the news; closed once it has arrived or
  * stopped, because then the one line is.

@@ -2,7 +2,7 @@
  * REMOVE THE DEMO DATA FROM A LIVE DATABASE
  * =========================================
  * The seed in seed.ts invents three farmers and their products so a fresh
- * clone is usable. Once real women are registering, those invented farmers are
+ * clone is usable. Once real farmers are registering, those invented farmers are
  * showing up in the customer catalogue beside them, which is not acceptable.
  *
  * This deletes them and everything hanging off them - their products, the
@@ -49,7 +49,7 @@ async function main(): Promise<void> {
   const seedFarmerIds = new Set(seedFarmers.map((s) => s.id))
   const realFarmers = db.farmers.filter((s) => !seedFarmerIds.has(s.id))
 
-  // Anything belonging to a demo farmer goes with her, whatever its own id.
+  // Anything belonging to a demo farmer goes with them, whatever its own id.
   const doomedProducts = db.products.filter(
     (p) => seedFarmerIds.has(p.farmerId) || isSeedId(p.id),
   )
@@ -57,7 +57,7 @@ async function main(): Promise<void> {
     (o) => seedFarmerIds.has(o.farmerId) || isSeedId(o.id),
   )
 
-  // A customer is demo data only if she exists BECAUSE of a demo order: she
+  // A customer is demo data only if they exist BECAUSE of a demo order: they
   // must have at least one order going, and none staying.
   //
   // The "at least one" half matters. Without it this also deletes anyone who

@@ -32,26 +32,26 @@ function OwnPoint({ lat, lng, label }: { lat: number; lng: number; label: string
 }
 
 /**
- * EDITING HER OWN DETAILS, AFTER REGISTRATION
+ * EDITING THEIR OWN DETAILS, AFTER REGISTRATION
  * ===========================================
- * Registration was a one-way door. Everything she typed on those six screens -
- * her name, her shop's name, the description a customer reads, her payment QR -
- * was fixed the moment she pressed submit, and a woman who mistyped her shop
+ * Registration was a one-way door. Everything they typed on those six screens -
+ * their name, their shop's name, the description a customer reads, their payment QR -
+ * was fixed the moment they pressed submit, and a farmer who mistyped their shop
  * name had no way to correct it from inside the app.
  *
  * WHAT IS NOT HERE, AND WHY
  * The server's allow-list on PATCH /farmers/me is what actually decides this;
  * the form only offers what that list already accepts. Missing on purpose:
  *
- *  - her PHONE, because it is her account. Changing it is changing who you
+ *  - their PHONE, because it is their account. Changing it is changing who you
  *    are signed in as, and that is an admin's job after a call, not a text box;
- *  - her VILLAGE and her farmer code, because the ID is printed on her packaging
- *    and her poster. Re-issuing it silently would leave the number on a jar in
+ *  - their VILLAGE and their farmer code, because the ID is printed on their packaging
+ *    and their poster. Re-issuing it silently would leave the number on a jar in
  *    somebody's kitchen pointing at nothing;
- *  - her STATUS, which is the admin's to set. A form that could set it would
+ *  - their STATUS, which is the admin's to set. A form that could set it would
  *    be a form that verifies itself.
  *
- * Her UPI id is editable, and the server clears `upiVerified` when it changes.
+ * Their UPI id is editable, and the server clears `upiVerified` when it changes.
  *
  * THE LOCATION is not part of Save. It goes to its own route the moment the
  * farmer taps "change my location" or "remove location", because that tap is
@@ -129,11 +129,11 @@ export default function EditProfile() {
     if (!f.name.trim()) e.name = t('common.required')
     if (!f.shopName.trim()) e.shopName = t('common.required')
     if (f.crops.length === 0) e.crops = t('reg.cropsRequired')
-    // Kept from the record: the place text is hers to change here, the point is not.
+    // Kept from the record: the place text is theirs to change here, the point is not.
     const pickup = f.pickupOn
       ? { place: f.pickupPlace.trim(), ...(farmer.pickup?.lat != null ? { lat: farmer.pickup.lat, lng: farmer.pickup.lng } : {}) }
       : undefined
-    // The same rule the server runs, so she sees it under the box, not after Save.
+    // The same rule the server runs, so they see it under the box, not after Save.
     Object.assign(e, validateFarmerProfile({ offersDelivery: f.offersDelivery, pickup }))
     setErrors(e)
     if (Object.keys(e).length) return
@@ -314,7 +314,7 @@ export default function EditProfile() {
         <Card>
           <SectionTitle>{t('prof.payment')}</SectionTitle>
           <div className="stack-sm">
-            {/* Changing this clears her verified mark on the server, which is
+            {/* Changing this clears their verified mark on the server, which is
                 the point: an unverified handle must not look checked. */}
             <Field label={t('reg.upiLabel')} hint={t('reg.upiWhere')} error={errors.upiId} htmlFor="upi">
               <TextInput
@@ -333,8 +333,8 @@ export default function EditProfile() {
           </div>
         </Card>
 
-        {/* What she cannot change here, said plainly rather than left as a
-            missing field she hunts for. */}
+        {/* What they cannot change here, said plainly rather than left as a
+            missing field they hunt for. */}
         <Notice tone="info">{t('prof.editLocked')}</Notice>
       </div>
 

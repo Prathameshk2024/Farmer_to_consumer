@@ -87,12 +87,12 @@ function cleanProfile(b: Record<string, unknown>) {
 }
 
 /**
- * Create the farmer record. He is PENDING_VERIFICATION at this point, not
- * ACTIVE - an admin checks him once (POST /admin/farmers/:id/verify) before
- * buyers see anything he lists.
+ * Create the farmer record. It is PENDING_VERIFICATION at this point, not
+ * ACTIVE - an admin checks the farmer once (POST /admin/farmers/:id/verify) before
+ * buyers see anything they list.
  *
  * Everything is validated here even though the client validates too. The client
- * validation exists to give her a fast message in Marathi; this exists because
+ * validation exists to give the farmer a fast message in Marathi; this exists because
  * the client can be bypassed.
  */
 farmersRouter.post('/register', (req, res) => {
@@ -112,7 +112,7 @@ farmersRouter.post('/register', (req, res) => {
     return
   }
 
-  // No SMS proves the number is his. The admin's one-time verification is
+  // No SMS proves the number is theirs. The admin's one-time verification is
   // that check (see "Verification, once" in CLAUDE.md), and a farmer stays
   // PENDING_VERIFICATION, invisible to buyers, until it happens.
   const phone = normalizePhone(String(b.phone ?? ''))
@@ -183,7 +183,7 @@ farmersRouter.post('/register', (req, res) => {
     minOrder: Number(b.minOrder ?? 0),
     dispatch: b.dispatch ?? 'same',
     pincodes: [b.pincode.trim()],
-    // Registration asks nothing more; she turns pickup on in her profile.
+    // Registration asks nothing more; the farmer turns pickup on in their profile.
     offersDelivery: true,
     status: 'PENDING_VERIFICATION',
     rating: 0,
@@ -197,7 +197,7 @@ farmersRouter.post('/register', (req, res) => {
   setCredential(db, { role: 'farmer', userId: farmer.id, phone, password })
   save()
 
-  // She is signed in from here, on a session that can later be revoked like
+  // The farmer is signed in from here, on a session that can later be revoked like
   // any other - registration is not a special kind of login.
   const session = createSession(db, {
     role: 'farmer',
@@ -243,10 +243,10 @@ farmersRouter.get('/me', requireRole('farmer'), (req, res) => {
 })
 
 /**
- * Her buyers, derived from her own orders.
+ * A farmer's buyers, derived from their own orders.
  *
- * Nothing here is new to her: an order detail screen already shows the name,
- * address and phone of whoever placed it. This gathers them so she can see who
+ * Nothing here is new to the farmer: an order detail screen already shows the name,
+ * address and phone of whoever placed it. This gathers them so they can see who
  * comes back, which is the thing a shopkeeper knows by memory and an app owner
  * otherwise never learns.
  */
@@ -255,9 +255,9 @@ farmersRouter.get('/me/buyers', requireRole('farmer'), (req, res) => {
 })
 
 /**
- * What her buyers said about her products, each review naming the product -
+ * What a farmer's buyers said about their products, each review naming the product -
  * exactly the words the public reads on those products, and nothing hidden -
- * with the rating buyers see on her card, worked out the same way.
+ * with the rating buyers see on their card, worked out the same way.
  */
 farmersRouter.get('/me/reviews', requireRole('farmer'), (req, res) => {
   const db = getDb()
@@ -274,7 +274,7 @@ farmersRouter.patch('/me', requireRole('farmer'), (req, res) => {
   }
 
   // Allow-list. Never spread req.body into a stored record - that is how a
-  // farmer sets her own status to ACTIVE.
+  // farmer sets their own status to ACTIVE.
   const allowed = [
     'name', 'photo', 'whatsapp', 'about', 'shopName', 'isOpen', 'deliveryFee',
     'freeDeliveryAbove', 'minOrder', 'dispatch', 'pincodes',
@@ -326,7 +326,7 @@ farmersRouter.patch('/me', requireRole('farmer'), (req, res) => {
   if (raw === null) delete next.pickup
 
   // The allow-list decides WHICH fields may move; this decides whether what
-  // she sent makes sense. Same function the form runs, so the message under
+  // they sent makes sense. Same function the form runs, so the message under
   // the box is the same message either way. Delivery and pickup are judged on
   // the result, so turning one off is refused only when the other is off too.
   const fields = validateFarmerProfile({
@@ -379,17 +379,17 @@ farmersRouter.patch('/me/location', requireRole('farmer'), (req, res) => {
 /* ------------------------------------------------------------------ */
 
 /**
- * She asked for her account to be deleted.
+ * The farmer asked for their account to be deleted.
  *
  * Three things have to be true before anything happens, and the server checks
  * all three however carefully the app already did: a reason, the last four
- * digits of her own number, and no order still in flight. The last one is not
+ * digits of their own number, and no order still in flight. The last one is not
  * a formality - a buyer waiting on a delivery cannot be left holding an order
- * whose farmer has vanished, so the answer names the orders and she finishes
- * or cancels them with the buttons she already has.
+ * whose farmer has vanished, so the answer names the orders and the farmer finishes
+ * or cancels them with the buttons they already have.
  *
- * What this does NOT do is erase her. That is a week away - see
- * `db/accountClose.ts` - and every screen tells her so.
+ * What this does NOT do is erase them. That is a week away - see
+ * `db/accountClose.ts` - and every screen tells them so.
  */
 farmersRouter.post('/me/close', requireRole('farmer'), (req, res) => {
   const db = getDb()
@@ -434,7 +434,7 @@ farmersRouter.post('/me/close', requireRole('farmer'), (req, res) => {
 })
 
 /**
- * She changed her mind inside the week.
+ * The farmer changed their mind inside the week.
  *
  * Reached by signing in again, which is the whole point: the person who can
  * stop it is the person who still knows the password.
@@ -474,6 +474,6 @@ farmersRouter.get('/:id', (req, res) => {
     return
   }
   // The same allow-listed card the catalogue sends. This used to strip seven
-  // named fields and pass everything else, including her admin notices.
+  // named fields and pass everything else, including their admin notices.
   res.json({ farmer: publicFarmer(farmer, farmerRating(getDb(), farmer.id)) })
 })

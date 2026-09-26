@@ -3,20 +3,20 @@ import type { FdriBand } from '@shared/fdri.js'
 import type { Db } from './seed.js'
 
 /**
- * HER GROWTH, COMPUTED FROM HER ORDERS
- * ====================================
+ * THE FARMER'S GROWTH, COMPUTED FROM THEIR ORDERS
+ * ===============================================
  * This replaces a hard-coded table. `/api/analytics/farmer/:id/week` used to
  * answer out of `FARMER_WEEK_SEED`, which held one invented week for the demo
- * farmer `s1` and nothing for anybody else - so every real woman who signed
- * up, sold something and was paid still saw "not enough information yet". Her
+ * farmer `s1` and nothing for anybody else - so every real farmer who signed
+ * up, sold something and was paid still saw "not enough information yet". The
  * earnings were on the record the whole time; the screen simply never looked.
  *
  * TWO RULES THAT DECIDE THE NUMBERS
  *
  *  - Money is counted on DELIVERY, not on the order being placed. An order
  *    placed Monday and handed over Wednesday is Wednesday's earnings, because
- *    Wednesday is when she was paid. That is the same rule the "earned today"
- *    tile on My Business uses, and the two must agree or she will trust
+ *    Wednesday is when the farmer was paid. That is the same rule the "earned today"
+ *    tile on My Business uses, and the two must agree or the farmer will trust
  *    neither.
  *  - A cancelled or rejected order is not a sale and never appears.
  *
@@ -38,7 +38,7 @@ const DAY_LABELS: { d: string; dEn: string }[] = [
 
 const EARNED = new Set(['DELIVERED'])
 
-/** When she was actually paid: the delivery, falling back to the order date. */
+/** When the farmer was actually paid: the delivery, falling back to the order date. */
 function earnedAt(order: Order): number {
   const delivered = order.events.find((e) => e.to === 'DELIVERED')?.at
   return Date.parse(delivered ?? order.placedAt)
@@ -56,7 +56,7 @@ export function startOfWeek(now: number): number {
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 /**
- * Her week, or null if she has never earned anything.
+ * The farmer's week, or null if they have never earned anything.
  *
  * Null rather than a week of zeroes: a chart of seven empty bars reads as
  * failure to somebody who has not started yet, and the screen shows an
@@ -91,7 +91,7 @@ export function farmerWeek(db: Db, farmerId: string, now = Date.now()): FarmerWe
 
   /**
    * Views are not tracked per week - `product.views` is a running total - so
-   * this is her whole catalogue's views rather than a weekly figure. Stated
+   * this is the whole catalogue's views rather than a weekly figure. Stated
    * here because the label on the screen says "how many people looked", and
    * that is honest for a lifetime count in a way "this week" would not be.
    */
@@ -99,7 +99,7 @@ export function farmerWeek(db: Db, farmerId: string, now = Date.now()): FarmerWe
     .filter((p) => p.farmerId === farmerId)
     .reduce((n, p) => n + (p.views ?? 0), 0)
 
-  // Buyers who came back. Counted over everything she has ever sold, because
+  // Buyers who came back. Counted over everything the farmer has ever sold, because
   // a repeat customer is not a weekly event.
   const byCustomer = new Map<string, number>()
   for (const o of paid) byCustomer.set(o.customerId, (byCustomer.get(o.customerId) ?? 0) + 1)

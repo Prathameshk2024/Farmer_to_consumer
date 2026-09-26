@@ -16,7 +16,7 @@ const CATEGORY_MR = 'प्रकार निवडा'
  * What a listing must have before the public can see it: the shared rules,
  * plus a category the catalogue knows.
  *
- * Shared by "publish a new product" and "publish a draft he saved earlier",
+ * Shared by "publish a new product" and "publish a draft saved earlier",
  * because a draft that skipped the check on the way in would otherwise reach
  * the catalogue by the back door.
  */
@@ -49,9 +49,9 @@ export function hardRefusal(body: Record<string, unknown>): { error: string; mes
 }
 
 /**
- * What an edit to a listing on sale is judged on. Only the fields he touched:
+ * What an edit to a listing on sale is judged on. Only the fields the farmer touched:
  * a tomato listed 61 days ago must still be pausable, and its stale harvest
- * date is not what he came to change. But a field is judged whenever
+ * date is not what they came to change. But a field is judged whenever
  * something it depends on moves - the minimum against the stock, and the
  * harvest date against the crop, or grain relabelled as tomatoes would turn
  * a 61-day-old listing into "fresh" produce.
@@ -69,7 +69,7 @@ export function patchProblems(merged: Partial<Product>, patchKeys: string[], now
 /** Numbers arrive from a form as text; store them as numbers. */
 const NUMERIC = ['price', 'stock', 'minOrder'] as const
 
-/** Her own products, drafts included. */
+/** The farmer's own products, drafts included. */
 productsRouter.get('/mine', requireRole('farmer'), (req, res) => {
   const farmerId = req.auth!.farmerId!
   res.json({ products: getDb().products.filter((p) => p.farmerId === farmerId) })
@@ -90,7 +90,7 @@ productsRouter.post('/', requireRole('farmer'), (req, res) => {
   const b = req.body as Partial<Product> & { asDraft?: boolean }
   const asDraft = !!b.asDraft
 
-  // Drafts are his to write before the check; putting one on sale waits for it.
+  // Drafts are the farmer's to write before the check; putting one on sale waits for it.
   if (!asDraft && !canSellNow(farmer)) {
     res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
     return
@@ -146,7 +146,7 @@ productsRouter.patch('/:id', requireRole('farmer'), (req, res) => {
     return
   }
 
-  // Every field of the listing may change, as often as he likes.
+  // Every field of the listing may change, as often as the farmer likes.
   const allowed = [
     'cropId', 'name', 'categoryId', 'emoji', 'unit', 'price', 'stock', 'minOrder',
     'harvestDate', 'cultivation', 'description', 'imageUrl', 'imagePublicId',
@@ -166,7 +166,7 @@ productsRouter.patch('/:id', requireRole('farmer'), (req, res) => {
   const merged = { ...current, ...patch } as Product
   merged.categoryId = categoryFor(merged.cropId, merged.categoryId) ?? ''
 
-  // Pausing and un-pausing is the only status change a farmer may make himself.
+  // Pausing and un-pausing is the only status change a farmer may make themselves.
   if (req.body.status === 'PAUSED' || req.body.status === 'LIVE') {
     if (current.status === 'LIVE' || current.status === 'PAUSED') merged.status = req.body.status
   }
@@ -200,7 +200,7 @@ productsRouter.patch('/:id', requireRole('farmer'), (req, res) => {
 })
 
 /**
- * A farmer removes any listing of his own - a sold-out crop is his to take
+ * A farmer removes any listing of their own - a sold-out crop is theirs to take
  * down. A real delete, not a tombstone.
  */
 productsRouter.delete('/:id', requireRole('farmer'), (req, res) => {

@@ -4,10 +4,10 @@ import { newShortId } from '../src/db/ids.js'
 
 /**
  * An order id is money's name. The farmer reads it back over the phone, the
- * customer quotes it when she asks where her packet is, and a UPI payment is
+ * customer quotes it when they ask where their packet is, and a UPI payment is
  * reconciled against it by hand. Every lookup in the API is a find-first, so
  * the day two orders share an id the second buyer opens the first buyer's
- * order and the wrong woman is credited with the payment.
+ * order and the wrong person is credited with the payment.
  *
  * farmer codes are four digits - 9,000 of them - which is small enough that the
  * birthday bound makes a repeat an even bet at about 112 orders. The draw is
@@ -36,7 +36,7 @@ test('an id already in the register is never handed out again', () => {
 
 test('a full space still yields an unused id rather than a clash', () => {
   // Past a few thousand live orders the short draws start missing entirely.
-  // The fallback is longer and uglier on a receipt, and it is still hers
+  // The fallback is longer and uglier on a receipt, and it is still theirs
   // alone - refusing to mint an id would mean refusing a paid order.
   const all = Array.from({ length: 9000 }, (_, n) => `F2C${1000 + n}`)
   const taken = register(all)

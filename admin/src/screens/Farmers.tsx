@@ -16,10 +16,10 @@ import {
  * The register of farmers on the programme.
  *
  * A line each, and no more: it is read by scanning, so the row answers "who is
- * this and is anything wrong" and leaves everything else to her own page.
+ * this and is anything wrong" and leaves everything else to the farmer's own page.
  *
  * Nothing here deletes anybody, and nothing here happens on a single click.
- * Every action changes what a real farmer can do tomorrow - whether his shop
+ * Every action changes what a real farmer can do tomorrow - whether their shop
  * is visible at all - so each one states its
  * consequence and waits for a second confirmation.
  */
@@ -109,7 +109,7 @@ function FarmerCard({ farmer, onDone }: { farmer: FarmerRow; onDone: () => void 
       <div className="row wrap" style={{ gap: 12, alignItems: 'flex-start' }}>
         <div className="grow min0">
           <div className="row wrap" style={{ gap: 8 }}>
-            {/* Her name and shop name exactly as she entered them. */}
+            {/* Name and shop name exactly as the farmer entered them. */}
             <span className="strong">{farmer.name}</span>
             <span className="dim">{farmer.shopName}</span>
             <StatusPill status={farmer.status} />
@@ -125,7 +125,7 @@ function FarmerCard({ farmer, onDone }: { farmer: FarmerRow; onDone: () => void 
             <FdriBandPill band={farmer.fdriBand} />
           </div>
 
-          {/* Where her money goes. Read off this screen when a payout is made
+          {/* Where the farmer's money goes. Read off this screen when a payout is made
               by hand, so it is copied rather than retyped. */}
           {farmer.upiId && (
             <div className="small dim">
@@ -140,8 +140,8 @@ function FarmerCard({ farmer, onDone }: { farmer: FarmerRow; onDone: () => void 
           )}
         </div>
 
-        {/* Everything the row has no space for - her business, her shop
-            settings, her listings, her orders - is one click away. */}
+        {/* Everything the row has no space for - the business, the shop
+            settings, the listings, the orders - is one click away. */}
         <Link to={`/farmers/${farmer.id}`}>
           <Button variant="quiet" small>
             {t('sd.open')} <IconGo aria-hidden="true" />

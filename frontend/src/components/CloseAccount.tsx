@@ -12,22 +12,22 @@ import { Button, Choice, Field, Notice, TextInput, VoiceInput } from './ui.js'
  *
  * Google Play requires the option. What it does not decide is how hard it
  * should be to do by accident, and on this app that question has a face: a
- * woman whose shop is her income, on a phone she shares, reaching for Log out.
+ * farmer whose shop is their income, on a phone they share, reaching for Log out.
  *
  * So the entry point is nowhere near Log out - its own card at the very bottom
  * of the profile, a quiet line rather than a red button - and the sheet walks
  * the same shape as cancelling an order, where each step states something the
  * last one did not:
  *
- *   1. What it costs: her listings and her shop.
- *   2. Why she is leaving - a reason from a list, as everywhere else.
- *   3. The last four digits of her own number, typed. Not a word to copy
- *      (that is a literacy test) and not her password again (one more
- *      thing to remember, proving only possession of a phone she is
- *      already signed in on). Four digits she knows by heart, which a thumb does not
+ *   1. What it costs: their listings and their shop.
+ *   2. Why they are leaving - a reason from a list, as everywhere else.
+ *   3. The last four digits of their own number, typed. Not a word to copy
+ *      (that is a literacy test) and not their password again (one more
+ *      thing to remember, proving only possession of a phone they are
+ *      already signed in on). Four digits they know by heart, which a thumb does not
  *      produce by accident.
- *   4. What happens next, which for a farmer is the week she has to change
- *      her mind.
+ *   4. What happens next, which for a farmer is the week they have to change
+ *      their mind.
  *
  * An order still in flight is not an error but a thing to do first: the server
  * answers 409 and the sheet says so, because a buyer waiting on a delivery
@@ -37,7 +37,7 @@ export function CloseAccountSheet({
   role, phone, productCount, open, onClose,
 }: {
   role: 'farmer' | 'customer'
-  /** Her own number. The last four digits of it are the final confirmation. */
+  /** Their own number. The last four digits of it are the final confirmation. */
   phone: string
   /** Farmer only: how many listings go with the shop, so step 1 is a fact. */
   productCount?: number
@@ -113,7 +113,7 @@ export function CloseAccountSheet({
               <p className="body muted">{farmer ? t('close.sel.q1Sub') : t('close.cus.q1Sub')}</p>
             </div>
 
-            {/* Her own numbers, not a warning in the abstract. A woman with
+            {/* Their own numbers, not a warning in the abstract. A farmer with
                 five listings is being told about those five. */}
             {farmer && (
               <Notice tone="warn" title={t('close.sel.whatGoesTitle')}>
@@ -185,7 +185,7 @@ export function CloseAccountSheet({
             </Field>
 
             {/* An order in flight stops this, and saying which one turns a
-                refusal into a thing she can go and finish. */}
+                refusal into a thing they can go and finish. */}
             {blocked.length > 0 && (
               <Notice tone="warn" title={t('close.openOrders')}>
                 {blocked.join(', ')}

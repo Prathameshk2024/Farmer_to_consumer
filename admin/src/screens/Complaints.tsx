@@ -15,12 +15,12 @@ type Tab = 'OPEN' | 'RESOLVED' | 'ALL'
  * WHAT FARMERS AND BUYERS HAVE WRITTEN TO THE DESK.
  *
  * A queue, not an archive: open ones first, and the point of the screen is to
- * empty it. Each row carries her name, her number and - for a farmer - the
+ * empty it. Each row carries the sender's name, number and - for a farmer - the
  * farmer code, so the answer to most of these is a phone call made from this page
  * rather than a hunt through the farmer list.
  *
  * Marking one done records WHO did it, for the same reason a verification does:
- * "who answered this woman?" has to be answerable months later.
+ * "who answered this person?" has to be answerable months later.
  */
 export function Complaints() {
   const t = useT()
@@ -88,7 +88,7 @@ function Row({
           {t(`help.subject.${complaint.subject}`)}
         </Pill>
         <span className="strong">{complaint.name}</span>
-        {/* Her own words are the row. Everything else is how to reach her. */}
+        {/* Their own words are the row. Everything else is how to reach them. */}
         <span className="small dim">
           {complaint.byRole === 'farmer' ? t('cm.fromFarmer') : t('cm.fromCustomer')}
           {complaint.farmerCode && <> · <span className="mono">{complaint.farmerCode}</span></>}

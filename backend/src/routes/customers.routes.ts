@@ -18,16 +18,16 @@ import {
 } from '../db/customers.js'
 
 /**
- * HER OWN RECORD
- * ==============
+ * THE CUSTOMER'S OWN RECORD
+ * ==========================
  * Every handler resolves the customer from `req.auth.customerId` - the id
- * inside her signed token - and never from a path parameter or a request body.
+ * inside their signed token - and never from a path parameter or a request body.
  * There is no route here that takes a customer id as input, which is what
  * makes reading somebody else's addresses impossible rather than merely
  * forbidden.
  *
  * An address id IS taken from the path, but it is only ever looked up inside
- * her own array. A guessed id belonging to another customer returns 404,
+ * the customer's own array. A guessed id belonging to another customer returns 404,
  * indistinguishable from one that does not exist.
  */
 export const customersRouter: Router = Router()
@@ -77,7 +77,7 @@ customersRouter.post('/register', (req, res) => {
 
 customersRouter.use(requireRole('customer'))
 
-/** Her record, created empty the first time she is seen. */
+/** The customer's record, created empty the first time they are seen. */
 customersRouter.get('/me', (req, res) => {
   const auth = req.auth!
   const customer = ensureCustomer(getDb(), auth.customerId!, auth.phone ?? '')
@@ -141,7 +141,7 @@ customersRouter.patch('/me/addresses/:id', (req, res) => {
   const b = (req.body ?? {}) as Record<string, unknown>
 
   // A patch may be nothing more than "make this one the default", so the full
-  // shape check only applies when she is actually editing the address itself.
+  // shape check only applies when the buyer is actually editing the address itself.
   const patch: Partial<AddressInput> = {}
   if (b.label !== undefined) patch.label = String(b.label)
   if (b.line !== undefined) patch.line = String(b.line).trim()
@@ -187,8 +187,8 @@ customersRouter.delete('/me/addresses/:id', (req, res) => {
  * Delete this buyer's account.
  *
  * No week to think it over, unlike a farmer: what a buyer loses is a name and
- * a list of addresses, and her account is her phone number, so signing in
- * again gives her a new empty one rather than this one back.
+ * a list of addresses, and the account is their phone number, so signing in
+ * again gives them a new empty one rather than this one back.
  *
  * Refused while an order is on its way, because the farmer on the other end
  * has cooked or packed for it and needs an address to deliver to.

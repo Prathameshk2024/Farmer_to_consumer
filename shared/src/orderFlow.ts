@@ -17,7 +17,7 @@ import type { Fulfilment, Order, OrderStatus, PaymentMode, PaymentStatus } from 
  * because a cash order and a UPI order have to walk the same six screens.
  * Inserting a payment state into the middle is the change that would break it.
  *
- * There is no delivery code. The farmer marks DELIVERED herself and that is
+ * There is no delivery code. The farmer marks DELIVERED themselves and that is
  * accepted at face value; the trail in `events` is what admin reviews if a
  * customer disputes it.
  *
@@ -40,7 +40,7 @@ export interface FarmerAction {
   needsReason?: boolean
   /**
    * Ask how long the delivery will take before the move goes through. Only
-   * Accept carries it: that is the moment she has read the address and knows,
+   * Accept carries it: that is the moment the farmer has read the address and knows,
    * and the buyer's next question after "yes" is always "when?".
    */
   needsEstimate?: boolean
@@ -120,7 +120,7 @@ export const STATUS_STYLE: Record<
 /**
  * WHAT THE BUYER'S TRACKER SHOWS: four stages, not five states.
  *
- * A buyer does not need "packed" and "accepted" as separate steps - she needs
+ * A buyer does not need "packed" and "accepted" as separate steps - they need
  * to know it is confirmed, on its way, nearly here, arrived. So:
  *
  *   Order confirmed    <- ACCEPTED           (the farmer said yes)

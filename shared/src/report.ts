@@ -3,12 +3,12 @@
  *
  * Anyone can list anything in this market, and the only people who see a
  * listing before an admin does are the buyers looking at it. So a buyer needs
- * a way to say "this is wrong" from the screen where she found it - which is
+ * a way to say "this is wrong" from the screen where they found it - which is
  * also what Google Play requires of any app carrying content its users write:
  * an in-app way to flag objectionable content, and someone who acts on it.
  *
  * A REASON IS ALWAYS REQUIRED, picked from this list. "Spoiled food" and "not
- * her photograph" are different problems with different answers, and a queue
+ * their photograph" are different problems with different answers, and a queue
  * of reports that all say "inappropriate" cannot be triaged by anybody.
  * `other` is the escape hatch and the only one that needs typed words, for
  * the same reason cancelling an order does: a list can never name everything.
@@ -41,7 +41,7 @@ export function isReportTarget(v: unknown): v is ReportTarget {
 }
 
 /**
- * Both sides check this: the sheet so she is told before she sends, the
+ * Both sides check this: the sheet so the reporter is told before sending, the
  * server because a client can send anything.
  */
 export function reportProblems(

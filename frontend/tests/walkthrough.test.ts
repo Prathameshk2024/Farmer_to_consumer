@@ -6,10 +6,10 @@ import {
 import { dictionaries } from '../src/i18n/strings.js'
 
 /**
- * A walkthrough shows itself the first time she opens a screen and then gets
+ * A walkthrough shows itself the first time they open a screen and then gets
  * out of the way. The flag is what makes that true, so these are about the
- * flag: it survives, it is written once, and a corrupt row teaches her the
- * app again rather than crashing every screen she opens.
+ * flag: it survives, it is written once, and a corrupt row teaches them the
+ * app again rather than crashing every screen they open.
  */
 
 function fakeStore() {
@@ -32,7 +32,7 @@ test('a finished tour is remembered, and never written twice', () => {
   assert.deepEqual(seenTours(store), ['farmer.business', 'shop.cart'])
 })
 
-/** A hand-edited row must not lock her out of every screen in the app. */
+/** A hand-edited row must not lock them out of every screen in the app. */
 test('an unreadable flag means nothing has been seen, not a crash', () => {
   const store = fakeStore()
   store.setItem(SEEN_KEY, '{oops')
@@ -43,7 +43,7 @@ test('an unreadable flag means nothing has been seen, not a crash', () => {
 })
 
 /**
- * The Help & Training list is the only way back into a walkthrough she has
+ * The Help & Training list is the only way back into a walkthrough they have
  * already dismissed, so every tab it offers has to lead somewhere real.
  */
 test('every tour offered in Help & Training exists', () => {
@@ -116,7 +116,7 @@ test('every step targets a control the app actually renders', async () => {
 
 /**
  * The Categories screen holds one kind of thing - the type tiles - and the
- * walkthrough used to spend its second step ringing the bottom nav, so a woman
+ * walkthrough used to spend its second step ringing the bottom nav, so a buyer
  * asking "what is this screen?" was shown the cart instead of an answer.
  */
 test('the categories walkthrough stays on the categories', () => {
@@ -141,7 +141,7 @@ test('an empty cart is explained rather than skipped', () => {
 })
 
 /**
- * And seeing it must NOT burn the real one: she reads "choose products first",
+ * And seeing it must NOT burn the real one: they read "choose products first",
  * comes back with three jars of pickle, and still gets taught the + / − buttons
  * and the checkout bar.
  */
@@ -164,7 +164,7 @@ test('the empty-cart step alone does not count as having seen the tour', () => {
  * The replay arrives as route state, and that state is cleared immediately so
  * a Back press does not start the tour over. Clearing it re-ran the decision -
  * this time with no replay and a tour already marked seen - which cancelled
- * the open that was still looking for the controls. She tapped "Categories",
+ * the open that was still looking for the controls. They tapped "Categories",
  * landed on the real page, and nothing happened.
  *
  * So the intent survives the state that carried it.
@@ -178,10 +178,10 @@ test('clearing the route state does not cancel a replay already asked for', () =
   assert.equal(wantsTour({ replay: false, seen: true, already: true }), true)
 })
 
-test('a tour she has seen does not open itself again', () => {
+test('a tour they have seen does not open itself again', () => {
   assert.equal(wantsTour({ replay: false, seen: true, already: false }), false)
 })
 
-test('a tour she has never seen opens on its own', () => {
+test('a tour they have never seen opens on its own', () => {
   assert.equal(wantsTour({ replay: false, seen: false, already: false }), true)
 })

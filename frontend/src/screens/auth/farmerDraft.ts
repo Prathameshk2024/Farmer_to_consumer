@@ -7,17 +7,17 @@ import { normalizePhone } from '@shared/farmer.js'
  * Ten screens of answers, kept on the device so that leaving the wizard does
  * not throw them away. Before this, everything lived in `useState`: a back
  * press on step 1, a reload, or the browser reclaiming the tab wiped the lot -
- * and she had to start the six screens again.
+ * and they had to start the six screens again.
  *
  * KEYED BY PHONE, and that is the whole point of this file existing separately.
  * The product wizard learned this the hard way (see productDraft.ts): one
- * shared key meant a field coordinator's phone showed the NEXT woman whatever
- * the last one had typed. Registration is worse - the draft holds her name,
- * her village and her UPI id. The phone number she typed on the first step is
+ * shared key meant a field coordinator's phone showed the NEXT farmer whatever
+ * the last one had typed. Registration is worse - the draft holds their name,
+ * their village and their UPI id. The phone number they typed on the first step is
  * the identity being registered, so it is the right key. The password is
  * never in the draft.
  *
- * sessionStorage, not localStorage: a half-registered woman's details must
+ * sessionStorage, not localStorage: a half-registered farmer's details must
  * not sit on a shared handset for whoever picked it up next.
  */
 
@@ -62,7 +62,7 @@ export interface DraftStore {
 
 /**
  * `normalizePhone`, not a digit-strip of my own: the number reaches this file
- * from what she typed and from a query string, and "+91 98220 11223" has to open the
+ * from what they typed and from a query string, and "+91 98220 11223" has to open the
  * same drawer as "9822011223". That rule already exists once, in shared/, and
  * having a second copy here is how the two drift apart.
  */
@@ -75,7 +75,7 @@ export function writeDraft(store: DraftStore, phone: string, step: number, d: Dr
   try {
     store.setItem(draftKey(phone), JSON.stringify({ step, d }))
   } catch {
-    /* private mode - she simply loses the draft on leaving, as before */
+    /* private mode - they simply lose the draft on leaving, as before */
   }
 }
 

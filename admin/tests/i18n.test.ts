@@ -53,7 +53,7 @@ test('the Marathi dictionary is actually in Marathi', () => {
 
 test('every farmer status the API can return has a label', () => {
   // shared/src/types.ts FarmerStatus - if a status is added there and not
-  // here, the console would print the raw enum at a woman's account.
+  // here, the console would print the raw enum on a farmer's account.
   for (const status of [
     'PENDING_VERIFICATION', 'ACTIVE', 'BLOCKED', 'CLOSED',
   ]) {
@@ -62,10 +62,10 @@ test('every farmer status the API can return has a label', () => {
   }
 })
 
-test('every admin decision she can be shown has a label', () => {
-  // shared/src/types.ts AdminNoticeKind. Her page reads these through a
+test('every admin decision a farmer can be shown has a label', () => {
+  // shared/src/types.ts AdminNoticeKind. The farmer page reads these through a
   // template string, so the usage test below cannot see them - and an
-  // unlabelled one prints "nt.VERIFIED" in his decision history.
+  // unlabelled one prints "nt.VERIFIED" in the decision history.
   for (const kind of ['VERIFIED', 'BLOCKED', 'UNBLOCKED', 'PRODUCT_REJECTED']) {
     assert.ok(dictionaries.mr[`nt.${kind}`], `no Marathi label for ${kind}`)
     assert.ok(dictionaries.en[`nt.${kind}`], `no English label for ${kind}`)
@@ -121,8 +121,8 @@ test('a key missing from one language falls back to Marathi, not English', () =>
 })
 
 test('no English copy gives the farmer a gendered pronoun', () => {
-  // Farmers are men and women; the old copy was written for women only, and a
-  // later pass wrote "he". Buyers are anyone, so no pronoun is safe for them either.
+  // Farmers and buyers are anyone, so no gendered pronoun is safe for either,
+  // and the console carries no trace of the project it was copied from.
   const bad = Object.entries(dictionaries.en)
     .filter(([, v]) => /\b(she|her|hers|herself|he|his|him|himself|women|woman|Shantai|Mahila)\b/i.test(v))
     .map(([k]) => k)

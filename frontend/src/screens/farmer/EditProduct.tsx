@@ -17,12 +17,12 @@ import { IconProduct } from '../../components/icons.js'
 import { PriceHint } from '../../components/PriceHint.js'
 
 /**
- * Editing a listing he has already added.
+ * Editing a listing they have already added.
  *
  * Deliberately NOT the upload wizard. One question per screen is right the
- * first time, when the job is teaching him what a listing needs; it is wrong
- * for changing a price, where it would put eight taps between him and the one
- * number he came to fix. Every field is on one page, Save is at the bottom,
+ * first time, when the job is teaching them what a listing needs; it is wrong
+ * for changing a price, where it would put eight taps between them and the one
+ * number they came to fix. Every field is on one page, Save is at the bottom,
  * and every field may change - there is no edit limit.
  */
 export default function EditProduct() {
@@ -118,7 +118,7 @@ export default function EditProduct() {
   /**
    * A listing on sale is held to the full rules on every save - the server
    * refuses the same things, so this only says it sooner. A draft saved
-   * without `submit` is his to leave half-done.
+   * without `submit` is theirs to leave half-done.
    */
   function validate(submit: boolean): boolean {
     if (p.status === 'DRAFT' && !submit) return true
@@ -130,7 +130,7 @@ export default function EditProduct() {
 
   /**
    * `submit` is what puts a draft on sale. Saving on its own never moves the
-   * status, so he can fix a typo on a draft without it leaving his hands.
+   * status, so they can fix a typo on a draft without it leaving their hands.
    */
   async function save(submit: boolean) {
     if (!validate(submit)) return

@@ -125,7 +125,7 @@ const mr: Record<string, string> = {
   'ok.addressRemoved': 'पत्ता काढून टाकला',
   'ok.qrSaved': 'पेमेंट QR जतन झाला',
 
-  // ---- what happened while she was away --------------------------------
+  // ---- what happened while they were away --------------------------------
   'notif.title': 'सूचना',
   'notif.unread': '{n} नवीन सूचना',
   'notif.none': 'नवीन काही नाही',
@@ -133,13 +133,13 @@ const mr: Record<string, string> = {
   'notif.new': 'नवीन',
   'notif.earlier': 'आधीचे',
 
-  // When it happened, in the words she would use rather than a timestamp.
+  // When it happened, in the words they would use rather than a timestamp.
   'when.today': 'आज',
   'when.yesterday': 'काल',
   'when.daysAgo': '{n} दिवसांपूर्वी',
 
   /* Updates are read by a person, not by the state machine: a whole
-     sentence about HER order, in her own direction of the transaction. */
+     sentence about THEIR order, in their own direction of the transaction. */
   'notif.cus.ACCEPTED': 'तुमचे ऑर्डर स्वीकारले आहे',
   'notif.cus.PACKED': 'तुमचे ऑर्डर तयार झाले आहे',
   'notif.cus.OUT_FOR_DELIVERY': 'तुमचे ऑर्डर पोहोचवायला निघाले आहे',
@@ -150,7 +150,7 @@ const mr: Record<string, string> = {
   'notif.sel.CANCELLED': 'ग्राहकाने ऑर्डर रद्द केले',
   'cus.callFarmer': 'शेतकऱ्याला फोन करा',
 
-  /* What the office did to his account. */
+  /* What the office did to their account. */
   'notif.verified': 'तुमची तपासणी झाली. आता तुमचा माल विक्रीसाठी दिसेल.',
   'notif.adm.BLOCKED': 'तुमचे दुकान सध्या बंद केले आहे',
   'notif.adm.UNBLOCKED': 'तुमचे दुकान पुन्हा सुरू झाले आहे',
@@ -382,7 +382,7 @@ const mr: Record<string, string> = {
   'ord.status.DELIVERED': 'पोहोचले',
   'ord.status.REJECTED': 'नाकारले', 'ord.status.CANCELLED': 'रद्द झाले',
 
-  // ---- how long the delivery will take, asked when she accepts ----------
+  // ---- how long the delivery will take, asked when they accept ----------
   'ord.etaTitle': 'किती वेळात पोहोचवाल?',
   'ord.etaHint': 'तुम्ही सांगाल तेच ग्राहकाला दिसेल. नक्की नसेल तर नंतरही सांगता येईल.',
   'ord.etaPlaceholder': 'उदा. 2 दिवसांत',
@@ -526,7 +526,7 @@ const mr: Record<string, string> = {
   'cancel.sel.q3Paid': 'ग्राहकाने या ऑर्डरसाठी ₹{total} भरल्याचे कळवले आहे. रद्द केल्यावर हे पैसे तुम्हालाच ग्राहकाला परत करावे लागतील.',
   'cancel.sel.yes3': 'हो, रद्द करू',
   'cancel.cus.yes3': 'हो, रद्द करा',
-  // After the farmer cancels - the money only she can return.
+  // After the farmer cancels - the money only they can return.
   'refund.paidTitle': 'महत्त्वाचे: ग्राहकाला ₹{total} परत करा',
   'refund.paidBody': 'हे ऑर्डर रद्द झाले आहे, पण ग्राहकाने भरलेले ₹{total} तुमच्या खात्यात जमा झाले आहेत. हे पैसे आजच ग्राहकाला परत पाठवा.',
   'refund.claimedTitle': 'महत्त्वाचे: पैसे आले असल्यास ग्राहकाला परत करा',
@@ -558,7 +558,7 @@ const mr: Record<string, string> = {
   'close.open': 'माझे खाते कायमचे बंद करा',
   'close.keep': 'नको, खाते ठेवा',
   'close.failed': 'खाते बंद करता आले नाही. पुन्हा प्रयत्न करा.',
-  // Step 1 - what it costs her.
+  // Step 1 - what it costs them.
   'close.q1': 'खाते बंद करायचे का?',
   'close.sel.q1Sub': 'खाते बंद केल्यावर तुमचे दुकान ग्राहकांना दिसणार नाही आणि नवीन ऑर्डर येणार नाहीत.',
   'close.cus.q1Sub': 'तुमचे नाव, फोन नंबर आणि साठवलेले पत्ते काढले जातील. झालेल्या ऑर्डरची नोंद शेतकऱ्याकडे राहील.',
@@ -571,7 +571,7 @@ const mr: Record<string, string> = {
   'close.otherLabel': 'कारण लिहा',
   'close.otherHint': 'किमान {n} अक्षरे.',
   'close.otherPlaceholder': 'उदा. दुसऱ्या गावी स्थलांतर केले',
-  // Step 3 - four digits she knows by heart.
+  // Step 3 - four digits they know by heart.
   'close.q3': 'शेवटची खात्री',
   'close.sel.q3Sub': 'खात्री करण्यासाठी तुमच्या फोन नंबरचे शेवटचे 4 अंक टाका. त्यानंतर तुमचे दुकान लगेच बंद होईल.',
   'close.cus.q3Sub': 'खात्री करण्यासाठी तुमच्या फोन नंबरचे शेवटचे 4 अंक टाका. त्यानंतर खाते लगेच बंद होईल.',
@@ -585,7 +585,7 @@ const mr: Record<string, string> = {
   'close.sel.doneBody': 'तुमचे दुकान आता ग्राहकांना दिसणार नाही. {days} दिवसांनी तुमची सर्व माहिती कायमची पुसली जाईल. विचार बदलल्यास याच नंबरने पुन्हा लॉगिन करा आणि "खाते परत सुरू करा" दाबा.',
   'close.cus.doneBody': 'तुमचे नाव, फोन नंबर आणि पत्ते काढले आहेत. पुन्हा खरेदी करायची असल्यास नवीन खाते तयार करावे लागेल.',
   'close.doneAck': 'समजले',
-  // The week she has to change her mind.
+  // The week they have to change their mind.
   'close.closingTitle': 'तुमचे खाते बंद होत आहे',
   'close.closingBody': '{days} दिवसांनी तुमची सर्व माहिती कायमची पुसली जाईल. तोपर्यंत तुम्ही हे थांबवू शकता.',
   'close.restore': 'खाते परत सुरू करा',

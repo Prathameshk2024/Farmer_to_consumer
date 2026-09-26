@@ -1,15 +1,15 @@
 /**
- * WHERE SHE WAS READING, PER HISTORY ENTRY.
+ * WHERE THEY WERE READING, PER HISTORY ENTRY.
  *
  * Forward navigation should start at the top and backward navigation should
- * not - a product page opens at its own beginning, and the catalogue she came
- * from opens where she left it. One `window.scrollTo(0, 0)` on every route
+ * not - a product page opens at its own beginning, and the catalogue they came
+ * from opens where they left it. One `window.scrollTo(0, 0)` on every route
  * change gets the first half right and the second half exactly wrong: thirty
- * swipes back down to the product she was looking at, on a phone, which is how
+ * swipes back down to the product they were looking at, on a phone, which is how
  * a shopper learns not to browse past the first screenful.
  *
  * Keyed on the history entry rather than the path, because the same screen
- * reached twice is two different places she was reading.
+ * reached twice is two different places they were reading.
  *
  * In memory only, and deliberately: a scroll position is worth nothing after
  * the tab closes, and writing one to storage on every scroll event would be
@@ -21,7 +21,7 @@ export function rememberScroll(key: string, y: number): void {
   positions.set(key, y)
 }
 
-/** Anywhere she has not been is the top. */
+/** Anywhere they have not been is the top. */
 export function recallScroll(key: string): number {
   return positions.get(key) ?? 0
 }
@@ -31,13 +31,13 @@ export function forgetScroll(key: string): void {
 }
 
 /* ------------------------------------------------------------------ */
-/* Putting her back there                                              */
+/* Putting them back there                                              */
 /* ------------------------------------------------------------------ */
 
 /**
  * RESTORING IS WAITING, NOT AIMING.
  *
- * Every screen fetches its own data, so at the moment she comes back the list
+ * Every screen fetches its own data, so at the moment they come back the list
  * is one spinner tall - and a browser cannot scroll to the fortieth row of a
  * page that is one screen high. It clamps to the top, which is exactly the
  * complaint: open the tenth product, press back, and the catalogue starts
@@ -49,7 +49,7 @@ export function forgetScroll(key: string): void {
  * else owns the position - do not fight it), or when the deadline passes on a
  * screen whose content never arrived.
  *
- * The caller stops it as well as soon as SHE scrolls. Being dragged away from
+ * The caller stops it as well as soon as THEY scroll. Being dragged away from
  * what you are reading is worse than starting at the top.
  */
 export const RESTORE_WINDOW_MS = 6000
@@ -76,7 +76,7 @@ export function landed(target: number, y: number): boolean {
   return Math.abs(y - target) <= NEAR
 }
 
-/** Is there enough page under her for that position to exist yet? */
+/** Is there enough page under them for that position to exist yet? */
 export function reachable(target: number, max: number): boolean {
   return max + NEAR >= target
 }
@@ -93,8 +93,8 @@ export function makeRestorer(
     tick() {
       if (landed(target, host.y())) return 'done'
       // Clamped by the browser while the page is short, which is not a
-      // failure: it keeps her as close as the content allows, and the next
-      // tick carries her the rest of the way once the list renders.
+      // failure: it keeps them as close as the content allows, and the next
+      // tick carries them the rest of the way once the list renders.
       host.to(target)
       if (landed(target, host.y())) return 'done'
       return reachable(target, host.max()) ? 'done' : 'waiting'

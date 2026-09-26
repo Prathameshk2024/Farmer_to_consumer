@@ -18,7 +18,7 @@ import { PageTour } from '../../components/Walkthrough.js'
 
 /**
  * My Business - the daily driver. The order of things on this screen is the
- * design: what needs doing, then what she has earned, then everything else.
+ * design: what needs doing, then what they have earned, then everything else.
  */
 export default function MyBusiness() {
   const t = useT()
@@ -26,7 +26,7 @@ export default function MyBusiness() {
 
   const [me, loadingMe, setMe] = useAsync(() => api.me(), [])
   const [orderData, loadingOrders] = useAsync(() => api.myOrders(), [], 'farmer:orders')
-  // Not waited on: reviews are not what she opened this screen to act on.
+  // Not waited on: reviews are not what they opened this screen to act on.
   const [reviewData] = useAsync(() => api.myReviews(), [])
   const { toast } = useToast()
   const [restoring, setRestoring] = useState(false)
@@ -79,9 +79,9 @@ export default function MyBusiness() {
 
       <div className="screen stack">
         {/* First thing on the screen when it applies. Being blocked is not the
-            same as waiting for approval and must not read like it: she is told
+            same as waiting for approval and must not read like it: they are told
             plainly, given the admin's reason if there was one, and pointed at
-            support rather than left to wonder why her shop went quiet. */}
+            support rather than left to wonder why their shop went quiet. */}
         {farmer.status === 'BLOCKED' && (
           <Notice tone="danger" title={t('biz.blockedTitle')}>
             <div>{t('biz.blockedBody')}</div>
@@ -93,10 +93,10 @@ export default function MyBusiness() {
           </Notice>
         )}
 
-        {/* SHE ASKED FOR THE ACCOUNT TO BE DELETED, AND CAME BACK.
+        {/* THEY ASKED FOR THE ACCOUNT TO BE DELETED, AND CAME BACK.
             The week between asking and erasing exists for exactly this
-            moment, so the way out of it is the first thing on her home
-            screen - not buried in the profile she would have to go looking
+            moment, so the way out of it is the first thing on their home
+            screen - not buried in the profile they would have to go looking
             through, having already decided once to leave. */}
         {farmer.status === 'CLOSED' && farmer.closingAt && (
           <Notice tone="danger" title={t('close.closingTitle')}>
@@ -119,8 +119,8 @@ export default function MyBusiness() {
           </Notice>
         )}
 
-        {/* Registered and waiting for the one check. Nothing he lists is
-            public until then, so he is told why rather than left guessing. */}
+        {/* Registered and waiting for the one check. Nothing they list is
+            public until then, so they are told why rather than left guessing. */}
         {farmer.status === 'PENDING_VERIFICATION' && (
           <Notice tone="warn">{t('biz.pendingVerification')}</Notice>
         )}
@@ -176,13 +176,13 @@ export default function MyBusiness() {
           )}
         </div>
 
-        {/* Her rating - her products' ratings together, exactly as buyers see
-            it on her card - and one tap to what they said. */}
+        {/* Their rating - their products' ratings together, exactly as buyers see
+            it on their card - and one tap to what they said. */}
         <button className="card card--tap" onClick={() => nav('/farmer/reviews')}>
           <div className="row-between">
             <div className="stack-sm" style={{ gap: 2 }}>
               <strong>{t('rev.title')}</strong>
-              {/* The same number buyers see on her card. */}
+              {/* The same number buyers see on their card. */}
               <RatingLine average={reviewData?.summary.average} count={reviewData?.summary.count} />
             </div>
             <IconChevron aria-hidden="true" />
@@ -213,7 +213,7 @@ function QuickLink({ icon: Icon, label, to }: { icon: IconType; label: string; t
 }
 
 /**
- * A row in the action queue. It says what she must DO, not what state the
+ * A row in the action queue. It says what they must DO, not what state the
  * order is in - "Payment received?" beats "UPI_SUBMITTED".
  */
 function ActionRow({ order, onOpen }: { order: Order; onOpen: () => void }) {

@@ -9,13 +9,13 @@ import {
  * MONEY AFTER ACCEPTANCE, NOT BEFORE.
  *
  * A buyer used to pay by UPI at checkout, before the farmer had seen the
- * order. If the farmer then rejected it - too far, out of stock, a pincode she
- * cannot reach - the money was already in her account and this app has no
- * refund path. Since her delivery-area list stopped being a gate, rejection is
+ * order. If the farmer then rejected it - too far, out of stock, a pincode they
+ * cannot reach - the money was already in their account and this app has no
+ * refund path. Since the delivery-area list stopped being a gate, rejection is
  * a normal outcome rather than a rare one, so prepaying became untenable.
  *
- * The order now reaches her unpaid. She accepts, THEN the buyer pays, then she
- * confirms it in her own UPI app and only then packs.
+ * The order now reaches the farmer unpaid. They accept, THEN the buyer pays, then they
+ * confirm it in their own UPI app and only then packs.
  */
 
 function order(over: Partial<Order> = {}): Order {
@@ -60,11 +60,11 @@ test('a cash order asks the buyer for nothing', () => {
 })
 
 /**
- * The gate that makes the flip safe: she does not pack goods she has not been
- * paid for, and "the buyer typed a reference number" is not payment - only her
+ * The gate that makes the flip safe: the farmer does not pack goods they have not been
+ * paid for, and "the buyer typed a reference number" is not payment - only their
  * own confirmation is.
  */
-test('a UPI order is not packed until she has confirmed the money', () => {
+test('a UPI order is not packed until the farmer has confirmed the money', () => {
   assert.equal(awaitingPaymentConfirmation(order({ paymentStatus: 'UPI_PENDING' })), true)
   assert.equal(awaitingPaymentConfirmation(order({ paymentStatus: 'UPI_SUBMITTED' })), true)
   assert.equal(awaitingPaymentConfirmation(order({ paymentStatus: 'UPI_CONFIRMED' })), false)

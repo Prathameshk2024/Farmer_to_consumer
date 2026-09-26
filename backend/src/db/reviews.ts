@@ -92,7 +92,7 @@ export function productReviewsFor(
   return { reviews: visible(mine), summary: summarizeReviews(mine) }
 }
 
-/** Every visible review of a farmer's products - her own list. */
+/** Every visible review of a farmer's products - their own list. */
 export function farmerProductReviews(db: Pick<Db, 'reviews'>, farmerId: string): PublicReview[] {
   return visible(db.reviews.filter((r) => r.farmerId === farmerId))
 }
@@ -114,13 +114,13 @@ export function ratingsByProduct(db: Pick<Db, 'reviews'>): Map<string, RatingSum
 }
 
 /**
- * A FARMER'S RATING IS HER PRODUCTS' RATINGS, TAKEN TOGETHER.
+ * A FARMER'S RATING IS THEIR PRODUCTS' RATINGS, TAKEN TOGETHER.
  *
- * Buyers rate products, never the woman. Her score is every visible review of
- * every product she sells, each counted once - so a product rated forty times
+ * Buyers rate products, never the farmer. The score is every visible review of
+ * every product they sell, each counted once - so a product rated forty times
  * weighs more than one rated twice, which is what a buyer reading "4.3 from 42
  * reviews" expects the number to mean. Averaging each product's average would
- * let one lucky five-star listing count as much as her best-farmer.
+ * let one lucky five-star listing count as much as their best seller.
  *
  * Worked out on every request, like the product ratings: hiding a review
  * changes it at once, and nothing stored can go stale.
@@ -146,7 +146,7 @@ export const NO_RATING: RatingSummary = { average: 0, count: 0, byStars: [0, 0, 
 
 /**
  * The customer's delivered orders still waiting for a rating, newest delivery
- * first. The gate in her app shows the first of these and does not let go
+ * first. The gate in the buyer's app shows the first of these and does not let go
  * until the list is empty.
  */
 export function ordersToRate(

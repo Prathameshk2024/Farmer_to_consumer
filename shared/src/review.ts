@@ -7,13 +7,13 @@ import type {
  * ===================
  * Once an order is delivered, the buyer rates each product in it: one to five
  * stars each, words optional. The public reads those ratings on the product -
- * what a jar of pickle was actually like - and never as a score for the woman
- * who made it.
+ * what a bag of onions was actually like - and never as a score for the farmer
+ * who grew it.
  *
  * THE BUYER CANNOT SKIP IT. While a delivered order is unrated, the customer
  * app shows the rating screen over everything else (`RateOrderGate`). That is
  * a product decision: a rural farmer has nothing a stranger can check except
- * what her last buyers said, and a rating asked for "later" is a rating never
+ * what their last buyers said, and a rating asked for "later" is a rating never
  * given.
  *
  * ONLY A BUYER WHO RECEIVED IT. A review belongs to one product on one
@@ -25,7 +25,7 @@ import type {
  *
  * FOR A MONTH. Ratings can be given or changed for REVIEW_WINDOW_DAYS after
  * delivery, and the gate asks only inside that window - a buyer returning
- * after a year is not stopped at the door over an order she has forgotten.
+ * after a year is not stopped at the door over an order they have forgotten.
  *
  * STARS ARE REQUIRED, WORDS ARE NOT. A tap per product is a complete rating.
  *
@@ -37,7 +37,7 @@ export const REVIEW_COMMENT_MAX = 500
 export const RATING_MIN = 1
 export const RATING_MAX = 5
 
-/** When the farmer marked it delivered, or undefined if she has not. */
+/** When the farmer marked it delivered, or undefined if they have not. */
 export function deliveredAt(order: Pick<Order, 'status' | 'events'>): string | undefined {
   if (order.status !== 'DELIVERED') return undefined
   return [...(order.events ?? [])].reverse().find((e) => e.to === 'DELIVERED')?.at
@@ -124,7 +124,7 @@ export function ratingsProblem(order: Pick<Order, 'items'>, ratings: unknown): s
  */
 export function publicName(name: string | undefined): string {
   const first = (name ?? '').trim().split(/\s+/)[0] ?? ''
-  // The placeholder checkout writes when she gave no name is not a name.
+  // The placeholder checkout writes when the buyer gave no name is not a name.
   return first === 'ग्राहक' ? '' : first
 }
 

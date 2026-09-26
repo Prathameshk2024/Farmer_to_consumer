@@ -48,7 +48,7 @@ const STEP_FIELDS: Partial<Record<Step, string[]>> = {
  * (the server derives it), a name to start from, and the picture a buyer
  * expects. Everything after it is a number or a tap. The rules for each
  * answer are `listingProblems` in shared/src/produce.ts - the same function
- * the server runs - so a screen that lets him past is one the server accepts.
+ * the server runs - so a screen that lets them past is one the server accepts.
  *
  * The NAME still takes voice input, because a farmer who speaks Marathi
  * fluently may be unable to type it on a phone keyboard.
@@ -77,7 +77,7 @@ export default function UploadProduct() {
   const [serverError, setServerError] = useState('')
 
   /* Set when Cloudinary is off. There is nothing else to ask for then, so the
-     photo step stops being a wall he cannot get past. */
+     photo step stops being a wall they cannot get past. */
   const [photoOff, setPhotoOff] = useState(false)
 
   const [d, setD] = useState<Draft>(restored?.d ?? BLANK)
@@ -107,7 +107,7 @@ export default function UploadProduct() {
   const farmer = me.farmer
 
   /* Not verified yet (or blocked): the server would refuse to put anything
-     on sale, so he is told here rather than at the last step. */
+     on sale, so they are told here rather than at the last step. */
   if (!canSellNow(farmer)) {
     return (
       <>
@@ -146,7 +146,7 @@ export default function UploadProduct() {
     const all = listingProblems(listing)
     const e: Record<string, string> = {}
     for (const k of STEP_FIELDS[which] ?? []) if (all[k]) e[k] = all[k]!
-    // `other` has no category of its own; he picks one on the same screen.
+    // `other` has no category of its own; they pick one on the same screen.
     if (which === 'crop' && d.cropId === 'other' && !d.categoryId) e.categoryId = t('common.required')
     if (which === 'photo' && !photoOff && !d.imageUrl) e.photo = t('common.required')
     setErrors(e)
@@ -160,9 +160,9 @@ export default function UploadProduct() {
 
   /**
    * Backwards never validates and never clears a field - `d` is one object
-   * that outlives every step - so he can go back from the review, change the
-   * price, and come forward to find everything else exactly as he left it.
-   * The error markers are cleared, because a red box on a screen he is only
+   * that outlives every step - so they can go back from the review, change the
+   * price, and come forward to find everything else exactly as they left it.
+   * The error markers are cleared, because a red box on a screen they are only
    * revisiting reads as a new mistake.
    */
   function goToStep(target: number) {
@@ -181,7 +181,7 @@ export default function UploadProduct() {
       cropId: id,
       categoryId: id === 'other' ? cur.categoryId : '',
       // The crop's name is a starting point, not a decision: replaced only
-      // while he has not written his own.
+      // while they have not written their own.
       name: !cur.name || cur.name === cropLabel(cur.cropId) ? (id === 'other' ? '' : cropLabel(id)) : cur.name,
     }))
     setErrors({})
@@ -360,7 +360,7 @@ export default function UploadProduct() {
             <div className="section-title">{t('prod.preview')}</div>
             <p className="small muted" style={{ margin: 0 }}>{t('reg.reviewHint')}</p>
 
-            {/* Straight back to the screen that asked, with everything he has
+            {/* Straight back to the screen that asked, with everything they have
                 already typed still in place. */}
             <div className="wrap-row">
               {([
@@ -406,8 +406,8 @@ export default function UploadProduct() {
 
             <Notice tone="ok">{t('prod.liveNow')}</Notice>
 
-            {/* Said at the moment he commits, not buried in a policy page.
-                Publishing is his now; this is the other half of that. */}
+            {/* Said at the moment they commit, not buried in a policy page.
+                Publishing is theirs now; this is the other half of that. */}
             <Notice tone="warn">{t('prod.responsibility')}</Notice>
 
             {serverError && <Notice tone="danger">{serverError}</Notice>}

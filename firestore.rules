@@ -1,7 +1,7 @@
 rules_version = '2';
 
 /*
- * Firestore security rules for Shanta Mahila Bazar.
+ * Firestore security rules for Farmers to Consumer.
  *
  * The API talks to Firestore with the Admin SDK, which bypasses these rules
  * entirely. They exist so that if a client SDK is ever pointed at this project

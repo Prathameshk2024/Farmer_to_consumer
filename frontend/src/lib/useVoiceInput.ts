@@ -6,8 +6,8 @@ import type { LangCode } from '../i18n/strings.js'
  * ============
  * A farmer who can speak Marathi fluently may still not be able to type it -
  * the Devanagari keyboard is a real barrier, and for a first-time smartphone
- * user it is often the point where she gives up on the form. So anywhere she
- * has to enter free text, she can press a mic and say it instead.
+ * user it is often the point where they give up on the form. So anywhere they
+ * have to enter free text, they can press a mic and say it instead.
  *
  * Uses the browser's Web Speech API, which Chrome on Android supports natively.
  * It is not available everywhere - iOS Safari does not have it - so callers
@@ -27,7 +27,7 @@ interface UseVoiceInput {
   supported: boolean
   listening: boolean
   error: VoiceError
-  /** Live text while she is still speaking, so she can see it working. */
+  /** Live text while they are still speaking, so they can see it working. */
   interim: string
   start: () => void
   stop: () => void

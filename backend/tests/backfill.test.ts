@@ -9,7 +9,7 @@ import { deriveCustomersFromOrders, planBackfill } from '../src/db/customers.js'
  * two orders to two different pincodes, and रेखा's order carries no landmark.
  *
  * Note the customerIds - c1..c4, the seeded format. Login issues `c-<phone>`,
- * so these never match and her order history comes back empty. Rewriting them
+ * so these never match and the buyer's order history comes back empty. Rewriting them
  * is half the point of the backfill.
  */
 function order(over: Partial<Order>): Order {

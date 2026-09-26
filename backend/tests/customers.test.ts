@@ -48,7 +48,7 @@ test('creates a customer on first use and returns the same one after', () => {
   assert.equal(second.name, 'प्रिया देशमुख')
 })
 
-test('the first address a customer adds becomes her default', () => {
+test('the first address a customer adds becomes their default', () => {
   const db = emptyDb()
   ensureCustomer(db, PRIYA, '9011223344')
 
@@ -108,10 +108,10 @@ test('a customer cannot read another customer\'s addresses', () => {
 
 test('a customer cannot edit another customer\'s address', () => {
   const db = dbWithBoth()
-  const hers = addAddress(db, ANITA, { line: 'अनिताचा पत्ता', pincode: '413601' })!
+  const theirs = addAddress(db, ANITA, { line: 'अनिताचा पत्ता', pincode: '413601' })!
 
   // Priya guesses Anita's address id and tries to overwrite it.
-  const result = updateAddress(db, PRIYA, hers.id, { line: 'बदललेला पत्ता' })
+  const result = updateAddress(db, PRIYA, theirs.id, { line: 'बदललेला पत्ता' })
 
   assert.equal(result, null)
   assert.equal(findCustomer(db, ANITA)!.addresses[0]!.line, 'अनिताचा पत्ता')
@@ -119,9 +119,9 @@ test('a customer cannot edit another customer\'s address', () => {
 
 test('a customer cannot delete another customer\'s address', () => {
   const db = dbWithBoth()
-  const hers = addAddress(db, ANITA, { line: 'अनिताचा पत्ता', pincode: '413601' })!
+  const theirs = addAddress(db, ANITA, { line: 'अनिताचा पत्ता', pincode: '413601' })!
 
-  assert.equal(deleteAddress(db, PRIYA, hers.id), false)
+  assert.equal(deleteAddress(db, PRIYA, theirs.id), false)
   assert.equal(findCustomer(db, ANITA)!.addresses.length, 1)
 })
 
@@ -158,7 +158,7 @@ function orderFrom(over: Partial<Order> = {}): Order {
   } as Order
 }
 
-test('a first order creates the customer and saves the address she used', () => {
+test('a first order creates the customer and saves the address they used', () => {
   const db = emptyDb()
 
   recordOrderCustomer(db, orderFrom())
@@ -206,6 +206,6 @@ test('the ग्राहक placeholder never overwrites a real stored name', (
   assert.equal(
     findCustomer(db, PRIYA)!.name,
     'प्रिया देशमुख',
-    'one anonymous order must not erase the name she gave us',
+    'one anonymous order must not erase the name they gave us',
   )
 })

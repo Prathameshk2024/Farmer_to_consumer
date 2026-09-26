@@ -8,7 +8,7 @@ import {
 /**
  * Every list in the console can be reordered: newest or oldest, by name, and
  * by whichever number "highest" means on that list. These hold the orderings
- * an admin will actually rely on - the woman who
+ * an admin will actually rely on - the farmer who
  * has earned most at the top - and the two ways sorting quietly goes wrong:
  * mixed-script names, and reordering the fetched array in place.
  */

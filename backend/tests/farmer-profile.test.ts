@@ -5,12 +5,12 @@ import { defaultAbout, validateFarmerProfile } from '@shared/farmer.js'
 /**
  * A new farmer's shop page should not be blank.
  *
- * `about` is optional at registration, and most women skip it - it is the one
- * free-text field in a long form, on a phone, in Marathi. Left empty, her shop
+ * `about` is optional at registration, and most farmers skip it - it is the one
+ * free-text field in a long form, on a phone, in Marathi. Left empty, the shop
  * opens with a name and nothing else, which reads as an abandoned listing to
  * the first customer who finds it.
  *
- * So it is composed from what she already told us. She can replace it any time
+ * So it is composed from what the farmer already told us. They can replace it any time
  * from My Business; this only fills the gap.
  */
 
@@ -39,14 +39,14 @@ test('it is a sentence, not a template with holes in it', () => {
 })
 
 /* ------------------------------------------------------------------ */
-/* What she may change about herself                                   */
+/* What a farmer may change about themselves                           */
 /* ------------------------------------------------------------------ */
 
 /**
  * The allow-list on PATCH /farmers/me decides WHICH fields can move - status
- * and her farmer code are not on it. This decides whether the values are
+ * and farmer code are not on it. This decides whether the values are
  * usable, and it runs on the server because the form is not the rule: anything
- * holding her token can send a delivery fee of -500.
+ * holding their token can send a delivery fee of -500.
  */
 
 test('an edit that clears a required field is refused', () => {
@@ -54,8 +54,8 @@ test('an edit that clears a required field is refused', () => {
   assert.equal(validateFarmerProfile({ shopName: '' }).shopName, 'दुकानाचे नाव आवश्यक आहे')
 })
 
-/** Absent is not empty: she is editing her shop name, not deleting her UPI ID. */
-test('a field she did not send is not validated', () => {
+/** Absent is not empty: the farmer is editing the shop name, not deleting the UPI ID. */
+test('a field the farmer did not send is not validated', () => {
   assert.deepEqual(validateFarmerProfile({ shopName: 'अर्पिता गृह उद्योग' }), {})
 })
 
@@ -73,7 +73,7 @@ test('a UPI id that cannot be paid is refused', () => {
   assert.deepEqual(validateFarmerProfile({ upiId: 'sunita@ybl' }), {})
 })
 
-/** Her delivery pincodes are where orders come from. A typo is a lost order. */
+/** The farmer's delivery pincodes are where orders come from. A typo is a lost order. */
 test('every delivery pincode has to be a pincode', () => {
   assert.ok(validateFarmerProfile({ pincodes: ['413601', '41360'] }).pincodes)
   assert.deepEqual(validateFarmerProfile({ pincodes: ['413601', '413606'] }), {})

@@ -141,17 +141,17 @@ body {
   /* An app, not a document: a long press on a label or a button must not
      start a text selection with its drag handles and "Copy" bar — on a
      phone that is what a slow thumb produces, and it reads as the app
-     breaking. What she might need to copy (UPI ID, order number) has its
+     breaking. What they might need to copy (UPI ID, order number) has its
      own copy button. */
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
-/* Fields she types into must stay selectable, or she cannot fix a digit
-   in the middle of a UTR or paste a UPI ID she copied. */
+/* Fields they type into must stay selectable, or they cannot fix a digit
+   in the middle of a UTR or paste a UPI ID they copied. */
 /* So must the value beside a copy button: when the clipboard refuses
-   ("copy failed"), a long press on the UPI ID is her only way round it. */
+   ("copy failed"), a long press on the UPI ID is their only way round it. */
 input, textarea, [contenteditable="true"], .copyrow .num {
   -webkit-user-select: text;
   user-select: text;
@@ -169,7 +169,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 /* ...except a figure. `anywhere` also shrinks an element's minimum width to
    one character, so an amount beside a long label in a flex row was squeezed
    until "₹450" printed as "₹45" over "0" - a different number, on the screen
-   where she is told what to pay. The label beside it wraps instead. */
+   where they are told what to pay. The label beside it wraps instead. */
 .money, .hero-num { white-space: nowrap; overflow-wrap: normal; }
 
 :focus-visible {
@@ -192,7 +192,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   max-width: 520px;
   margin: 0 auto;
   /*
-   * dvh, not 100%. Chrome on Android hides its toolbar as she scrolls down and
+   * dvh, not 100%. Chrome on Android hides its toolbar as they scroll down and
    * the visible area grows, but a percentage height was resolved against the
    * viewport that existed at layout time - so the shell ended short and the
    * four tabs sat on a band of bare cream above the gesture bar. 100% stays
@@ -726,7 +726,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
    Built like the order rows in any shopping app: a mark that
    carries the state, the thing itself on the first line with
    the time opposite it, and the detail underneath in the
-   order she needs it - what it is, whose it is, where it got
+   order they need it - what it is, whose it is, where it got
    to, what it came to. The plain list tile put the state pill
    inside the title and the time in a run-on line of dots,
    which reads as one long string rather than four facts.
@@ -820,7 +820,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 }
 .pcard__add > * { flex: 1; }
 
-/* − 2 + : the count where the button was, so she can see what a tap did. */
+/* − 2 + : the count where the button was, so they can see what a tap did. */
 .qtybar {
   display: flex;
   align-items: center;
@@ -892,8 +892,8 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 }
 
 /**
- * A person, as her initials. One shape everywhere a farmer or a buyer appears,
- * so the same woman is recognisably the same woman on the profile, in a list
+ * A person, as their initials. One shape everywhere a farmer or a buyer appears,
+ * so the same person is recognisably the same person on the profile, in a list
  * and in the cart.
  *
  * Deliberately ONE colour rather than a palette hashed from the name: colour
@@ -953,7 +953,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
  * A value and the button that copies it.
  *
  * The button is a square at the touch floor and carries no word: labelled, it
- * was wider than the UPI ID it belonged to, and the ID is the thing she is
+ * was wider than the UPI ID it belonged to, and the ID is the thing they are
  * meant to read. Centred as a pair, because on the payment screen it sits
  * under a QR code.
  *
@@ -1130,7 +1130,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
  * were only ever seen by us - and they were the layouts we were looking at
  * while deciding whether the page was right. Matching .app-shell means the
  * first screen a farmer meets is the same shape as every screen after it, and
- * that what we check on a laptop is what she actually gets.
+ * that what we check on a laptop is what they actually get.
  */
 .landing {
   min-height: 100%;
@@ -1156,7 +1156,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .lnav__in { display: flex; align-items: center; gap: var(--s2); min-height: 60px; }
 .brand { display: flex; align-items: center; gap: var(--s2); min-width: 0; text-decoration: none; color: inherit; }
 .brand__mark {
-  /* Her portrait, already circular and already carrying its own gold ring, so
+  /* The logo, already circular and already carrying its own gold ring, so
      no background or border here - either would print a second ring. */
   width: 44px; height: 44px; flex: 0 0 auto;
   border-radius: 50%;
@@ -1416,7 +1416,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
   .empty__icon--spin svg { animation: none; }
 }
 
-/* The dictation hint under a field she is speaking into. */
+/* The dictation hint under a field they are speaking into. */
 .input-voice + .field__hint { color: var(--maroon); font-weight: 600; }
 
 /* ============================================================
@@ -1476,7 +1476,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
    Toasts - "that worked", said out loud
    ------------------------------------------------------------
    Above the bottom nav, never over it: the confirmation must
-   not cover the tab she is about to press next. Centred on the
+   not cover the tab they are about to press next. Centred on the
    app column rather than the window, so on a desk it sits with
    the phone frame instead of drifting to a corner.
    ============================================================ */
@@ -1548,7 +1548,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
   box-shadow: 0 0 0 2px var(--primary);
 }
 
-/* "New" beside an update she has not seen. A word, not only a colour. */
+/* "New" beside an update they have not seen. A word, not only a colour. */
 .newdot {
   display: inline-block;
   margin-inline-start: 6px;
@@ -1565,7 +1565,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
    Language row
    ------------------------------------------------------------
    Label left, the current language on the right, and the list
-   only when she opens it. Every language spelled out on the
+   only when they open it. Every language spelled out on the
    page permanently was a third of a card spent on a setting
    most people change once.
    ============================================================ */

@@ -20,12 +20,12 @@ const STATUSES: OrderStatus[] = [
 
 /**
  * Order monitoring. Read-only, and deliberately so: advancing an order is the
- * farmer's action, and an admin doing it for her would put the order into a
- * state she never agreed to.
+ * farmer's action, and an admin doing it for them would put the order into a
+ * state the farmer never agreed to.
  *
  * THE BUYER IS MASKED IN THIS LIST. An admin chasing a late delivery needs to
- * know which order and which farmer; she does not need a screenful of women's
- * names, phone numbers and home addresses while she scrolls. The full details
+ * know which order and which farmer; the admin does not need a screenful of buyers'
+ * names, phone numbers and home addresses while scrolling. The full details
  * are one click away inside an order, where looking is a deliberate act.
  */
 export function Orders() {

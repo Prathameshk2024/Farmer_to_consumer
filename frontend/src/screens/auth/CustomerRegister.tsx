@@ -13,8 +13,8 @@ import { AppBar, Button, Field, Notice, TextInput, VoiceInput } from '../../comp
  * CUSTOMER REGISTRATION - one screen
  * ==================================
  * Name, phone, password and the password again. The name is not decoration:
- * it is what the farmer reads on the order and what she is called when
- * someone phones her about a delivery - "ग्राहक" on every order tells that
+ * it is what the farmer reads on the order and what they are called when
+ * someone phones them about a delivery - "ग्राहक" on every order tells that
  * farmer nothing.
  */
 export default function CustomerRegister() {

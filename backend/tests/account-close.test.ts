@@ -19,7 +19,7 @@ import { cleanFdri } from '@shared/fdri.js'
  * and - more importantly - what it must refuse to do. Three failures would
  * each be worse than not shipping the feature at all:
  *
- *   1. A woman loses her shop to a stray tap.
+ *   1. A farmer loses their shop to a stray tap.
  *   2. A buyer is left waiting on an order whose farmer has vanished.
  *   3. A deletion runs and a phone number survives it.
  *
@@ -33,7 +33,7 @@ function farmer(over: Partial<Farmer> = {}): Farmer {
     id: 's1',
     farmerCode: 'F2C-ANADUR-001',
     name: 'सुनीता पाटील',
-    photo: 'https://res.cloudinary.com/x/image/upload/v1/smb/farmer/her.jpg',
+    photo: 'https://res.cloudinary.com/x/image/upload/v1/f2c/farmer/photo.jpg',
     phone: '9822011223',
     whatsapp: '9822011223',
     ageGroup: '36-50',
@@ -56,8 +56,8 @@ function farmer(over: Partial<Farmer> = {}): Farmer {
     about: 'घरचे लोणचे',
     upiId: '9822011223@ybl',
     upiVerified: true,
-    upiQrUrl: 'https://res.cloudinary.com/x/image/upload/v1/smb/qr/her.jpg',
-    upiQrPublicId: 'smb/qr/her',
+    upiQrUrl: 'https://res.cloudinary.com/x/image/upload/v1/f2c/qr/farmer.jpg',
+    upiQrPublicId: 'f2c/qr/farmer',
     upiQrReady: true,
     fdri: cleanFdri({ smartphone: true, internet: true, whatsapp: true, digitalPayment: true }),
     fdriScore: 4,
@@ -90,9 +90,9 @@ function dbWith(s: Farmer): Db {
 /* 1. A stray tap must not be enough                                   */
 /* ------------------------------------------------------------------ */
 
-test('the last four digits of her own number are what confirm it', () => {
+test('the last four digits of their own number are what confirm it', () => {
   assert.equal(confirmProblem('9822011223', '1223'), null)
-  assert.equal(confirmProblem('98220 11223', '1223'), null, 'a stored space is not her mistake')
+  assert.equal(confirmProblem('98220 11223', '1223'), null, 'a stored space is not their mistake')
 
   assert.ok(confirmProblem('9822011223', ''), 'an empty box is refused')
   assert.ok(confirmProblem('9822011223', '122'), 'three digits are refused')
@@ -108,7 +108,7 @@ test('a reason is required, and only "other" needs words', () => {
   assert.equal(closeReasonProblem('other', 'दुकान बंद केले'), null)
 })
 
-test('asking closes the shop today and erases her in seven days', () => {
+test('asking closes the shop today and erases them in seven days', () => {
   const now = Date.parse('2026-09-25T10:00:00.000Z')
   const s = farmer()
   const db = dbWith(s)
@@ -116,8 +116,8 @@ test('asking closes the shop today and erases her in seven days', () => {
   requestFarmerClose(db, s, { reason: 'not_selling' }, now)
 
   assert.equal(s.status, 'CLOSED')
-  assert.equal(canSellNow(s), false, 'her shop leaves the catalogue at once')
-  assert.equal(s.phone, '9822011223', 'but she is still here, for a week')
+  assert.equal(canSellNow(s), false, 'the shop leaves the catalogue at once')
+  assert.equal(s.phone, '9822011223', 'but the farmer is still here, for a week')
   assert.equal(daysUntilScrub(s.closingAt!, now), UNDO_DAYS)
   assert.equal(sweepClosedAccounts(db, now + 6 * DAY, () => true), 0, 'nothing on day six')
 })
@@ -135,9 +135,9 @@ test('signing in inside the week puts everything back', () => {
   assert.equal(canSellNow(s), true, 'the shop is exactly as it was')
   // canSellNow does not read the open/closed switch, but the catalogue does.
   // Closing used to flip it off and restoring never flipped it back, so a
-  // woman who came back found her shop still missing from every buyer's list.
-  assert.equal(s.isOpen, true, 'her open/closed switch is untouched')
-  assert.equal(sweepClosedAccounts(db, now + 30 * DAY, () => true), 0, 'and the sweep forgets her')
+  // farmer who came back found the shop still missing from every buyer's list.
+  assert.equal(s.isOpen, true, 'the open/closed switch is untouched')
+  assert.equal(sweepClosedAccounts(db, now + 30 * DAY, () => true), 0, 'and the sweep forgets them')
 })
 
 test('restoring never skips the verification', () => {
@@ -173,7 +173,7 @@ test('delivered, rejected and cancelled orders are nobody\'s business any more',
 /* 3. Nothing personal survives the erasing                            */
 /* ------------------------------------------------------------------ */
 
-test('the sweep empties her on the seventh day, and only then', () => {
+test('the sweep empties the record on the seventh day, and only then', () => {
   const now = Date.parse('2026-09-25T10:00:00.000Z')
   const s = farmer()
   const db = dbWith(s)
@@ -183,7 +183,7 @@ test('the sweep empties her on the seventh day, and only then', () => {
   assert.ok(s.closedAt, 'and the row says when it emptied')
 })
 
-test('every field that is HER is gone', () => {
+test('every field that is THE PERSON is gone', () => {
   const s = farmer()
   const db = dbWith(s)
   scrubFarmer(db, s, Date.now(), () => true)
@@ -196,10 +196,10 @@ test('every field that is HER is gone', () => {
       (field === 'fdri' && Object.values(left as object).every((v) => v === false))
     assert.ok(emptied, `${field} survived the deletion: ${JSON.stringify(left)}`)
   }
-  assert.equal(s.fdriScore, 0, 'a score is her answers, summed')
+  assert.equal(s.fdriScore, 0, 'a score is their answers, summed')
 })
 
-test('no session outlives the erasing, and none keeps her number', () => {
+test('no session outlives the erasing, and none keeps their number', () => {
   const s = farmer()
   const db = dbWith(s)
   const now = Date.now()
@@ -208,7 +208,7 @@ test('no session outlives the erasing, and none keeps her number', () => {
     createdAt: '', lastSeenAt: new Date(now).toISOString(),
     expiresAt: new Date(now + 90 * DAY).toISOString(), revokedAt,
   })
-  // One revoked when she asked; one from signing in during the week to look
+  // One revoked when they asked; one from signing in during the week to look
   // at the notice, never restored and never logged out of.
   db.sessions.push(session('asked', new Date(now - 7 * DAY).toISOString()), session('peeked'))
 
@@ -216,11 +216,11 @@ test('no session outlives the erasing, and none keeps her number', () => {
 
   for (const x of db.sessions) {
     assert.ok(x.revokedAt, `session ${x.id} still signs somebody in as an erased shop`)
-    assert.equal(x.phone ?? '', '', `session ${x.id} kept her phone number`)
+    assert.equal(x.phone ?? '', '', `session ${x.id} kept their phone number`)
   }
 })
 
-test('a closing buyer leaves no phone number on her sessions either', () => {
+test('a closing buyer leaves no phone number on their sessions either', () => {
   const db = emptyDb()
   db.sessions.push({
     id: 'b1', role: 'customer', userId: 'c-9876543210', customerId: 'c-9876543210',
@@ -234,7 +234,7 @@ test('a closing buyer leaves no phone number on her sessions either', () => {
   assert.equal(db.sessions[0].phone ?? '', '')
 })
 
-test('her password and her forgot-password requests go with the account', async () => {
+test('the password and forgot-password requests go with the account', async () => {
   const { setCredential } = await import('../src/auth/credentials.js')
   const { submitPasswordRequest } = await import('../src/auth/passwordRequests.js')
   const s = farmer()
@@ -250,28 +250,28 @@ test('her password and her forgot-password requests go with the account', async 
   assert.equal(db.passwordRequests.length, 0)
 })
 
-test('her phone number goes back into circulation', () => {
+test('the phone number goes back into circulation', () => {
   const s = farmer()
   const db = dbWith(s)
   scrubFarmer(db, s, Date.now(), () => true)
 
   // This is the check `POST /farmers/register` makes. If a blank phone did not
-  // free the number, a woman who closed her account could never come back.
+  // free the number, a farmer who closed their account could never come back.
   assert.equal(db.farmers.some((x) => x.phone === '9822011223'), false)
 })
 
-test('her bank QR is destroyed, not merely unlinked', () => {
+test('the bank QR is destroyed, not merely unlinked', () => {
   const s = farmer()
   const destroyed: (string | undefined)[] = []
   scrubFarmer(dbWith(s), s, Date.now(), (id) => destroyed.push(id))
-  assert.ok(destroyed.includes('smb/qr/her'))
+  assert.ok(destroyed.includes('f2c/qr/farmer'))
 })
 
 /* ------------------------------------------------------------------ */
 /* The buyer's side                                                    */
 /* ------------------------------------------------------------------ */
 
-test('closing a buyer account takes her off the orders she placed', () => {
+test('closing a buyer account takes them off the orders they placed', () => {
   const db = emptyDb()
   db.customers.push({
     id: 'c-9876543210', phone: '9876543210', name: 'आशा',
@@ -290,13 +290,13 @@ test('closing a buyer account takes her off the orders she placed', () => {
 
   closeCustomer(db, 'c-9876543210', '9876543210')
 
-  assert.equal(db.customers.length, 0, 'her record is gone')
+  assert.equal(db.customers.length, 0, 'their record is gone')
   const o = db.orders[0]!
   assert.equal(o.customerPhone, '')
   assert.equal(o.address, '')
   assert.equal(o.customerName, 'ग्राहक', 'the farmer keeps a sale, not a person')
   assert.equal(o.total, 220, 'and the sale itself is untouched')
   assert.equal(o.pincode, '413601', 'the village stays - it is a delivery area, not a doorstep')
-  assert.equal(db.reviews[0]!.customerName, 'ग्राहक', 'her name leaves her reviews too')
+  assert.equal(db.reviews[0]!.customerName, 'ग्राहक', 'their name leaves their reviews too')
   assert.equal(db.reviews[0]!.rating, 5, 'the stars stay: they are about the product')
 })

@@ -116,7 +116,7 @@ test('the window reopens, so a mistyped password is not a permanent lockout', ()
 test('one subject being blocked does not block anybody else', () => {
   // Per-phone and per-IP keys are separate on purpose: a whole village behind
   // one carrier NAT must not be locked out by one bad actor, and one attacker
-  // must not be able to lock a specific woman out of her own account.
+  // must not be able to lock a specific person out of their own account.
   const limit = LIMITS.loginPerPhone
   for (let i = 0; i <= limit.max; i++) hit('login:phone:9822011223', limit)
 
@@ -133,9 +133,9 @@ test('a number gets three forgot-password requests a day, and the fourth is refu
 
   const fourth = hit('reset:phone:9764455662', limit, now)
   assert.equal(fourth.ok, false)
-  assert.ok(fourth.retryAfterSec > 20 * 60 * 60, 'she is told to come back tomorrow, not in a minute')
+  assert.ok(fourth.retryAfterSec > 20 * 60 * 60, 'they are told to come back tomorrow, not in a minute')
 
-  // And tomorrow she can, because a quota is not a ban.
+  // And tomorrow they can, because a quota is not a ban.
   assert.equal(hit('reset:phone:9764455662', limit, now + limit.windowMs + 1).ok, true)
 })
 

@@ -12,7 +12,7 @@ import { cancelOrder } from '../src/db/orderCancel.js'
  *
  * The buyer may back out while nothing has happened yet - before the farmer
  * accepts, when no money has moved and nothing is cooking. The farmer may call
- * it off at any step after she accepts, up to the doorstep. Both have to say
+ * it off at any step after they accept, up to the doorstep. Both have to say
  * why, and the why is kept on the order for the other side to read.
  */
 
@@ -35,7 +35,7 @@ test('the buyer can back out only before the farmer has accepted', () => {
 })
 
 /**
- * Before acceptance she has Reject; after delivery the goods are in the
+ * Before acceptance the farmer has Reject; after delivery the goods are in the
  * buyer's hand and a button does not take them back.
  */
 test('the farmer can cancel at any step after accepting, up to the doorstep', () => {
@@ -53,7 +53,7 @@ test('a buyer who picks a listed reason is cancelled, and the code is kept', () 
 })
 
 /**
- * The code, not a sentence: the farmer reads the buyer's reason in her own
+ * The code, not a sentence: the farmer reads the buyer's reason in their own
  * language, whatever language the buyer had switched on.
  */
 test('the reason is stored as a code so each side reads it in their own language', () => {
@@ -63,7 +63,7 @@ test('the reason is stored as a code so each side reads it in their own language
   assert.equal(o.events.at(-1)?.note, undefined)
 })
 
-test('a buyer cannot cancel once the farmer has said yes, and is told to ring her', () => {
+test('a buyer cannot cancel once the farmer has said yes, and is told to ring them', () => {
   const o = order('ACCEPTED')
   const r = cancelOrder(o, 'customer', { reason: 'changed_mind' })
   assert.equal(r.ok, false)
@@ -115,9 +115,9 @@ test('the order screen can find who called it off and why', () => {
 })
 
 /**
- * The app refunds nobody, so after a farmer cancels, her screen has to say
- * whether money is sitting in her account that belongs to the buyer. A UTR the
- * buyer typed is a claim, not money - she is told to check, not told it came.
+ * The app refunds nobody, so after a farmer cancels, their screen has to say
+ * whether money is sitting in their account that belongs to the buyer. A UTR the
+ * buyer typed is a claim, not money - the farmer is told to check, not told it came.
  */
 test('what the farmer owes back follows what was reported about the payment', () => {
   const o = order('PACKED')

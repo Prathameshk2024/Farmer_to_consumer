@@ -11,7 +11,7 @@ import type { AuthEvent, AuthEventType } from './types.js'
  * The reason to keep it is not compliance theatre. It is that the first
  * question after any incident is "when did this start and how many accounts?",
  * and without a record the honest answer is "we cannot tell" - which, for a
- * platform holding rural women's phone numbers and buyers' home addresses, is
+ * platform holding farmers' phone numbers and buyers' home addresses, is
  * not an acceptable answer to give anybody.
  *
  * WHAT IS DELIBERATELY NOT STORED

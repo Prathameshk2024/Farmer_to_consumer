@@ -22,17 +22,17 @@ import {
 } from '../components/ui.js'
 
 /**
- * One woman's page.
+ * One farmer's page.
  *
  * The register answers "who is this"; everything here answers the questions
- * that come next - what she sells, what she has earned, what she was given and
+ * that come next - what the farmer sells, has earned, and was given and
  * by whom. Registration collects some forty fields and the row showed eight of
- * them, so an admin deciding whether to verify him was deciding on a name
+ * them, so an admin deciding whether to verify them was deciding on a name
  * and a village.
  *
- * READ-ONLY apart from verifying and blocking. Her name, her shop, her UPI
- * and her prices are hers to change in her own app; an admin editing them from
- * here would leave her looking at a shop she did not write.
+ * READ-ONLY apart from verifying and blocking. The name, shop, UPI
+ * and prices are the farmer's to change in their own app; an admin editing them
+ * from here would leave the farmer looking at a shop they did not write.
  */
 export function FarmerDetail() {
   const { farmerId } = useParams()
@@ -94,7 +94,7 @@ export function FarmerDetail() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Who she is                                                          */
+/* Who they are                                                        */
 /* ------------------------------------------------------------------ */
 
 function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
@@ -140,7 +140,7 @@ function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
             {farmer.whatsapp && <> · WhatsApp: <span className="mono">{farmer.whatsapp}</span></>}
           </div>
 
-          {/* Where her money goes. Copied rather than retyped: a UPI ID wrong
+          {/* Where the farmer's money goes. Copied rather than retyped: a UPI ID wrong
               by one character pays a stranger. */}
           {farmer.upiId && (
             <div className="small dim" style={{ marginTop: 4 }}>
@@ -167,7 +167,7 @@ function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
         </div>
       )}
 
-      {/* The one check a farmer gets. Once he is verified, what he lists goes
+      {/* The one check a farmer gets. Once verified, whatever the farmer lists goes
           on sale without anyone looking at each listing. */}
       {farmer.status === 'PENDING_VERIFICATION' && (
         <div style={{ marginTop: 12 }}>
@@ -195,7 +195,7 @@ function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
   )
 }
 
-/** Her own photo if she uploaded one, her initial if she did not. */
+/** The farmer's own photo if uploaded, their initial if not. */
 function Portrait({ name, photo }: { name: string; photo?: string }) {
   const box: React.CSSProperties = {
     width: 56, height: 56, flex: 'none', borderRadius: '50%',
@@ -239,7 +239,7 @@ function Tile({ n, label }: { n: number | string; label: string }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* What she makes, and how she sells it                                 */
+/* What they make, and how they sell it                                */
 /* ------------------------------------------------------------------ */
 
 type Opt = { value: string; mr: string; en: string }
@@ -285,7 +285,7 @@ function Business({ detail }: { detail: Detail }) {
         </Row>
       </dl>
 
-      {/* Her own words about her shop, as customers read them. */}
+      {/* The farmer's own words about the shop, as customers read them. */}
       {farmer.about && (
         <p className="small dim" style={{ marginBottom: 0 }}>{farmer.about}</p>
       )}
@@ -316,8 +316,8 @@ function ShopSettings({ detail }: { detail: Detail }) {
           {farmer.minOrder > 0 ? rupees(farmer.minOrder) : t('c.none')}
         </Row>
         <Row label={t('sd.dispatch')}>{farmer.dispatch}</Row>
-        {/* The pincodes she delivers to. An order outside them is refused by
-            the API, so this is the answer to "why can she not see my area". */}
+        {/* The pincodes the farmer delivers to. An order outside them is refused by
+            the API, so this is the answer to "why can the farmer not see my area". */}
         <Row label={t('sd.serves')}>
           <span className="mono">{farmer.pincodes.join(', ') || '—'}</span>
         </Row>
@@ -370,14 +370,14 @@ function Check({ on, children }: { on: boolean; children: ReactNode }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* What has been done to her account                                    */
+/* What has been done to the account                                   */
 /* ------------------------------------------------------------------ */
 
 /**
  * Verification, blocks and take-downs, newest first.
  *
  * A verification only changes a status, so without this list "who verified
- * him, and when" cannot be answered after the fact - which is exactly the
+ * them, and when" cannot be answered after the fact - which is exactly the
  * question asked when something looks wrong.
  */
 function Decisions({ notices }: { notices: AdminNotice[] }) {
@@ -410,7 +410,7 @@ function Decisions({ notices }: { notices: AdminNotice[] }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Her listings and her orders                                          */
+/* The listings and the orders                                         */
 /* ------------------------------------------------------------------ */
 
 function Listings({ detail, onDone }: { detail: Detail; onDone: () => void }) {
@@ -436,7 +436,7 @@ function Listings({ detail, onDone }: { detail: Detail; onDone: () => void }) {
 /**
  * THE BUYER IS MASKED HERE TOO.
  *
- * Reading a farmer's page is not a reason to be handed a list of women's names
+ * Reading a farmer's page is not a reason to be handed a list of buyers' names
  * and phone numbers. The unmasked details stay where they were - inside one
  * order on the orders screen, where looking is a deliberate act.
  */
@@ -495,9 +495,9 @@ function Orders({ detail }: { detail: Detail }) {
 }
 
 /**
- * What her buyers said, hidden reviews included and marked. Before deciding
- * anything about her account, an admin should read this: a run of low ratings
- * is a reason to call her, and a reason nobody would otherwise see.
+ * What the farmer's buyers said, hidden reviews included and marked. Before deciding
+ * anything about the account, an admin should read this: a run of low ratings
+ * is a reason to call them, and a reason nobody would otherwise see.
  */
 function Feedback({ detail, onDone }: { detail: Detail; onDone: () => void }) {
   const t = useT()

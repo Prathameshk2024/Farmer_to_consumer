@@ -5,14 +5,14 @@ import type { Address } from '@shared/types.js'
 import type { AddressInput } from '../lib/api.js'
 
 /**
- * Where she types a delivery address.
+ * Where they type a delivery address.
  *
  * Until now the app had no such form at all: checkout showed two seeded
  * addresses that belonged to nobody, and there was no way to add your own. So
  * this is the screen that makes a saved address possible.
  *
  * Voice input on the address line and landmark is not decoration. Typing a
- * Marathi address on a phone keyboard is the slowest thing we ask of her, and
+ * Marathi address on a phone keyboard is the slowest thing we ask of them, and
  * it is the last step before an order - the worst place to lose someone.
  *
  * Only the line and the pincode are required. A label defaults to घर, and a

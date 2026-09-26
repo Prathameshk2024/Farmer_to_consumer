@@ -46,7 +46,7 @@ export const authRouter: Router = Router()
  */
 function retryInMr(sec: number): string {
   // Marathi inflects for number, so one of anything takes a different ending.
-  // "1 दिवसांनी" is the kind of wrong that tells a woman this was not written
+  // "1 दिवसांनी" is the kind of wrong that tells a farmer this was not written
   // for the farmer, on the one screen where they are already being told no.
   const say = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
@@ -112,7 +112,7 @@ authRouter.post('/login', (req, res) => {
     return
   }
   // A right password clears the budget, so two typos and a success do not
-  // leave her one slip from a lockout.
+  // leave them one slip from a lockout.
   clearLimit(`login:phone:${phone}`)
 
   const session = createSession(db, {
@@ -136,7 +136,7 @@ authRouter.post('/login', (req, res) => {
 })
 
 /* ------------------------------------------------------------------ */
-/* Change her own password                                             */
+/* Change your own password                                            */
 /* ------------------------------------------------------------------ */
 
 /** Also the way out of must-change: the middleware lets this route through. */
@@ -177,7 +177,7 @@ authRouter.post('/password-requests', (req, res) => {
  * Log out, properly.
  *
  * This route did not exist. "Log out" cleared localStorage and nothing else,
- * so the token stayed valid for its whole window - which meant a woman who
+ * so the token stayed valid for its whole window - which meant a person who
  * signed out on a borrowed phone had not actually signed out of anything.
  *
  * Idempotent and always 200: a client tidying up after an expired session must
@@ -201,7 +201,7 @@ authRouter.post('/logout', (req: Request, res: Response) => {
 })
 
 /* ------------------------------------------------------------------ */
-/* Her own signed-in devices                                           */
+/* Your own signed-in devices                                          */
 /* ------------------------------------------------------------------ */
 
 /** What "you are signed in on three phones" needs, and nothing about anyone else. */

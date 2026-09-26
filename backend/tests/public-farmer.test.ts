@@ -8,10 +8,10 @@ import { cleanFdri } from '@shared/fdri.js'
 /**
  * WHAT A STRANGER MAY LEARN ABOUT A FARMER.
  *
- * The product page used to send her entire record to anyone holding a product
- * id - phone, admin notices, the reason she was blocked, her answers to the
+ * The product page used to send the farmer's entire record to anyone holding a product
+ * id - phone, admin notices, the reason they were blocked, their answers to the
  * questionnaire - while the comment on the orders route promised
- * her number was on no public endpoint. The public card is an allow-list now,
+ * their number was on no public endpoint. The public card is an allow-list now,
  * and this file is the list.
  */
 
@@ -48,10 +48,10 @@ test('the public card carries exactly the allow-listed fields', () => {
 })
 
 /**
- * Her questionnaire answers are research data, not a shop window: a buyer
- * has no business knowing her age group, her land or how she scored.
+ * The farmer's questionnaire answers are research data, not a shop window: a buyer
+ * has no business knowing their age group, their land or how they scored.
  */
-test('the questionnaire and her phone stay off the card', () => {
+test('the questionnaire and the phone stay off the card', () => {
   const card = publicFarmer(farmer(), NO_RATING) as unknown as Record<string, unknown>
   for (const key of ['phone', 'fdri', 'fdriScore', 'fdriBand', 'ageGroup', 'education', 'landholding', 'locationConsent']) {
     assert.equal(key in card, false, key)
@@ -86,7 +86,7 @@ test('no consent, no point on the card', () => {
   assert.equal('lng' in card, false)
 })
 
-test('her phone, admin notices and block reason never reach the public', () => {
+test('the phone, admin notices and block reason never reach the public', () => {
   const card = JSON.stringify(publicFarmer(farmer(), NO_RATING))
   for (const secret of ['9822011223', 'private', 'old reason', 'जिजाऊ', 'qr/1']) {
     assert.equal(card.includes(secret), false, secret)
@@ -94,10 +94,10 @@ test('her phone, admin notices and block reason never reach the public', () => {
 })
 
 /**
- * Her rating is what her products earned, passed in - never the numbers
- * stored on her record (4.9 from 99 here), which nothing keeps up to date.
+ * The rating is what the farmer's products earned, passed in - never the numbers
+ * stored on their record (4.9 from 99 here), which nothing keeps up to date.
  */
-test('the rating on the card is her products\' ratings, not the stored fields', () => {
+test('the rating on the card is the products\' ratings, not the stored fields', () => {
   const card = publicFarmer(farmer(), { average: 3.5, count: 2, byStars: [0, 0, 1, 1, 0] })
   assert.equal(card.rating, 3.5)
   assert.equal(card.ratingCount, 2)

@@ -25,11 +25,11 @@ export function shortDate(iso: string | undefined): string {
 }
 
 /**
- * WHAT CHANGED SINCE SHE LAST LOOKED
+ * WHAT CHANGED SINCE THEY LAST LOOKED
  * ==================================
  * A customer places an order and then hears nothing. The farmer accepts it,
  * packs it, sets off with it - four real events, none of which reached the
- * person waiting at home. Her only option was to open the order and read the
+ * person waiting at home. Their only option was to open the order and read the
  * timeline, which means knowing to look.
  *
  * DERIVED, NOT STORED. Every one of these events is already on the order as an
@@ -48,8 +48,8 @@ export interface Notice {
   /** Key into the dictionary, so the line is written once, in both languages. */
   labelKey: string
   /**
-   * What the row is called. An order names what is IN it - a woman recognises
-   * her pickle order, not F2C5013 - and an admin decision has no product, so
+   * What the row is called. An order names what is IN it - a buyer recognises
+   * their pickle order, not F2C5013 - and an admin decision has no product, so
    * it has none of this and prints its sentence instead.
    */
   title?: string
@@ -57,15 +57,15 @@ export interface Notice {
    * Where the order stands NOW - the order's own status, not the last event
    * the other side caused. On the farmer's side those are rarely the same
    * thing: the only states a customer causes are PLACED and CANCELLED, so a
-   * tag drawn from her buyer's last action said "new order" on every row
-   * forever, including ones she had packed and delivered herself.
+   * tag drawn from their buyer's last action said "new order" on every row
+   * forever, including ones they had packed and delivered themselves.
    */
   status?: OrderStatus
   /** So the tag reads "ready for pickup" rather than "packed" on a pickup order. */
   fulfilment?: Fulfilment
   /**
    * Who it concerns, when we know. A FARMER's order list carries
-   * `customerName`; a customer's carries only `farmerId`, so on her side this
+   * `customerName`; a customer's carries only `farmerId`, so on their side this
    * is empty and the line names the order instead. Fetching each farmer to
    * fill it would be one request per order for a subtitle.
    */
@@ -79,11 +79,11 @@ export interface Notice {
   /**
    * WHY an admin decided what they decided, in their own words. Printed under
    * its own label, because "dustbin - Invalid" reads as a product with a
-   * strange name, while "कारण: Invalid" reads as the answer to her question.
+   * strange name, while "कारण: Invalid" reads as the answer to their question.
    */
   reason?: string
   /**
-   * A state of her shop rather than something that happened at a moment: it
+   * A state of their shop rather than something that happened at a moment: it
    * stays on the list however old it is, because it is still true. Only the
    * paused shop qualifies today - see `visibleFeed`.
    */
@@ -94,7 +94,7 @@ export interface Notice {
  * A whole sentence, addressed to whoever is reading it.
  *
  * The list used to print the state machine's own label - "Packed", "Accepted"
- * - which is what the ORDER is, not what happened to HER. A woman waiting at
+ * - which is what the ORDER is, not what happened to THEM. A buyer waiting at
  * home reads "Accepted" and has to work out who accepted what. The farmer's
  * side gets its own wording for the same reason: "Order placed" is a fact
  * about a row, "You have a new order" is a thing to go and do.
@@ -134,18 +134,18 @@ export function noticeLabelKey(status: OrderStatus, role: Role, fulfilment?: Ful
  *
  * An order that is accepted, packed, sent out and delivered produced four
  * rows, identical apart from the verb, stacked on top of each other with the
- * same total repeated four times. A woman opening this wants to know where
- * her pickle order is - one answer - not to read its history as four separate
+ * same total repeated four times. A buyer opening this wants to know where
+ * their pickle order is - one answer - not to read its history as four separate
  * announcements. So the row is the ORDER, it is named after what is in it,
  * and the state moves into a tag that changes as the order walks.
  *
- * The other side's actions only. A farmer does not need telling that she
- * accepted an order two seconds ago, and a customer does not need telling she
+ * The other side's actions only. A farmer does not need telling that they
+ * accepted an order two seconds ago, and a customer does not need telling they
  * placed one. Filtering by `by` is what keeps the list to things that happened
- * WHILE SHE WAS NOT LOOKING.
+ * WHILE THEY WERE NOT LOOKING.
  *
  * Timestamped by the LATEST such event, which is what the bell's count reads:
- * an order that moves again after she looked counts once, not once per step.
+ * an order that moves again after they looked counts once, not once per step.
  *
  * The TAG, though, is the order's own status rather than that event - see
  * `Notice.status`. What the row is for is "where is this order now".
@@ -189,17 +189,17 @@ export function buildFeed(orders: Order[], role: Role): Notice[] {
  * THIS IS THE NEWS, NOT THE ARCHIVE.
  *
  * The feed kept everything for ever, so in the third week of September a
- * farmer opened it and read about the 8th - orders she had packed, delivered
+ * farmer opened it and read about the 8th - orders they had packed, delivered
  * and been paid for. Old rows pushed today's news off the screen, and a list
  * where nothing ever leaves teaches you that nothing in it is urgent.
  *
- * So a row she has already seen lives a week, and one she has NOT lives a
- * month - a woman who was away at a wedding still finds what she missed, and
- * what she has read stops repeating her orders screen.
+ * So a row they have already seen lives a week, and one they have NOT lives a
+ * month - a farmer who was away at a wedding still finds what they missed, and
+ * what they have read stops repeating their orders screen.
  *
  * A STANDING row is exempt from both. "Your shop is paused" is not an event
- * that happened on a Tuesday; it is what is true about her shop right now,
- * and it belongs on the list until she renews.
+ * that happened on a Tuesday; it is what is true about their shop right now,
+ * and it belongs on the list until they renew.
  */
 export const FEED_DAYS = 7
 export const UNREAD_DAYS = 30
@@ -213,7 +213,7 @@ export function visibleFeed(feed: Notice[], seen: string, now = Date.now()): Not
 }
 
 /**
- * Two groups, because after she opens the list every row looks equally old.
+ * Two groups, because after they open the list every row looks equally old.
  * `seen` is the mark from BEFORE this visit - taking it after the screen has
  * marked everything read would put every row in "earlier".
  */
@@ -239,7 +239,7 @@ export function daysAgo(iso: string, now = Date.now()): number {
 }
 
 /**
- * When it happened, in the words she would use.
+ * When it happened, in the words they would use.
  *
  * "8/9/2026 11:01 pm" is a thing to decode; "काल" is a thing to know. Past a
  * week the count stops being readable in its turn - "23 दिवसांपूर्वी" is
@@ -259,14 +259,14 @@ export function whenKey(iso: string, now = Date.now()): {
 }
 
 /* ------------------------------------------------------------------ */
-/* What she has already seen                                           */
+/* What they have already seen                                           */
 /* ------------------------------------------------------------------ */
 
 /**
  * A timestamp in localStorage, per account.
  *
- * Per account because a shared family phone is normal here: her daughter
- * signing in must not clear the badge her mother has not looked at yet.
+ * Per account because a shared family phone is normal here: their child
+ * signing in must not clear the badge their parent has not looked at yet.
  *
  * A timestamp rather than a set of ids because it cannot grow, and because
  * "everything before this moment is read" is exactly what pressing the bell
@@ -294,21 +294,21 @@ export function markSeen(userId: string, at = new Date().toISOString()): void {
 
 export function unreadCount(feed: Notice[], userId: string, now = Date.now()): number {
   const seen = lastSeen(userId)
-  // Counted over the same rows the list will show her, or the badge promises
-  // news the screen has already forgotten. No stored mark means she has never
+  // Counted over the same rows the list will show them, or the badge promises
+  // news the screen has already forgotten. No stored mark means they have never
   // opened the list, and everything inside the window is new.
   return visibleFeed(feed, seen, now).filter((n) => n.at > seen).length
 }
 
 /* ------------------------------------------------------------------ */
-/* What an admin did to her account                                    */
+/* What an admin did to their account                                    */
 /* ------------------------------------------------------------------ */
 
 /**
- * The other half of "what happened while she was not looking".
+ * The other half of "what happened while they were not looking".
  *
  * A farmer verified by hand deserves to be told rather than to check. These come off
- * her own farmer record (`farmer.notices`), written by the admin handler that
+ * their own farmer record (`farmer.notices`), written by the admin handler that
  * made the change, so this needs no new endpoint: `api.me()` already carries
  * them. The path each kind opens is `ADMIN_NOTICE_PATH` above.
  */
@@ -328,7 +328,7 @@ export function adminFeed(farmer: Farmer | null | undefined): Notice[] {
   })
 }
 
-/** Both halves, newest first. The list she reads does not care where a line came from. */
+/** Both halves, newest first. The list they read does not care where a line came from. */
 export function mergeFeeds(...feeds: Notice[][]): Notice[] {
   return feeds.flat().sort((a, b) => b.at.localeCompare(a.at))
 }

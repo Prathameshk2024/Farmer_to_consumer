@@ -58,7 +58,7 @@ function Require({ role, children }: { role: Role; children: ReactNode }) {
   const { session } = useAuth()
   if (!session) return <Navigate to="/" replace />
   if (session.role !== role) return <Navigate to={homeFor(session.role)} replace />
-  // An admin reset: the server answers 403 to everything else until she
+  // An admin reset: the server answers 403 to everything else until they
   // chooses a new password, so the app goes straight there.
   if (session.mustChangePassword) return <Navigate to="/password" replace />
   return <>{children}</>
@@ -74,29 +74,29 @@ function RequireSignedIn({ children }: { children: ReactNode }) {
 }
 
 /**
- * A NEW SCREEN STARTS AT THE TOP. THE ONE SHE COMES BACK TO DOES NOT.
+ * A NEW SCREEN STARTS AT THE TOP. THE ONE THEY COME BACK TO DOES NOT.
  *
  * This began as `scrollTo(0, 0)` on every route change, which fixed the
  * forward case - a product page opening halfway down because the catalogue
- * was - and broke the backward one: she scrolled a long way down, opened the
- * tenth product, pressed back, and the list had forgotten her.
+ * was - and broke the backward one: they scrolled a long way down, opened the
+ * tenth product, pressed back, and the list had forgotten them.
  *
  * So the position is saved per history entry and restored on POP only.
  *
  * The waiting matters as much as the restore. Every screen fetches its own
- * data, so at the moment she comes back the list is one spinner tall and the
+ * data, so at the moment they come back the list is one spinner tall and the
  * browser clamps any scroll past that height. `makeRestorer` therefore keeps
  * asking while the page is too short - through the fetch, and through the
  * product photographs that change the height again as they load - instead of
  * trying a few times and giving up at the top of the catalogue.
  *
- * It stops the instant SHE scrolls. A page that yanks itself out from under a
+ * It stops the instant THEY scroll. A page that yanks itself out from under a
  * reader is worse than one that starts at the top.
  */
 function ScrollMemory() {
   const { key } = useLocation()
   const navigationType = useNavigationType()
-  /** While the restore is walking the page, its steps are not her reading. */
+  /** While the restore is walking the page, its steps are not their reading. */
   const restoring = useRef(false)
 
   useEffect(() => {
@@ -108,7 +108,7 @@ function ScrollMemory() {
   useEffect(() => {
     const onScroll = () => {
       // Saving mid-restore would write the clamped position of a page that is
-      // still a spinner - 0 - over the place she actually left off.
+      // still a spinner - 0 - over the place they actually left off.
       if (!restoring.current) rememberScroll(key, window.scrollY)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -120,9 +120,9 @@ function ScrollMemory() {
      * final. It is the one moment it is certainly WRONG: React has already
      * swapped the tall catalogue for a short product page by the time an
      * effect cleanup runs, the document is one screen high again, and the
-     * browser has clamped the scroll to 0. So leaving overwrote "she was at
-     * 1074" with "she was at the top", and Back then restored the top
-     * faithfully. Every scroll she actually makes is recorded above, which is
+     * browser has clamped the scroll to 0. So leaving overwrote "they were at
+     * 1074" with "they were at the top", and Back then restored the top
+     * faithfully. Every scroll they actually make is recorded above, which is
      * all this needs.
      */
     return () => window.removeEventListener('scroll', onScroll)
@@ -133,11 +133,11 @@ function ScrollMemory() {
    *
    * A layout effect, because an ordinary one runs after the browser has drawn
    * the frame - so Back showed the screen at the top for one frame and then
-   * jumped down to her place. That blink is not the restore being slow; it is
-   * the restore being one frame late. Screens she returns to render their last
+   * jumped down to their place. That blink is not the restore being slow; it is
+   * the restore being one frame late. Screens they return to render their last
    * answer immediately (`useAsync`'s cacheKey), so by the time this runs the
-   * list is already its full height and the first frame she sees is the one
-   * she left.
+   * list is already its full height and the first frame they see is the one
+   * they left.
    */
   useLayoutEffect(() => {
     const target = navigationType === 'POP' ? recallScroll(key) : 0
@@ -155,11 +155,11 @@ function ScrollMemory() {
       clearInterval(timer)
       clearTimeout(deadline)
       for (const ev of HER_SCROLL) window.removeEventListener(ev, stop)
-      // Deliberately saves nothing: this also runs as the cleanup when she
+      // Deliberately saves nothing: this also runs as the cleanup when they
       // navigates away, where the scroll has already been clamped to 0 by the
-      // shorter screen. What she is looking at is either the position we were
-      // restoring, which is already in the map, or whatever she scrolled to
-      // herself, which the scroll listener recorded.
+      // shorter screen. What they are looking at is either the position we were
+      // restoring, which is already in the map, or whatever they scrolled to
+      // themselves, which the scroll listener recorded.
     }
 
     const timer = setInterval(() => {
@@ -176,7 +176,7 @@ function ScrollMemory() {
   return null
 }
 
-/** Her own hands on the page, as opposed to our `scrollTo`. */
+/** Their own hands on the page, as opposed to our `scrollTo`. */
 const HER_SCROLL = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const
 
 export default function App() {
@@ -193,7 +193,7 @@ export default function App() {
               {/* ---- public ---------------------------------------- */}
               {/* The landing page stays reachable while signed in. It used to
                   redirect, which meant a back press out of /farmer landed on a
-                  page that immediately threw her somewhere else - and the
+                  page that immediately threw them somewhere else - and the
                   "carry on to your shop" decision had nowhere to live. */}
               <Route path="/" element={<Landing />} />
               <Route path="/trace/:productId" element={<Trace />} />

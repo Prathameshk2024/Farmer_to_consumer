@@ -10,9 +10,9 @@ import { AppBar, Button, Field, Notice, TextInput } from '../../components/ui.js
 /**
  * CHOOSE A NEW PASSWORD
  * =====================
- * Anyone signed in can come here; after an admin reset she is sent here and
- * nowhere else until she is done, and "current" is the temporary password the
- * admin read out. Every other phone signed in as her is signed out.
+ * Anyone signed in can come here; after an admin reset they are sent here and
+ * nowhere else until they are done, and "current" is the temporary password the
+ * admin read out. Every other phone signed in as them is signed out.
  */
 export default function ChangePassword() {
   const t = useT()

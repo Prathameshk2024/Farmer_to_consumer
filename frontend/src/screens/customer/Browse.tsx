@@ -52,8 +52,8 @@ export function ProductCard({ product, onOpen }: { product: CardProduct; onOpen:
   return (
     <div className="pcard">
       {/* The card opens the product; the control below adds it. Two jobs, two
-          buttons - a tap on ADD that also navigated away would lose her the
-          list she was working down. */}
+          buttons - a tap on ADD that also navigated away would lose them the
+          list they were working down. */}
       <button className="pcard__open" onClick={onOpen}>
         <ProductImage
           src={product.imageUrl}
@@ -84,17 +84,17 @@ export function ProductCard({ product, onOpen }: { product: CardProduct; onOpen:
 }
 
 /**
- * ADD, then how many she has.
+ * ADD, then how many they have.
  *
- * A count she can see is the difference between "did that work?" and knowing
- * it did - the cart badge is at the bottom of the screen and the product she
- * just tapped is under her thumb. Once there is one in the cart the button
+ * A count they can see is the difference between "did that work?" and knowing
+ * it did - the cart badge is at the bottom of the screen and the product they
+ * just tapped is under their thumb. Once there is one in the cart the button
  * becomes the count, with a minus beside it, so a mis-tap is undone where it
  * happened rather than two screens away.
  *
- * Bounded by the farmer's minimum and his stock (`cartStep`): the first tap
+ * Bounded by the farmer's minimum and their stock (`cartStep`): the first tap
  * adds the minimum, and a − below it takes the line out, because the whole
- * listing is a promise he has to keep.
+ * listing is a promise they have to keep.
  */
 function AddControl({ product }: { product: CardProduct }) {
   const t = useT()
@@ -102,7 +102,7 @@ function AddControl({ product }: { product: CardProduct }) {
   const { items, add, step, canAdd, farmerName: cartShop } = useCart()
 
   const qty = items.find((i) => i.productId === product.id)?.qty ?? 0
-  // Less on the shelf than his minimum cannot be ordered (cartStep).
+  // Less on the shelf than their minimum cannot be ordered (cartStep).
   const outOfStock = cartStep(product, 0, 1) === 0
 
   if (outOfStock) {
@@ -115,7 +115,7 @@ function AddControl({ product }: { product: CardProduct }) {
         size="sm"
         variant="ghost"
         onClick={() => {
-          // One farmer owns the cart. A toast rather than a dialog: she is in
+          // One farmer owns the cart. A toast rather than a dialog: they are in
           // the middle of a list, and the product screen says it in full.
           if (!add(product, undefined, product.farmer?.shopName) && !canAdd(product.farmerId)) {
             toast(t('cus.cartLocked', { shop: cartShop ?? '' }), 'warn')
@@ -289,7 +289,7 @@ export function ProductDetail() {
   const harvested = useHarvestLabel()
 
   const [data, loading] = useAsync(() => api.product(productId!), [productId], `product:${productId}`)
-  /** Open while she is saying what is wrong with this listing. */
+  /** Open while they are saying what is wrong with this listing. */
   const [reporting, setReporting] = useState(false)
 
   /**
@@ -311,11 +311,11 @@ export function ProductDetail() {
   }
 
   const { product, farmer } = data
-  // Less on the shelf than his minimum cannot be ordered (cartStep).
+  // Less on the shelf than their minimum cannot be ordered (cartStep).
   const outOfStock = cartStep(product, 0, 1) === 0
 
   // Newest first, this one excluded, three of them. Three is a glance; a
-  // second grid of everything she sells belongs on the shop page, not under
+  // second grid of everything they sell belongs on the shop page, not under
   // the buy button.
   const alsoFromShop = (more?.products ?? [])
     .filter((p) => p.id !== product.id)
@@ -323,9 +323,9 @@ export function ProductDetail() {
     .slice(0, 3)
 
   /**
-   * ONE FARMER AT A TIME. The cart belongs to whoever she added from first,
+   * ONE FARMER AT A TIME. The cart belongs to whoever they added from first,
    * so this product is refused while another shop holds it - with the name of
-   * that shop and a way to go and look, never by emptying it for her.
+   * that shop and a way to go and look, never by emptying it for them.
    */
   const blockedBy = canAdd(product.farmerId) ? null : (cartShop ?? '')
 
@@ -385,7 +385,7 @@ export function ProductDetail() {
         )}
 
         {/* Anyone looking at a listing can say it should not be here: a
-            photo that is not hers, food that looks unsafe, a price that is a
+            photo that is not theirs, food that looks unsafe, a price that is a
             trick. Quiet, at the foot of what it reports, and never beside
             the button that adds it to a basket. Google Play asks any app
             carrying what its users write to offer exactly this. */}
@@ -402,7 +402,7 @@ export function ProductDetail() {
 
         {/* Three, then the door to the rest. One shop owns the cart now, so
             what else that shop sells is the most useful thing on this screen:
-            the next item she buys can only come from here. */}
+            the next item they buy can only come from here. */}
         {alsoFromShop.length > 0 && (
           <div>
             <SectionTitle>{t('cus.moreFromShop')}</SectionTitle>
@@ -425,9 +425,9 @@ export function ProductDetail() {
       <div className="actionbar">
         {blockedBy !== null ? (
           <>
-            {/* Her cart is not touched. She is told whose it is and sent to
-                look at it - emptying it for her would lose the only record of
-                what she had chosen. */}
+            {/* Their cart is not touched. They are told whose it is and sent to
+                look at it - emptying it for them would lose the only record of
+                what they had chosen. */}
             <Notice tone="warn">{t('cus.cartLocked', { shop: blockedBy })}</Notice>
             <Button onClick={() => nav('/shop/cart')}>
               <IconCart aria-hidden="true" /> {t('cus.openCart')}
@@ -436,10 +436,10 @@ export function ProductDetail() {
         ) : (
           <>
             {/* No quantity row here. It carried `prod.stock` - "how much is
-                left?", the question the FARMER answers when he lists the
-                product - which asked a buyer to declare the shop's stock. His
-                minimum is added, and the quantity is hers to change on the cart line
-                that follows, where the ceiling is the stock she cannot see. */}
+                left?", the question the FARMER answers when they list the
+                product - which asked a buyer to declare the shop's stock. Their
+                minimum is added, and the quantity is theirs to change on the cart line
+                that follows, where the ceiling is the stock they cannot see. */}
             <Button
               disabled={outOfStock}
               onClick={() => {
@@ -460,9 +460,9 @@ export function ProductDetail() {
  * ONE SHOP'S WINDOW.
  *
  * Reached from "see all" under a product, and the natural landing place for
- * her QR poster the day that comes back. It matters more than it used to: the
+ * their QR poster the day that comes back. It matters more than it used to: the
  * cart holds one farmer at a time, so once a buyer has added anything, this
- * page is the whole of what she can still buy today.
+ * page is the whole of what they can still buy today.
  */
 export function FarmerShop() {
   const { farmerId } = useParams()
@@ -494,7 +494,7 @@ export function FarmerShop() {
         )}
 
         {/* An empty shop is not an error. A farmer between batches has taken
-            her listings down, and saying so beats an error icon. */}
+            their listings down, and saying so beats an error icon. */}
         {products.length === 0 ? (
           <Card><EmptyState icon={IconProduct} title={t('prod.noProducts')} /></Card>
         ) : (
@@ -515,8 +515,8 @@ export function FarmerShop() {
 
 /**
  * Who made this. Not a link any more - the public storefront it opened was
- * the landing page for the share QR, and that whole surface is gone. Her name,
- * her village and her farmer code still belong on the product, because they are
+ * the landing page for the share QR, and that whole surface is gone. Their name,
+ * their village and their farmer code still belong on the product, because they are
  * what a buyer is choosing between.
  */
 function FarmerCard({ farmer }: { farmer: Partial<Farmer> }) {
@@ -527,7 +527,7 @@ function FarmerCard({ farmer }: { farmer: Partial<Farmer> }) {
       <div className="tile__body">
         <div className="tile__meta">{t('cus.soldBy')}</div>
         <div className="tile__title">{farmer.shopName}</div>
-        {/* Her rating is what buyers gave her products, all of them together. */}
+        {/* Their rating is what buyers gave their products, all of them together. */}
         <div className="tile__meta">
           <RatingLine average={farmer.rating} count={farmer.ratingCount} />
           {!!farmer.ratingCount && <span className="dim"> · {t('rev.fromProducts')}</span>}

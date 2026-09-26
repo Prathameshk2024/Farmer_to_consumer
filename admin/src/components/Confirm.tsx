@@ -6,12 +6,12 @@ import { Button, Notice } from './ui.js'
  * A confirmation step that explains what is about to happen.
  *
  * Every action it guards changes what a real farmer can do tomorrow - whether
- * his produce is on sale, whether his shop is visible at all. A native `confirm()` cannot
+ * their produce is on sale, whether their shop is visible at all. A native `confirm()` cannot
  * say any of that, and cannot be translated, so this replaces it wherever the
  * consequence needs describing.
  *
  * The description is not decoration. "Verify" means nothing on its own;
- * "his live listings will be visible to buyers at once" is the thing being
+ * "their live listings will be visible to buyers at once" is the thing being
  * decided.
  */
 export function Confirm({

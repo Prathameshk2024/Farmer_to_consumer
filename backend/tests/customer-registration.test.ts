@@ -21,7 +21,7 @@ const ID = customerIdFor(PHONE)
 const body = (over: Record<string, unknown> = {}) =>
   ({ phone: PHONE, name: 'प्रिया देशमुख', password: '482913', ...over })
 
-test('a phone, a name and a password make an account she can sign in to', () => {
+test('a phone, a name and a password make an account they can sign in to', () => {
   const db = emptyDb()
   const r = registerCustomer(db, body())
 
@@ -70,9 +70,9 @@ test('a farmer password on the same number does not block a buyer account', () =
 })
 
 /*
- * Review fix: registration used to ADOPT an existing row - her saved addresses
- * and her order history - with no proof the caller owns the number. Anyone who
- * knew a buyer's phone could register it and read her home address. A row with
+ * Review fix: registration used to ADOPT an existing row - the saved addresses
+ * and order history - with no proof the caller owns the number. Anyone who
+ * knew a buyer's phone could register it and read their home address. A row with
  * history is now claimed only through the admin reset, which is a phone call
  * to that number; an empty row carries nothing, so it may still be adopted.
  */
@@ -88,7 +88,7 @@ test('a phone with orders or addresses but no password is claimed through the ad
   assert.equal(r.status, 409)
   assert.ok(r.status === 409 && r.body.code === 'CLAIM_VIA_ADMIN')
   assert.equal(db.credentials.length, 0)
-  assert.equal(db.customers[0]!.name, 'प्रिया देशमुख', 'her name is not overwritten either')
+  assert.equal(db.customers[0]!.name, 'प्रिया देशमुख', 'their name is not overwritten either')
 })
 
 test('an order alone, with no saved address, is history too', () => {

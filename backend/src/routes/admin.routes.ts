@@ -155,7 +155,7 @@ adminRouter.get('/stats', (_req, res) => {
     ordersWeek: db.orders.filter(
       (o) => Date.now() - new Date(o.placedAt).getTime() < 7 * 86_400_000,
     ).length,
-    // "Active" means a buyer can reach him today.
+    // "Active" means a buyer can reach them today.
     activeFarmers: db.farmers.filter((s) => canSellNow(s)).length,
     totalFarmers: db.farmers.length,
     newRegistrations: db.farmers.filter(
@@ -215,7 +215,7 @@ adminRouter.get('/products', (req, res) => {
    * REPORTED is not a product status, it is a queue.
    *
    * A listing a buyer has flagged is still LIVE - nothing hides on a report
-   * alone, or one annoyed person could empty a woman's shop. It joins this
+   * alone, or one annoyed person could empty a farmer's shop. It joins this
    * list so an admin can look, and leaves it when they either take the
    * listing down or close the reports.
    */
@@ -272,7 +272,7 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
   /**
    * A rejection needs a reason, and the server is where that is true.
    *
-   * She reads it in her own app, and it is the only thing standing between
+   * The farmer reads it in their own app, and it is the only thing standing between
    * "your onion listing was refused because the photo is too dark" and a
    * product that vanishes for no stated cause. The console asks for one; this
    * is what makes the console's rule real rather than polite.
@@ -290,7 +290,7 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
    * A REJECTION IS A REMOVAL, THE MOMENT IT IS MADE.
    *
    * The row, its photo and its reports go at once. The reason still reaches
-   * him, on the notice below, which is where he reads every other admin
+   * the farmer, on the notice below, which is where they read every other admin
    * decision. It is not lost with the row.
    */
   const owner = db.farmers.find((s) => s.id === product.farmerId)
@@ -330,7 +330,7 @@ adminRouter.get('/complaints', (req, res) => {
 
 /**
  * Dealt with. Who did it is stored for the same reason it is on a verification:
- * "who answered this woman?" has to be answerable months later.
+ * "who answered this person?" has to be answerable months later.
  */
 adminRouter.post('/complaints/:id/resolve', (req, res) => {
   const db = getDb()
@@ -379,7 +379,7 @@ adminRouter.get('/orders', (req, res) => {
  * The admin reads what the public reads plus what was taken down, with the
  * farmer's shop beside each one. Low ratings are the signal worth acting on -
  * a farmer collecting ones and twos needs a call from a coordinator long
- * before she needs blocking - so `maxRating` filters to them.
+ * before they need blocking - so `maxRating` filters to them.
  */
 adminRouter.get('/reviews', (req, res) => {
   const db = getDb()
@@ -483,8 +483,8 @@ adminRouter.get('/map', (_req, res) => {
 
 adminRouter.get('/farmers', (_req, res) => {
   const db = getDb()
-  // What each woman has earned, for "highest earnings first" - counted the
-  // way her own page and /admin/impact count it, delivered orders only. One
+  // What each farmer has earned, for "highest earnings first" - counted the
+  // way their own page and /admin/impact count it, delivered orders only. One
   // pass over orders, not one filter per farmer.
   const earned = new Map<string, number>()
   for (const o of db.orders) {
@@ -505,11 +505,11 @@ adminRouter.get('/farmers', (_req, res) => {
 })
 
 /**
- * One woman, whole.
+ * One farmer, whole.
  *
  * The register lists everybody and shows a line each; this is the page an
- * admin opens before deciding something about her, so it answers in one
- * request what would otherwise be three - her record, her listings and her
+ * admin opens before deciding something about them, so it answers in one
+ * request what would otherwise be three - their record, listings and
  * orders.
  */
 adminRouter.get('/farmers/:id', (req, res) => {
@@ -544,8 +544,8 @@ adminRouter.get('/farmers/:id', (req, res) => {
     reviews,
     rating: summarizeReviews(reviews),
     /**
-     * What she has earned, counted the way /admin/impact counts it: delivered
-     * orders and nothing else. Two screens answering "how much has she made"
+     * What the farmer has earned, counted the way /admin/impact counts it: delivered
+     * orders and nothing else. Two screens answering "how much have they made"
      * with two different numbers is how an admin stops trusting either.
      */
     earned: orders
@@ -563,11 +563,11 @@ adminRouter.post('/farmers/:id/block', (req, res) => {
   }
   const blocked = !!req.body?.blocked
   // Unblocking goes back to what the verification says: blocking and
-  // unblocking an unverified farmer must not verify him.
+  // unblocking an unverified farmer must not verify them.
   farmer.status = blocked ? 'BLOCKED' : farmer.verifiedAt ? 'ACTIVE' : 'PENDING_VERIFICATION'
 
   if (blocked) {
-    // Stamped so her own screens can tell her she has been blocked, and why.
+    // Stamped so their own screens can tell them they have been blocked, and why.
     // Being silently unable to sell is the worst version of this.
     farmer.blockedAt = new Date().toISOString()
     farmer.blockReason = String(req.body?.reason ?? '').trim() || undefined

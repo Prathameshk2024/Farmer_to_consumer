@@ -10,10 +10,10 @@ import { IconNext, IconTraining } from './icons.js'
 
 /**
  * The walkthrough for ONE page. Drop `<PageTour id="..." />` at the end of a
- * screen and it opens itself the first time she lands there.
+ * screen and it opens itself the first time they land there.
  *
  * It rings the real control - there is no mock screen anywhere in here - so
- * what she is taught is the thing she then taps.
+ * what they are taught is the thing they then tap.
  */
 export function PageTour({ id }: { id: TourId }) {
   const t = useT()
@@ -110,7 +110,7 @@ export function PageTour({ id }: { id: TourId }) {
       setRect(covers > 0.75 ? null : r)
     }
 
-    // Only scroll when it is not already in front of her. A sticky bar is
+    // Only scroll when it is not already in front of them. A sticky bar is
     // always in view, and scrolling to its position in the document flow
     // throws the page to the bottom for no reason.
     const r = el?.getBoundingClientRect()
@@ -136,11 +136,11 @@ export function PageTour({ id }: { id: TourId }) {
    * moved the page, the ringed control slid up with it, and the ring - which
    * correctly follows its control - went up under the app bar, so the
    * highlight ended up around a tile half hidden behind the maroon header.
-   * Nothing on screen explains that, and she has been told this page is a
+   * Nothing on screen explains that, and they have been told this page is a
    * picture for the moment.
    *
-   * Locking the document rather than moving it keeps her scroll position, so
-   * the page is exactly where she left it when the walkthrough closes.
+   * Locking the document rather than moving it keeps their scroll position, so
+   * the page is exactly where they left it when the walkthrough closes.
    */
   useEffect(() => {
     if (!live) return
@@ -158,11 +158,11 @@ export function PageTour({ id }: { id: TourId }) {
 
   const close = useCallback(() => {
     // Skipping counts as done. Being shown the same overlay every visit
-    // because she chose not to read it is nagging, not teaching.
+    // because they chose not to read it is nagging, not teaching.
     //
-    // A stand-in shown on an empty screen does not count: she was told to go
+    // A stand-in shown on an empty screen does not count: they were told to go
     // and choose products, not taught the cart, so the real walkthrough is
-    // still owed to her.
+    // still owed to them.
     if (live && shouldMarkSeen(live)) markTourSeen(localStorage, id)
     // Closed means closed: a provisional tour is not marked seen, so without
     // this the hunt would start again the moment it was dismissed.

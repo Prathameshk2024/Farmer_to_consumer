@@ -85,7 +85,7 @@ export function orderQtyProblem(
 /** Next cart quantity: never between 0 and the minimum, never past the stock. */
 export function cartStep(p: Pick<Product, 'minOrder' | 'stock'>, qty: number, dir: 1 | -1): number {
   const min = Math.max(1, p.minOrder || 1)
-  // Less on the shelf than his minimum is nothing to sell: 0, never a line of
+  // Less on the shelf than the farmer's minimum is nothing to sell: 0, never a line of
   // a quantity the server would refuse (orderQtyProblem).
   if (dir === 1) return qty < min ? (p.stock >= min ? min : 0) : Math.min(qty + 1, p.stock)
   return qty - 1 < min ? 0 : qty - 1
@@ -93,7 +93,7 @@ export function cartStep(p: Pick<Product, 'minOrder' | 'stock'>, qty: number, di
 
 /**
  * A listing's category comes from its crop, so a farmer cannot file onions
- * under fruit. Only `other` has no category of its own; there he picks one.
+ * under fruit. Only `other` has no category of its own; there the farmer picks one.
  */
 export function categoryFor(cropId: string | undefined, sent: string | undefined): string | undefined {
   const crop = cropById(cropId)

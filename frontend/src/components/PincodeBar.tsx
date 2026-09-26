@@ -5,11 +5,11 @@ import { Button, Field, Notice, TextInput } from './ui.js'
 import { IconCheck, IconMap } from './icons.js'
 
 /**
- * The one place a customer enters her pincode.
+ * The one place a customer enters their pincode.
  *
  * Once set it lives in PincodeContext and is reused by the catalog, the
- * product list and checkout, so she is never asked for it twice. Tapping the
- * chip re-opens it if she has moved.
+ * product list and checkout, so they are never asked for it twice. Tapping the
+ * chip re-opens it if they have moved.
  */
 export default function PincodeBar() {
   const t = useT()

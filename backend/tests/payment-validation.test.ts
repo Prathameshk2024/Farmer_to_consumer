@@ -51,7 +51,7 @@ test("PhonePe's own long reference is refused rather than trimmed into one", () 
 test('a UTR problem says which way it is wrong, not just that it is', () => {
   assert.equal(utrProblem('512309887711'), null)
   assert.match(utrProblem('') ?? '', /12 अंकी/)
-  assert.match(utrProblem('51230988') ?? '', /8 अंक/, 'counts back what she typed')
+  assert.match(utrProblem('51230988') ?? '', /8 अंक/, 'counts back what was typed')
   assert.match(utrProblem('5123098877aa') ?? '', /फक्त अंक/)
 })
 
@@ -77,8 +77,8 @@ test('separators may not lead, trail or double up', () => {
 
 test('a handle one character off a real one is a typo, and is named as one', () => {
   /**
-   * The half of the address she cannot check herself. "sunita" she can read
-   * back; "ybl" she cannot, and "ybll" looks exactly as correct to her.
+   * The half of the address a farmer cannot check themselves. Their own name they can read
+   * back; "ybl" they cannot, and "ybll" looks exactly as correct to them.
    */
   const problem = upiProblem('sunita@ybll')
   assert.ok(problem)
@@ -92,8 +92,8 @@ test('an unknown handle that is NOT a near miss is allowed through', () => {
   /**
    * This is the deliberate hole in the check, and it has to stay open. New
    * banks and new apps appear and this file does not; refusing a farmer's real
-   * UPI ID because the list is a year old would cost her every order she
-   * takes, which is worse than any typo this catches.
+   * UPI ID because the list is a year old would cost them every order they
+   * take, which is worse than any typo this catches.
    */
   assert.equal(upiProblem('sunita@newbankofindia'), null)
   assert.equal(upiProblem('sunita@zzqqxx'), null)

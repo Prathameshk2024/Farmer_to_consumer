@@ -3,10 +3,10 @@
  * ===========
  * Format: F2C-<VILLAGE>-<NNN>   e.g.  F2C-CHIVARI-003
  *
- * The code goes on his packaging, his QR poster and his product labels, so it
+ * The code goes on the farmer's packaging, QR poster and product labels, so it
  * has to be readable aloud over a phone and typed by someone who does not read
  * Devanagari. That means a Latin village code, and a serial that is per-village
- * rather than global - F2C-CHIVARI-003 says he is the THIRD farmer from Chivri,
+ * rather than global - F2C-CHIVARI-003 says this is the THIRD farmer from Chivri,
  * which tells a field coordinator where to go; a global F2C-000431 tells them
  * nothing.
  *
@@ -146,7 +146,7 @@ export function parseFarmerCode(id: string): { village: string; serial: number }
   return { village: m[1], serial: parseInt(m[2], 10) }
 }
 
-/** URL-safe shop slug. Her share QR resolves to /s/<slug>. */
+/** URL-safe shop slug. The farmer's share QR resolves to /s/<slug>. */
 export function makeShopSlug(shopName: string, farmerCode: string): string {
   const latin = transliterate(shopName).toLowerCase().replace(/[^a-z0-9]/g, '')
   const tail = farmerCode.toLowerCase().replace(/[^a-z0-9]/g, '-')

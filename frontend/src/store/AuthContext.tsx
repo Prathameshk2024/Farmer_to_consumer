@@ -11,7 +11,7 @@ import { useI18n } from '../i18n/I18nProvider.js'
 /**
  * Session state. One phone number can be both a farmer and a customer, so the
  * account carries a role rather than being two separate accounts - that avoids
- * asking the same woman for her details twice.
+ * asking the same person for their details twice.
  *
  * The password is checked on the SERVER. This context only stores what came back.
  *
@@ -19,7 +19,7 @@ import { useI18n } from '../i18n/I18nProvider.js'
  * ===================
  * Exactly two things:
  *
- *   1. she presses Log out;
+ *   1. they press Log out;
  *   2. the server answers 401, meaning the token it issued is no longer valid.
  *
  * Nothing else. Not a back press, not a reload, not opening /farmer a second
@@ -62,9 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         localStorage.removeItem(KEY)
         setToken(null)
-        // The screens' last answers go with her. On a field coordinator's
+        // The screens' last answers go with them. On a field coordinator's
         // phone, where one handset signs in as farmer after farmer, a kept
-        // "my products" is the previous woman's shop.
+        // "my products" is the previous farmer's shop.
         clearScreenCache()
       }
     } catch {
@@ -78,14 +78,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Tell the SERVER, then forget locally.
    *
    * Clearing localStorage alone left the token valid for the rest of its
-   * window, so signing out on a borrowed phone did not sign her out of
+   * window, so signing out on a borrowed phone did not sign them out of
    * anything. The local state is cleared either way and without waiting: if
-   * the network is down she must still end up signed out on this device, and
+   * the network is down they must still end up signed out on this device, and
    * the session will idle out on its own.
    */
   const signOut = useCallback(() => {
     void api.logout().catch(() => {
-      /* offline - the session expires on its own, and she is out locally */
+      /* offline - the session expires on its own, and they are out locally */
     })
     setSession(null)
     toast(t('ok.loggedOut'))
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Subscribed once, for the life of the app, so a refresh that arrives while
-  // she is on any screen is kept.
+  // they are on any screen is kept.
   useEffect(() => {
     const stopRefresh = onTokenRefresh((token) => {
       setSession((s) => (s && s.token !== token ? { ...s, token } : s))
