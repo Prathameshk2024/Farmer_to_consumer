@@ -1,5 +1,5 @@
 import type {
-  Category, Complaint, Customer, Order, Product, Report, Review, Seller,
+  Category, Complaint, Customer, Order, Product, Report, Review, Farmer,
 } from '@shared/types.js'
 import { computeReadiness, readinessBand } from '@shared/readiness.js'
 import type { DigitalProfile } from '@shared/types.js'
@@ -7,7 +7,7 @@ import { deriveCustomersFromOrders } from './customers.js'
 import type { AdminUser, AuthEvent, SessionRecord } from '../auth/types.js'
 
 export interface Db {
-  sellers: Seller[]
+  farmers: Farmer[]
   products: Product[]
   orders: Order[]
   customers: Customer[]
@@ -15,12 +15,12 @@ export interface Db {
   reviews: Review[]
   /** Buyers flagging a listing or a review. Never seeded. */
   reports: Report[]
-  /** What sellers and buyers have written to the desk. Never seeded. */
+  /** What farmers and buyers have written to the desk. Never seeded. */
   complaints: Complaint[]
   /**
    * The auth collections. They live in the same store as everything else so
    * they get the same durability - a session that vanished on restart would
-   * sign every seller out on each deploy, which is exactly the behaviour the
+   * sign every farmer out on each deploy, which is exactly the behaviour the
    * registry exists to stop.
    *
    * They are never seeded. `seed()` fills a demo catalogue; inventing sessions
@@ -42,14 +42,14 @@ export interface Db {
 /** A database with nothing in it. What a live install starts from. */
 export function emptyDb(): Db {
   return {
-    sellers: [], products: [], orders: [], customers: [], reviews: [],
+    farmers: [], products: [], orders: [], customers: [], reviews: [],
     reports: [], complaints: [], sessions: [], admins: [], authEvents: [],
   }
 }
 
 export function withDefaults(raw: Partial<Db>): Db {
   return {
-    sellers: raw.sellers ?? [],
+    farmers: raw.farmers ?? [],
     products: raw.products ?? [],
     orders: raw.orders ?? [],
     customers: raw.customers ?? [],
@@ -82,7 +82,7 @@ export const CATEGORIES: Category[] = [
    * Twelve categories cannot name everything a village makes, and a woman
    * whose product is not on the list had two ways out: file it under something
    * it is not, or stop. The first poisons the category filter for every buyer,
-   * the second loses the seller. `food` is absent so this shows whether she
+   * the second loses the farmer. `food` is absent so this shows whether she
    * said food or handmade - it is the answer for both.
    *
    * It carries no photograph in `categoryPhoto.ts`, deliberately: there is no
@@ -98,7 +98,7 @@ const digital = (
   whatsappBusiness: w, socialMedia: sm, digitalMarketing: dm,
 })
 
-/** Score a seed seller with plausible measured factors so the index isn't flat. */
+/** Score a seed farmer with plausible measured factors so the index isn't flat. */
 function scored(d: DigitalProfile, measured: [boolean, boolean, boolean, boolean]) {
   const score = computeReadiness(d, {
     hasBranding: measured[0],
@@ -118,10 +118,10 @@ const d2 = digital(true, true, true, true, true, true)
 const d3 = digital(true, false, false, true, false, false)
 
 export function seed(): Db {
-  const sellers: Seller[] = [
+  const farmers: Farmer[] = [
     {
       id: 's1',
-      womenBizId: 'SMB-ANADUR-01',
+      farmerCode: 'F2C-ANADUR-001',
       name: 'सुनीता पाटील', photo: '👩🏽', phone: '9822011223', whatsapp: '9822011223',
       age: 38, education: 'secondary',
       village: 'आणदुर', villageCode: 'ANADUR', taluka: 'तुळजापूर', district: 'धाराशिव', pincode: '413601',
@@ -139,7 +139,7 @@ export function seed(): Db {
     },
     {
       id: 's2',
-      womenBizId: 'SMB-JEVALI-01',
+      farmerCode: 'F2C-JEVALI-001',
       name: 'मंगल जाधव', photo: '👩🏻', phone: '9764455661', whatsapp: '9764455661',
       age: 45, education: 'middle',
       village: 'जेवळी', villageCode: 'JEVALI', taluka: 'तुळजापूर', district: 'धाराशिव', pincode: '413603',
@@ -157,7 +157,7 @@ export function seed(): Db {
     },
     {
       id: 's3',
-      womenBizId: 'SMB-BHOSGA-01',
+      farmerCode: 'F2C-BHOSGA-001',
       name: 'कविता शिंदे', photo: '👩🏾', phone: '9890033441',
       age: 31, education: 'higher',
       village: 'भोसगा', villageCode: 'BHOSGA', taluka: 'तुळजापूर', district: 'धाराशिव', pincode: '413604',
@@ -176,50 +176,50 @@ export function seed(): Db {
   ]
 
   const products: Product[] = [
-    { id: 'p1', sellerId: 's1', emoji: '🫙', name: 'आंब्याचे लोणचे', nameEn: 'Mango Pickle',
+    { id: 'p1', farmerId: 's1', emoji: '🫙', name: 'आंब्याचे लोणचे', nameEn: 'Mango Pickle',
       categoryId: 'pickle', isFood: true,
       ingredients: 'कैरी, मोहरी, मेथी, हळद, तिखट, तेल, मीठ', vegType: 'veg',
       price: 220, mrp: 250, unit: 'kg', stock: 12, status: 'LIVE', views: 184, createdAt: daysAgo(80) },
-    { id: 'p2', sellerId: 's1', emoji: '🌶️', name: 'कांदा लसूण मसाला', nameEn: 'Kanda Lasun Masala',
+    { id: 'p2', farmerId: 's1', emoji: '🌶️', name: 'कांदा लसूण मसाला', nameEn: 'Kanda Lasun Masala',
       categoryId: 'pickle', isFood: true,
       ingredients: 'लाल मिरची, कांदा, लसूण, खोबरे, तीळ, मीठ', vegType: 'veg',
       price: 180, mrp: 200, unit: 'g', stock: 8, status: 'LIVE', views: 141, createdAt: daysAgo(75) },
-    { id: 'p3', sellerId: 's1', emoji: '🥟', name: 'तांदळाचे पापड', nameEn: 'Rice Papad',
+    { id: 'p3', farmerId: 's1', emoji: '🥟', name: 'तांदळाचे पापड', nameEn: 'Rice Papad',
       categoryId: 'namkeen', isFood: true,
       ingredients: 'तांदूळ पीठ, जिरे, मीठ, पापडखार', vegType: 'veg',
       price: 90, mrp: 0, unit: 'g', stock: 0, status: 'LIVE', views: 63, createdAt: daysAgo(40) },
-    { id: 'p4', sellerId: 's1', emoji: '🍯', name: 'घरगुती तूप', nameEn: 'Homemade Ghee',
+    { id: 'p4', farmerId: 's1', emoji: '🍯', name: 'घरगुती तूप', nameEn: 'Homemade Ghee',
       categoryId: 'food', isFood: true,
       ingredients: 'गाईचे दूध', vegType: 'veg',
       price: 650, mrp: 700, unit: 'litre', stock: 4, status: 'LIVE', views: 0, createdAt: hoursAgo(20) },
-    { id: 'p5', sellerId: 's2', emoji: '🥻', name: 'पैठणी साडी', nameEn: 'Paithani Saree',
+    { id: 'p5', farmerId: 's2', emoji: '🥻', name: 'पैठणी साडी', nameEn: 'Paithani Saree',
       categoryId: 'textile', isFood: false, material: 'रेशीम, जरी',
       price: 8500, mrp: 11000, unit: 'piece', stock: 2, status: 'LIVE', views: 312, createdAt: daysAgo(55) },
-    { id: 'p6', sellerId: 's2', emoji: '🧣', name: 'सुती दुपट्टा', nameEn: 'Cotton Dupatta',
+    { id: 'p6', farmerId: 's2', emoji: '🧣', name: 'सुती दुपट्टा', nameEn: 'Cotton Dupatta',
       categoryId: 'textile', isFood: false, material: 'सुती कापड',
       price: 450, mrp: 600, unit: 'piece', stock: 15, status: 'LIVE', views: 97, createdAt: daysAgo(50) },
-    { id: 'p7', sellerId: 's2', emoji: '🧺', name: 'बांबूची टोपली', nameEn: 'Bamboo Basket',
+    { id: 'p7', farmerId: 's2', emoji: '🧺', name: 'बांबूची टोपली', nameEn: 'Bamboo Basket',
       categoryId: 'handicraft', isFood: false, material: 'बांबू',
       price: 340, mrp: 0, unit: 'piece', stock: 6, status: 'LIVE', views: 55, createdAt: daysAgo(30) },
-    { id: 'p8', sellerId: 's2', emoji: '🪡', name: 'भरतकाम उशी कव्हर', nameEn: 'Embroidered Cushion Cover',
+    { id: 'p8', farmerId: 's2', emoji: '🪡', name: 'भरतकाम उशी कव्हर', nameEn: 'Embroidered Cushion Cover',
       categoryId: 'embroidery', isFood: false, material: 'सुती कापड, रेशमी धागा',
       price: 280, mrp: 350, unit: 'set', stock: 9, status: 'LIVE', views: 44, createdAt: daysAgo(15) },
-    { id: 'p9', sellerId: 's3', emoji: '🍬', name: 'पुरणपोळी', nameEn: 'Puran Poli',
+    { id: 'p9', farmerId: 's3', emoji: '🍬', name: 'पुरणपोळी', nameEn: 'Puran Poli',
       categoryId: 'sweets', isFood: true,
       ingredients: 'गहू, हरभरा डाळ, गूळ, वेलची, तूप', vegType: 'veg',
       price: 40, mrp: 0, unit: 'piece', stock: 0, madeToOrder: true, status: 'LIVE', views: 208, createdAt: daysAgo(18) },
-    { id: 'p10', sellerId: 's3', emoji: '🥮', name: 'बेसन लाडू', nameEn: 'Besan Ladoo',
+    { id: 'p10', farmerId: 's3', emoji: '🥮', name: 'बेसन लाडू', nameEn: 'Besan Ladoo',
       categoryId: 'sweets', isFood: true,
       ingredients: 'बेसन, साखर, तूप, वेलची', vegType: 'veg',
       price: 380, mrp: 420, unit: 'kg', stock: 5, status: 'LIVE', views: 133, createdAt: daysAgo(12) },
-    { id: 'p11', sellerId: 's3', emoji: '🕯️', name: 'सुगंधी अगरबत्ती', nameEn: 'Incense Sticks',
+    { id: 'p11', farmerId: 's3', emoji: '🕯️', name: 'सुगंधी अगरबत्ती', nameEn: 'Incense Sticks',
       categoryId: 'agarbatti', isFood: false, material: 'बांबू काडी, सुगंधी तेल',
       price: 60, mrp: 80, unit: 'set', stock: 30, status: 'LIVE', views: 76, createdAt: daysAgo(6) },
   ]
 
   const orders: Order[] = [
     {
-      id: 'SMB1043', sellerId: 's1', customerId: 'c1',
+      id: 'SMB1043', farmerId: 's1', customerId: 'c1',
       customerName: 'प्रिया देशमुख', customerPhone: '9011223344',
       address: 'फ्लॅट 302, शिवसागर अपार्टमेंट, विमाननगर, पुणे',
       landmark: 'सिम्बायोसिस कॉलेजजवळ', pincode: '413601',
@@ -233,7 +233,7 @@ export function seed(): Db {
       events: [{ to: 'PLACED', at: hoursAgo(1), by: 'customer' }],
     },
     {
-      id: 'SMB1042', sellerId: 's1', customerId: 'c2',
+      id: 'SMB1042', farmerId: 's1', customerId: 'c2',
       customerName: 'अनिता कुलकर्णी', customerPhone: '9922334455',
       address: 'घर क्र. 12, गणेश नगर, आणदुर', landmark: 'ग्रामपंचायत ऑफिससमोर', pincode: '413601',
       items: [{ productId: 'p3', name: 'तांदळाचे पापड', emoji: '🥟', qty: 3, price: 90 }],
@@ -242,12 +242,12 @@ export function seed(): Db {
       status: 'PACKED', placedAt: hoursAgo(6),
       events: [
         { to: 'PLACED', at: hoursAgo(6), by: 'customer' },
-        { to: 'ACCEPTED', at: hoursAgo(5), by: 'seller' },
-        { to: 'PACKED', at: hoursAgo(2), by: 'seller' },
+        { to: 'ACCEPTED', at: hoursAgo(5), by: 'farmer' },
+        { to: 'PACKED', at: hoursAgo(2), by: 'farmer' },
       ],
     },
     {
-      id: 'SMB1039', sellerId: 's1', customerId: 'c3',
+      id: 'SMB1039', farmerId: 's1', customerId: 'c3',
       customerName: 'सविता मोरे', customerPhone: '9765544332',
       address: 'मु. पो. रांजणगाव, ता. तुळजापूर', landmark: 'शाळेजवळ', pincode: '413602',
       items: [{ productId: 'p1', name: 'आंब्याचे लोणचे', emoji: '🫙', qty: 2, price: 220 }],
@@ -256,13 +256,13 @@ export function seed(): Db {
       status: 'OUT_FOR_DELIVERY', placedAt: hoursAgo(28),
       events: [
         { to: 'PLACED', at: hoursAgo(28), by: 'customer' },
-        { to: 'ACCEPTED', at: hoursAgo(27), by: 'seller' },
-        { to: 'PACKED', at: hoursAgo(25), by: 'seller' },
-        { to: 'OUT_FOR_DELIVERY', at: hoursAgo(3), by: 'seller' },
+        { to: 'ACCEPTED', at: hoursAgo(27), by: 'farmer' },
+        { to: 'PACKED', at: hoursAgo(25), by: 'farmer' },
+        { to: 'OUT_FOR_DELIVERY', at: hoursAgo(3), by: 'farmer' },
       ],
     },
     {
-      id: 'SMB1031', sellerId: 's1', customerId: 'c4',
+      id: 'SMB1031', farmerId: 's1', customerId: 'c4',
       customerName: 'रेखा भोसले', customerPhone: '9834455667',
       address: 'सर्वे नं. 45, तुळजापूर रोड, आणदुर', pincode: '413601',
       items: [{ productId: 'p2', name: 'कांदा लसूण मसाला', emoji: '🌶️', qty: 1, price: 180 }],
@@ -271,14 +271,14 @@ export function seed(): Db {
       status: 'DELIVERED', placedAt: hoursAgo(9),
       events: [
         { to: 'PLACED', at: hoursAgo(9), by: 'customer' },
-        { to: 'ACCEPTED', at: hoursAgo(8), by: 'seller' },
-        { to: 'PACKED', at: hoursAgo(7), by: 'seller' },
-        { to: 'OUT_FOR_DELIVERY', at: hoursAgo(5), by: 'seller' },
-        { to: 'DELIVERED', at: hoursAgo(4), by: 'seller' },
+        { to: 'ACCEPTED', at: hoursAgo(8), by: 'farmer' },
+        { to: 'PACKED', at: hoursAgo(7), by: 'farmer' },
+        { to: 'OUT_FOR_DELIVERY', at: hoursAgo(5), by: 'farmer' },
+        { to: 'DELIVERED', at: hoursAgo(4), by: 'farmer' },
       ],
     },
     {
-      id: 'SMB1044', sellerId: 's2', customerId: 'c1',
+      id: 'SMB1044', farmerId: 's2', customerId: 'c1',
       customerName: 'प्रिया देशमुख', customerPhone: '9011223344',
       address: 'फ्लॅट 302, शिवसागर अपार्टमेंट, विमाननगर, पुणे',
       landmark: 'सिम्बायोसिस कॉलेजजवळ', pincode: '413603',
@@ -288,7 +288,7 @@ export function seed(): Db {
       status: 'ACCEPTED', placedAt: hoursAgo(9),
       events: [
         { to: 'PLACED', at: hoursAgo(9), by: 'customer' },
-        { to: 'ACCEPTED', at: hoursAgo(8), by: 'seller' },
+        { to: 'ACCEPTED', at: hoursAgo(8), by: 'farmer' },
       ],
     },
   ]
@@ -305,7 +305,7 @@ export function seed(): Db {
   // No seeded reviews either: invented praise in front of real customers is
   // the one thing feedback exists to rule out.
   return {
-    sellers, products, orders, customers, reviews: [], reports: [], complaints: [],
+    farmers, products, orders, customers, reviews: [], reports: [], complaints: [],
     sessions: [], admins: [], authEvents: [],
   }
 }

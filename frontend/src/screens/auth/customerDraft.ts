@@ -1,10 +1,10 @@
-import { normalizePhone } from '@shared/seller.js'
-import type { DraftStore } from './sellerDraft.js'
+import { normalizePhone } from '@shared/farmer.js'
+import type { DraftStore } from './farmerDraft.js'
 
 /**
  * THE HALF-FILLED CUSTOMER REGISTRATION
  * =====================================
- * One field - her name - but the same rule as the seller wizard, and for the
+ * One field - her name - but the same rule as the farmer wizard, and for the
  * same two reasons.
  *
  * She reaches this screen already signed in, so leaving it costs no OTP; what

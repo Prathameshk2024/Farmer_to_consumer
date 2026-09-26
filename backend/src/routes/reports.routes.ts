@@ -20,13 +20,13 @@ import { requireRole } from '../middleware/auth.js'
  */
 export const reportsRouter: Router = Router()
 
-reportsRouter.post('/', requireRole('customer', 'seller'), (req, res) => {
+reportsRouter.post('/', requireRole('customer', 'farmer'), (req, res) => {
   const db = getDb()
-  // Either side may flag: a buyer reading a listing, and the seller an
+  // Either side may flag: a buyer reading a listing, and the farmer an
   // abusive review is written about. Hers is the only complaint nobody else
   // is in a position to make.
-  const byRole = req.auth!.role === 'seller' ? 'seller' as const : 'customer' as const
-  const byUserId = (byRole === 'seller' ? req.auth!.sellerId : req.auth!.customerId)!
+  const byRole = req.auth!.role === 'farmer' ? 'farmer' as const : 'customer' as const
+  const byUserId = (byRole === 'farmer' ? req.auth!.farmerId : req.auth!.customerId)!
   const { targetType, targetId } = req.body ?? {}
 
   if (!isReportTarget(targetType) || !targetId) {
@@ -70,7 +70,7 @@ reportsRouter.post('/', requireRole('customer', 'seller'), (req, res) => {
     id: newId('rep'),
     targetType,
     targetId,
-    sellerId: product?.sellerId ?? review?.sellerId,
+    farmerId: product?.farmerId ?? review?.farmerId,
     targetName: product?.name ?? review?.productName,
     reason: req.body.reason,
     note: req.body.reason === 'other'

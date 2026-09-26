@@ -5,10 +5,10 @@ import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { homeFor, useAuth } from '../../store/AuthContext.js'
 import { ConfirmSheet } from '../../components/ui.js'
 import {
-  IconBuy, IconBuyers, IconCheck, IconQr, IconSafe, IconSell, IconSeller,
+  IconBuy, IconBuyers, IconCheck, IconQr, IconSafe, IconSell, IconFarmer,
 } from '../../components/icons.js'
 import { clearRegisterTicket, liveTicket } from '../../lib/registerTicket.js'
-import { clearDraft, sessionStore } from '../auth/sellerDraft.js'
+import { clearDraft, sessionStore } from '../auth/farmerDraft.js'
 import CollegeCard from './CollegeCard.js'
 import PhotoRotator from './PhotoRotator.js'
 import logo from '../../assets/logo.png'
@@ -61,7 +61,7 @@ export default function Landing() {
    *  - no session          -> the phone + OTP screen for that role;
    *  - a session, same role -> straight in. She has already logged in, and
    *    asking again would be the app forgetting her, which is what a back
-   *    press out of /seller used to look like;
+   *    press out of /farmer used to look like;
    *  - a session, the OTHER role -> one account can only be in one section at
    *    a time, so this genuinely needs the current session closed. That is a
    *    consequence worth spelling out rather than doing silently, so it is a
@@ -94,7 +94,7 @@ export default function Landing() {
   /** The confirmation is about a pending registration, not a live session. */
   const abandoning = switchTo !== null && !session
 
-  const goSell = () => go('seller')
+  const goSell = () => go('farmer')
   const goBuy = () => go('customer')
 
   return (
@@ -159,8 +159,8 @@ export default function Landing() {
                   {/* In Marathi the door and its sub-line are now the same
                       sentence, so the second copy is dropped rather than
                       printed twice. English still has two distinct lines. */}
-                  {t('lp.sellerDoorSub') !== t('lp.ctaSell') && (
-                    <span className="door__s">{t('lp.sellerDoorSub')}</span>
+                  {t('lp.farmerDoorSub') !== t('lp.ctaSell') && (
+                    <span className="door__s">{t('lp.farmerDoorSub')}</span>
                   )}
                 </span>
               </button>
@@ -198,7 +198,7 @@ export default function Landing() {
           <div className="lanes">
             <div className="lane">
               <h3 className="lane__t">
-                <IconSeller aria-hidden="true" /> {t('lp.forSellers')}
+                <IconFarmer aria-hidden="true" /> {t('lp.forFarmers')}
               </h3>
               <ol className="steps">
                 {[t('lp.s1'), t('lp.s2'), t('lp.s3'), t('lp.s4')].map((step, i) => (
@@ -240,7 +240,7 @@ export default function Landing() {
             {([
               [IconBuyers, t('lp.w1'), t('lp.w1b')],
               [IconQr, t('lp.w2'), t('lp.w2b')],
-              [IconSeller, t('lp.w3'), t('lp.w3b')],
+              [IconFarmer, t('lp.w3'), t('lp.w3b')],
               [IconSafe, t('lp.w4'), t('lp.w4b')],
             ] as const).map(([Icon, title, body]) => (
               <article className="why" key={title}>

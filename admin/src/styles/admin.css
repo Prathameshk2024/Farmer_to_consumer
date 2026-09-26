@@ -1,5 +1,5 @@
 /*
- * The seller app's palette, applied to a desk instead of a phone.
+ * The farmer app's palette, applied to a desk instead of a phone.
  *
  * Tokens are copied verbatim from frontend/src/styles/theme.css so the two
  * products look like one product. What changes is density and layout: she is
@@ -341,7 +341,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-radius: var(--r);
   background: var(--surface);
 }
-/* Fixed, like the seller app's. The drag handle in the corner invited an
+/* Fixed, like the farmer app's. The drag handle in the corner invited an
    admin to resize a box that is part of a form's layout, and a stretched one
    pushed the buttons under it off the screen. Long text scrolls instead. */
 .textarea { min-height: 72px; resize: none; }

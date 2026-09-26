@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Category, Product, Unit } from '@shared/types.js'
-import { needsPieceCount } from '@shared/seller.js'
+import { needsPieceCount } from '@shared/farmer.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
@@ -87,7 +87,7 @@ export default function EditProduct() {
   if (loading) {
     return (
       <>
-        <AppBar title={t('common.edit')} backTo="/seller/products" />
+        <AppBar title={t('common.edit')} backTo="/farmer/products" />
         <div className="screen"><Loading /></div>
       </>
     )
@@ -96,7 +96,7 @@ export default function EditProduct() {
   if (!product || !d) {
     return (
       <>
-        <AppBar title={t('common.edit')} backTo="/seller/products" />
+        <AppBar title={t('common.edit')} backTo="/farmer/products" />
         <div className="screen">
           <Card><EmptyState icon={IconProduct} title={t('prod.notFound')} /></Card>
         </div>
@@ -176,7 +176,7 @@ export default function EditProduct() {
         ...(submit ? { status: 'LIVE' as const } : {}),
       })
       toast(t(submit ? 'ok.productPublished' : 'ok.productUpdated'))
-      nav('/seller/products', { replace: true })
+      nav('/farmer/products', { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
         setServerError(err.messageMr ?? err.message)
@@ -193,7 +193,7 @@ export default function EditProduct() {
 
   return (
     <>
-      <AppBar title={p.name} sub={t('common.edit')} backTo="/seller/products" />
+      <AppBar title={p.name} sub={t('common.edit')} backTo="/farmer/products" />
 
       <div className="screen stack">
         {serverError && <Notice tone="danger">{serverError}</Notice>}

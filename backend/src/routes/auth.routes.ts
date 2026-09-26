@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express'
-import { isValidPhone, normalizePhone, samePhone } from '@shared/seller.js'
+import { isValidPhone, normalizePhone, samePhone } from '@shared/farmer.js'
 import { getDb, save } from '../db/store.js'
 import { customerIdFor, findCustomer, isRegisteredCustomer } from '../db/customers.js'
 import { callerIp, requireRole } from '../middleware/auth.js'
@@ -17,7 +17,7 @@ import { sendOtp, verifyOtp } from '../services/otp.service.js'
 /**
  * AUTHENTICATION
  * ==============
- * Phone plus OTP for sellers and customers; email plus password for
+ * Phone plus OTP for farmers and customers; email plus password for
  * administrators. Verification happens HERE, on the server, never on the
  * client - a client that decides for itself whether the code was right is not
  * authentication, it is a suggestion.
@@ -54,7 +54,7 @@ export const authRouter: Router = Router()
 function retryInMr(sec: number): string {
   // Marathi inflects for number, so one of anything takes a different ending.
   // "1 दिवसांनी" is the kind of wrong that tells a woman this was not written
-  // for the seller, on the one screen where they are already being told no.
+  // for the farmer, on the one screen where they are already being told no.
   const say = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
   if (sec < 60 * 60) return say(Math.ceil(sec / 60), 'मिनिटाने', 'मिनिटांनी')
@@ -131,7 +131,7 @@ authRouter.post('/otp/send', async (req, res) => {
 authRouter.post('/otp/verify', async (req, res) => {
   const phone = normalizePhone(String(req.body?.phone ?? ''))
   const code = String(req.body?.code ?? '')
-  const role = req.body?.role === 'seller' ? 'seller' : 'customer'
+  const role = req.body?.role === 'farmer' ? 'farmer' : 'customer'
   const ip = hashIp(callerIp(req))
 
   if (!isValidPhone(phone)) {
@@ -163,18 +163,18 @@ authRouter.post('/otp/verify', async (req, res) => {
   const db = getDb()
   const client = describeClient(req.headers['user-agent'])
 
-  if (role === 'seller') {
+  if (role === 'farmer') {
     // Normalised on both sides: records stored before this fix may hold
     // '98765 43210' or '+91...', and she is not registering a second time.
-    const seller = db.sellers.find((s) => samePhone(s.phone, phone))
+    const farmer = db.farmers.find((s) => samePhone(s.phone, phone))
 
-    if (!seller) {
+    if (!farmer) {
       /**
-       * No seller record yet. She is verified but has nothing to sign in to,
+       * No farmer record yet. She is verified but has nothing to sign in to,
        * so instead of a session she gets a TICKET - short-lived, single-use
        * proof that this phone passed an OTP just now.
        *
-       * /sellers/register demands it and reads the phone out of it. Before the
+       * /farmers/register demands it and reads the phone out of it. Before the
        * ticket existed, registration took a phone number straight from the
        * request body and issued a session for it, so anybody could create an
        * account against any unregistered number.
@@ -184,28 +184,28 @@ authRouter.post('/otp/verify', async (req, res) => {
       res.json({
         registered: false,
         phone,
-        ticket: issueTicket('seller-register', phone),
+        ticket: issueTicket('farmer-register', phone),
       })
       return
     }
 
     const session = createSession(db, {
-      role: 'seller', userId: seller.id, phone, sellerId: seller.id, client,
+      role: 'farmer', userId: farmer.id, phone, farmerId: farmer.id, client,
     })
     recordAuthEvent(db, {
-      type: 'session.start', subject: maskPhone(phone), role: 'seller', ip, sessionId: session.id,
+      type: 'session.start', subject: maskPhone(phone), role: 'farmer', ip, sessionId: session.id,
     })
     save()
 
     res.json({
       registered: true,
       session: {
-        token: signToken({ sid: session.id, role: 'seller' }),
-        role: 'seller',
-        userId: seller.id,
+        token: signToken({ sid: session.id, role: 'farmer' }),
+        role: 'farmer',
+        userId: farmer.id,
         phone,
-        name: seller.name,
-        sellerId: seller.id,
+        name: farmer.name,
+        farmerId: farmer.id,
       },
     })
     return
@@ -214,7 +214,7 @@ authRouter.post('/otp/verify', async (req, res) => {
   /**
    * The phone is still the customer's account - the id is derived from it, not
    * allocated - but a verified phone alone is not a registration. She also has
-   * to have given us a name, because that name is what the seller reads on the
+   * to have given us a name, because that name is what the farmer reads on the
    * order and what she is called when she is phoned about a delivery.
    *
    * The session is issued either way (she IS authenticated - the OTP is the
@@ -288,7 +288,7 @@ authRouter.post('/logout', (req: Request, res: Response) => {
 /* ------------------------------------------------------------------ */
 
 /** What "you are signed in on three phones" needs, and nothing about anyone else. */
-authRouter.get('/sessions', requireRole('seller', 'customer', 'admin'), (req, res) => {
+authRouter.get('/sessions', requireRole('farmer', 'customer', 'admin'), (req, res) => {
   const auth = req.auth!
   res.json({
     sessions: liveSessionsForUser(getDb(), auth.userId).map((s) => ({
@@ -307,7 +307,7 @@ authRouter.get('/sessions', requireRole('seller', 'customer', 'admin'), (req, re
  * Scoped to the caller's own sessions: an id belonging to somebody else finds
  * nothing and returns 404, indistinguishable from one that never existed.
  */
-authRouter.delete('/sessions/:id', requireRole('seller', 'customer', 'admin'), (req, res) => {
+authRouter.delete('/sessions/:id', requireRole('farmer', 'customer', 'admin'), (req, res) => {
   const auth = req.auth!
   const db = getDb()
 

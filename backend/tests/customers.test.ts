@@ -20,7 +20,7 @@ import {
  */
 
 function emptyDb(): Db {
-  return { sellers: [], products: [], orders: [], customers: [] } as unknown as Db
+  return { farmers: [], products: [], orders: [], customers: [] } as unknown as Db
 }
 
 const PRIYA = 'c-9011223344'
@@ -138,7 +138,7 @@ test('operations on an unknown customer do not throw', () => {
 function orderFrom(over: Partial<Order> = {}): Order {
   return {
     id: 'SMB0001',
-    sellerId: 's1',
+    farmerId: 's1',
     customerId: PRIYA,
     customerName: 'प्रिया देशमुख',
     customerPhone: '9011223344',

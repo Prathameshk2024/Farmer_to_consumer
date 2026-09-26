@@ -2,36 +2,36 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useState,
   type ReactNode,
 } from 'react'
-import type { CartItem, Product, Seller, SellerGroup } from '@shared/types.js'
-import { canAddFrom, cartSeller, cartSellerName } from './cartRules.js'
+import type { CartItem, Product, Farmer, FarmerGroup } from '@shared/types.js'
+import { canAddFrom, cartFarmer, cartFarmerName } from './cartRules.js'
 
 /**
- * The cart is GROUPED BY SELLER, and that is not a display detail - it is the
- * data model. Delivery is arranged directly with each seller and payment goes
- * into each seller's own UPI, so a cart holding items from two sellers would
+ * The cart is GROUPED BY FARMER, and that is not a display detail - it is the
+ * data model. Delivery is arranged directly with each farmer and payment goes
+ * into each farmer's own UPI, so a cart holding items from two farmers would
  * have to become two orders.
  *
- * It never does any more: ONE SELLER OWNS THE CART until it is emptied or
+ * It never does any more: ONE FARMER OWNS THE CART until it is emptied or
  * ordered - see cartRules.ts for why. The grouping stays because checkout,
  * the order API and every delivery rule are built on it, and because one
- * group is the honest shape of "one seller" rather than a special case.
+ * group is the honest shape of "one farmer" rather than a special case.
  */
 
 interface CartValue {
   items: CartItem[]
   count: number
   /** The shop that owns the cart, or null when it is empty. */
-  sellerId: string | null
-  sellerName?: string
+  farmerId: string | null
+  farmerName?: string
   /** False when the cart already belongs to a different shop. */
-  canAdd: (sellerId: string) => boolean
+  canAdd: (farmerId: string) => boolean
   /** Refuses, and says so, when the cart belongs to another shop. */
-  add: (p: Product, qty?: number, sellerName?: string) => boolean
+  add: (p: Product, qty?: number, farmerName?: string) => boolean
   setQty: (productId: string, qty: number) => void
   remove: (productId: string) => void
   clear: () => void
   has: (productId: string) => boolean
-  groupBySeller: (sellers: Partial<Seller>[]) => SellerGroup[]
+  groupByFarmer: (farmers: Partial<Farmer>[]) => FarmerGroup[]
 }
 
 const CartContext = createContext<CartValue | null>(null)
@@ -61,10 +61,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
    * the updater because `items` in this closure can be a render behind a
    * double tap.
    */
-  const add = useCallback((product: Product, qty = 1, sellerName?: string) => {
+  const add = useCallback((product: Product, qty = 1, farmerName?: string) => {
     let ok = true
     setItems((cur) => {
-      if (!canAddFrom(cur, product.sellerId)) {
+      if (!canAddFrom(cur, product.farmerId)) {
         ok = false
         return cur
       }
@@ -76,8 +76,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ...cur,
         {
           productId: product.id,
-          sellerId: product.sellerId,
-          sellerName,
+          farmerId: product.farmerId,
+          farmerName,
           name: product.name,
           emoji: product.emoji,
           price: product.price,
@@ -108,30 +108,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
   )
   const count = useMemo(() => items.reduce((n, i) => n + i.qty, 0), [items])
 
-  /** Split into one group per seller, applying that seller's delivery rules. */
-  const groupBySeller = useCallback(
-    (sellers: Partial<Seller>[]): SellerGroup[] => {
-      const bySeller = new Map<string, CartItem[]>()
+  /** Split into one group per farmer, applying that farmer's delivery rules. */
+  const groupByFarmer = useCallback(
+    (farmers: Partial<Farmer>[]): FarmerGroup[] => {
+      const byFarmer = new Map<string, CartItem[]>()
       for (const item of items) {
-        const list = bySeller.get(item.sellerId) ?? []
+        const list = byFarmer.get(item.farmerId) ?? []
         list.push(item)
-        bySeller.set(item.sellerId, list)
+        byFarmer.set(item.farmerId, list)
       }
-      return [...bySeller.entries()].map(([sellerId, list]) => {
-        const seller = sellers.find((s) => s.id === sellerId) as Seller | undefined
+      return [...byFarmer.entries()].map(([farmerId, list]) => {
+        const farmer = farmers.find((s) => s.id === farmerId) as Farmer | undefined
         const itemsTotal = list.reduce((n, i) => n + i.price * i.qty, 0)
-        const freeAbove = seller?.freeDeliveryAbove ?? 0
+        const freeAbove = farmer?.freeDeliveryAbove ?? 0
         const freeByHerRule = freeAbove > 0 && itemsTotal >= freeAbove
-        const deliveryFee = freeByHerRule ? 0 : (seller?.deliveryFee ?? 0)
-        const minOrder = seller?.minOrder ?? 0
+        const deliveryFee = freeByHerRule ? 0 : (farmer?.deliveryFee ?? 0)
+        const minOrder = farmer?.minOrder ?? 0
         return {
-          sellerId,
-          seller,
+          farmerId,
+          farmer,
           items: list,
           itemsTotal,
           deliveryFee,
           // A charge of 0 is almost always one nobody set - no screen asks a
-          // seller for it - so "free" was a promise no seller had made.
+          // farmer for it - so "free" was a promise no farmer had made.
           deliveryToAsk: !freeByHerRule && deliveryFee === 0,
           total: itemsTotal + deliveryFee,
           minOrder,
@@ -142,16 +142,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [items],
   )
 
-  const sellerId = cartSeller(items)
-  const sellerName = cartSellerName(items)
+  const farmerId = cartFarmer(items)
+  const farmerName = cartFarmerName(items)
   const canAdd = useCallback((id: string) => canAddFrom(items, id), [items])
 
   const value = useMemo(
     () => ({
-      items, count, sellerId, sellerName, canAdd,
-      add, setQty, remove, clear, has, groupBySeller,
+      items, count, farmerId, farmerName, canAdd,
+      add, setQty, remove, clear, has, groupByFarmer,
     }),
-    [items, count, sellerId, sellerName, canAdd, add, setQty, remove, clear, has, groupBySeller],
+    [items, count, farmerId, farmerName, canAdd, add, setQty, remove, clear, has, groupByFarmer],
   )
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

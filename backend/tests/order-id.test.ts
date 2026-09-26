@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { newShortId } from '../src/db/ids.js'
 
 /**
- * An order id is money's name. The seller reads it back over the phone, the
+ * An order id is money's name. The farmer reads it back over the phone, the
  * customer quotes it when she asks where her packet is, and a UPI payment is
  * reconciled against it by hand. Every lookup in the API is a find-first, so
  * the day two orders share an id the second buyer opens the first buyer's

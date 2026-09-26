@@ -11,7 +11,7 @@ import {
  * CUSTOMER REGISTRATION = PHONE + OTP + NAME
  * ==========================================
  * The OTP proves whose phone it is. It does not finish an account, because a
- * seller packing an order needs a name to put on it and someone to ask for at
+ * farmer packing an order needs a name to put on it and someone to ask for at
  * the door - and "ग्राहक" is not a name.
  *
  * So login answers two separate questions: is she authenticated (always, once
@@ -21,7 +21,7 @@ import {
  */
 
 function emptyDb(): Db {
-  return { sellers: [], products: [], orders: [], customers: [] } as unknown as Db
+  return { farmers: [], products: [], orders: [], customers: [] } as unknown as Db
 }
 
 const PHONE = '9011223344'
@@ -80,7 +80,7 @@ test('a name that arrived with an order counts - she gave it once already', () =
   const db = emptyDb()
   const order = {
     id: 'o1',
-    sellerId: 's1',
+    farmerId: 's1',
     customerId: ID,
     customerName: 'प्रिया देशमुख',
     customerPhone: PHONE,

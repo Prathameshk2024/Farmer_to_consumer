@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import type { StatusIconName } from '@shared/orderFlow.js'
-import type { ProductStatusIconName } from '@shared/seller.js'
+import type { ProductStatusIconName } from '@shared/farmer.js'
 import {
   FiAlertTriangle, FiArrowLeft, FiArrowRight, FiBell, FiBriefcase, FiCamera, FiCheck,
   FiCheckCircle, FiChevronRight, FiClock, FiDownload, FiEdit2, FiFileText,
@@ -80,12 +80,12 @@ export const IconNo: IconType = FiThumbsDown
 /* --- the two audiences --------------------------------------------- */
 export const IconSell: IconType = FiShoppingBag
 export const IconBuy: IconType = FiShoppingCart
-export const IconSeller: IconType = FiUser
+export const IconFarmer: IconType = FiUser
 export const IconBuyers: IconType = FiUsers
 export const IconIndividual: IconType = FiUser
 export const IconGroup: IconType = FiUsers
 
-/* --- seller tabs ---------------------------------------------------- */
+/* --- farmer tabs ---------------------------------------------------- */
 export const IconBusiness: IconType = FiHome
 export const IconAddProduct: IconType = FiPlusCircle
 export const IconProfile: IconType = FiUser

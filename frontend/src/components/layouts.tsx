@@ -43,17 +43,17 @@ function BottomNav({ items }: { items: NavItem[] }) {
   )
 }
 
-export function SellerLayout() {
+export function FarmerLayout() {
   const t = useT()
   return (
     <div className="app-shell app-shell--nav">
       <Outlet />
       <BottomNav
         items={[
-          { to: '/seller', end: true, icon: IconBusiness, label: t('nav.business') },
-          { to: '/seller/upload', icon: IconAddProduct, label: t('nav.upload') },
-          { to: '/seller/profile', icon: IconProfile, label: t('nav.profile') },
-          { to: '/seller/help', icon: IconHelp, label: t('nav.help') },
+          { to: '/farmer', end: true, icon: IconBusiness, label: t('nav.business') },
+          { to: '/farmer/upload', icon: IconAddProduct, label: t('nav.upload') },
+          { to: '/farmer/profile', icon: IconProfile, label: t('nav.profile') },
+          { to: '/farmer/help', icon: IconHelp, label: t('nav.help') },
         ]}
       />
     </div>

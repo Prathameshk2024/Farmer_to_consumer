@@ -1,4 +1,4 @@
-import type { Order, Seller } from '@shared/types.js'
+import type { Order, Farmer } from '@shared/types.js'
 import { openOrders, scrubDueAt } from '@shared/accountClose.js'
 import type { Db } from './seed.js'
 import { destroyImage } from '../routes/uploads.routes.js'
@@ -10,7 +10,7 @@ import { PLACEHOLDER_NAME } from './customers.js'
  *
  * `shared/src/accountClose.ts` says what the rule is and why a row survives
  * the person. This file does it, in two moments that are deliberately far
- * apart: `requestSellerClose` shuts the shop and signs her out the instant she
+ * apart: `requestFarmerClose` shuts the shop and signs her out the instant she
  * asks, and `sweepClosedAccounts` empties the record a week later. A customer
  * has no week - `closeCustomer` does both at once.
  *
@@ -19,7 +19,7 @@ import { PLACEHOLDER_NAME } from './customers.js'
  * persist.
  */
 
-/** The name a closed seller's shop carries on orders that already exist. */
+/** The name a closed farmer's shop carries on orders that already exist. */
 export const CLOSED_SHOP_NAME = 'बंद केलेले दुकान'
 
 export interface CloseRequest {
@@ -28,8 +28,8 @@ export interface CloseRequest {
 }
 
 /** Her orders that still need somebody - the reason a close can be refused. */
-export function openOrdersForSeller(db: Db, sellerId: string): Order[] {
-  return openOrders(db.orders.filter((o) => o.sellerId === sellerId))
+export function openOrdersForFarmer(db: Db, farmerId: string): Order[] {
+  return openOrders(db.orders.filter((o) => o.farmerId === farmerId))
 }
 
 export function openOrdersForCustomer(db: Db, customerId: string, phone: string): Order[] {
@@ -49,96 +49,96 @@ export function openOrdersForCustomer(db: Db, customerId: string, phone: string)
  * CLOSED is not in `canSellNow`, so her listings leave the catalogue, her shop
  * page stops answering and `POST /orders` refuses - all of it from the status
  * alone, with no product touched. If she comes back
- * inside the week, `restoreSeller` puts the status back and nothing else has
+ * inside the week, `restoreFarmer` puts the status back and nothing else has
  * to be undone.
  */
-export function requestSellerClose(
+export function requestFarmerClose(
   db: Db,
-  seller: Seller,
+  farmer: Farmer,
   request: CloseRequest,
   now = Date.now(),
-): Seller {
-  seller.status = 'CLOSED'
-  seller.closingAt = scrubDueAt(now)
-  seller.closeReason = request.reason
-  if (request.note) seller.closeNote = request.note
-  else delete seller.closeNote
+): Farmer {
+  farmer.status = 'CLOSED'
+  farmer.closingAt = scrubDueAt(now)
+  farmer.closeReason = request.reason
+  if (request.note) farmer.closeNote = request.note
+  else delete farmer.closeNote
   // `isOpen` is left alone on purpose. CLOSED already hides the shop, and
   // flipping the switch too meant a restore brought her back with the shop
   // still shut - the one thing restoring promises not to do.
 
   // Every phone signed in as her, not just this one. She asked for the
   // account to end; a second handset still holding a live token has not.
-  revokeAllForUser(db, seller.id, 'logout', now)
-  return seller
+  revokeAllForUser(db, farmer.id, 'logout', now)
+  return farmer
 }
 
 /** She changed her mind inside the week. */
-export function restoreSeller(seller: Seller): Seller {
+export function restoreFarmer(farmer: Farmer): Farmer {
   // Back to what the verification says, not whatever she was before: a
   // farmer who closed before an admin checked him must not come back verified.
-  seller.status = seller.verifiedAt ? 'ACTIVE' : 'PENDING_VERIFICATION'
-  delete seller.closingAt
-  delete seller.closeReason
-  delete seller.closeNote
-  return seller
+  farmer.status = farmer.verifiedAt ? 'ACTIVE' : 'PENDING_VERIFICATION'
+  delete farmer.closingAt
+  delete farmer.closeReason
+  delete farmer.closeNote
+  return farmer
 }
 
 /**
  * The erasing itself. Everything that is the woman goes; the shop's history
  * stays, holding no way back to her.
  *
- * `SELLER_PII_FIELDS` in the shared rule is the list, and a test walks it
- * against this function - a new field on `Seller` that nobody adds to the list
+ * `FARMER_PII_FIELDS` in the shared rule is the list, and a test walks it
+ * against this function - a new field on `Farmer` that nobody adds to the list
  * is a phone number surviving a deletion.
  */
-export function scrubSeller(
+export function scrubFarmer(
   db: Db,
-  seller: Seller,
+  farmer: Farmer,
   now = Date.now(),
   destroy: (publicId: string | undefined) => unknown = destroyImage,
-): Seller {
+): Farmer {
   // Her bank's QR is a picture of her account. Best effort and not awaited,
   // like every other image this app destroys: the record is what matters.
-  void destroy(seller.upiQrPublicId)
+  void destroy(farmer.upiQrPublicId)
 
-  seller.name = CLOSED_SHOP_NAME
-  seller.shopName = CLOSED_SHOP_NAME
-  seller.phone = ''
-  seller.whatsapp = ''
-  seller.photo = ''
-  seller.village = ''
-  seller.villageCode = ''
-  seller.taluka = ''
-  seller.district = ''
-  seller.pincode = ''
-  seller.pincodes = []
-  seller.about = ''
-  seller.shgName = ''
-  seller.upiId = ''
-  seller.upiVerified = false
-  seller.upiQrReady = false
-  delete seller.upiQrUrl
-  delete seller.upiQrPublicId
-  delete seller.age
-  delete seller.education
-  delete seller.yearsInBusiness
-  delete seller.monthlyCapacity
-  delete seller.notices
-  delete seller.blockReason
-  seller.digital = {
+  farmer.name = CLOSED_SHOP_NAME
+  farmer.shopName = CLOSED_SHOP_NAME
+  farmer.phone = ''
+  farmer.whatsapp = ''
+  farmer.photo = ''
+  farmer.village = ''
+  farmer.villageCode = ''
+  farmer.taluka = ''
+  farmer.district = ''
+  farmer.pincode = ''
+  farmer.pincodes = []
+  farmer.about = ''
+  farmer.shgName = ''
+  farmer.upiId = ''
+  farmer.upiVerified = false
+  farmer.upiQrReady = false
+  delete farmer.upiQrUrl
+  delete farmer.upiQrPublicId
+  delete farmer.age
+  delete farmer.education
+  delete farmer.yearsInBusiness
+  delete farmer.monthlyCapacity
+  delete farmer.notices
+  delete farmer.blockReason
+  farmer.digital = {
     smartphone: false, internet: false, upi: false,
     whatsappBusiness: false, socialMedia: false, digitalMarketing: false,
   }
-  seller.readinessScore = 0
-  seller.readinessBand = 'starter'
-  seller.isOpen = false
-  seller.status = 'CLOSED'
-  seller.closedAt = new Date(now).toISOString()
-  delete seller.closingAt
+  farmer.readinessScore = 0
+  farmer.readinessBand = 'starter'
+  farmer.isOpen = false
+  farmer.status = 'CLOSED'
+  farmer.closedAt = new Date(now).toISOString()
+  delete farmer.closingAt
 
-  forgetSessions(db, seller.id, now)
-  return seller
+  forgetSessions(db, farmer.id, now)
+  return farmer
 }
 
 /**
@@ -150,7 +150,7 @@ export function scrubSeller(
  * The phone and the address she typed are copied onto every order she placed,
  * and her first name onto every review she wrote. Those copies are the account
  * as far as she is concerned, so they go too; the stars, the words and the
- * money stay, because they are the seller's record of a sale that happened.
+ * money stay, because they are the farmer's record of a sale that happened.
  */
 export function closeCustomer(db: Db, customerId: string, phone: string, now = Date.now()): void {
   const digits = phone.replace(/\D/g, '')
@@ -162,7 +162,7 @@ export function closeCustomer(db: Db, customerId: string, phone: string, now = D
     order.customerPhone = ''
     order.address = ''
     // The pincode stays. It is a village, not a doorstep, and it is what a
-    // seller's delivery area is measured against.
+    // farmer's delivery area is measured against.
   }
 
   for (const review of db.reviews.filter((r) => r.customerId === customerId)) {
@@ -179,7 +179,7 @@ export function closeCustomer(db: Db, customerId: string, phone: string, now = D
  * Sign her out everywhere and take her number and phone off the session rows.
  *
  * Revoked rows are kept a week for auditing (`pruneSessions`), and each one
- * carried her full phone all that week. Worse, a seller who
+ * carried her full phone all that week. Worse, a farmer who
  * signed in during her seven days to look at the notice, and neither restored
  * nor logged out, held a LIVE session into an erased shop. Blanking rather
  * than deleting the rows keeps this clear of `isBulkDelete`.
@@ -206,9 +206,9 @@ export function sweepClosedAccounts(
   now = Date.now(),
   destroy: (publicId: string | undefined) => unknown = destroyImage,
 ): number {
-  const due = db.sellers.filter(
+  const due = db.farmers.filter(
     (s) => s.status === 'CLOSED' && s.closingAt && new Date(s.closingAt).getTime() <= now,
   )
-  for (const seller of due) scrubSeller(db, seller, now, destroy)
+  for (const farmer of due) scrubFarmer(db, farmer, now, destroy)
   return due.length
 }

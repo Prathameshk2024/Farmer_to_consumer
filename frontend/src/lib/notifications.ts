@@ -1,12 +1,12 @@
-import type { AdminNoticeKind, Order, OrderStatus, Role, Seller } from '@shared/types.js'
+import type { AdminNoticeKind, Order, OrderStatus, Role, Farmer } from '@shared/types.js'
 import { statusLabelKey } from '@shared/orderFlow.js'
 
 /** Where tapping an admin decision goes. */
 const ADMIN_NOTICE_PATH: Record<AdminNoticeKind, string | undefined> = {
-  VERIFIED: '/seller/products',
+  VERIFIED: '/farmer/products',
   BLOCKED: undefined,
   UNBLOCKED: undefined,
-  PRODUCT_REJECTED: '/seller/products',
+  PRODUCT_REJECTED: '/farmer/products',
 }
 
 /** What the order is, in the words on the listing. "+2" counts the rest. */
@@ -27,7 +27,7 @@ export function shortDate(iso: string | undefined): string {
 /**
  * WHAT CHANGED SINCE SHE LAST LOOKED
  * ==================================
- * A customer places an order and then hears nothing. The seller accepts it,
+ * A customer places an order and then hears nothing. The farmer accepts it,
  * packs it, sets off with it - four real events, none of which reached the
  * person waiting at home. Her only option was to open the order and read the
  * timeline, which means knowing to look.
@@ -55,16 +55,16 @@ export interface Notice {
   title?: string
   /**
    * Where the order stands NOW - the order's own status, not the last event
-   * the other side caused. On the seller's side those are rarely the same
+   * the other side caused. On the farmer's side those are rarely the same
    * thing: the only states a customer causes are PLACED and CANCELLED, so a
    * tag drawn from her buyer's last action said "new order" on every row
    * forever, including ones she had packed and delivered herself.
    */
   status?: OrderStatus
   /**
-   * Who it concerns, when we know. A SELLER's order list carries
-   * `customerName`; a customer's carries only `sellerId`, so on her side this
-   * is empty and the line names the order instead. Fetching each seller to
+   * Who it concerns, when we know. A FARMER's order list carries
+   * `customerName`; a customer's carries only `farmerId`, so on her side this
+   * is empty and the line names the order instead. Fetching each farmer to
    * fill it would be one request per order for a subtitle.
    */
   who: string
@@ -93,7 +93,7 @@ export interface Notice {
  *
  * The list used to print the state machine's own label - "Packed", "Accepted"
  * - which is what the ORDER is, not what happened to HER. A woman waiting at
- * home reads "Accepted" and has to work out who accepted what. The seller's
+ * home reads "Accepted" and has to work out who accepted what. The farmer's
  * side gets its own wording for the same reason: "Order placed" is a fact
  * about a row, "You have a new order" is a thing to go and do.
  *
@@ -110,13 +110,13 @@ const CUSTOMER_LINE: Partial<Record<OrderStatus, string>> = {
   CANCELLED: 'notif.cus.CANCELLED',
 }
 
-const SELLER_LINE: Partial<Record<OrderStatus, string>> = {
+const FARMER_LINE: Partial<Record<OrderStatus, string>> = {
   PLACED: 'notif.sel.PLACED',
   CANCELLED: 'notif.sel.CANCELLED',
 }
 
 export function noticeLabelKey(status: OrderStatus, role: Role): string {
-  const line = role === 'seller' ? SELLER_LINE[status] : CUSTOMER_LINE[status]
+  const line = role === 'farmer' ? FARMER_LINE[status] : CUSTOMER_LINE[status]
   return line ?? statusLabelKey(status)
 }
 
@@ -130,7 +130,7 @@ export function noticeLabelKey(status: OrderStatus, role: Role): string {
  * announcements. So the row is the ORDER, it is named after what is in it,
  * and the state moves into a tag that changes as the order walks.
  *
- * The other side's actions only. A seller does not need telling that she
+ * The other side's actions only. A farmer does not need telling that she
  * accepted an order two seconds ago, and a customer does not need telling she
  * placed one. Filtering by `by` is what keeps the list to things that happened
  * WHILE SHE WAS NOT LOOKING.
@@ -142,7 +142,7 @@ export function noticeLabelKey(status: OrderStatus, role: Role): string {
  * `Notice.status`. What the row is for is "where is this order now".
  */
 export function buildFeed(orders: Order[], role: Role): Notice[] {
-  const mine = role === 'seller' ? 'seller' : 'customer'
+  const mine = role === 'farmer' ? 'farmer' : 'customer'
 
   const out: Notice[] = []
 
@@ -163,7 +163,7 @@ export function buildFeed(orders: Order[], role: Role): Notice[] {
       labelKey: noticeLabelKey(last.to, role),
       title: orderItemSummary(o),
       status: o.status,
-      who: mine === 'seller' ? o.customerName : '',
+      who: mine === 'farmer' ? o.customerName : '',
       total: o.total,
     })
   }
@@ -179,7 +179,7 @@ export function buildFeed(orders: Order[], role: Role): Notice[] {
  * THIS IS THE NEWS, NOT THE ARCHIVE.
  *
  * The feed kept everything for ever, so in the third week of September a
- * seller opened it and read about the 8th - orders she had packed, delivered
+ * farmer opened it and read about the 8th - orders she had packed, delivered
  * and been paid for. Old rows pushed today's news off the screen, and a list
  * where nothing ever leaves teaches you that nothing in it is urgent.
  *
@@ -298,12 +298,12 @@ export function unreadCount(feed: Notice[], userId: string, now = Date.now()): n
  * The other half of "what happened while she was not looking".
  *
  * A farmer verified by hand deserves to be told rather than to check. These come off
- * her own seller record (`seller.notices`), written by the admin handler that
+ * her own farmer record (`farmer.notices`), written by the admin handler that
  * made the change, so this needs no new endpoint: `api.me()` already carries
  * them. The path each kind opens is `ADMIN_NOTICE_PATH` above.
  */
-export function adminFeed(seller: Seller | null | undefined): Notice[] {
-  return (seller?.notices ?? []).map((n): Notice => {
+export function adminFeed(farmer: Farmer | null | undefined): Notice[] {
+  return (farmer?.notices ?? []).map((n): Notice => {
     return {
       id: n.id,
       at: n.at,

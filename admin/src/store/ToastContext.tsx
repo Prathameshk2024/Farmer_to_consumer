@@ -7,7 +7,7 @@ import { IconAllClear, IconWarn } from '../components/icons.js'
 /**
  * CONFIRMATION, EVERY TIME
  * ========================
- * The same rule as the seller app, and it matters more here: verifying a
+ * The same rule as the farmer app, and it matters more here: verifying a
  * farmer puts his produce on sale, and taking a listing down removes it. Both used to
  * end with a row quietly leaving a list, which on a slow connection is
  * indistinguishable from nothing having happened - and the natural response to

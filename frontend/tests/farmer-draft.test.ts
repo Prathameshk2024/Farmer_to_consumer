@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   clearDraft, draftKey, EMPTY, readDraft, writeDraft, TOTAL_STEPS,
-} from '../src/screens/auth/sellerDraft.js'
+} from '../src/screens/auth/farmerDraft.js'
 
 /**
  * The registration wizard keeps a half-filled form on the device, so that
@@ -10,7 +10,7 @@ import {
  * point, does not force a second OTP on a number she verified two minutes ago.
  *
  * It is keyed by PHONE for the same reason the product draft is keyed by
- * seller: on a field coordinator's handset one woman registers after another,
+ * farmer: on a field coordinator's handset one woman registers after another,
  * and a single shared key would show the next one a stranger's name, village
  * and UPI id already filled in.
  */

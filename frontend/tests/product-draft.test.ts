@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   BLANK, LEGACY_DRAFT_KEY, clearDraft, draftKey, hasStarted, readDraft, writeDraft,
-} from '../src/screens/seller/productDraft.js'
+} from '../src/screens/farmer/productDraft.js'
 
 /**
  * The upload wizard keeps a half-filled product on the device so that leaving
@@ -11,9 +11,9 @@ import {
  *
  * The first version of that keyed the draft on nothing at all, so ONE key held
  * whatever the last woman had typed. On a field coordinator's phone, where
- * seller after seller registers on the same handset, the next woman opened
+ * farmer after farmer registers on the same handset, the next woman opened
  * "New product" and found a stranger's photo already on step 1. These tests
- * exist so that never happens again: a draft belongs to exactly one seller.
+ * exist so that never happens again: a draft belongs to exactly one farmer.
  */
 
 /** localStorage stands in as a Map - the rules are about keys, not about a browser. */
@@ -30,14 +30,14 @@ function fakeStore() {
 
 const typed = { ...BLANK, name: 'आंब्याचे लोणचे', price: '220' }
 
-test('a draft one seller typed is invisible to the next seller on the same phone', () => {
+test('a draft one farmer typed is invisible to the next farmer on the same phone', () => {
   const store = fakeStore()
   writeDraft(store, 'sel_sunita', 3, typed)
 
   assert.equal(readDraft(store, 'sel_rekha'), null)
 })
 
-test('the same seller gets her own draft back, on the step she left', () => {
+test('the same farmer gets her own draft back, on the step she left', () => {
   const store = fakeStore()
   writeDraft(store, 'sel_sunita', 3, typed)
 
@@ -47,7 +47,7 @@ test('the same seller gets her own draft back, on the step she left', () => {
   assert.equal(back?.d.price, '220')
 })
 
-test('two sellers on one phone keep two separate drafts', () => {
+test('two farmers on one phone keep two separate drafts', () => {
   const store = fakeStore()
   writeDraft(store, 'sel_sunita', 1, { ...BLANK, name: 'लोणचे' })
   writeDraft(store, 'sel_rekha', 4, { ...BLANK, name: 'पापड' })
@@ -57,7 +57,7 @@ test('two sellers on one phone keep two separate drafts', () => {
 })
 
 /**
- * The key carries the seller id and so does the payload. Belt and braces: a
+ * The key carries the farmer id and so does the payload. Belt and braces: a
  * mismatch means the row was moved or hand-edited, and the safe reading of an
  * ambiguous draft is no draft at all.
  */
@@ -65,7 +65,7 @@ test('a draft whose stored owner disagrees with its key is thrown away', () => {
   const store = fakeStore()
   store.setItem(
     draftKey('sel_rekha'),
-    JSON.stringify({ sellerId: 'sel_sunita', step: 2, d: typed }),
+    JSON.stringify({ farmerId: 'sel_sunita', step: 2, d: typed }),
   )
 
   assert.equal(readDraft(store, 'sel_rekha'), null)
@@ -110,7 +110,7 @@ test('a draft from an older build loads with the new fields blank', () => {
   const store = fakeStore()
   store.setItem(
     draftKey('sel_sunita'),
-    JSON.stringify({ sellerId: 'sel_sunita', step: 1, d: { name: 'पापड' } }),
+    JSON.stringify({ farmerId: 'sel_sunita', step: 1, d: { name: 'पापड' } }),
   )
 
   const back = readDraft(store, 'sel_sunita')
@@ -123,7 +123,7 @@ test('a step number outside the wizard is clamped rather than trusted', () => {
   const store = fakeStore()
   store.setItem(
     draftKey('sel_sunita'),
-    JSON.stringify({ sellerId: 'sel_sunita', step: 99, d: typed }),
+    JSON.stringify({ farmerId: 'sel_sunita', step: 99, d: typed }),
   )
 
   const back = readDraft(store, 'sel_sunita')
@@ -148,8 +148,8 @@ test('publishing clears only her own draft', () => {
   assert.equal(readDraft(store, 'sel_rekha')?.d.name, 'पापड', 'hers is untouched')
 })
 
-/** No seller id yet - the wizard must not fall back to a shared bucket. */
-test('with no seller id there is no draft to read and nothing is written', () => {
+/** No farmer id yet - the wizard must not fall back to a shared bucket. */
+test('with no farmer id there is no draft to read and nothing is written', () => {
   const store = fakeStore()
   writeDraft(store, undefined, 2, typed)
 

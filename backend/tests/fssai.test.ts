@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { FSSAI_DIGITS, fssaiProblem, normalizeFssai } from '@shared/seller.js'
+import { FSSAI_DIGITS, fssaiProblem, normalizeFssai } from '@shared/farmer.js'
 
 /**
  * A FOOD LICENCE NUMBER, IF SHE HAS ONE.

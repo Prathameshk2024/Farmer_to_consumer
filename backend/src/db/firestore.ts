@@ -12,12 +12,12 @@ import type { Db } from './seed.js'
  * synchronous `getDb()` in 33 places across the route files. Making each of
  * those an awaited Firestore query would be a rewrite of every handler, and
  * would also turn one page load into dozens of billed reads. For a programme
- * sized in hundreds of sellers the entire dataset is a few hundred kilobytes,
+ * sized in hundreds of farmers the entire dataset is a few hundred kilobytes,
  * so holding it in memory is both simpler and far cheaper.
  *
  * Writes are DIFFED, not blanket. Only documents that actually changed are
  * sent, batched, and coalesced over 400ms — otherwise a single order update
- * would rewrite every seller and burn the free-tier write quota.
+ * would rewrite every farmer and burn the free-tier write quota.
  *
  * >>> THE LIMITATION, STATED PLAINLY <<<
  * This is correct for ONE server process. If you ever run two instances (Cloud
@@ -35,7 +35,7 @@ import type { Db } from './seed.js'
  * in Firestore untouched, so restoring this entry is the whole rollback.
  */
 export const COLLECTIONS = [
-  'sellers', 'products', 'orders', 'customers', 'reviews', 'reports',
+  'farmers', 'products', 'orders', 'customers', 'reviews', 'reports',
   'complaints',
   // Auth state. `firestore.rules` already denies every client-SDK read, which
   // matters more for these three than for anything else in the list: `admins`
@@ -156,7 +156,7 @@ export async function seedInto(data: Db): Promise<void> {
 /**
  * THE DEAD-MAN'S SWITCH
  * =====================
- * On 10 September 2026 every seller and every product vanished from Firestore:
+ * On 10 September 2026 every farmer and every product vanished from Firestore:
  * six real women and thirteen listings, deleted in one batch because something
  * handed `persistDiff` an in-memory database with those two arrays empty. The
  * diff did exactly what it is written to do. Nothing was wrong with it, and
@@ -173,7 +173,7 @@ export async function seedInto(data: Db): Promise<void> {
  *
  * `before > 5` keeps the rule out of the way of genuinely small collections,
  * where "half" is one or two documents and clearing them is routine. A seeded
- * database with three sellers can still be emptied.
+ * database with three farmers can still be emptied.
  */
 export function isBulkDelete(doomed: number, before: number): boolean {
   return before > 5 && doomed > before / 2

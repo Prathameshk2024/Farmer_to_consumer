@@ -19,10 +19,10 @@ import { requireRole } from '../middleware/auth.js'
  */
 export const complaintsRouter: Router = Router()
 
-complaintsRouter.post('/', requireRole('seller', 'customer'), (req, res) => {
+complaintsRouter.post('/', requireRole('farmer', 'customer'), (req, res) => {
   const db = getDb()
   const auth = req.auth!
-  const byRole = auth.role === 'seller' ? 'seller' as const : 'customer' as const
+  const byRole = auth.role === 'farmer' ? 'farmer' as const : 'customer' as const
 
   const fields = complaintProblems(req.body ?? {})
   if (Object.keys(fields).length) {
@@ -30,11 +30,11 @@ complaintsRouter.post('/', requireRole('seller', 'customer'), (req, res) => {
     return
   }
 
-  const seller = byRole === 'seller' ? db.sellers.find((s) => s.id === auth.sellerId) : undefined
+  const farmer = byRole === 'farmer' ? db.farmers.find((s) => s.id === auth.farmerId) : undefined
   const customer = byRole === 'customer'
     ? db.customers.find((c) => c.id === auth.customerId)
     : undefined
-  const who = seller ?? customer
+  const who = farmer ?? customer
   if (!who) {
     res.status(404).json({ error: 'Account not found', messageMr: 'खाते सापडले नाही' })
     return
@@ -46,7 +46,7 @@ complaintsRouter.post('/', requireRole('seller', 'customer'), (req, res) => {
     byUserId: who.id,
     name: who.name,
     phone: who.phone,
-    womenBizId: seller?.womenBizId,
+    farmerCode: farmer?.farmerCode,
     subject: req.body.subject,
     message: String(req.body.message ?? '').trim().slice(0, MAX_COMPLAINT),
     at: new Date().toISOString(),

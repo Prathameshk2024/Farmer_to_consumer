@@ -1,13 +1,13 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  makeWomenBizId, transliterate, VILLAGES, villageCode,
-} from '@shared/womenbiz.js'
+  makeFarmerCode, transliterate, VILLAGES, villageCode,
+} from '@shared/farmerCode.js'
 
 /**
  * A village is not a dropdown entry. Its code becomes the middle of every ID
  * printed on a woman's packaging and her QR poster, and the serial after it is
- * counted per village so that SMB-YELI-07 tells a field coordinator where to
+ * counted per village so that F2C-YELI-007 tells a field coordinator where to
  * go. That makes adding a village a data change with two obligations, and this
  * file is where both are checked.
  */
@@ -24,7 +24,7 @@ test('येळी is one of the supported villages', () => {
  * EACH VILLAGE CARRIES ITS OWN TALUKA.
  *
  * Every row used to say तुळजापूर - true of the first village and then copied
- * down the list, which put four women in the wrong taluka on their own seller
+ * down the list, which put four women in the wrong taluka on their own farmer
  * records. The taluka is printed with her address and is how a coordinator
  * works out whose round she is on, so this pins the four that are not
  * Tuljapur. Correct one only against the register.
@@ -79,35 +79,33 @@ test('no two villages share a code', () => {
 test('a new village starts its own serial at 001', () => {
   // Adding येळी must not push existing villages along, and must not inherit a
   // number from them either.
-  const issued = ['SMB-ANADUR-01', 'SMB-ANADUR-02', 'SMB-JEVALI-01']
+  const issued = ['F2C-ANADUR-001', 'F2C-ANADUR-002', 'F2C-JEVALI-001']
 
-  assert.equal(makeWomenBizId('येळी', issued), 'SMB-YELI-01')
-  assert.equal(makeWomenBizId('आणदुर', issued), 'SMB-ANADUR-03')
+  assert.equal(makeFarmerCode('येळी', issued), 'F2C-YELI-001')
+  assert.equal(makeFarmerCode('आणदुर', issued), 'F2C-ANADUR-003')
 })
 
-test('the serial is two digits: the third woman from a village is 03', () => {
-  // Not 003. The number is read aloud over a phone and copied onto packaging
-  // by hand, and two digits is what this programme will ever need.
-  const issued = ['SMB-CHIVARI-01', 'SMB-CHIVARI-02']
-  assert.equal(makeWomenBizId('चिवरी', issued), 'SMB-CHIVARI-03')
+test('the serial is three digits: the third farmer from a village is 003', () => {
+  // Zero-padded so every code in a village has the same width on packaging.
+  const issued = ['F2C-CHIVARI-001', 'F2C-CHIVARI-002']
+  assert.equal(makeFarmerCode('चिवरी', issued), 'F2C-CHIVARI-003')
 })
 
-test('ids issued in the old three-digit format still count correctly', () => {
-  // Live records exist as SMB-CHIVARI-001. The serial is parsed as a NUMBER,
-  // not compared as a string, so the next woman is 02 rather than a duplicate
-  // 01 - and the two formats can sit side by side without a migration.
-  assert.equal(makeWomenBizId('चिवरी', ['SMB-CHIVARI-001']), 'SMB-CHIVARI-02')
+test('the serial is parsed as a number, so it grows past 999 without colliding', () => {
+  // The serial is compared as a NUMBER, not a string, and padStart does not
+  // truncate - the thousandth farmer is 1000, not a duplicate 000.
+  assert.equal(makeFarmerCode('चिवरी', ['F2C-CHIVARI-001']), 'F2C-CHIVARI-002')
   assert.equal(
-    makeWomenBizId('चिवरी', ['SMB-CHIVARI-001', 'SMB-CHIVARI-002', 'SMB-CHIVARI-03']),
-    'SMB-CHIVARI-04',
+    makeFarmerCode('चिवरी', ['F2C-CHIVARI-998', 'F2C-CHIVARI-999']),
+    'F2C-CHIVARI-1000',
   )
 })
 
 test('येळी counts on from its own last ID, not from the global one', () => {
   const issued = [
-    'SMB-ANADUR-01', 'SMB-ANADUR-02', 'SMB-ANADUR-03',
-    'SMB-YELI-01', 'SMB-YELI-02',
+    'F2C-ANADUR-001', 'F2C-ANADUR-002', 'F2C-ANADUR-003',
+    'F2C-YELI-001', 'F2C-YELI-002',
   ]
 
-  assert.equal(makeWomenBizId('येळी', issued), 'SMB-YELI-03')
+  assert.equal(makeFarmerCode('येळी', issued), 'F2C-YELI-003')
 })

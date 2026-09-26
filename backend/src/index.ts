@@ -7,7 +7,7 @@ import { hit, LIMITS, sweep as sweepLimits } from './auth/rateLimit.js'
 import { pruneSessions } from './auth/sessions.js'
 import { describeAdminState } from './auth/admins.js'
 import { authRouter } from './routes/auth.routes.js'
-import { sellersRouter } from './routes/sellers.routes.js'
+import { farmersRouter } from './routes/farmers.routes.js'
 import { productsRouter } from './routes/products.routes.js'
 import { catalogRouter } from './routes/catalog.routes.js'
 import { ordersRouter } from './routes/orders.routes.js'
@@ -20,7 +20,7 @@ import { customersRouter } from './routes/customers.routes.js'
 import {
   ALLOW_DEV_RESET, CORS_ORIGIN, describeConfig, PORT as CONFIG_PORT,
 } from './config.js'
-import { sellerWeek } from './db/analytics.js'
+import { farmerWeek } from './db/analytics.js'
 import { normalizeLegacyRows } from './db/moderation.js'
 import { sweepClosedAccounts } from './db/accountClose.js'
 import { splitOrderReviews } from './db/reviews.js'
@@ -54,7 +54,7 @@ app.use(
   }),
 )
 
-// A LIST, not a string: the seller/customer app and the admin site are
+// A LIST, not a string: the farmer/customer app and the admin site are
 // deployed to different origins and both call this one API.
 // exposedHeaders matters: a browser cannot read a custom response header
 // unless it is named here, and X-Session-Token is how a sliding session gets
@@ -97,7 +97,7 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.use('/api/auth', authRouter)
-app.use('/api/sellers', sellersRouter)
+app.use('/api/farmers', farmersRouter)
 app.use('/api/products', productsRouter)
 app.use('/api/catalog', catalogRouter)
 app.use('/api/customers', customersRouter)
@@ -112,19 +112,19 @@ app.use('/api/admin', adminRouter)
 /**
  * Her growth chart, computed from her own orders.
  *
- * Scoped to the signed-in seller rather than to the id in the path: the id was
- * never checked, so any seller could read another woman's weekly earnings by
+ * Scoped to the signed-in farmer rather than to the id in the path: the id was
+ * never checked, so any farmer could read another woman's weekly earnings by
  * changing a number in the URL.
  */
-app.get('/api/analytics/seller/:id/week', requireRole('seller'), (req, res) => {
-  res.json({ week: sellerWeek(getDb(), req.auth!.sellerId!) })
+app.get('/api/analytics/farmer/:id/week', requireRole('farmer'), (req, res) => {
+  res.json({ week: farmerWeek(getDb(), req.auth!.farmerId!) })
 })
 
 /**
  * Wipes the database. Needs an explicit opt-in as well as a non-production
  * NODE_ENV, because gating on NODE_ENV alone fails OPEN: it is unset by
  * default on more hosts than not, and that left a public, unauthenticated
- * endpoint that destroys every seller, product and order.
+ * endpoint that destroys every farmer, product and order.
  */
 app.post('/api/dev/reset', (_req, res) => {
   if (!ALLOW_DEV_RESET) {

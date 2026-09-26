@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 /**
  * VOICE TYPING
  * ============
- * A seller who can speak Marathi fluently may still not be able to type it -
+ * A farmer who can speak Marathi fluently may still not be able to type it -
  * the Devanagari keyboard is a real barrier, and for a first-time smartphone
  * user it is often the point where she gives up on the form. So anywhere she
  * has to enter free text, she can press a mic and say it instead.

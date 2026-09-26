@@ -1,8 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import type { OrderRow, ProductRow, SellerRow } from '../src/lib/api.js'
+import type { OrderRow, ProductRow, FarmerRow } from '../src/lib/api.js'
 import {
-  ORDER_SORTS, PRODUCT_SORTS, SELLER_SORTS, sortRows,
+  ORDER_SORTS, PRODUCT_SORTS, FARMER_SORTS, sortRows,
 } from '../src/lib/sort.js'
 
 /**
@@ -13,25 +13,25 @@ import {
  * mixed-script names, and reordering the fetched array in place.
  */
 
-const seller = (id: string, over: Partial<SellerRow>) =>
-  ({ id, name: id, createdAt: '2026-01-01T00:00:00Z', earned: 0, ...over }) as SellerRow
+const farmer = (id: string, over: Partial<FarmerRow>) =>
+  ({ id, name: id, createdAt: '2026-01-01T00:00:00Z', earned: 0, ...over }) as FarmerRow
 const ids = (rows: { id: string }[]) => rows.map((r) => r.id)
 
 test('every list offers newest and oldest first, newest by default', () => {
-  for (const list of [SELLER_SORTS, PRODUCT_SORTS, ORDER_SORTS]) {
+  for (const list of [FARMER_SORTS, PRODUCT_SORTS, ORDER_SORTS]) {
     assert.equal(list[0]?.id, 'newest')
     assert.ok(list.some((o) => o.id === 'oldest'))
   }
 })
 
-test('sellers: newest joined, oldest joined', () => {
+test('farmers: newest joined, oldest joined', () => {
   const rows = [
-    seller('b', { createdAt: '2026-02-01T00:00:00Z' }),
-    seller('a', { createdAt: '2026-01-01T00:00:00Z' }),
-    seller('c', { createdAt: '2026-03-01T00:00:00Z' }),
+    farmer('b', { createdAt: '2026-02-01T00:00:00Z' }),
+    farmer('a', { createdAt: '2026-01-01T00:00:00Z' }),
+    farmer('c', { createdAt: '2026-03-01T00:00:00Z' }),
   ]
-  assert.deepEqual(ids(sortRows(rows, SELLER_SORTS, 'newest')), ['c', 'b', 'a'])
-  assert.deepEqual(ids(sortRows(rows, SELLER_SORTS, 'oldest')), ['a', 'b', 'c'])
+  assert.deepEqual(ids(sortRows(rows, FARMER_SORTS, 'newest')), ['c', 'b', 'a'])
+  assert.deepEqual(ids(sortRows(rows, FARMER_SORTS, 'oldest')), ['a', 'b', 'c'])
 })
 
 /**
@@ -40,24 +40,24 @@ test('sellers: newest joined, oldest joined', () => {
  */
 test('names sort alphabetically, ignoring case, in both scripts', () => {
   const rows = [
-    seller('1', { name: 'zarina' }),
-    seller('2', { name: 'Asha' }),
-    seller('3', { name: 'bharati' }),
+    farmer('1', { name: 'zarina' }),
+    farmer('2', { name: 'Asha' }),
+    farmer('3', { name: 'bharati' }),
   ]
-  assert.deepEqual(sortRows(rows, SELLER_SORTS, 'nameAZ').map((s) => s.name), ['Asha', 'bharati', 'zarina'])
-  assert.deepEqual(sortRows(rows, SELLER_SORTS, 'nameZA').map((s) => s.name), ['zarina', 'bharati', 'Asha'])
+  assert.deepEqual(sortRows(rows, FARMER_SORTS, 'nameAZ').map((s) => s.name), ['Asha', 'bharati', 'zarina'])
+  assert.deepEqual(sortRows(rows, FARMER_SORTS, 'nameZA').map((s) => s.name), ['zarina', 'bharati', 'Asha'])
 
-  const marathi = [seller('1', { name: 'सुनीता' }), seller('2', { name: 'अनिता' }), seller('3', { name: 'कविता' })]
-  assert.deepEqual(sortRows(marathi, SELLER_SORTS, 'nameAZ').map((s) => s.name), ['अनिता', 'कविता', 'सुनीता'])
+  const marathi = [farmer('1', { name: 'सुनीता' }), farmer('2', { name: 'अनिता' }), farmer('3', { name: 'कविता' })]
+  assert.deepEqual(sortRows(marathi, FARMER_SORTS, 'nameAZ').map((s) => s.name), ['अनिता', 'कविता', 'सुनीता'])
 })
 
-test('sellers: highest earnings first', () => {
+test('farmers: highest earnings first', () => {
   const rows = [
-    seller('low', { earned: 100 }),
-    seller('high', { earned: 5000 }),
-    seller('none', { earned: undefined }),
+    farmer('low', { earned: 100 }),
+    farmer('high', { earned: 5000 }),
+    farmer('none', { earned: undefined }),
   ]
-  assert.deepEqual(ids(sortRows(rows, SELLER_SORTS, 'earnedHigh')), ['high', 'low', 'none'])
+  assert.deepEqual(ids(sortRows(rows, FARMER_SORTS, 'earnedHigh')), ['high', 'low', 'none'])
 })
 
 test('products: by price both ways', () => {
@@ -70,24 +70,24 @@ test('products: by price both ways', () => {
 
 test('orders: by amount, and by shop name', () => {
   const rows = [
-    { id: 'o1', total: 300, seller: 'Sunita Masale' },
-    { id: 'o2', total: 1200, seller: 'Asha Papad' },
-    { id: 'o3', total: 80, seller: undefined },
+    { id: 'o1', total: 300, farmer: 'Sunita Masale' },
+    { id: 'o2', total: 1200, farmer: 'Asha Papad' },
+    { id: 'o3', total: 80, farmer: undefined },
   ] as OrderRow[]
   assert.deepEqual(ids(sortRows(rows, ORDER_SORTS, 'amountHigh')), ['o2', 'o1', 'o3'])
   assert.deepEqual(ids(sortRows(rows, ORDER_SORTS, 'nameAZ')).slice(-2), ['o2', 'o1'])
 })
 
 test('sorting returns a copy and leaves the fetched list as it was', () => {
-  const rows = [seller('a', { earned: 1 }), seller('b', { earned: 2 })]
-  sortRows(rows, SELLER_SORTS, 'earnedHigh')
+  const rows = [farmer('a', { earned: 1 }), farmer('b', { earned: 2 })]
+  sortRows(rows, FARMER_SORTS, 'earnedHigh')
   assert.deepEqual(ids(rows), ['a', 'b'])
 })
 
 test('an unknown saved choice falls back to the default rather than failing', () => {
   const rows = [
-    seller('old', { createdAt: '2026-01-01T00:00:00Z' }),
-    seller('new', { createdAt: '2026-05-01T00:00:00Z' }),
+    farmer('old', { createdAt: '2026-01-01T00:00:00Z' }),
+    farmer('new', { createdAt: '2026-05-01T00:00:00Z' }),
   ]
-  assert.deepEqual(ids(sortRows(rows, SELLER_SORTS, 'no-such-sort')), ['new', 'old'])
+  assert.deepEqual(ids(sortRows(rows, FARMER_SORTS, 'no-such-sort')), ['new', 'old'])
 })

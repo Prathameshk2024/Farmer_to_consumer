@@ -25,7 +25,7 @@ Section 9 lists what to look up to replace the guesses with real numbers.
 
 | Thing | Firestore documents | Size of each | Firestore writes | Cloudinary |
 |---|---|---|---|---|
-| Seller | 1 | ~1.2 KB (measured: 1,206 B average) | ~4 to register | her payment QR, ~0.2 MB |
+| Farmer | 1 | ~1.2 KB (measured: 1,206 B average) | ~4 to register | her payment QR, ~0.2 MB |
 | Product | 1 | ~0.5 KB (measured: 493 B average) | ~3 (create, approve, edit) | ~0.4 MB with thumbnails; ~6 transformations |
 | Order | 1, plus ~1.5 reviews (the buyer must rate every product) | ~1.2 KB + ~0.4 KB per review | ~13 over its life | — |
 | Buyer | 1 | ~0.5 KB | — | — |
@@ -34,7 +34,7 @@ Section 9 lists what to look up to replace the guesses with real numbers.
 | ₹50 payment | 1 | ~0.5 KB | ~4 | screenshot, ~0.45 MB |
 
 Built-in ceilings: the auth log keeps at most 5,000 rows or 90 days, a person
-at most 10 sessions, a seller at most 30 notices. **Orders and reviews end up
+at most 10 sessions, a farmer at most 30 notices. **Orders and reviews end up
 as roughly three documents in four** — they are what grows.
 
 ---
@@ -43,7 +43,7 @@ as roughly three documents in four** — they are what grows.
 
 | | Now (13 Sep snapshot) | Pilot | District |
 |---|---|---|---|
-| Sellers / live products | 6 / 13 | 100 / 400 | 1,000 / 4,000 |
+| Farmers / live products | 6 / 13 | 100 / 400 | 1,000 / 4,000 |
 | Buyers registered / active in a month | not known | 1,000 / 300 | 10,000 / 3,000 |
 | Orders a day | not known | 20 | 200 |
 | **Firestore documents** | under ~1,000 | ~26,000 | ~210,000 |
@@ -181,11 +181,11 @@ poll:
 | Poll | Every | Pauses when hidden? |
 |---|---|---|
 | Admin console stats (`admin/src/components/Shell.tsx`) | 60 s | **Yes, since 18 Sep 2026** |
-| Seller waiting for payment approval (`frontend/src/screens/seller/Subscription.tsx`) | 10 s | **Yes, since 18 Sep 2026** |
+| Farmer waiting for payment approval (`frontend/src/screens/farmer/Subscription.tsx`) | 10 s | **Yes, since 18 Sep 2026** |
 | Buyer's rating gate (`RateOrderGate`) | 2 min | Yes, always did |
 
 Before 18 September, an admin tab left open overnight kept the instance up
-all night, and so did a seller's phone left on the payment-waiting screen for
+all night, and so did a farmer's phone left on the payment-waiting screen for
 the day an approval can take. Now the instance is up only while someone is
 actually using an app, plus the ~15 minutes after.
 
@@ -199,7 +199,7 @@ or costs a few dollars; all-day use approaches $44.
 On the Free plan, **1 credit = 1 GB stored, or 1 GB delivered, or 1,000
 transformations**, and there are 25 a month.
 
-- **Stored**: ~0.4 MB per product with its thumbnails, ~0.2 MB per seller QR,
+- **Stored**: ~0.4 MB per product with its thumbnails, ~0.2 MB per farmer QR,
   ~0.45 MB per payment screenshot. Photos are compressed on the phone first
   (`frontend/src/lib/compress.ts`).
 - **Delivered**: product cards and pages ask for resized WebP/AVIF
@@ -231,7 +231,7 @@ charging ₹50 subscriptions fits that is worth checking before it grows.
 
 | Service | Use | Limit | Verdict |
 |---|---|---|---|
-| **MSG91** | one SMS per sign-in; a seller signs in at least every 90 days, a buyer after 15 idle days; +~25% retries | at most 3 per number per day | ~₹0.2–0.3 each; ₹100–1,000 a month across §3 |
+| **MSG91** | one SMS per sign-in; a farmer signs in at least every 90 days, a buyer after 15 idle days; +~25% retries | at most 3 per number per day | ~₹0.2–0.3 each; ₹100–1,000 a month across §3 |
 | **Secret Manager** | 4 secrets, read at every start | 6 active versions and 10,000 reads a month free | Free. Disable old versions when rotating. |
 | **Cloud Build** | one build per deploy, ~3–6 minutes | 2,500 build-minutes a month free | Free |
 | **Cloud Logging** | request logs and the app's own lines | 50 GiB a month free | Free |
@@ -285,7 +285,7 @@ the one that turns into an outage (§4).
   - the **admin console's home screen**, under *Overall*: *Records in the
     database*, and *Server starts a day the free read limit covers*;
   - the **Cloud Run log** at every start, e.g.
-    `[firestore] loaded 812 documents (61 starts a day fit in the free 50000 reads): sellers 6 · products 13 · …`
+    `[firestore] loaded 812 documents (61 starts a day fit in the free 50000 reads): farmers 6 · products 13 · …`
     — all nine collections. At **10 starts a day or fewer** (about 5,000
     documents) the next line is a warning.
 - **Starts per day**: count the `[firestore] loaded` lines in the Cloud Run

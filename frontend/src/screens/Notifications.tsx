@@ -18,8 +18,8 @@ import {
 /**
  * Everything that happened to her orders while she was not looking.
  *
- * ONE SCREEN FOR BOTH SIDES. A seller sees what her buyers did; a customer
- * sees what her seller did. The list is the same shape either way - an order,
+ * ONE SCREEN FOR BOTH SIDES. A farmer sees what her buyers did; a customer
+ * sees what her farmer did. The list is the same shape either way - an order,
  * a new state, a time - and writing it twice would be two places for the
  * wording to drift.
  *
@@ -32,10 +32,10 @@ export default function Notifications() {
   const nav = useNavigate()
   const { session } = useAuth()
   const [data, loading] = useAsync(() => api.myOrders(), [])
-  /* Admin decisions live on her own seller record, so this is the same call
-     every seller screen already makes - not a notifications endpoint. */
+  /* Admin decisions live on her own farmer record, so this is the same call
+     every farmer screen already makes - not a notifications endpoint. */
   const [meData] = useAsync(
-    () => (session?.role === 'seller' ? api.me() : Promise.resolve(null)),
+    () => (session?.role === 'farmer' ? api.me() : Promise.resolve(null)),
     [session?.role],
   )
 
@@ -60,13 +60,13 @@ export default function Notifications() {
     ? visibleFeed(
         mergeFeeds(
           buildFeed(data?.orders ?? [], session.role),
-          adminFeed(meData?.seller),
+          adminFeed(meData?.farmer),
         ),
         seenOnArrival,
       )
     : []
   const { fresh, earlier } = splitFeed(feed, seenOnArrival)
-  const orderPath = session?.role === 'seller' ? '/seller/orders' : '/shop/orders'
+  const orderPath = session?.role === 'farmer' ? '/farmer/orders' : '/shop/orders'
 
   /**
    * A row is read top to bottom, in the order the answer arrives: what it is
@@ -131,7 +131,7 @@ export default function Notifications() {
 
   return (
     <>
-      <AppBar title={t('notif.title')} backTo={session?.role === 'seller' ? '/seller' : '/shop'} />
+      <AppBar title={t('notif.title')} backTo={session?.role === 'farmer' ? '/farmer' : '/shop'} />
       <div className="screen stack-sm">
         {loading ? (
           <Loading />

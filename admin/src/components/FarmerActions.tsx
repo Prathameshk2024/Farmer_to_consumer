@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import type { SellerStatus } from '@shared/types.js'
+import type { FarmerStatus } from '@shared/types.js'
 import { useT } from '../i18n/I18nProvider.js'
-import { api, type SellerRow } from '../lib/api.js'
+import { api, type FarmerRow } from '../lib/api.js'
 import { Confirm, useConfirm } from './Confirm.js'
 import { Button, Pill, useErrorText } from './ui.js'
 
@@ -16,10 +16,10 @@ import { Button, Pill, useErrorText } from './ui.js'
  */
 type Action = 'block' | null
 
-export function SellerActions({
-  seller, onDone,
+export function FarmerActions({
+  farmer, onDone,
 }: {
-  seller: SellerRow
+  farmer: FarmerRow
   onDone: () => void
 }) {
   const t = useT()
@@ -29,7 +29,7 @@ export function SellerActions({
   const [action, setAction] = useState<Action>(null)
   const [blockReason, setBlockReason] = useState('')
 
-  const blocked = seller.status === 'BLOCKED'
+  const blocked = farmer.status === 'BLOCKED'
 
   function ask(next: Exclude<Action, null>) {
     setAction(next)
@@ -80,7 +80,7 @@ export function SellerActions({
         busy={c.busy}
         error={c.error}
         onCancel={close}
-        onConfirm={() => void run(() => api.blockSeller(seller.id, !blocked, blockReason.trim()))}
+        onConfirm={() => void run(() => api.blockFarmer(farmer.id, !blocked, blockReason.trim()))}
       >
         {!blocked && (
           <div style={{ marginTop: 10 }}>
@@ -97,7 +97,7 @@ export function SellerActions({
   )
 }
 
-export function StatusPill({ status }: { status: SellerStatus }) {
+export function StatusPill({ status }: { status: FarmerStatus }) {
   const t = useT()
   const tone =
     status === 'ACTIVE' ? 'ok'

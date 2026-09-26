@@ -18,7 +18,7 @@ const {
  * `verifyOtp` used to end with `return /^\d{4}$/.test(code)` whenever no SMS
  * provider was configured - which was every deployment, because none ever was.
  * Any four digits signed you in as any phone number on the platform: every
- * seller's shop, every buyer's saved home address.
+ * farmer's shop, every buyer's saved home address.
  *
  * Demo mode still exists, because there is no SMS account yet and the app has
  * to stay walkable. What changed is that it now issues a REAL code and really

@@ -47,6 +47,6 @@ test('an essay is cut to something a queue can be read from', () => {
 test('only content a user wrote can be reported', () => {
   assert.equal(isReportTarget('product'), true)
   assert.equal(isReportTarget('review'), true)
-  assert.equal(isReportTarget('seller'), false, 'reporting a person is a different decision')
+  assert.equal(isReportTarget('farmer'), false, 'reporting a person is a different decision')
   assert.equal(isReportTarget(''), false)
 })

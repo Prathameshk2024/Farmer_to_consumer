@@ -9,7 +9,7 @@ const shared = path.resolve(here, '../shared/src')
 /**
  * No `base`, on purpose: Vite's default absolute `/assets/…` is the only path
  * correct at every route depth. A relative `./assets/…` makes a reload of
- * `/seller/orders` ask for `/seller/assets/index-xxx.js`, get `index.html` back
+ * `/farmer/orders` ask for `/farmer/assets/index-xxx.js`, get `index.html` back
  * from the SPA rewrite, and render a blank page.
  *
  * The Android APK does not need a build of its own either - it is a WebView

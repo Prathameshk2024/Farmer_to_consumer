@@ -18,8 +18,8 @@ const { hit, LIMITS, resetAllLimits, sweep } = await import('../src/auth/rateLim
 /* ================================================================== */
 
 /**
- * `POST /sellers/register` used to read a phone number out of the request body
- * and mint a seller session for it. No OTP, no session, no check of any kind -
+ * `POST /farmers/register` used to read a phone number out of the request body
+ * and mint a farmer session for it. No OTP, no session, no check of any kind -
  * so anybody who could reach the API could create an account against any
  * unregistered number and be signed in as her. The client walked through the
  * OTP screen first, which is not the same thing as the server requiring it.
@@ -31,40 +31,40 @@ beforeEach(() => {
 })
 
 test('a ticket hands back the phone it was issued for', () => {
-  assert.equal(consumeTicket('seller-register', issueTicket('seller-register', '9822011223')), '9822011223')
+  assert.equal(consumeTicket('farmer-register', issueTicket('farmer-register', '9822011223')), '9822011223')
 })
 
 test('a ticket is single use', () => {
   // Otherwise one OTP could register any number of accounts.
-  const ticket = issueTicket('seller-register', '9822011223')
+  const ticket = issueTicket('farmer-register', '9822011223')
 
-  assert.equal(consumeTicket('seller-register', ticket), '9822011223')
-  assert.equal(consumeTicket('seller-register', ticket), null)
+  assert.equal(consumeTicket('farmer-register', ticket), '9822011223')
+  assert.equal(consumeTicket('farmer-register', ticket), null)
 })
 
 test('a ticket expires', () => {
   const now = Date.now()
-  const ticket = issueTicket('seller-register', '9822011223', now)
+  const ticket = issueTicket('farmer-register', '9822011223', now)
 
-  assert.equal(consumeTicket('seller-register', ticket, now + 20 * 60_000), null)
+  assert.equal(consumeTicket('farmer-register', ticket, now + 20 * 60_000), null)
 })
 
 test('the phone inside a ticket cannot be rewritten', () => {
   // The attack the signature exists to stop: pass the OTP on your own number,
   // then swap in hers before registering.
-  const ticket = issueTicket('seller-register', '9822011223')
+  const ticket = issueTicket('farmer-register', '9822011223')
   const [, sig] = ticket.split('.')
   const forged = Buffer.from(
-    JSON.stringify({ purpose: 'seller-register', phone: '9764455661', exp: Date.now() + 60_000, jti: 'x' }),
+    JSON.stringify({ purpose: 'farmer-register', phone: '9764455661', exp: Date.now() + 60_000, jti: 'x' }),
     'utf8',
   ).toString('base64url')
 
-  assert.equal(consumeTicket('seller-register', `${forged}.${sig}`), null)
+  assert.equal(consumeTicket('farmer-register', `${forged}.${sig}`), null)
 })
 
 test('garbage is refused without throwing', () => {
   for (const bad of ['', '.', 'a.b', 'not base64!.nope']) {
-    assert.equal(consumeTicket('seller-register', bad), null)
+    assert.equal(consumeTicket('farmer-register', bad), null)
   }
 })
 

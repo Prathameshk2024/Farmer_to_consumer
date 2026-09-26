@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { buildUpiLink, isValidUpi } from '@shared/seller.js'
+import { buildUpiLink, isValidUpi } from '@shared/farmer.js'
 import { upiProblem } from '@shared/payment.js'
 import { useT } from '../../i18n/I18nProvider.js'
 import { api, ApiError } from '../../lib/api.js'
@@ -12,7 +12,7 @@ import QrCode from '../../components/QrCode.js'
 import { IconCheck, IconEdit, IconQr, IconWaiting } from '../../components/icons.js'
 
 /**
- * SELLER PAYMENT QR — a real step, not something we pretend happened.
+ * FARMER PAYMENT QR — a real step, not something we pretend happened.
  *
  * Registration collects her UPI *ID*, because she cannot be paid without one.
  * It does NOT collect a QR image. So this screen is where the payment QR
@@ -40,19 +40,19 @@ export default function PaymentQr() {
   const [busy, setBusy] = useState(false)
 
   if (loading || !me) {
-    return <><AppBar title={t('qrpay.title')} backTo="/seller/profile" /><div className="screen"><Loading /></div></>
+    return <><AppBar title={t('qrpay.title')} backTo="/farmer/profile" /><div className="screen"><Loading /></div></>
   }
 
-  const seller = me.seller
-  const hasUpi = isValidUpi(seller.upiId)
-  const ready = !!seller.upiQrReady && hasUpi
+  const farmer = me.farmer
+  const hasUpi = isValidUpi(farmer.upiId)
+  const ready = !!farmer.upiQrReady && hasUpi
 
   // A sample amount, purely so she can see what a customer will scan. The real
   // code at checkout is built per order with that order's total.
   const sampleLink = hasUpi
     ? buildUpiLink({
-        upiId: seller.upiId,
-        name: seller.shopName,
+        upiId: farmer.upiId,
+        name: farmer.shopName,
         amount: 100,
         note: 'Shantai Mahila Bazar',
       })
@@ -67,7 +67,7 @@ export default function PaymentQr() {
     setBusy(true)
     try {
       const res = await api.updateMe({ upiId: upi.trim(), upiQrReady: true })
-      setMe({ ...me!, seller: res.seller })
+      setMe({ ...me!, farmer: res.farmer })
       setEditing(false)
       setErr('')
     } catch (e) {
@@ -80,7 +80,7 @@ export default function PaymentQr() {
   async function confirm() {
     setBusy(true)
     const res = await api.updateMe({ upiQrReady: true })
-    setMe({ ...me!, seller: res.seller })
+    setMe({ ...me!, farmer: res.farmer })
     setBusy(false)
   }
 
@@ -88,7 +88,7 @@ export default function PaymentQr() {
     <>
       <AppBar
         title={t('qrpay.title')}
-        backTo="/seller/profile"
+        backTo="/farmer/profile"
       />
 
       <div className="screen stack">
@@ -102,7 +102,7 @@ export default function PaymentQr() {
               title={t('qrpay.empty')}
               body={hasUpi ? t('qrpay.emptyBodyHasUpi') : t('qrpay.emptyBody')}
               action={
-                <Button onClick={() => { setUpi(seller.upiId ?? ''); setEditing(!hasUpi) ; if (hasUpi) void confirm() }}>
+                <Button onClick={() => { setUpi(farmer.upiId ?? ''); setEditing(!hasUpi) ; if (hasUpi) void confirm() }}>
                   {t('qrpay.add')}
                 </Button>
               }
@@ -137,7 +137,7 @@ export default function PaymentQr() {
                 <>
                   <div className="center small dim">{t('qrpay.preview')}</div>
                   <QrCode
-                    value={buildUpiLink({ upiId: upi, name: seller.shopName, amount: 100 })}
+                    value={buildUpiLink({ upiId: upi, name: farmer.shopName, amount: 100 })}
                     label={t('qrpay.title')}
                   />
                 </>
@@ -160,23 +160,23 @@ export default function PaymentQr() {
           <>
             <Card style={{ textAlign: 'center' }}>
               <div className="stack-sm">
-                <strong style={{ fontSize: 'var(--t-md)' }}>{seller.shopName}</strong>
+                <strong style={{ fontSize: 'var(--t-md)' }}>{farmer.shopName}</strong>
                 <QrCode value={sampleLink} label={t('qrpay.title')} />
                 <div className="small dim">{t('qrpay.sample')}</div>
 
                 <div style={{ marginTop: 'var(--s2)' }}>
-                  <span className="idpill num">{seller.upiId}</span>
+                  <span className="idpill num">{farmer.upiId}</span>
                 </div>
 
                 <div>
-                  <Pill tone={seller.upiVerified ? 'ok' : 'warn'} icon={seller.upiVerified ? <IconCheck /> : <IconWaiting />}>
-                    {seller.upiVerified ? t('prof.verified') : t('prof.notVerified')}
+                  <Pill tone={farmer.upiVerified ? 'ok' : 'warn'} icon={farmer.upiVerified ? <IconCheck /> : <IconWaiting />}>
+                    {farmer.upiVerified ? t('prof.verified') : t('prof.notVerified')}
                   </Pill>
                 </div>
               </div>
             </Card>
 
-            <Button variant="ghost" onClick={() => { setUpi(seller.upiId); setEditing(true) }}>
+            <Button variant="ghost" onClick={() => { setUpi(farmer.upiId); setEditing(true) }}>
               <IconEdit aria-hidden="true" /> {t('qrpay.change')}
             </Button>
           </>
@@ -186,7 +186,7 @@ export default function PaymentQr() {
           <div className="small muted">{t('qrpay.how')}</div>
         </Card>
 
-        <Button variant="quiet" onClick={() => nav('/seller/profile')}>
+        <Button variant="quiet" onClick={() => nav('/farmer/profile')}>
           {t('common.back')}
         </Button>
       </div>

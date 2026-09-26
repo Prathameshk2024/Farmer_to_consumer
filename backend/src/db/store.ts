@@ -27,7 +27,7 @@ const DATA_DIR = path.resolve(here, '../../data')
 const DB_FILE = path.join(DATA_DIR, 'db.json')
 
 // Empty until initStore() runs. Not the demo seed: a route that fires before
-// boot finishes should find nothing, not three invented sellers.
+// boot finishes should find nothing, not three invented farmers.
 let db: Db = emptyDb()
 let ready = false
 
@@ -98,7 +98,7 @@ export async function initStore(): Promise<void> {
         await seedInto(db)
         console.log('[firestore] seeded demo data (SEED_DEMO_DATA is on)')
       } else {
-        // The default. An empty database stays empty - inventing sellers in
+        // The default. An empty database stays empty - inventing farmers in
         // front of real customers is worse than an empty catalogue.
         db = emptyDb()
         console.log('[firestore] database is empty - set SEED_DEMO_DATA=true to load demo data')
@@ -237,7 +237,7 @@ async function persistOnce(): Promise<boolean> {
 export function resetDb(): Db {
   // The dev-reset endpoint. It respects the same switch, so hitting it against
   // a real database wipes it back to empty rather than filling it with demo
-  // sellers that customers would then see.
+  // farmers that customers would then see.
   db = SEED_DEMO_DATA ? seed() : emptyDb()
   save()
   return db

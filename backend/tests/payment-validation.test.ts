@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   UTR_LENGTH, isValidUtr, normalizeUtr, normalizeUpi, upiProblem, utrProblem,
 } from '@shared/payment.js'
-import { isValidUpi } from '@shared/seller.js'
+import { isValidUpi } from '@shared/farmer.js'
 
 /**
  * Both numbers here are typed by hand off another app, and there is no gateway
@@ -40,7 +40,7 @@ test("PhonePe's own long reference is refused rather than trimmed into one", () 
    * This is the whole reason `normalizeUtr` strips only spaces and hyphens.
    * Stripping every non-digit would turn this into twelve-plus digits that
    * were never an RRN, and truncating it would invent one that looks perfect
-   * and matches no line in any statement - the one failure a seller checking
+   * and matches no line in any statement - the one failure a farmer checking
    * by eye cannot catch.
    */
   const phonePeTxnId = 'T2409141633123456789'
@@ -91,7 +91,7 @@ test('a handle one character off a real one is a typo, and is named as one', () 
 test('an unknown handle that is NOT a near miss is allowed through', () => {
   /**
    * This is the deliberate hole in the check, and it has to stay open. New
-   * banks and new apps appear and this file does not; refusing a seller's real
+   * banks and new apps appear and this file does not; refusing a farmer's real
    * UPI ID because the list is a year old would cost her every order she
    * takes, which is worse than any typo this catches.
    */

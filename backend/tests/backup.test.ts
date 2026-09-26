@@ -37,7 +37,7 @@ test('only what differs is written, so a daily run does not spend the free write
 })
 
 test('the backup mirrors deletions, so a restore does not bring back what was removed', () => {
-  // Purged demo sellers and deleted drafts would otherwise all reappear on
+  // Purged demo farmers and deleted drafts would otherwise all reappear on
   // the day the backup is restored.
   const live = docs({ s1: { name: 'Sunita' } })
   const backup = docs({ s1: { name: 'Sunita' }, s9: { name: 'Demo' } })
@@ -45,28 +45,28 @@ test('the backup mirrors deletions, so a restore does not bring back what was re
 })
 
 test('a live project that lost more than half a collection is not copied over the backup', () => {
-  // 10 September 2026: sellers and products briefly empty in the live
+  // 10 September 2026: farmers and products briefly empty in the live
   // project. A backup taken then must keep its six women, not delete them.
   const problems = shrinkProblems(
-    { sellers: 0, products: 0, orders: 40 },
-    { sellers: 6, products: 13, orders: 40 },
+    { farmers: 0, products: 0, orders: 40 },
+    { farmers: 6, products: 13, orders: 40 },
   )
   assert.equal(problems.length, 2)
-  assert.match(problems[0]!, /sellers: 6 in the backup, only 0 live/)
+  assert.match(problems[0]!, /farmers: 6 in the backup, only 0 live/)
 })
 
 test('ordinary change is not a wipe', () => {
-  assert.deepEqual(shrinkProblems({ sellers: 20, products: 30 }, { sellers: 21, products: 40 }), [])
+  assert.deepEqual(shrinkProblems({ farmers: 20, products: 30 }, { farmers: 21, products: 40 }), [])
   // Small collections empty legitimately, the same threshold as isBulkDelete.
-  assert.deepEqual(shrinkProblems({ sellers: 3, admins: 0 }, { sellers: 3, admins: 2 }), [])
+  assert.deepEqual(shrinkProblems({ farmers: 3, admins: 0 }, { farmers: 3, admins: 2 }), [])
   // The auth log prunes itself on a schedule of its own.
   assert.deepEqual(shrinkProblems({ authEvents: 3 }, { authEvents: 400 }), [])
 })
 
 test('an empty live read is refused against any non-empty backup, however small', () => {
-  assert.equal(shrinkProblems({ sellers: 0, admins: 0 }, { sellers: 2, admins: 1 }).length, 1)
+  assert.equal(shrinkProblems({ farmers: 0, admins: 0 }, { farmers: 2, admins: 1 }).length, 1)
   // A first run into an empty backup has nothing to protect.
-  assert.deepEqual(shrinkProblems({ sellers: 0 }, { sellers: 0 }), [])
+  assert.deepEqual(shrinkProblems({ farmers: 0 }, { farmers: 0 }), [])
 })
 
 test('targets are read from the environment, with a mistake named rather than skipped', () => {
@@ -133,27 +133,27 @@ test('a short history loses nothing', () => {
 test('a local copy is read back as the backed-up collections, and never as sessions', () => {
   const { collections, problems } = parseSnapshot({
     sessions: [{ id: 'sess_1' }],
-    sellers: [{ id: 's1', name: 'Sunita' }],
+    farmers: [{ id: 's1', name: 'Sunita' }],
     orders: [],
   })
   assert.deepEqual(problems, [])
   // A restore that wrote sessions would sign out everybody using the app.
   assert.ok(!collections.has('sessions'))
-  assert.deepEqual([...collections.get('sellers')!.keys()], ['s1'])
+  assert.deepEqual([...collections.get('farmers')!.keys()], ['s1'])
   // Present and empty is a fact about the file; the restore checks it.
   assert.equal(collections.get('orders')!.size, 0)
 })
 
 test('a collection the file does not have is left alone, not read as empty', () => {
   // An old copy predating `reviews` must not empty the live reviews.
-  const { collections } = parseSnapshot({ sellers: [{ id: 's1' }] })
+  const { collections } = parseSnapshot({ farmers: [{ id: 's1' }] })
   assert.ok(!collections.has('reviews'))
 })
 
 test('a file that is not a database copy is refused, not restored', () => {
   assert.equal(parseSnapshot([1, 2]).problems.length, 1)
   assert.equal(parseSnapshot({ unrelated: [] }).problems.length, 1)
-  assert.match(parseSnapshot({ sellers: [{ name: 'no id' }] }).problems[0]!, /no id/)
+  assert.match(parseSnapshot({ farmers: [{ name: 'no id' }] }).problems[0]!, /no id/)
 })
 
 test('a downloaded photo goes back under the public_id it was saved from', () => {
@@ -175,8 +175,8 @@ test('a downloaded photo goes back under the public_id it was saved from', () =>
 })
 
 test('a restore describes the shrink in its own direction', () => {
-  const [problem] = shrinkProblems({ sellers: 1 }, { sellers: 19 }, {
+  const [problem] = shrinkProblems({ farmers: 1 }, { farmers: 19 }, {
     source: 'in the file', sourceWhole: 'the file', target: 'shantaimahilabajar',
   })
-  assert.equal(problem, 'sellers: 19 in shantaimahilabajar, only 1 in the file')
+  assert.equal(problem, 'farmers: 19 in shantaimahilabajar, only 1 in the file')
 })

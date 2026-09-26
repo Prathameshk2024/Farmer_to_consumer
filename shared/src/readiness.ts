@@ -1,4 +1,4 @@
-import type { DigitalProfile, ReadinessBand, Seller } from './types.js'
+import type { DigitalProfile, ReadinessBand, Farmer } from './types.js'
 
 /**
  * DIGITAL READINESS INDEX
@@ -89,20 +89,20 @@ export const BAND_LABEL: Record<ReadinessBand, { mr: string; en: string }> = {
 }
 
 /**
- * Recompute a seller's score from her current state on the platform.
+ * Recompute a farmer's score from her current state on the platform.
  * Call this after she publishes a product or completes an order, so the index
  * tracks what she does rather than what she once said.
  */
-export function recomputeForSeller(
-  seller: Pick<Seller, 'digital' | 'about' | 'upiVerified' | 'qrOrders'>,
+export function recomputeForFarmer(
+  farmer: Pick<Farmer, 'digital' | 'about' | 'upiVerified' | 'qrOrders'>,
   opts: { productCount: number; productsWithDetail: number; completedOrders: number },
 ): { score: number; band: ReadinessBand } {
   const measured: MeasuredInputs = {
-    hasBranding: Boolean(seller.about && seller.about.length > 20) && opts.productCount > 0,
+    hasBranding: Boolean(farmer.about && farmer.about.length > 20) && opts.productCount > 0,
     hasPackagingDetail: opts.productsWithDetail > 0,
     hasOnlineOrders: opts.completedOrders > 0,
-    hasDigitalFinance: seller.upiVerified && opts.completedOrders > 0,
+    hasDigitalFinance: farmer.upiVerified && opts.completedOrders > 0,
   }
-  const score = computeReadiness(seller.digital, measured)
+  const score = computeReadiness(farmer.digital, measured)
   return { score, band: readinessBand(score) }
 }

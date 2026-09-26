@@ -8,10 +8,10 @@ import type { Unit } from '@shared/types.js'
  * she had typed and send her back to picking the photo again. So it is written
  * down.
  *
- * It is written down PER SELLER. The first version used one shared key, and on
- * a field coordinator's phone, where seller after seller registers on the same
+ * It is written down PER FARMER. The first version used one shared key, and on
+ * a field coordinator's phone, where farmer after farmer registers on the same
  * handset, the next woman opened "New product" and found a stranger's photo
- * waiting on step 1. The seller id is in the key and in the payload, and a
+ * waiting on step 1. The farmer id is in the key and in the payload, and a
  * disagreement between the two means no draft.
  */
 
@@ -41,7 +41,7 @@ const LAST_STEP = 6
 /** The single shared key of the first version. Deleted on sight. */
 export const LEGACY_DRAFT_KEY = 'wb.draft.product'
 
-export const draftKey = (sellerId: string) => `wb.draft.product.${sellerId}`
+export const draftKey = (farmerId: string) => `wb.draft.product.${farmerId}`
 
 /** Just the three localStorage methods, so this is testable without a browser. */
 export type DraftStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
@@ -50,7 +50,7 @@ export type DraftStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
  * Has she actually begun?
  *
  * Opening the wizard and walking away must leave nothing behind - otherwise
- * every seller who so much as glanced at the screen gets a draft restored at
+ * every farmer who so much as glanced at the screen gets a draft restored at
  * her next visit, which is its own kind of confusing.
  */
 export function hasStarted(d: Draft): boolean {
@@ -59,7 +59,7 @@ export function hasStarted(d: Draft): boolean {
 
 export function readDraft(
   store: DraftStore,
-  sellerId: string | undefined,
+  farmerId: string | undefined,
 ): { step: number; d: Draft } | null {
   // Existing installs still hold the shared key. Left in place it would keep
   // handing one woman's product to the next, so reading is what clears it.
@@ -69,17 +69,17 @@ export function readDraft(
     /* ignore */
   }
 
-  if (!sellerId) return null
+  if (!farmerId) return null
 
   try {
-    const raw = store.getItem(draftKey(sellerId))
+    const raw = store.getItem(draftKey(farmerId))
     if (!raw) return null
 
-    const saved = JSON.parse(raw) as { sellerId?: string; step?: number; d?: Partial<Draft> }
+    const saved = JSON.parse(raw) as { farmerId?: string; step?: number; d?: Partial<Draft> }
     if (!saved.d) return null
     // The owner is stored as well as keyed. A mismatch means the row was moved
     // or hand-edited, and the safe reading of an ambiguous draft is no draft.
-    if (saved.sellerId !== sellerId) return null
+    if (saved.farmerId !== farmerId) return null
 
     return {
       step: Math.max(0, Math.min(LAST_STEP, saved.step ?? 0)),
@@ -94,22 +94,22 @@ export function readDraft(
 
 export function writeDraft(
   store: DraftStore,
-  sellerId: string | undefined,
+  farmerId: string | undefined,
   step: number,
   d: Draft,
 ): void {
-  if (!sellerId || !hasStarted(d)) return
+  if (!farmerId || !hasStarted(d)) return
   try {
-    store.setItem(draftKey(sellerId), JSON.stringify({ sellerId, step, d }))
+    store.setItem(draftKey(farmerId), JSON.stringify({ farmerId, step, d }))
   } catch {
     /* private mode - she loses the draft on leaving, as before */
   }
 }
 
-export function clearDraft(store: DraftStore, sellerId: string | undefined): void {
-  if (!sellerId) return
+export function clearDraft(store: DraftStore, farmerId: string | undefined): void {
+  if (!farmerId) return
   try {
-    store.removeItem(draftKey(sellerId))
+    store.removeItem(draftKey(farmerId))
   } catch {
     /* ignore */
   }

@@ -25,11 +25,11 @@ test('a finished tour is remembered, and never written twice', () => {
   const store = fakeStore()
   assert.deepEqual(seenTours(store), [])
 
-  markTourSeen(store, 'seller.business')
-  markTourSeen(store, 'seller.business')
+  markTourSeen(store, 'farmer.business')
+  markTourSeen(store, 'farmer.business')
   markTourSeen(store, 'shop.cart')
 
-  assert.deepEqual(seenTours(store), ['seller.business', 'shop.cart'])
+  assert.deepEqual(seenTours(store), ['farmer.business', 'shop.cart'])
 })
 
 /** A hand-edited row must not lock her out of every screen in the app. */
@@ -38,7 +38,7 @@ test('an unreadable flag means nothing has been seen, not a crash', () => {
   store.setItem(SEEN_KEY, '{oops')
   assert.deepEqual(seenTours(store), [])
 
-  store.setItem(SEEN_KEY, '"seller.help"')
+  store.setItem(SEEN_KEY, '"farmer.help"')
   assert.deepEqual(seenTours(store), [])
 })
 
@@ -47,7 +47,7 @@ test('an unreadable flag means nothing has been seen, not a crash', () => {
  * already dismissed, so every tab it offers has to lead somewhere real.
  */
 test('every tour offered in Help & Training exists', () => {
-  for (const role of ['seller', 'customer'] as const) {
+  for (const role of ['farmer', 'customer'] as const) {
     assert.equal(TOUR_MENU[role].length, 4, `${role} has four bottom tabs`)
     for (const { id, label } of TOUR_MENU[role]) {
       assert.ok(TOURS[id]?.length, `${id} has no steps`)

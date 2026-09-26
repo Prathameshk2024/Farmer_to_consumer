@@ -11,7 +11,7 @@ import { withDefaults } from '../src/db/seed.js'
 
 test('a database file saved before customers existed still loads', () => {
   const old = {
-    sellers: [],
+    farmers: [],
     products: [],
     orders: [],
     addresses: [{ id: 'a1', label: 'घर', line: 'x', city: 'पुणे', pincode: '413601', isDefault: true }],
@@ -25,14 +25,14 @@ test('a database file saved before customers existed still loads', () => {
 test('a completely empty object still yields every collection', () => {
   const db = withDefaults({} as never)
 
-  for (const key of ['sellers', 'products', 'orders', 'customers'] as const) {
+  for (const key of ['farmers', 'products', 'orders', 'customers'] as const) {
     assert.ok(Array.isArray(db[key]), `${key} should be an array`)
   }
 })
 
 test('existing data is preserved untouched', () => {
   const db = withDefaults({
-    sellers: [],
+    farmers: [],
     products: [],
     orders: [],
     customers: [

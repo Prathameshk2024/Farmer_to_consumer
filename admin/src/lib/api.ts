@@ -1,11 +1,11 @@
 import type {
-  AdminStats, Complaint, Order, Product, RatingSummary, ReadinessBand, Report, Review, Seller,
+  AdminStats, Complaint, Order, Product, RatingSummary, ReadinessBand, Report, Review, Farmer,
 } from '@shared/types.js'
 
 /**
  * The one seam between the console and the API.
  *
- * Same backend as the seller app - in development Vite proxies /api to
+ * Same backend as the farmer app - in development Vite proxies /api to
  * localhost:4000, in production VITE_API_URL points at the Cloud Run service.
  * Every call carries the admin bearer token; the API rejects anything else
  * with 401 at `adminRouter.use(requireRole('admin'))`.
@@ -24,7 +24,7 @@ export const TOKEN_KEY = 'wb.admin.token'
  * was the worst one on offer: signed in on screen, because AuthContext holds
  * the session in React state, and no credentials on the wire, because
  * getToken() had nothing to read. Every panel answered 401 and the only cure
- * was a reload, which signed the seller out.
+ * was a reload, which signed the farmer out.
  */
 let memoryToken: string | null = null
 
@@ -55,7 +55,7 @@ export function setToken(token: string | null): void {
  * signed-in session, so the shell stayed up and every panel on it re-requested
  * with no token and got another 401 - a console that looks signed in and
  * answers nothing, until somebody thinks to reload. Published here, acted on
- * in AuthContext and nowhere else, the same way the seller app does it.
+ * in AuthContext and nowhere else, the same way the farmer app does it.
  */
 type ExpiryListener = () => void
 const expiryListeners = new Set<ExpiryListener>()
@@ -161,27 +161,27 @@ export interface AdminSession {
   email: string
 }
 
-/** /admin/orders decorates each order with the seller's shop name and id. */
-export type OrderRow = Order & { seller?: string; womenBizId?: string }
-/** /admin/products decorates each listing with its seller and any open reports. */
-export type ProductRow = Product & { seller?: Seller; reports?: Report[] }
-/** /admin/reviews decorates each review with the seller's shop name and id. */
-export type ReviewRow = Review & { seller?: string; womenBizId?: string; reports?: Report[] }
-export type SellerRow = Seller & {
+/** /admin/orders decorates each order with the farmer's shop name and id. */
+export type OrderRow = Order & { farmer?: string; farmerCode?: string }
+/** /admin/products decorates each listing with its farmer and any open reports. */
+export type ProductRow = Product & { farmer?: Farmer; reports?: Report[] }
+/** /admin/reviews decorates each review with the farmer's shop name and id. */
+export type ReviewRow = Review & { farmer?: string; farmerCode?: string; reports?: Report[] }
+export type FarmerRow = Farmer & {
   productCount: number
   /** Delivered orders only, summed on the server. */
   earned?: number
 }
 
 /**
- * Everything one seller's page needs, in one answer.
+ * Everything one farmer's page needs, in one answer.
  *
  * `earned` is computed on the server rather than summed here: it counts
  * delivered orders only, and that definition belongs next to the one the
  * impact report uses, not copied into a screen.
  */
-export interface SellerDetail {
-  seller: SellerRow
+export interface FarmerDetail {
+  farmer: FarmerRow
   products: ProductRow[]
   orders: OrderRow[]
   earned: number
@@ -202,7 +202,7 @@ export interface ImpactReport {
     villages: number
   }
   byVillage: { code: string; village: string; women: number; earned: number }[]
-  readiness: { womenBizId: string; village: string; score: number; band: ReadinessBand }[]
+  readiness: { farmerCode: string; village: string; score: number; band: ReadinessBand }[]
 }
 
 export const api = {
@@ -234,7 +234,7 @@ export const api = {
   takeDownProduct: (id: string, reason: string) =>
     post<{ product: Product }>(`/admin/products/${id}/moderate`, { approve: false, reason }),
 
-  /** What sellers and buyers wrote from Help & Training. A queue to empty. */
+  /** What farmers and buyers wrote from Help & Training. A queue to empty. */
   complaints: (status = 'OPEN') =>
     get<{ complaints: Complaint[]; openCount: number }>(
       `/admin/complaints?status=${encodeURIComponent(status)}`,
@@ -243,18 +243,18 @@ export const api = {
   resolveComplaint: (id: string) =>
     post<{ complaint: Complaint }>(`/admin/complaints/${id}/resolve`, {}),
 
-  sellers: () => get<{ sellers: SellerRow[] }>('/admin/sellers'),
+  farmers: () => get<{ farmers: FarmerRow[] }>('/admin/farmers'),
 
-  sellerDetail: (id: string) => get<SellerDetail>(`/admin/sellers/${id}`),
+  farmerDetail: (id: string) => get<FarmerDetail>(`/admin/farmers/${id}`),
 
   /** Checked once, by a person; his live listings go public at once. */
-  verifySeller: (id: string) => post<{ seller: Seller }>(`/admin/sellers/${id}/verify`, {}),
+  verifyFarmer: (id: string) => post<{ farmer: Farmer }>(`/admin/farmers/${id}/verify`, {}),
 
   /** The reason is shown to her in her own app, so it is not optional noise. */
-  blockSeller: (id: string, blocked: boolean, reason?: string) =>
-    post<{ seller: Seller }>(`/admin/sellers/${id}/block`, { blocked, reason }),
+  blockFarmer: (id: string, blocked: boolean, reason?: string) =>
+    post<{ farmer: Farmer }>(`/admin/farmers/${id}/block`, { blocked, reason }),
 
-  orders: (params: { status?: string; sellerId?: string; pincode?: string } = {}) => {
+  orders: (params: { status?: string; farmerId?: string; pincode?: string } = {}) => {
     const qs = new URLSearchParams()
     for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v)
     const s = qs.toString()
@@ -265,7 +265,7 @@ export const api = {
 
   /** Every review, hidden ones included. `maxRating: 2` is the low-ratings view. */
   reviews: (
-    params: { sellerId?: string; maxRating?: number; hidden?: boolean; reported?: boolean } = {},
+    params: { farmerId?: string; maxRating?: number; hidden?: boolean; reported?: boolean } = {},
   ) => {
     const qs = new URLSearchParams()
     for (const [k, v] of Object.entries(params)) if (v !== undefined) qs.set(k, String(v))

@@ -51,8 +51,8 @@ test('the Marathi dictionary is actually in Marathi', () => {
   )
 })
 
-test('every seller status the API can return has a label', () => {
-  // shared/src/types.ts SellerStatus - if a status is added there and not
+test('every farmer status the API can return has a label', () => {
+  // shared/src/types.ts FarmerStatus - if a status is added there and not
   // here, the console would print the raw enum at a woman's account.
   for (const status of [
     'PENDING_VERIFICATION', 'ACTIVE', 'BLOCKED', 'CLOSED',

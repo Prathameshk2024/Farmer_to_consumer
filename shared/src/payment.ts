@@ -7,7 +7,7 @@
  *   a wrong UPI ID   - the money leaves and arrives somewhere else
  *   a wrong UTR      - the money arrived, but nothing here can prove it
  *
- * There is no gateway in this app and no callback from a bank. A seller looks
+ * There is no gateway in this app and no callback from a bank. A farmer looks
  * at her UPI app and decides whether a payment happened, so a reference number
  * that cannot match a line in her statement is not a weak record - it is no
  * record, and it is the buyer who is left holding an unconfirmed order.
@@ -18,7 +18,7 @@
  * WHAT THIS FILE WILL NOT DO
  * --------------------------
  * It cannot tell you a payment is real. A well-formed UTR is still a claim,
- * and `awaitingPaymentConfirmation()` in orderFlow.ts is what makes the seller
+ * and `awaitingPaymentConfirmation()` in orderFlow.ts is what makes the farmer
  * look before an order moves. This narrows what can be typed; it does not
  * verify anything, and no caller should read it as if it did.
  */
@@ -29,7 +29,7 @@
  * GPay calls it "UPI transaction ID", Paytm "UPI Ref No.", PhonePe puts it
  * under "UTR" - all of them the same twelve digits, because that is what the
  * banks settle on. PhonePe ALSO shows a longer alphanumeric of its own, which
- * is the one number here that is useless to a seller: it appears nowhere in
+ * is the one number here that is useless to a farmer: it appears nowhere in
  * her bank statement.
  */
 export const UTR_LENGTH = 12
@@ -51,7 +51,7 @@ export function isValidUtr(value: string | undefined): boolean {
 }
 
 /**
- * Marathi, like `sellerProfileProblems` - it is what both sides already put in
+ * Marathi, like `farmerProfileProblems` - it is what both sides already put in
  * `fields`, and a second English table would be one more thing to leave behind.
  */
 export function utrProblem(value: string | undefined): string | null {
@@ -78,13 +78,13 @@ export function utrProblem(value: string | undefined): string | null {
  *
  * It is deliberately NOT an allow-list. A handle nobody here has heard of is
  * accepted - new banks and new apps appear, this file does not, and refusing
- * a seller's real UPI ID because the list is a year old would cost her every
+ * a farmer's real UPI ID because the list is a year old would cost her every
  * order she takes. Only a handle that is one or two characters away from a
  * real one is refused, because that is a typo rather than a new bank.
  */
 export const KNOWN_UPI_HANDLES = [
   // PhonePe, Google Pay, Paytm, Amazon Pay, BHIM, WhatsApp - the apps a rural
-  // seller actually has on her phone, so the ones a typo is most likely in.
+  // farmer actually has on her phone, so the ones a typo is most likely in.
   'ybl', 'ibl', 'axl',
   'okaxis', 'oksbi', 'okhdfcbank', 'okicici',
   'paytm', 'ptyes', 'ptsbi', 'ptaxis', 'pthdfc', 'ptybl',
@@ -94,7 +94,7 @@ export const KNOWN_UPI_HANDLES = [
   // Newer apps built on a partner bank.
   'slice', 'naviaxis', 'jupiteraxis', 'fifederal', 'axisb', 'superyes', 'seyes',
   'timecosmos', 'goaxb', 'famapp', 'tapicici', 'omni', 'mairtel',
-  // Banks, for a seller who uses her own bank's app rather than a wallet.
+  // Banks, for a farmer who uses her own bank's app rather than a wallet.
   'sbi', 'hdfcbank', 'icici', 'myicici', 'axisbank', 'kotak', 'kmbl', 'pnb',
   'barodampay', 'unionbank', 'uboi', 'ubi', 'cnrb', 'canara', 'idfcbank',
   'idfcfirst', 'indianbank', 'iob', 'uco', 'cbin', 'mahb', 'federal', 'fbl',

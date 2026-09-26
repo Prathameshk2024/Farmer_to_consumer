@@ -17,7 +17,7 @@ import { SESSION_ABSOLUTE_MS, SESSION_IDLE_MS } from './tokens.js'
  * without a server.
  *
  * TWO CLOCKS, ON PURPOSE
- * `lastSeenAt` drives the IDLE window - a seller using the app daily is never
+ * `lastSeenAt` drives the IDLE window - a farmer using the app daily is never
  * signed out mid-task. `expiresAt` is an ABSOLUTE ceiling set at login and
  * never extended, so a token quietly copied off a phone cannot be kept alive
  * forever simply by being used. Idle alone would do exactly that.
@@ -49,7 +49,7 @@ export interface NewSession {
   role: Role
   userId: string
   phone?: string
-  sellerId?: string
+  farmerId?: string
   customerId?: string
   client?: string
 }
@@ -62,7 +62,7 @@ export function createSession(db: Db, input: NewSession, now = Date.now()): Sess
     role: input.role,
     userId: input.userId,
     phone: input.phone,
-    sellerId: input.sellerId,
+    farmerId: input.farmerId,
     customerId: input.customerId,
     client: input.client,
     createdAt: at,

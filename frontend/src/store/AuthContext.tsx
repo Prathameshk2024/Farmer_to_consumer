@@ -9,7 +9,7 @@ import { useToast } from './ToastContext.js'
 import { useI18n } from '../i18n/I18nProvider.js'
 
 /**
- * Session state. One phone number can be both a seller and a customer, so the
+ * Session state. One phone number can be both a farmer and a customer, so the
  * account carries a role rather than being two separate accounts - that avoids
  * asking the same woman for her details twice.
  *
@@ -22,7 +22,7 @@ import { useI18n } from '../i18n/I18nProvider.js'
  *   1. she presses Log out;
  *   2. the server answers 401, meaning the token it issued is no longer valid.
  *
- * Nothing else. Not a back press, not a reload, not opening /seller a second
+ * Nothing else. Not a back press, not a reload, not opening /farmer a second
  * time. That list used to be longer by accident: the refreshed token the
  * server hands back mid-session was written to the api client's copy only, so
  * the next reload restored the ORIGINAL token from here and threw the slide
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem(KEY)
         setToken(null)
         // The screens' last answers go with her. On a field coordinator's
-        // phone, where one handset signs in as seller after seller, a kept
+        // phone, where one handset signs in as farmer after farmer, a kept
         // "my products" is the previous woman's shop.
         clearScreenCache()
       }
@@ -157,5 +157,5 @@ export function useAuth(): AuthValue {
 
 /** Where a signed-in session belongs. One definition, used by every guard. */
 export function homeFor(role: Session['role']): string {
-  return role === 'seller' ? '/seller' : role === 'customer' ? '/shop' : '/'
+  return role === 'farmer' ? '/farmer' : role === 'customer' ? '/shop' : '/'
 }

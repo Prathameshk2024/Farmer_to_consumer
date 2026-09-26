@@ -12,12 +12,12 @@ import { useToast } from '../store/ToastContext.js'
 type Tab = 'OPEN' | 'RESOLVED' | 'ALL'
 
 /**
- * WHAT SELLERS AND BUYERS HAVE WRITTEN TO THE DESK.
+ * WHAT FARMERS AND BUYERS HAVE WRITTEN TO THE DESK.
  *
  * A queue, not an archive: open ones first, and the point of the screen is to
- * empty it. Each row carries her name, her number and - for a seller - the
+ * empty it. Each row carries her name, her number and - for a farmer - the
  * SMB id, so the answer to most of these is a phone call made from this page
- * rather than a hunt through the seller list.
+ * rather than a hunt through the farmer list.
  *
  * Marking one done records WHO did it, for the same reason a verification does:
  * "who answered this woman?" has to be answerable months later.
@@ -90,8 +90,8 @@ function Row({
         <span className="strong">{complaint.name}</span>
         {/* Her own words are the row. Everything else is how to reach her. */}
         <span className="small dim">
-          {complaint.byRole === 'seller' ? t('cm.fromSeller') : t('cm.fromCustomer')}
-          {complaint.womenBizId && <> · <span className="mono">{complaint.womenBizId}</span></>}
+          {complaint.byRole === 'farmer' ? t('cm.fromFarmer') : t('cm.fromCustomer')}
+          {complaint.farmerCode && <> · <span className="mono">{complaint.farmerCode}</span></>}
         </span>
         <span className="small dim-2 grow" style={{ textAlign: 'right' }}>{when(complaint.at)}</span>
       </div>
@@ -104,9 +104,9 @@ function Row({
         <a className="btn btn--quiet btn--sm" href={`tel:+91${complaint.phone}`}>
           {t('cm.call')} +91 {complaint.phone}
         </a>
-        {complaint.byRole === 'seller' && (
-          <Link className="btn btn--quiet btn--sm" to={`/sellers/${complaint.byUserId}`}>
-            {t('cm.openSeller')}
+        {complaint.byRole === 'farmer' && (
+          <Link className="btn btn--quiet btn--sm" to={`/farmers/${complaint.byUserId}`}>
+            {t('cm.openFarmer')}
           </Link>
         )}
         {complaint.resolvedAt ? (

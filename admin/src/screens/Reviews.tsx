@@ -18,7 +18,7 @@ type Filter = 'all' | 'low' | 'hidden' | 'reported'
  * WHAT BUYERS SAID ABOUT EVERY PRODUCT.
  *
  * Products are rated, one review per product per delivered order. Two jobs.
- * Reading: low ratings are the early signal - a seller whose products collect
+ * Reading: low ratings are the early signal - a farmer whose products collect
  * ones and twos needs a call from a coordinator, not a block. Moderating: a
  * review with a phone number in it, or abuse, comes down here.
  *
@@ -66,7 +66,7 @@ export function Reviews() {
         ) : rows.length === 0 ? (
           <Card><EmptyState icon={IconReviews} title={t('rv.empty')} body={t('rv.emptySub')} /></Card>
         ) : (
-          <ReviewTable reviews={rows} showSeller onChanged={reload} />
+          <ReviewTable reviews={rows} showFarmer onChanged={reload} />
         )}
       </div>
     </>
@@ -100,15 +100,15 @@ export function StarsText({ rating }: { rating: number }) {
 }
 
 /**
- * The table, shared with a seller's own page. The buyer is shown by the first
+ * The table, shared with a farmer's own page. The buyer is shown by the first
  * name the public already sees, and the order id - which the orders screen
  * opens in full when support needs to call them.
  */
 export function ReviewTable({
-  reviews, showSeller, onChanged,
+  reviews, showFarmer, onChanged,
 }: {
   reviews: (Review | ReviewRow)[]
-  showSeller?: boolean
+  showFarmer?: boolean
   onChanged: () => void
 }) {
   const t = useT()
@@ -122,7 +122,7 @@ export function ReviewTable({
             <thead>
               <tr>
                 <th>{t('rv.date')}</th>
-                {showSeller && <th>{t('or.seller')}</th>}
+                {showFarmer && <th>{t('or.farmer')}</th>}
                 <th>{t('rv.product')}</th>
                 <th>{t('rv.stars')}</th>
                 <th>{t('rv.comment')}</th>
@@ -136,10 +136,10 @@ export function ReviewTable({
               {reviews.map((r) => (
                 <tr key={r.id}>
                   <td className="small dim">{when(r.updatedAt ?? r.createdAt)}</td>
-                  {showSeller && (
+                  {showFarmer && (
                     <td>
-                      <Link to={`/sellers/${r.sellerId}`}>{(r as ReviewRow).seller ?? '-'}</Link>
-                      <div className="mono small dim">{(r as ReviewRow).womenBizId}</div>
+                      <Link to={`/farmers/${r.farmerId}`}>{(r as ReviewRow).farmer ?? '-'}</Link>
+                      <div className="mono small dim">{(r as ReviewRow).farmerCode}</div>
                     </td>
                   )}
                   <td className="small">{r.productName || '-'}</td>

@@ -13,7 +13,7 @@
  * is written to disk - stale prices must not outlive the tab.
  *
  * Cleared on the way out of a session. On a field coordinator's phone, where
- * one handset signs in as seller after seller, a cached "my products" from
+ * one handset signs in as farmer after farmer, a cached "my products" from
  * the previous woman is somebody else's shop.
  */
 const answers = new Map<string, unknown>()

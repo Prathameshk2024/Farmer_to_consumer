@@ -3,10 +3,10 @@ import { useParams } from 'react-router-dom'
 import type { AdminNotice, DigitalProfile } from '@shared/types.js'
 import { BAND_LABEL, MAX_SCORE, SELF_REPORTED_FACTORS } from '@shared/readiness.js'
 import { useI18n, useT } from '../i18n/I18nProvider.js'
-import { api, type SellerDetail as Detail } from '../lib/api.js'
+import { api, type FarmerDetail as Detail } from '../lib/api.js'
 import { isStuck, maskedLabel, rupees, when } from '../lib/format.js'
 import { TopBar } from '../components/Shell.js'
-import { SellerActions, StatusPill } from '../components/SellerActions.js'
+import { FarmerActions, StatusPill } from '../components/FarmerActions.js'
 import { Confirm, useConfirm } from '../components/Confirm.js'
 import { ProductCard } from './Products.js'
 import { ReviewTable, SummaryText } from './Reviews.js'
@@ -29,18 +29,18 @@ import {
  * and her prices are hers to change in her own app; an admin editing them from
  * here would leave her looking at a shop she did not write.
  */
-export function SellerDetail() {
-  const { sellerId } = useParams()
+export function FarmerDetail() {
+  const { farmerId } = useParams()
   const t = useT()
   const [data, loading, error, reload] = useAsync(
-    () => api.sellerDetail(sellerId!),
-    [sellerId],
+    () => api.farmerDetail(farmerId!),
+    [farmerId],
   )
 
   if (loading) {
     return (
       <>
-        <TopBar title={t('se.title')} back="/sellers" backLabel={t('sd.back')} />
+        <TopBar title={t('se.title')} back="/farmers" backLabel={t('sd.back')} />
         <div className="body"><Loading /></div>
       </>
     )
@@ -49,7 +49,7 @@ export function SellerDetail() {
   if (error || !data) {
     return (
       <>
-        <TopBar title={t('se.title')} back="/sellers" backLabel={t('sd.back')} />
+        <TopBar title={t('se.title')} back="/farmers" backLabel={t('sd.back')} />
         <div className="body stack">
           <ErrorNote error={error} />
           {!error && <Card><EmptyState title={t('sd.notFound')} /></Card>}
@@ -58,14 +58,14 @@ export function SellerDetail() {
     )
   }
 
-  const { seller } = data
+  const { farmer } = data
 
   return (
     <>
       <TopBar
-        title={seller.shopName}
-        sub={`${seller.womenBizId} · ${seller.village}`}
-        back="/sellers"
+        title={farmer.shopName}
+        sub={`${farmer.farmerCode} · ${farmer.village}`}
+        back="/farmers"
         backLabel={t('sd.back')}
       />
 
@@ -77,7 +77,7 @@ export function SellerDetail() {
           <Business detail={data} />
           <Readiness detail={data} />
           <ShopSettings detail={data} />
-          <Decisions notices={seller.notices ?? []} />
+          <Decisions notices={farmer.notices ?? []} />
         </div>
 
         <Listings detail={data} onDone={reload} />
@@ -96,13 +96,13 @@ function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
   const t = useT()
   const errorText = useErrorText()
   const verify = useConfirm()
-  const { seller } = detail
+  const { farmer } = detail
 
   async function doVerify() {
     verify.setBusy(true)
     verify.setError('')
     try {
-      await api.verifySeller(seller.id)
+      await api.verifyFarmer(farmer.id)
       verify.close()
       onDone()
     } catch (e) {
@@ -115,56 +115,56 @@ function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
   return (
     <Card>
       <div className="row wrap" style={{ gap: 14, alignItems: 'flex-start' }}>
-        <Portrait name={seller.name} photo={seller.photo} />
+        <Portrait name={farmer.name} photo={farmer.photo} />
 
         <div className="grow min0">
           <div className="row wrap" style={{ gap: 8 }}>
-            <span className="strong" style={{ fontSize: 17 }}>{seller.name}</span>
-            <StatusPill status={seller.status} />
-            {!seller.isOpen && <Pill tone="warn">{t('sd.shopClosed')}</Pill>}
+            <span className="strong" style={{ fontSize: 17 }}>{farmer.name}</span>
+            <StatusPill status={farmer.status} />
+            {!farmer.isOpen && <Pill tone="warn">{t('sd.shopClosed')}</Pill>}
           </div>
 
           <div className="small dim">
-            <span className="mono">{seller.womenBizId}</span>
-            {' · '}{seller.village}, {seller.taluka}, {seller.district}
-            {' · '}<span className="mono">{seller.pincode}</span>
+            <span className="mono">{farmer.farmerCode}</span>
+            {' · '}{farmer.village}, {farmer.taluka}, {farmer.district}
+            {' · '}<span className="mono">{farmer.pincode}</span>
           </div>
 
           <div className="small dim" style={{ marginTop: 4 }}>
-            {t('se.phone')}: <span className="mono">{seller.phone}</span>
-            {seller.whatsapp && <> · WhatsApp: <span className="mono">{seller.whatsapp}</span></>}
+            {t('se.phone')}: <span className="mono">{farmer.phone}</span>
+            {farmer.whatsapp && <> · WhatsApp: <span className="mono">{farmer.whatsapp}</span></>}
           </div>
 
           {/* Where her money goes. Copied rather than retyped: a UPI ID wrong
               by one character pays a stranger. */}
-          {seller.upiId && (
+          {farmer.upiId && (
             <div className="small dim" style={{ marginTop: 4 }}>
               {t('se.upi')}{' '}
-              <CopyValue value={seller.upiId} label={t('c.copy')} copiedText={t('c.upiCopied')} />
-              {seller.upiVerified && <Pill tone="ok">{t('sd.upiVerified')}</Pill>}
-              {seller.upiQrReady && <Pill tone="info">{t('sd.qrReady')}</Pill>}
+              <CopyValue value={farmer.upiId} label={t('c.copy')} copiedText={t('c.upiCopied')} />
+              {farmer.upiVerified && <Pill tone="ok">{t('sd.upiVerified')}</Pill>}
+              {farmer.upiQrReady && <Pill tone="info">{t('sd.qrReady')}</Pill>}
             </div>
           )}
 
           <div className="small dim-2" style={{ marginTop: 4 }}>
-            {t('sd.joined')}: {when(seller.createdAt)}
+            {t('sd.joined')}: {when(farmer.createdAt)}
           </div>
         </div>
       </div>
 
       {/* Blocked is not a state to discover from a greyed-out button. */}
-      {seller.status === 'BLOCKED' && (
+      {farmer.status === 'BLOCKED' && (
         <div style={{ marginTop: 12 }}>
           <Notice tone="danger">
-            {t('sd.blockedOn', { when: when(seller.blockedAt ?? '') })}
-            {seller.blockReason ? ` — ${t('c.reason')}: ${seller.blockReason}` : ''}
+            {t('sd.blockedOn', { when: when(farmer.blockedAt ?? '') })}
+            {farmer.blockReason ? ` — ${t('c.reason')}: ${farmer.blockReason}` : ''}
           </Notice>
         </div>
       )}
 
       {/* The one check a farmer gets. Once he is verified, what he lists goes
           on sale without anyone looking at each listing. */}
-      {seller.status === 'PENDING_VERIFICATION' && (
+      {farmer.status === 'PENDING_VERIFICATION' && (
         <div style={{ marginTop: 12 }}>
           <Button disabled={verify.open} onClick={verify.ask}>{t('sel.verify')}</Button>
           <Confirm
@@ -181,7 +181,7 @@ function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
       )}
 
       <div style={{ marginTop: 12 }}>
-        <SellerActions seller={seller} onDone={onDone} />
+        <FarmerActions farmer={farmer} onDone={onDone} />
       </div>
     </Card>
   )
@@ -205,7 +205,7 @@ function Portrait({ name, photo }: { name: string; photo?: string }) {
 
 function Numbers({ detail }: { detail: Detail }) {
   const t = useT()
-  const { seller, products, orders, earned } = detail
+  const { farmer, products, orders, earned } = detail
 
   const live = products.filter((p) => p.status === 'LIVE').length
   const delivered = orders.filter((o) => o.status === 'DELIVERED').length
@@ -216,7 +216,7 @@ function Numbers({ detail }: { detail: Detail }) {
       <Tile n={orders.length} label={t('sd.ordersAll')} />
       <Tile n={delivered} label={t('sd.delivered')} />
       <Tile n={rupees(earned)} label={t('sd.earned')} />
-      <Tile n={`${seller.readinessScore}/${MAX_SCORE}`} label={t('se.readiness')} />
+      <Tile n={`${farmer.readinessScore}/${MAX_SCORE}`} label={t('se.readiness')} />
     </div>
   )
 }
@@ -236,34 +236,34 @@ function Tile({ n, label }: { n: number | string; label: string }) {
 
 function Business({ detail }: { detail: Detail }) {
   const t = useT()
-  const { seller } = detail
+  const { farmer } = detail
 
   return (
     <Card>
       <SectionTitle>{t('sd.business')}</SectionTitle>
       <dl className="kv">
-        <Row label={t('sd.businessType')}>{seller.businessType}</Row>
-        <Row label={t('sd.food')}>{seller.sellsFood ? t('c.yes') : t('c.no')}</Row>
-        {seller.shgName && <Row label={t('sd.shg')}>{seller.shgName}</Row>}
-        {seller.yearsInBusiness != null && (
-          <Row label={t('sd.years')}><span className="num">{seller.yearsInBusiness}</span></Row>
+        <Row label={t('sd.businessType')}>{farmer.businessType}</Row>
+        <Row label={t('sd.food')}>{farmer.sellsFood ? t('c.yes') : t('c.no')}</Row>
+        {farmer.shgName && <Row label={t('sd.shg')}>{farmer.shgName}</Row>}
+        {farmer.yearsInBusiness != null && (
+          <Row label={t('sd.years')}><span className="num">{farmer.yearsInBusiness}</span></Row>
         )}
-        {seller.monthlyCapacity != null && (
+        {farmer.monthlyCapacity != null && (
           <Row label={t('sd.capacity')}>
-            <span className="num">{seller.monthlyCapacity}</span> {t('sd.perMonth')}
+            <span className="num">{farmer.monthlyCapacity}</span> {t('sd.perMonth')}
           </Row>
         )}
-        {seller.age != null && <Row label={t('sd.age')}><span className="num">{seller.age}</span></Row>}
-        {seller.education && <Row label={t('sd.education')}>{seller.education}</Row>}
+        {farmer.age != null && <Row label={t('sd.age')}><span className="num">{farmer.age}</span></Row>}
+        {farmer.education && <Row label={t('sd.education')}>{farmer.education}</Row>}
         <Row label={t('sd.qr')}>
-          <span className="num">{seller.qrScans}</span> {t('sd.scans')}
-          {' · '}<span className="num">{seller.qrOrders}</span> {t('sd.ordersFromQr')}
+          <span className="num">{farmer.qrScans}</span> {t('sd.scans')}
+          {' · '}<span className="num">{farmer.qrOrders}</span> {t('sd.ordersFromQr')}
         </Row>
       </dl>
 
       {/* Her own words about her shop, as customers read them. */}
-      {seller.about && (
-        <p className="small dim" style={{ marginBottom: 0 }}>{seller.about}</p>
+      {farmer.about && (
+        <p className="small dim" style={{ marginBottom: 0 }}>{farmer.about}</p>
       )}
     </Card>
   )
@@ -271,32 +271,32 @@ function Business({ detail }: { detail: Detail }) {
 
 function ShopSettings({ detail }: { detail: Detail }) {
   const t = useT()
-  const { seller } = detail
+  const { farmer } = detail
 
   return (
     <Card>
       <SectionTitle>{t('sd.shopSettings')}</SectionTitle>
       <dl className="kv">
         <Row label={t('sd.takingOrders')}>
-          {seller.isOpen
+          {farmer.isOpen
             ? <Pill tone="ok">{t('c.yes')}</Pill>
             : <Pill tone="warn">{t('c.no')}</Pill>}
         </Row>
         <Row label={t('sd.deliveryFee')}>
-          {seller.deliveryFee > 0 ? rupees(seller.deliveryFee) : t('sd.freeDelivery')}
+          {farmer.deliveryFee > 0 ? rupees(farmer.deliveryFee) : t('sd.freeDelivery')}
         </Row>
-        {seller.freeDeliveryAbove > 0 && (
-          <Row label={t('sd.freeAbove')}>{rupees(seller.freeDeliveryAbove)}</Row>
+        {farmer.freeDeliveryAbove > 0 && (
+          <Row label={t('sd.freeAbove')}>{rupees(farmer.freeDeliveryAbove)}</Row>
         )}
         <Row label={t('sd.minOrder')}>
-          {seller.minOrder > 0 ? rupees(seller.minOrder) : t('c.none')}
+          {farmer.minOrder > 0 ? rupees(farmer.minOrder) : t('c.none')}
         </Row>
-        <Row label={t('sd.dispatch')}>{seller.dispatch}</Row>
-        {seller.fssai && <Row label={t('sd.fssai')}>{seller.fssai}</Row>}
+        <Row label={t('sd.dispatch')}>{farmer.dispatch}</Row>
+        {farmer.fssai && <Row label={t('sd.fssai')}>{farmer.fssai}</Row>}
         {/* The pincodes she delivers to. An order outside them is refused by
             the API, so this is the answer to "why can she not see my area". */}
         <Row label={t('sd.serves')}>
-          <span className="mono">{seller.pincodes.join(', ') || '—'}</span>
+          <span className="mono">{farmer.pincodes.join(', ') || '—'}</span>
         </Row>
       </dl>
     </Card>
@@ -315,8 +315,8 @@ function ShopSettings({ detail }: { detail: Detail }) {
 function Readiness({ detail }: { detail: Detail }) {
   const t = useT()
   const { lang } = useI18n()
-  const { seller } = detail
-  const band = BAND_LABEL[seller.readinessBand]
+  const { farmer } = detail
+  const band = BAND_LABEL[farmer.readinessBand]
 
   return (
     <Card>
@@ -324,7 +324,7 @@ function Readiness({ detail }: { detail: Detail }) {
 
       <div className="row" style={{ gap: 10, marginBottom: 10 }}>
         <span className="num" style={{ fontSize: 26, fontWeight: 700 }}>
-          {seller.readinessScore}
+          {farmer.readinessScore}
         </span>
         <span className="dim-2 small">/ {MAX_SCORE}</span>
         <Pill tone="info">{lang === 'mr' ? band.mr : band.en}</Pill>
@@ -333,7 +333,7 @@ function Readiness({ detail }: { detail: Detail }) {
       <div className="small dim-2">{t('sd.selfReported')}</div>
       <ul className="checks">
         {SELF_REPORTED_FACTORS.map((f) => (
-          <Check key={f.key} on={seller.digital[f.key as keyof DigitalProfile]}>
+          <Check key={f.key} on={farmer.digital[f.key as keyof DigitalProfile]}>
             {lang === 'mr' ? f.mr : f.en}
           </Check>
         ))}
@@ -341,7 +341,7 @@ function Readiness({ detail }: { detail: Detail }) {
 
       <div className="small dim-2" style={{ marginTop: 10 }}>{t('sd.measured')}</div>
       <ul className="checks">
-        <Check on={!!seller.about && seller.about.length > 20 && detail.products.length > 0}>
+        <Check on={!!farmer.about && farmer.about.length > 20 && detail.products.length > 0}>
           {t('sd.mBranding')}
         </Check>
         <Check on={detail.products.some((p) => !!p.ingredients || !!p.imageUrl)}>
@@ -350,7 +350,7 @@ function Readiness({ detail }: { detail: Detail }) {
         <Check on={detail.orders.some((o) => o.status === 'DELIVERED')}>
           {t('sd.mOnlineOrders')}
         </Check>
-        <Check on={seller.upiVerified && detail.orders.some((o) => o.status === 'DELIVERED')}>
+        <Check on={farmer.upiVerified && detail.orders.some((o) => o.status === 'DELIVERED')}>
           {t('sd.mFinance')}
         </Check>
       </ul>
@@ -435,7 +435,7 @@ function Listings({ detail, onDone }: { detail: Detail; onDone: () => void }) {
 /**
  * THE BUYER IS MASKED HERE TOO.
  *
- * Reading a seller's page is not a reason to be handed a list of women's names
+ * Reading a farmer's page is not a reason to be handed a list of women's names
  * and phone numbers. The unmasked details stay where they were - inside one
  * order on the orders screen, where looking is a deliberate act.
  */

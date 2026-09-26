@@ -1,18 +1,18 @@
 import { Router } from 'express'
-import type { DigitalProfile, Seller } from '@shared/types.js'
+import type { DigitalProfile, Farmer } from '@shared/types.js'
 import {
   defaultAbout, fssaiProblem, isValidPhone, isValidPincode, normalizeFssai,
-  normalizePhone, samePhone, validateSellerProfile, canSellNow,
-} from '@shared/seller.js'
+  normalizePhone, samePhone, validateFarmerProfile, canSellNow,
+} from '@shared/farmer.js'
 import { upiProblem } from '@shared/payment.js'
 import { closeReasonProblem, confirmProblem } from '@shared/accountClose.js'
-import { openOrdersForSeller, requestSellerClose, restoreSeller } from '../db/accountClose.js'
-import { makeShopSlug, makeWomenBizId, villageCode } from '@shared/womenbiz.js'
-import { computeReadiness, readinessBand, recomputeForSeller } from '@shared/readiness.js'
+import { openOrdersForFarmer, requestFarmerClose, restoreFarmer } from '../db/accountClose.js'
+import { makeShopSlug, makeFarmerCode, villageCode } from '@shared/farmerCode.js'
+import { computeReadiness, readinessBand, recomputeForFarmer } from '@shared/readiness.js'
 import { getDb, newId, save } from '../db/store.js'
-import { buyersForSeller } from '../db/customers.js'
-import { sellerProductReviews, sellerRating } from '../db/reviews.js'
-import { publicSeller } from '../db/publicSeller.js'
+import { buyersForFarmer } from '../db/customers.js'
+import { farmerProductReviews, farmerRating } from '../db/reviews.js'
+import { publicFarmer } from '../db/publicFarmer.js'
 import { callerIp, requireRole } from '../middleware/auth.js'
 import { signToken } from '../auth/tokens.js'
 import { createSession, describeClient } from '../auth/sessions.js'
@@ -21,7 +21,7 @@ import { recordAuthEvent } from '../auth/events.js'
 import { hashIp, maskPhone } from '../auth/crypto.js'
 import { hit, LIMITS } from '../auth/rateLimit.js'
 
-export const sellersRouter: Router = Router()
+export const farmersRouter: Router = Router()
 
 /* ------------------------------------------------------------------ */
 /* Registration                                                        */
@@ -45,7 +45,7 @@ interface RegisterBody {
   pincode: string
   shopName: string
   about?: string
-  businessType: Seller['businessType']
+  businessType: Farmer['businessType']
   shgName?: string
   yearsInBusiness?: number
   monthlyCapacity?: number
@@ -58,19 +58,19 @@ interface RegisterBody {
   deliveryFee?: number
   minOrder?: number
   freeDeliveryAbove?: number
-  dispatch?: Seller['dispatch']
+  dispatch?: Farmer['dispatch']
 }
 
 /**
- * Create the seller record. He is PENDING_VERIFICATION at this point, not
- * ACTIVE - an admin checks him once (POST /admin/sellers/:id/verify) before
+ * Create the farmer record. He is PENDING_VERIFICATION at this point, not
+ * ACTIVE - an admin checks him once (POST /admin/farmers/:id/verify) before
  * buyers see anything he lists.
  *
  * Everything is validated here even though the client validates too. The client
  * validation exists to give her a fast message in Marathi; this exists because
  * the client can be bypassed.
  */
-sellersRouter.post('/register', (req, res) => {
+farmersRouter.post('/register', (req, res) => {
   const b = req.body as RegisterBody
   const fields: Record<string, string> = {}
   const ip = hashIp(callerIp(req))
@@ -91,7 +91,7 @@ sellersRouter.post('/register', (req, res) => {
    * PROOF THAT THIS PHONE PASSED AN OTP, JUST NOW.
    *
    * This is the gate that was missing. The handler used to read `b.phone`
-   * straight out of the request body and mint a seller session for it, with no
+   * straight out of the request body and mint a farmer session for it, with no
    * check of any kind - so anybody who could reach the API could create an
    * account against any unregistered number and be signed in as her. The
    * client walked through the OTP screen first, which is not the same thing as
@@ -101,7 +101,7 @@ sellersRouter.post('/register', (req, res) => {
    * ignored entirely, so there is no longer any path by which a caller names
    * the number he is registering.
    */
-  const phone = consumeTicket('seller-register', String((b as { ticket?: string }).ticket ?? ''))
+  const phone = consumeTicket('farmer-register', String((b as { ticket?: string }).ticket ?? ''))
   if (!phone) {
     recordAuthEvent(getDb(), { type: 'otp.verify.fail', ip, detail: 'register without a valid ticket' })
     save()
@@ -129,7 +129,7 @@ sellersRouter.post('/register', (req, res) => {
   }
 
   const db = getDb()
-  if (db.sellers.some((s) => samePhone(s.phone, phone))) {
+  if (db.farmers.some((s) => samePhone(s.phone, phone))) {
     res.status(409).json({
       error: 'Already registered',
       messageMr: 'हा नंबर आधीच नोंदणीकृत आहे. लॉगिन करा.',
@@ -149,12 +149,12 @@ sellersRouter.post('/register', (req, res) => {
   // until she actually does them, which is what makes before/after meaningful.
   const score = computeReadiness(digital)
 
-  const womenBizId = makeWomenBizId(b.village, db.sellers.map((s) => s.womenBizId))
+  const farmerCode = makeFarmerCode(b.village, db.farmers.map((s) => s.farmerCode))
   const id = newId('s')
 
-  const seller: Seller = {
+  const farmer: Farmer = {
     id,
-    womenBizId,
+    farmerCode,
     name: b.name.trim(),
     photo: '👩',
     phone: normalizePhone(phone),
@@ -167,7 +167,7 @@ sellersRouter.post('/register', (req, res) => {
     district: b.district?.trim() ?? '',
     pincode: b.pincode.trim(),
     shopName: b.shopName.trim(),
-    shopSlug: makeShopSlug(b.shopName, womenBizId),
+    shopSlug: makeShopSlug(b.shopName, farmerCode),
     // Her shop opens with a description whether or not she wrote one.
     about: b.about?.trim() || defaultAbout({
       shopName: b.shopName.trim(),
@@ -208,36 +208,36 @@ sellersRouter.post('/register', (req, res) => {
     createdAt: new Date().toISOString(),
   }
 
-  db.sellers.push(seller)
+  db.farmers.push(farmer)
   save()
 
   // She is signed in from here, on a session that can later be revoked like
   // any other - registration is not a special kind of login.
   const session = createSession(db, {
-    role: 'seller',
+    role: 'farmer',
     userId: id,
-    phone: seller.phone,
-    sellerId: id,
+    phone: farmer.phone,
+    farmerId: id,
     client: describeClient(req.headers['user-agent']),
   })
   recordAuthEvent(db, {
-    type: 'register.seller',
-    subject: maskPhone(seller.phone),
-    role: 'seller',
+    type: 'register.farmer',
+    subject: maskPhone(farmer.phone),
+    role: 'farmer',
     ip,
     sessionId: session.id,
   })
   save()
 
   res.status(201).json({
-    seller,
+    farmer,
     session: {
-      token: signToken({ sid: session.id, role: 'seller' }),
-      role: 'seller',
+      token: signToken({ sid: session.id, role: 'farmer' }),
+      role: 'farmer',
       userId: id,
-      phone: seller.phone,
-      name: seller.name,
-      sellerId: id,
+      phone: farmer.phone,
+      name: farmer.name,
+      farmerId: id,
     },
   })
 })
@@ -246,14 +246,14 @@ sellersRouter.post('/register', (req, res) => {
 /* Me                                                                  */
 /* ------------------------------------------------------------------ */
 
-sellersRouter.get('/me', requireRole('seller'), (req, res) => {
+farmersRouter.get('/me', requireRole('farmer'), (req, res) => {
   const db = getDb()
-  const seller = db.sellers.find((s) => s.id === req.auth!.sellerId)
-  if (!seller) {
-    res.status(404).json({ error: 'Seller not found' })
+  const farmer = db.farmers.find((s) => s.id === req.auth!.farmerId)
+  if (!farmer) {
+    res.status(404).json({ error: 'Farmer not found' })
     return
   }
-  res.json({ seller })
+  res.json({ farmer })
 })
 
 /**
@@ -264,8 +264,8 @@ sellersRouter.get('/me', requireRole('seller'), (req, res) => {
  * comes back, which is the thing a shopkeeper knows by memory and an app owner
  * otherwise never learns.
  */
-sellersRouter.get('/me/buyers', requireRole('seller'), (req, res) => {
-  res.json({ buyers: buyersForSeller(getDb(), req.auth!.sellerId!) })
+farmersRouter.get('/me/buyers', requireRole('farmer'), (req, res) => {
+  res.json({ buyers: buyersForFarmer(getDb(), req.auth!.farmerId!) })
 })
 
 /**
@@ -273,22 +273,22 @@ sellersRouter.get('/me/buyers', requireRole('seller'), (req, res) => {
  * exactly the words the public reads on those products, and nothing hidden -
  * with the rating buyers see on her card, worked out the same way.
  */
-sellersRouter.get('/me/reviews', requireRole('seller'), (req, res) => {
+farmersRouter.get('/me/reviews', requireRole('farmer'), (req, res) => {
   const db = getDb()
-  const sellerId = req.auth!.sellerId!
-  res.json({ reviews: sellerProductReviews(db, sellerId), summary: sellerRating(db, sellerId) })
+  const farmerId = req.auth!.farmerId!
+  res.json({ reviews: farmerProductReviews(db, farmerId), summary: farmerRating(db, farmerId) })
 })
 
-sellersRouter.patch('/me', requireRole('seller'), (req, res) => {
+farmersRouter.patch('/me', requireRole('farmer'), (req, res) => {
   const db = getDb()
-  const i = db.sellers.findIndex((s) => s.id === req.auth!.sellerId)
+  const i = db.farmers.findIndex((s) => s.id === req.auth!.farmerId)
   if (i < 0) {
-    res.status(404).json({ error: 'Seller not found' })
+    res.status(404).json({ error: 'Farmer not found' })
     return
   }
 
   // Allow-list. Never spread req.body into a stored record - that is how a
-  // seller sets her own status to ACTIVE.
+  // farmer sets her own status to ACTIVE.
   const allowed = [
     'name', 'photo', 'whatsapp', 'about', 'shopName', 'isOpen', 'deliveryFee',
     'freeDeliveryAbove', 'minOrder', 'dispatch', 'pincodes', 'monthlyCapacity',
@@ -296,8 +296,8 @@ sellersRouter.patch('/me', requireRole('seller'), (req, res) => {
     'upiQrUrl', 'upiQrReady',
   ] as const
 
-  const current = db.sellers[i]!
-  const patch: Partial<Seller> = {}
+  const current = db.farmers[i]!
+  const patch: Partial<Farmer> = {}
   for (const key of allowed) {
     if (key in req.body) (patch as Record<string, unknown>)[key] = req.body[key]
   }
@@ -316,7 +316,7 @@ sellersRouter.patch('/me', requireRole('seller'), (req, res) => {
   // The allow-list decides WHICH fields may move; this decides whether what
   // she sent makes sense. Same function the form runs, so the message under
   // the box is the same message either way.
-  const fields = validateSellerProfile(patch)
+  const fields = validateFarmerProfile(patch)
   if (Object.keys(fields).length) {
     res.status(400).json({ error: 'Validation failed', messageMr: 'माहिती तपासा', fields })
     return
@@ -325,9 +325,9 @@ sellersRouter.patch('/me', requireRole('seller'), (req, res) => {
   const next = { ...current, ...patch }
 
   // Keep the readiness index in step with what she actually has now.
-  const products = db.products.filter((p) => p.sellerId === next.id)
-  const completed = db.orders.filter((o) => o.sellerId === next.id && o.status === 'DELIVERED')
-  const { score, band } = recomputeForSeller(next, {
+  const products = db.products.filter((p) => p.farmerId === next.id)
+  const completed = db.orders.filter((o) => o.farmerId === next.id && o.status === 'DELIVERED')
+  const { score, band } = recomputeForFarmer(next, {
     productCount: products.length,
     productsWithDetail: products.filter((p) => p.ingredients || p.material).length,
     completedOrders: completed.length,
@@ -335,9 +335,9 @@ sellersRouter.patch('/me', requireRole('seller'), (req, res) => {
   next.readinessScore = score
   next.readinessBand = band
 
-  db.sellers[i] = next
+  db.farmers[i] = next
   save()
-  res.json({ seller: next })
+  res.json({ farmer: next })
 })
 
 /* ------------------------------------------------------------------ */
@@ -351,17 +351,17 @@ sellersRouter.patch('/me', requireRole('seller'), (req, res) => {
  * all three however carefully the app already did: a reason, the last four
  * digits of her own number, and no order still in flight. The last one is not
  * a formality - a buyer waiting on a delivery cannot be left holding an order
- * whose seller has vanished, so the answer names the orders and she finishes
+ * whose farmer has vanished, so the answer names the orders and she finishes
  * or cancels them with the buttons she already has.
  *
  * What this does NOT do is erase her. That is a week away - see
  * `db/accountClose.ts` - and every screen tells her so.
  */
-sellersRouter.post('/me/close', requireRole('seller'), (req, res) => {
+farmersRouter.post('/me/close', requireRole('farmer'), (req, res) => {
   const db = getDb()
-  const seller = db.sellers.find((s) => s.id === req.auth!.sellerId)
-  if (!seller) {
-    res.status(404).json({ error: 'Seller not found' })
+  const farmer = db.farmers.find((s) => s.id === req.auth!.farmerId)
+  if (!farmer) {
+    res.status(404).json({ error: 'Farmer not found' })
     return
   }
 
@@ -374,13 +374,13 @@ sellersRouter.post('/me/close', requireRole('seller'), (req, res) => {
     return
   }
 
-  const digitsProblem = confirmProblem(seller.phone, req.body?.confirm)
+  const digitsProblem = confirmProblem(farmer.phone, req.body?.confirm)
   if (digitsProblem) {
     res.status(400).json({ error: 'Confirmation failed', messageMr: digitsProblem, fields: { confirm: digitsProblem } })
     return
   }
 
-  const open = openOrdersForSeller(db, seller.id)
+  const open = openOrdersForFarmer(db, farmer.id)
   if (open.length > 0) {
     res.status(409).json({
       error: 'Open orders',
@@ -390,13 +390,13 @@ sellersRouter.post('/me/close', requireRole('seller'), (req, res) => {
     return
   }
 
-  requestSellerClose(db, seller, { reason, note })
+  requestFarmerClose(db, farmer, { reason, note })
   recordAuthEvent(db, {
-    type: 'session.end', subject: maskPhone(seller.phone), role: 'seller',
+    type: 'session.end', subject: maskPhone(farmer.phone), role: 'farmer',
     ip: callerIp(req), detail: 'account.close',
   })
   save()
-  res.json({ ok: true, closingAt: seller.closingAt })
+  res.json({ ok: true, closingAt: farmer.closingAt })
 })
 
 /**
@@ -405,14 +405,14 @@ sellersRouter.post('/me/close', requireRole('seller'), (req, res) => {
  * Reached by signing in again, which is the whole point: the person who can
  * stop it is the person who can still pass an OTP on that number.
  */
-sellersRouter.post('/me/restore', requireRole('seller'), (req, res) => {
+farmersRouter.post('/me/restore', requireRole('farmer'), (req, res) => {
   const db = getDb()
-  const seller = db.sellers.find((s) => s.id === req.auth!.sellerId)
-  if (!seller) {
-    res.status(404).json({ error: 'Seller not found' })
+  const farmer = db.farmers.find((s) => s.id === req.auth!.farmerId)
+  if (!farmer) {
+    res.status(404).json({ error: 'Farmer not found' })
     return
   }
-  if (seller.status !== 'CLOSED' || !seller.closingAt) {
+  if (farmer.status !== 'CLOSED' || !farmer.closingAt) {
     // Already erased, or never closing. Either way there is nothing to undo,
     // and saying so beats pretending an empty record came back.
     res.status(409).json({
@@ -422,24 +422,24 @@ sellersRouter.post('/me/restore', requireRole('seller'), (req, res) => {
     return
   }
 
-  restoreSeller(seller)
+  restoreFarmer(farmer)
   save()
-  res.json({ seller })
+  res.json({ farmer })
 })
 
 /* ------------------------------------------------------------------ */
-/* Public seller record (the "sold by" card on a product)              */
+/* Public farmer record (the "sold by" card on a product)              */
 /* ------------------------------------------------------------------ */
 
-sellersRouter.get('/:id', (req, res) => {
-  const seller = getDb().sellers.find((s) => s.id === req.params.id)
-  // Same rule as /slug/:slug. A seller who has not been approved, or who has
+farmersRouter.get('/:id', (req, res) => {
+  const farmer = getDb().farmers.find((s) => s.id === req.params.id)
+  // Same rule as /slug/:slug. A farmer who has not been approved, or who has
   // been blocked, is not public - customers only ever see verified shops.
-  if (!seller || !canSellNow(seller)) {
-    res.status(404).json({ error: 'Seller not found', messageMr: 'ही विक्रेती सापडली नाही' })
+  if (!farmer || !canSellNow(farmer)) {
+    res.status(404).json({ error: 'Farmer not found', messageMr: 'ही विक्रेती सापडली नाही' })
     return
   }
   // The same allow-listed card the catalogue sends. This used to strip seven
   // named fields and pass everything else, including her admin notices.
-  res.json({ seller: publicSeller(seller, sellerRating(getDb(), seller.id)) })
+  res.json({ farmer: publicFarmer(farmer, farmerRating(getDb(), farmer.id)) })
 })

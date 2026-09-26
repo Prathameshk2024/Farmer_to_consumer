@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { Address, Seller } from '@shared/types.js'
+import type { Address, Farmer } from '@shared/types.js'
 import { OrderRatings } from '../../components/Reviews.js'
 import { OrderStatusBox } from '../../components/OrderTracker.js'
 import {
   STATUS_STYLE, awaitingCustomerPayment, statusLabelKey,
 } from '@shared/orderFlow.js'
-import { buildUpiLink, isMaharashtraPincode } from '@shared/seller.js'
+import { buildUpiLink, isMaharashtraPincode } from '@shared/farmer.js'
 import { isValidUtr, normalizeUtr, utrProblem } from '@shared/payment.js'
 import { useT } from '../../i18n/I18nProvider.js'
 import { useAuth } from '../../store/AuthContext.js'
@@ -17,7 +17,7 @@ import { useToast } from '../../store/ToastContext.js'
 import QrCode from '../../components/QrCode.js'
 import { PaySteps } from '../../components/PayFromPhone.js'
 import { useReturnFromApp } from '../../lib/useReturnFromApp.js'
-import { customerCanCancel, sellerCanCancel } from '@shared/orderCancel.js'
+import { customerCanCancel, farmerCanCancel } from '@shared/orderCancel.js'
 import { CancelOrderSheet, OrderEndedNotice, RefundNotice } from '../../components/OrderCancel.js'
 import { Avatar } from '../../components/Avatar.js'
 import { AddressForm } from '../../components/AddressForm.js'
@@ -33,20 +33,20 @@ import {
 import { PageTour, TourMenu } from '../../components/Walkthrough.js'
 
 /**
- * "ASK THE SELLER" WITH SOMETHING TO ASK WITH.
+ * "ASK THE FARMER" WITH SOMETHING TO ASK WITH.
  *
- * Delivery is a hint rather than a price for most sellers here - she writes
+ * Delivery is a hint rather than a price for most farmers here - she writes
  * one pincode at registration and works the rest out per order - so the cart
  * says what delivery costs is hers to tell, and until now a buyer had no way
  * to ask without first placing the order.
  *
- * Her number is not in the catalogue and must not be: `publicSeller` is an
+ * Her number is not in the catalogue and must not be: `publicFarmer` is an
  * allow-list and her phone is deliberately outside it. So the button fetches
- * it when a buyer actually taps, which is a buyer asking one seller a
+ * it when a buyer actually taps, which is a buyer asking one farmer a
  * question rather than a directory of village women's phone numbers attached
  * to their names. Once it is here, Call and WhatsApp replace the button.
  */
-function AskSellerButton({ sellerId }: { sellerId: string }) {
+function AskFarmerButton({ farmerId }: { farmerId: string }) {
   const t = useT()
   const [contact, setContact] = useState<{ phone: string; whatsapp: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -58,7 +58,7 @@ function AskSellerButton({ sellerId }: { sellerId: string }) {
         <div className="num">+91 {contact.phone}</div>
         <div className="btn-row">
           <a className="btn btn--ghost btn--sm" href={`tel:+91${contact.phone}`}>
-            <IconCall aria-hidden="true" /> {t('cart.callSeller')}
+            <IconCall aria-hidden="true" /> {t('cart.callFarmer')}
           </a>
           <a
             className="btn btn--ghost btn--sm"
@@ -66,7 +66,7 @@ function AskSellerButton({ sellerId }: { sellerId: string }) {
             target="_blank"
             rel="noreferrer"
           >
-            <IconWhatsapp aria-hidden="true" /> {t('cart.whatsappSeller')}
+            <IconWhatsapp aria-hidden="true" /> {t('cart.whatsappFarmer')}
           </a>
         </div>
       </div>
@@ -77,7 +77,7 @@ function AskSellerButton({ sellerId }: { sellerId: string }) {
     setBusy(true)
     setErr('')
     try {
-      setContact(await api.sellerContact(sellerId))
+      setContact(await api.farmerContact(farmerId))
     } catch (e) {
       setErr(e instanceof ApiError ? (e.messageMr ?? e.message) : t('cart.contactFailed'))
     } finally {
@@ -88,7 +88,7 @@ function AskSellerButton({ sellerId }: { sellerId: string }) {
   return (
     <div style={{ marginTop: 'var(--s2)' }}>
       <Button variant="ghost" size="sm" disabled={busy} onClick={() => void ask()}>
-        <IconCall aria-hidden="true" /> {t('cart.contactSeller')}
+        <IconCall aria-hidden="true" /> {t('cart.contactFarmer')}
       </Button>
       {err && <div className="field__err" style={{ marginTop: 4 }}>{err}</div>}
     </div>
@@ -96,15 +96,15 @@ function AskSellerButton({ sellerId }: { sellerId: string }) {
 }
 
 /**
- * Cart - grouped by seller, because each seller becomes a separate order with
+ * Cart - grouped by farmer, because each farmer becomes a separate order with
  * its own delivery charge AND its own payment.
  */
 export function Cart() {
   const t = useT()
   const nav = useNavigate()
-  const { items: cartItems, setQty, count, groupBySeller, sellerId: cartSellerId } = useCart()
+  const { items: cartItems, setQty, count, groupByFarmer, farmerId: cartFarmerId } = useCart()
 
-  // Sellers come from the catalog, which already carries a seller card per item.
+  // Farmers come from the catalog, which already carries a farmer card per item.
   const [data, loading] = useAsync(() => api.catalog(), [], 'catalog')
 
   if (loading) return <><AppBar brand title={t('nav.cart')} /><div className="screen"><Loading /></div></>
@@ -150,22 +150,22 @@ export function Cart() {
     return p.madeToOrder ? 20 : p.stock
   }
 
-  const sellers = dedupeSellers(data?.products ?? [])
-  const groups = groupBySeller(sellers)
+  const farmers = dedupeFarmers(data?.products ?? [])
+  const groups = groupByFarmer(farmers)
   const grand = groups.reduce((n, g) => n + g.total, 0)
 
   /**
    * The rest of this shop's window, on the cart itself.
    *
-   * The cart is locked to one seller, so this is the entire set of things she
+   * The cart is locked to one farmer, so this is the entire set of things she
    * can still add to this order - and the catalogue is already loaded for the
-   * seller cards above, so it costs nothing to ask. What is already in the
+   * farmer cards above, so it costs nothing to ask. What is already in the
    * cart is left out: it is listed in full a few lines up, with its own
    * controls.
    */
   const inCart = new Set(cartItems.map((i) => i.productId))
   const alsoFromShop = (data?.products ?? []).filter(
-    (p) => p.sellerId === cartSellerId && !inCart.has(p.id),
+    (p) => p.farmerId === cartFarmerId && !inCart.has(p.id),
   )
   const blocked = groups.some((g) => g.belowMinimum)
 
@@ -173,18 +173,18 @@ export function Cart() {
     <>
       <AppBar brand title={t('nav.cart')} sub={`${count} ${t('ord.items')}`} />
       <div className="screen stack" data-wt="cart-list">
-        {/* One seller owns the cart now, so this fires only for a cart saved
+        {/* One farmer owns the cart now, so this fires only for a cart saved
             in localStorage before that rule existed. It stays because the
             alternative is dropping her items to make the screen tidy. */}
-        {groups.length > 1 && <Notice tone="info">{t('cus.perSellerNote')}</Notice>}
+        {groups.length > 1 && <Notice tone="info">{t('cus.perFarmerNote')}</Notice>}
 
         {groups.map((g) => (
-          <Card key={g.sellerId}>
+          <Card key={g.farmerId}>
             <div className="row" style={{ marginBottom: 'var(--s3)' }}>
-              <Avatar name={g.seller?.shopName ?? g.seller?.name} size={40} />
+              <Avatar name={g.farmer?.shopName ?? g.farmer?.name} size={40} />
               <div className="grow">
-                <div className="small dim">{t('cus.fromSeller')}</div>
-                <strong>{g.seller?.shopName}</strong>
+                <div className="small dim">{t('cus.fromFarmer')}</div>
+                <strong>{g.farmer?.shopName}</strong>
               </div>
             </div>
 
@@ -256,7 +256,7 @@ export function Cart() {
                   {/* The question the line above raises, with the means to ask
                       it. Her number is fetched on the tap rather than carried
                       in the catalogue - see the route in catalog.routes.ts. */}
-                  <AskSellerButton sellerId={g.sellerId} />
+                  <AskFarmerButton farmerId={g.farmerId} />
                 </>
               )}
               <div className="row-between" style={{ fontSize: 'var(--t-base)' }}>
@@ -303,9 +303,9 @@ export function Cart() {
   )
 }
 
-function dedupeSellers(products: { seller?: Partial<Seller> }[]): Partial<Seller>[] {
-  const map = new Map<string, Partial<Seller>>()
-  for (const p of products) if (p.seller?.id) map.set(p.seller.id, p.seller)
+function dedupeFarmers(products: { farmer?: Partial<Farmer> }[]): Partial<Farmer>[] {
+  const map = new Map<string, Partial<Farmer>>()
+  for (const p of products) if (p.farmer?.id) map.set(p.farmer.id, p.farmer)
   return [...map.values()]
 }
 
@@ -319,7 +319,7 @@ function addressLine(a: Address): string {
 }
 
 /* ================================================================== */
-/* Checkout - address, then a payment step PER SELLER                   */
+/* Checkout - address, then a payment step PER FARMER                   */
 /* ================================================================== */
 
 export function Checkout() {
@@ -327,7 +327,7 @@ export function Checkout() {
   const nav = useNavigate()
   const { session } = useAuth()
   const { toast } = useToast()
-  const { groupBySeller, clear } = useCart()
+  const { groupByFarmer, clear } = useCart()
 
   const [catalogData, loadingCatalog] = useAsync(() => api.catalog(), [])
   const [customerData, loadingCustomer, setCustomerData] = useAsync(() => api.customerMe(), [])
@@ -363,8 +363,8 @@ export function Checkout() {
       setSavingAddress(false)
     }
   }
-  const sellers = dedupeSellers(catalogData?.products ?? [])
-  const groups = groupBySeller(sellers)
+  const farmers = dedupeFarmers(catalogData?.products ?? [])
+  const groups = groupByFarmer(farmers)
   const address =
     addresses.find((a) => a.id === addressId) ??
     // The customer already gave a pincode on Explore - default to the address
@@ -383,7 +383,7 @@ export function Checkout() {
    * otherwise.
    */
   const outsideArea = groups.filter(
-    (g) => address && !(g.seller?.pincodes ?? []).includes(address.pincode),
+    (g) => address && !(g.farmer?.pincodes ?? []).includes(address.pincode),
   )
   const outsideState = !!address && !isMaharashtraPincode(address.pincode)
 
@@ -398,7 +398,7 @@ export function Checkout() {
         paymentMode: mode,
         // The customer's stored name first: the session falls back to the
         // ग्राहक placeholder, and sending that would overwrite nothing but
-        // tell the seller nothing either.
+        // tell the farmer nothing either.
         customerName: customer?.name || session?.name || t('common.customer'),
       })
       clear()
@@ -460,7 +460,7 @@ export function Checkout() {
 
         {!outsideState && outsideArea.length > 0 && (
           <Notice tone="warn">
-            {outsideArea.map((g) => g.seller?.shopName).join(', ')} — {t('cus.askSeller')}
+            {outsideArea.map((g) => g.farmer?.shopName).join(', ')} — {t('cus.askFarmer')}
           </Notice>
         )}
 
@@ -479,7 +479,7 @@ export function Checkout() {
         </div>
 
         {/* NOTHING IS PAID HERE ANY MORE.
-            The buyer pays after the seller has accepted - their area list is a
+            The buyer pays after the farmer has accepted - their area list is a
             hint now, so a rejection is ordinary, and a rejected prepaid order
             leaves the money with a woman who has no way to send it back. */}
         {mode === 'UPI' && <Notice tone="info">{t('cus.payAfterAccept')}</Notice>}
@@ -496,7 +496,7 @@ export function Checkout() {
           )}
           {groups.length > 1 && (
             <div className="small dim" style={{ marginTop: 6 }}>
-              {t('cart.sellerCount', { n: groups.length })}
+              {t('cart.farmerCount', { n: groups.length })}
             </div>
           )}
         </Card>
@@ -659,11 +659,11 @@ export function TrackOrder() {
   if (!data) return <><AppBar title="" onBack={() => nav(-1)} /><div className="screen"><EmptyState title="—" /></div></>
 
   const order = data.order
-  const seller = data.seller
-  const orderLink = seller?.upiId
+  const farmer = data.farmer
+  const orderLink = farmer?.upiId
     ? buildUpiLink({
-        upiId: seller.upiId,
-        name: seller.shopName,
+        upiId: farmer.upiId,
+        name: farmer.shopName,
         amount: order.total,
         note: `Shantai Mahila Bazar ${order.id}`,
       })
@@ -724,7 +724,7 @@ export function TrackOrder() {
 
         <OrderStatusBox order={order} />
 
-        {/* What the seller said it would take, in her own words, given at the
+        {/* What the farmer said it would take, in her own words, given at the
             moment she accepted. Directly under the status, because "when?"
             is the question the status does not answer. It is not a guarantee
             and does not pretend to be one - it is what she said. */}
@@ -744,24 +744,24 @@ export function TrackOrder() {
             there is a transaction between them, and only to the person who
             placed it. A buyer waiting on food they have already paid for should
             not have to go through us to ask when it is coming. */}
-        {seller && (
+        {farmer && (
           <Card>
             <div className="row">
-              <Avatar name={seller.shopName ?? seller.name} size={44} />
+              <Avatar name={farmer.shopName ?? farmer.name} size={44} />
               <div className="grow">
-                <div className="small dim">{t('cus.fromSeller')}</div>
-                <strong>{seller.shopName}</strong>
-                {seller.phone && <div className="small dim num">+91 {seller.phone}</div>}
+                <div className="small dim">{t('cus.fromFarmer')}</div>
+                <strong>{farmer.shopName}</strong>
+                {farmer.phone && <div className="small dim num">+91 {farmer.phone}</div>}
               </div>
             </div>
-            {seller.phone && (
+            {farmer.phone && (
               <div className="btn-row" style={{ marginTop: 'var(--s3)' }}>
-                <a className="btn btn--ghost" href={`tel:+91${seller.phone}`}>
-                  <IconCall aria-hidden="true" /> {t('cus.callSeller')}
+                <a className="btn btn--ghost" href={`tel:+91${farmer.phone}`}>
+                  <IconCall aria-hidden="true" /> {t('cus.callFarmer')}
                 </a>
                 <a
                   className="btn btn--ghost"
-                  href={`https://wa.me/91${seller.phone}`}
+                  href={`https://wa.me/91${farmer.phone}`}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -781,14 +781,14 @@ export function TrackOrder() {
         <OrderEndedNotice order={order} viewer="customer" />
         <RefundNotice order={order} viewer="customer" />
 
-        {/* Backing out is free until the seller says yes: nothing is paid and
+        {/* Backing out is free until the farmer says yes: nothing is paid and
             nothing is cooking. After that the button is gone and the screen
             says who to ring instead, rather than leaving her to wonder where
             it went - the call button is right above. */}
         {customerCanCancel(order.status) && (
           <Button variant="ghost" onClick={() => setCancelOpen(true)}>{t('cancel.button')}</Button>
         )}
-        {sellerCanCancel(order.status) && (
+        {farmerCanCancel(order.status) && (
           <p className="small dim">{t('cancel.cus.afterAccept')}</p>
         )}
 
@@ -807,14 +807,14 @@ export function TrackOrder() {
               {/* The customer's own uploaded QR beside the generated one, not instead of
                   it: the printed code is the one they recognises, and only the
                   generated link carries the amount and the order id. */}
-              {seller?.upiQrUrl && (
+              {farmer?.upiQrUrl && (
                 <img
-                  src={seller.upiQrUrl}
+                  src={farmer.upiQrUrl}
                   alt={t('cus.payTo')}
                   style={{ width: 170, margin: '0 auto', borderRadius: 'var(--r-sm)' }}
                 />
               )}
-              {seller?.upiId ? (
+              {farmer?.upiId ? (
                 <>
                   <QrCode value={orderLink} size={170} label={t('cus.payTo')} />
                   {/* One phone cannot scan its own screen, and a pay link to a
@@ -827,7 +827,7 @@ export function TrackOrder() {
                       not just printed - a UPI ID wrong by one character pays a
                       stranger with no way back. */}
                   <div className="dim center">{t('pay.orUpiId')}</div>
-                  <CopyValue value={seller.upiId} onCopied={waitForReturn} />
+                  <CopyValue value={farmer.upiId} onCopied={waitForReturn} />
                 </>
               ) : (
                 <Notice tone="warn">{t('qrpay.notSetUp')}</Notice>
@@ -1079,7 +1079,7 @@ export function CustomerProfile() {
           {t('prof.logout')}
         </Button>
 
-        {/* Far from Log out, for the reason the seller's is - see
+        {/* Far from Log out, for the reason the farmer's is - see
             components/CloseAccount.tsx. A buyer loses an address book rather
             than an income, so there is no week to change her mind and the
             sheet says so plainly instead. */}
@@ -1093,7 +1093,7 @@ export function CustomerProfile() {
         </Card>
       </div>
 
-      {/* The same step the seller gets. Getting back in costs an SMS code, and
+      {/* The same step the farmer gets. Getting back in costs an SMS code, and
           the one worry a shopper has about leaving - "will my cart go?" - is
           answered before she decides: it stays on this phone. */}
       <ConfirmSheet

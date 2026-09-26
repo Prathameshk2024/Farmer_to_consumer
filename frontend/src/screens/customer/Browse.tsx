@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { Category, Product, Seller } from '@shared/types.js'
+import type { Category, Product, Farmer } from '@shared/types.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { useCart } from '../../store/CartContext.js'
 import { useToast } from '../../store/ToastContext.js'
@@ -42,7 +42,7 @@ function CategoryTileArt({ category }: { category: Category }) {
   )
 }
 
-type CardProduct = Product & { seller?: Partial<Seller>; rating?: number; ratingCount?: number }
+type CardProduct = Product & { farmer?: Partial<Farmer>; rating?: number; ratingCount?: number }
 
 export function ProductCard({ product, onOpen }: { product: CardProduct; onOpen: () => void }) {
   const t = useT()
@@ -85,13 +85,13 @@ export function ProductCard({ product, onOpen }: { product: CardProduct; onOpen:
  * becomes the count, with a minus beside it, so a mis-tap is undone where it
  * happened rather than two screens away.
  *
- * Bounded by the stock the seller entered, because the whole listing is a
+ * Bounded by the stock the farmer entered, because the whole listing is a
  * promise she has to keep.
  */
 function AddControl({ product }: { product: CardProduct }) {
   const t = useT()
   const { toast } = useToast()
-  const { items, add, setQty, sellerName: cartShop } = useCart()
+  const { items, add, setQty, farmerName: cartShop } = useCart()
 
   const qty = items.find((i) => i.productId === product.id)?.qty ?? 0
   const outOfStock = !product.madeToOrder && product.stock === 0
@@ -107,9 +107,9 @@ function AddControl({ product }: { product: CardProduct }) {
         size="sm"
         variant="ghost"
         onClick={() => {
-          // One seller owns the cart. A toast rather than a dialog: she is in
+          // One farmer owns the cart. A toast rather than a dialog: she is in
           // the middle of a list, and the product screen says it in full.
-          if (!add(product, 1, product.seller?.shopName)) {
+          if (!add(product, 1, product.farmer?.shopName)) {
             toast(t('cus.cartLocked', { shop: cartShop ?? '' }), 'warn')
           }
         }}
@@ -149,7 +149,7 @@ export function Explore() {
   // Deliberately NOT filtered by pincode. Browsing is for discovery, and a
   // pincode filter here hid whole shops behind a setting most shoppers never
   // touched. Serviceability is checked where it actually matters - at
-  // checkout, and per seller, where it can be explained rather than silently
+  // checkout, and per farmer, where it can be explained rather than silently
   // shortening the list.
   const [data, loading] = useAsync(() => api.catalog(), [], 'catalog')
 
@@ -270,20 +270,20 @@ export function ProductDetail() {
   const { productId } = useParams()
   const t = useT()
   const nav = useNavigate()
-  const { add, has, canAdd, sellerName: cartShop } = useCart()
+  const { add, has, canAdd, farmerName: cartShop } = useCart()
 
   const [data, loading] = useAsync(() => api.product(productId!), [productId], `product:${productId}`)
   /** Open while she is saying what is wrong with this listing. */
   const [reporting, setReporting] = useState(false)
 
   /**
-   * The rest of this shop's window. Fetched by seller rather than filtered
+   * The rest of this shop's window. Fetched by farmer rather than filtered
    * out of the whole catalogue, so three products cost three products.
    */
-  const sellerId = data?.product.sellerId
+  const farmerId = data?.product.farmerId
   const [more] = useAsync(
-    () => (sellerId ? api.catalog({ sellerId }) : Promise.resolve({ products: [] })),
-    [sellerId],
+    () => (farmerId ? api.catalog({ farmerId }) : Promise.resolve({ products: [] })),
+    [farmerId],
   )
   const [feedback] = useAsync(() => api.productReviews(productId!), [productId])
 
@@ -294,7 +294,7 @@ export function ProductDetail() {
     return <><AppBar title="" onBack={() => nav(-1)} /><div className="screen"><EmptyState title="—" /></div></>
   }
 
-  const { product, seller } = data
+  const { product, farmer } = data
   const outOfStock = !product.madeToOrder && product.stock === 0
 
   // Newest first, this one excluded, three of them. Three is a glance; a
@@ -306,11 +306,11 @@ export function ProductDetail() {
     .slice(0, 3)
 
   /**
-   * ONE SELLER AT A TIME. The cart belongs to whoever she added from first,
+   * ONE FARMER AT A TIME. The cart belongs to whoever she added from first,
    * so this product is refused while another shop holds it - with the name of
    * that shop and a way to go and look, never by emptying it for her.
    */
-  const blockedBy = canAdd(product.sellerId) ? null : (cartShop ?? '')
+  const blockedBy = canAdd(product.farmerId) ? null : (cartShop ?? '')
 
   return (
     <>
@@ -348,7 +348,7 @@ export function ProductDetail() {
           </div>
         </div>
 
-        {seller && <SellerCard seller={seller} />}
+        {farmer && <FarmerCard farmer={farmer} />}
 
         {product.isFood ? (
           <Card>
@@ -372,22 +372,22 @@ export function ProductDetail() {
 
         {/* Printed for the buyer because that is the point of having one:
             a number she can check against the FSSAI register. Only shown
-            when the seller gave one. */}
+            when the farmer gave one. */}
         {product.isFood && product.fssai && (
           <div className="small dim num">{t('prod.fssai')}: {product.fssai}</div>
         )}
 
-        {seller && (
+        {farmer && (
           <Notice tone="info">
             {/* ₹0 read as "free"; nobody set it (see CartContext). */}
-            {t('cus.deliveryFee')}: {seller.deliveryFee > 0 ? <Rupees value={seller.deliveryFee} /> : t('cart.deliveryAsk')}
-            {seller.freeDeliveryAbove > 0 && <> · <Rupees value={seller.freeDeliveryAbove} />+ {t('cart.free')}</>}
+            {t('cus.deliveryFee')}: {farmer.deliveryFee > 0 ? <Rupees value={farmer.deliveryFee} /> : t('cart.deliveryAsk')}
+            {farmer.freeDeliveryAbove > 0 && <> · <Rupees value={farmer.freeDeliveryAbove} />+ {t('cart.free')}</>}
           </Notice>
         )}
 
         {/* What buyers who received THIS product said about it, before the
             buy button - the one thing about a village product a stranger
-            cannot check for themselves. Products are rated, sellers are not. */}
+            cannot check for themselves. Products are rated, farmers are not. */}
         {feedback && (
           <div>
             <SectionTitle>{t('rev.title')}</SectionTitle>
@@ -427,7 +427,7 @@ export function ProductDetail() {
             </div>
             <Button
               variant="ghost"
-              onClick={() => nav(`/shop/seller/${product.sellerId}`)}
+              onClick={() => nav(`/shop/farmer/${product.farmerId}`)}
               style={{ marginTop: 'var(--s3)' }}
             >
               {t('cus.seeAllFromShop')} <IconNext aria-hidden="true" />
@@ -450,14 +450,14 @@ export function ProductDetail() {
         ) : (
           <>
             {/* No quantity row here. It carried `prod.stock` - "how much is
-                left?", the question the SELLER answers when she lists the
+                left?", the question the FARMER answers when she lists the
                 product - which asked a buyer to declare the shop's stock. One
                 is added, and the quantity is hers to change on the cart line
                 that follows, where the ceiling is the stock she cannot see. */}
             <Button
               disabled={outOfStock}
               onClick={() => {
-                if (add(product, 1, seller?.shopName)) nav('/shop/cart')
+                if (add(product, 1, farmer?.shopName)) nav('/shop/cart')
               }}
             >
               {outOfStock ? t('prod.outOfStock') : <><IconCart aria-hidden="true" /> {t('cus.addToCart')}</>}
@@ -475,17 +475,17 @@ export function ProductDetail() {
  *
  * Reached from "see all" under a product, and the natural landing place for
  * her QR poster the day that comes back. It matters more than it used to: the
- * cart holds one seller at a time, so once a buyer has added anything, this
+ * cart holds one farmer at a time, so once a buyer has added anything, this
  * page is the whole of what she can still buy today.
  */
-export function SellerShop() {
-  const { sellerId } = useParams()
+export function FarmerShop() {
+  const { farmerId } = useParams()
   const t = useT()
   const nav = useNavigate()
 
-  const [data, loading] = useAsync(() => api.catalog({ sellerId }), [sellerId], `catalog:s:${sellerId}`)
+  const [data, loading] = useAsync(() => api.catalog({ farmerId }), [farmerId], `catalog:s:${farmerId}`)
   const products = data?.products ?? []
-  const seller = products[0]?.seller
+  const farmer = products[0]?.farmer
 
   if (loading) {
     return <><AppBar title="" onBack={() => nav(-1)} /><div className="screen"><Loading /></div></>
@@ -493,21 +493,21 @@ export function SellerShop() {
 
   return (
     <>
-      <AppBar title={seller?.shopName ?? t('cus.shop')} onBack={() => nav(-1)} />
+      <AppBar title={farmer?.shopName ?? t('cus.shop')} onBack={() => nav(-1)} />
       <div className="screen stack">
-        {seller && <SellerCard seller={seller} />}
+        {farmer && <FarmerCard farmer={farmer} />}
 
-        {seller && (
+        {farmer && (
           <Notice tone="info">
-            {t('cus.deliveryFee')}: {(seller.deliveryFee ?? 0) > 0 ? <Rupees value={seller.deliveryFee ?? 0} /> : t('cart.deliveryAsk')}
-            {(seller.freeDeliveryAbove ?? 0) > 0 && (
-              <> · <Rupees value={seller.freeDeliveryAbove ?? 0} />+ {t('cart.free')}</>
+            {t('cus.deliveryFee')}: {(farmer.deliveryFee ?? 0) > 0 ? <Rupees value={farmer.deliveryFee ?? 0} /> : t('cart.deliveryAsk')}
+            {(farmer.freeDeliveryAbove ?? 0) > 0 && (
+              <> · <Rupees value={farmer.freeDeliveryAbove ?? 0} />+ {t('cart.free')}</>
             )}
-            {(seller.minOrder ?? 0) > 0 && <> · {t('cart.minOrder')} <Rupees value={seller.minOrder ?? 0} /></>}
+            {(farmer.minOrder ?? 0) > 0 && <> · {t('cart.minOrder')} <Rupees value={farmer.minOrder ?? 0} /></>}
           </Notice>
         )}
 
-        {/* An empty shop is not an error. A seller between batches has taken
+        {/* An empty shop is not an error. A farmer between batches has taken
             her listings down, and saying so beats an error icon. */}
         {products.length === 0 ? (
           <Card><EmptyState icon={IconProduct} title={t('prod.noProducts')} /></Card>
@@ -533,21 +533,21 @@ export function SellerShop() {
  * her village and her SMB ID still belong on the product, because they are
  * what a buyer is choosing between.
  */
-function SellerCard({ seller }: { seller: Partial<Seller> }) {
+function FarmerCard({ farmer }: { farmer: Partial<Farmer> }) {
   const t = useT()
   return (
     <div className="tile">
-      <Avatar name={seller.name} size={62} />
+      <Avatar name={farmer.name} size={62} />
       <div className="tile__body">
         <div className="tile__meta">{t('cus.soldBy')}</div>
-        <div className="tile__title">{seller.shopName}</div>
+        <div className="tile__title">{farmer.shopName}</div>
         {/* Her rating is what buyers gave her products, all of them together. */}
         <div className="tile__meta">
-          <RatingLine average={seller.rating} count={seller.ratingCount} />
-          {!!seller.ratingCount && <span className="dim"> · {t('rev.fromProducts')}</span>}
+          <RatingLine average={farmer.rating} count={farmer.ratingCount} />
+          {!!farmer.ratingCount && <span className="dim"> · {t('rev.fromProducts')}</span>}
         </div>
-        <div className="tile__meta">{seller.village}</div>
-        <div className="tiny num dim">{seller.womenBizId}</div>
+        <div className="tile__meta">{farmer.village}</div>
+        <div className="tiny num dim">{farmer.farmerCode}</div>
       </div>
     </div>
   )

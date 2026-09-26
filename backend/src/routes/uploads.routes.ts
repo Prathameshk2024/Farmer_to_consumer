@@ -40,7 +40,7 @@ export function sign(params: Record<string, string | number>, secret: string): s
  *
  * The ticket case is not a loophole, it is the registration case: she is asked
  * for her payment QR on the last screen of the wizard, and at that moment the
- * seller record does not exist, so there is no session to authenticate with.
+ * farmer record does not exist, so there is no session to authenticate with.
  * Requiring one made that upload fail with a 401 that the app could only
  * report as "the photo could not be sent".
  *
@@ -52,7 +52,7 @@ function requireUploader(req: Request, res: Response, next: NextFunction): void 
     next()
     return
   }
-  if (peekTicket('seller-register', String(req.body?.ticket ?? ''))) {
+  if (peekTicket('farmer-register', String(req.body?.ticket ?? ''))) {
     next()
     return
   }
@@ -99,7 +99,7 @@ uploadsRouter.post('/signature', requireUploader, (req, res) => {
 })
 
 /**
- * Delete an image. Used when a seller replaces a product photo, so the old one
+ * Delete an image. Used when a farmer replaces a product photo, so the old one
  * does not sit in the account forever.
  */
 /**
@@ -110,7 +110,7 @@ uploadsRouter.post('/signature', requireUploader, (req, res) => {
  * can name again is an image nobody can ever clear.
  *
  * Returns whether Cloudinary took it, and throws for nothing: a failed
- * cleanup must never stop the delete the seller actually asked for.
+ * cleanup must never stop the delete the farmer actually asked for.
  */
 export async function destroyImage(publicId: string | undefined): Promise<boolean> {
   if (!usingCloudinary || !cloudinary || !publicId) return false
@@ -136,7 +136,7 @@ export async function destroyImage(publicId: string | undefined): Promise<boolea
   }
 }
 
-uploadsRouter.post('/delete', requireRole('seller', 'admin'), async (req, res) => {
+uploadsRouter.post('/delete', requireRole('farmer', 'admin'), async (req, res) => {
   if (!usingCloudinary || !cloudinary) {
     res.status(503).json({ error: 'Image uploads are not configured' })
     return

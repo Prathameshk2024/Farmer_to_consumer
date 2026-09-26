@@ -22,7 +22,7 @@ import { ComplaintSheet } from '../../components/ComplaintSheet.js'
 /* Profile                                                             */
 /* ================================================================== */
 
-export function SellerProfile() {
+export function FarmerProfile() {
   const t = useT()
   const nav = useNavigate()
   const { lang } = useI18n()
@@ -37,7 +37,7 @@ export function SellerProfile() {
     return <><AppBar brand title={t('prof.title')} /><div className="screen"><Loading /></div></>
   }
 
-  const seller = me.seller
+  const farmer = me.farmer
 
   return (
     <>
@@ -45,18 +45,18 @@ export function SellerProfile() {
       <div className="screen stack">
         <Card>
           <div className="row">
-            <Avatar name={seller.name} size={64} />
+            <Avatar name={farmer.name} size={64} />
             <div className="grow">
-              <div style={{ fontWeight: 700, fontSize: 'var(--t-md)' }}>{seller.name}</div>
-              <div className="small dim">{seller.shopName}</div>
-              <div className="small dim num">+91 {seller.phone}</div>
+              <div style={{ fontWeight: 700, fontSize: 'var(--t-md)' }}>{farmer.name}</div>
+              <div className="small dim">{farmer.shopName}</div>
+              <div className="small dim num">+91 {farmer.phone}</div>
             </div>
           </div>
           <div style={{ marginTop: 'var(--s3)' }}>
             <Notice tone="ok">
               <span className="small dim">{t('reg.yourId')}</span>
               <div className="num" style={{ fontWeight: 800, fontSize: 'var(--t-md)' }}>
-                {seller.womenBizId}
+                {farmer.farmerCode}
               </div>
             </Notice>
           </div>
@@ -67,10 +67,10 @@ export function SellerProfile() {
           <div className="row-between">
             <div>
               <div className="small dim">{t('prof.readiness')}</div>
-              <strong style={{ fontSize: 'var(--t-lg)' }}>{seller.readinessScore} / 100</strong>
+              <strong style={{ fontSize: 'var(--t-lg)' }}>{farmer.readinessScore} / 100</strong>
             </div>
             <Pill tone="info">
-              {lang === 'mr' ? BAND_LABEL[seller.readinessBand].mr : BAND_LABEL[seller.readinessBand].en}
+              {lang === 'mr' ? BAND_LABEL[farmer.readinessBand].mr : BAND_LABEL[farmer.readinessBand].en}
             </Pill>
           </div>
           <div
@@ -81,7 +81,7 @@ export function SellerProfile() {
           >
             <div
               style={{
-                width: `${seller.readinessScore}%`, height: '100%',
+                width: `${farmer.readinessScore}%`, height: '100%',
                 background: 'var(--series4)',
               }}
             />
@@ -98,22 +98,22 @@ export function SellerProfile() {
                 {/* Read out over the phone, typed into a bank app, sent on
                     WhatsApp - copying beats retyping a string that pays
                     somebody else if one character is wrong. */}
-                <CopyValue value={seller.upiId} />
+                <CopyValue value={farmer.upiId} />
               </div>
-              <Pill tone={seller.upiVerified ? 'ok' : 'warn'} icon={seller.upiVerified ? <IconCheck /> : <IconWaiting />}>
-                {seller.upiVerified ? t('prof.verified') : t('prof.notVerified')}
+              <Pill tone={farmer.upiVerified ? 'ok' : 'warn'} icon={farmer.upiVerified ? <IconCheck /> : <IconWaiting />}>
+                {farmer.upiVerified ? t('prof.verified') : t('prof.notVerified')}
               </Pill>
             </div>
 
             {/* The payment QR is its own step - say plainly whether it is done. */}
-            {seller.upiQrReady ? (
-              <Button variant="ghost" size="sm" onClick={() => nav('/seller/payment')}>
+            {farmer.upiQrReady ? (
+              <Button variant="ghost" size="sm" onClick={() => nav('/farmer/payment')}>
                 <IconQr aria-hidden="true" /> {t('qrpay.title')}
               </Button>
             ) : (
               <>
                 <Notice tone="warn">{t('qrpay.empty')}</Notice>
-                <Button onClick={() => nav('/seller/payment')}>{t('qrpay.add')}</Button>
+                <Button onClick={() => nav('/farmer/payment')}>{t('qrpay.add')}</Button>
               </>
             )}
           </div>
@@ -122,23 +122,23 @@ export function SellerProfile() {
         <Card>
           <SectionTitle>{t('prof.business')}</SectionTitle>
           <div className="stack-sm small">
-            <Row label={t('reg.shopName')} value={seller.shopName} />
-            <Row label={t('reg.village')} value={`${seller.village} (${seller.villageCode})`} />
-            <Row label={t('reg.taluka')} value={seller.taluka} />
-            <Row label={t('reg.district')} value={seller.district} />
-            <Row label={t('reg.pincode')} value={seller.pincode} />
-            {seller.age && <Row label={t('reg.age')} value={String(seller.age)} />}
-            {seller.yearsInBusiness != null && (
-              <Row label={t('reg.years')} value={`${seller.yearsInBusiness} ${t('reg.yearsUnit')}`} />
+            <Row label={t('reg.shopName')} value={farmer.shopName} />
+            <Row label={t('reg.village')} value={`${farmer.village} (${farmer.villageCode})`} />
+            <Row label={t('reg.taluka')} value={farmer.taluka} />
+            <Row label={t('reg.district')} value={farmer.district} />
+            <Row label={t('reg.pincode')} value={farmer.pincode} />
+            {farmer.age && <Row label={t('reg.age')} value={String(farmer.age)} />}
+            {farmer.yearsInBusiness != null && (
+              <Row label={t('reg.years')} value={`${farmer.yearsInBusiness} ${t('reg.yearsUnit')}`} />
             )}
-            {seller.monthlyCapacity != null && (
-              <Row label={t('reg.capacity')} value={String(seller.monthlyCapacity)} />
+            {farmer.monthlyCapacity != null && (
+              <Row label={t('reg.capacity')} value={String(farmer.monthlyCapacity)} />
             )}
-            {seller.shgName && <Row label={t('reg.shgName')} value={seller.shgName} />}
+            {farmer.shgName && <Row label={t('reg.shgName')} value={farmer.shgName} />}
           </div>
         </Card>
 
-        <Button variant="ghost" onClick={() => nav('/seller/profile/edit')}>
+        <Button variant="ghost" onClick={() => nav('/farmer/profile/edit')}>
           <IconEdit aria-hidden="true" /> {t('prof.edit')}
         </Button>
 
@@ -175,14 +175,14 @@ export function SellerProfile() {
       />
 
       <CloseAccountSheet
-        role="seller"
-        phone={seller.phone}
+        role="farmer"
+        phone={farmer.phone}
         productCount={productData?.products.length ?? 0}
         open={closeOpen}
         onClose={() => setCloseOpen(false)}
       />
 
-      <PageTour id="seller.profile" />
+      <PageTour id="farmer.profile" />
     </>
   )
 }
@@ -207,7 +207,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
  */
 export const SUPPORT_PHONE = '7057899018'
 
-export function SellerHelp() {
+export function FarmerHelp() {
   const t = useT()
   /** Open while she is writing what went wrong. */
   const [complaining, setComplaining] = useState(false)
@@ -223,7 +223,7 @@ export function SellerHelp() {
           <p className="small dim" style={{ marginTop: -4, marginBottom: 'var(--s2)' }}>
             {t('wt.sub')}
           </p>
-          <TourMenu role="seller" />
+          <TourMenu role="farmer" />
         </div>
 
         <ComplaintSheet
@@ -256,7 +256,7 @@ export function SellerHelp() {
         </Card>
       </div>
 
-      <PageTour id="seller.help" />
+      <PageTour id="farmer.help" />
     </>
   )
 }
@@ -265,17 +265,17 @@ export function SellerHelp() {
 /* My Growth - her own past is the only benchmark, never a leaderboard */
 /* ================================================================== */
 
-export function SellerGrowth() {
+export function FarmerGrowth() {
   const t = useT()
   const { lang } = useI18n()
   const { session } = useAuth()
   const [data, loading] = useAsync(
-    () => api.sellerWeek(session?.sellerId ?? ''),
-    [session?.sellerId],
+    () => api.farmerWeek(session?.farmerId ?? ''),
+    [session?.farmerId],
   )
 
   if (loading) {
-    return <><AppBar title={t('grow.title')} backTo="/seller" /><div className="screen"><Loading /></div></>
+    return <><AppBar title={t('grow.title')} backTo="/farmer" /><div className="screen"><Loading /></div></>
   }
 
   const week = data?.week
@@ -286,7 +286,7 @@ export function SellerGrowth() {
   if (!week) {
     return (
       <>
-        <AppBar title={t('grow.title')} backTo="/seller" />
+        <AppBar title={t('grow.title')} backTo="/farmer" />
         <div className="screen">
           <Card>
             <EmptyState icon={IconGrowth} title={t('grow.needMoreData')} body={t('grow.needMoreDataSub')} />
@@ -303,7 +303,7 @@ export function SellerGrowth() {
 
   return (
     <>
-      <AppBar title={t('grow.title')} backTo="/seller" />
+      <AppBar title={t('grow.title')} backTo="/farmer" />
       <div className="screen stack">
         {/* The number first, the chart second. */}
         <Card>

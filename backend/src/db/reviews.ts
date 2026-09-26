@@ -62,7 +62,7 @@ export function writeRatings(
       orderId: order.id,
       productId: r.productId,
       productName: names.get(r.productId) ?? '',
-      sellerId: order.sellerId,
+      farmerId: order.farmerId,
       customerId: order.customerId,
       customerName: publicName(order.customerName),
       rating: r.rating,
@@ -92,9 +92,9 @@ export function productReviewsFor(
   return { reviews: visible(mine), summary: summarizeReviews(mine) }
 }
 
-/** Every visible review of a seller's products - her own list. */
-export function sellerProductReviews(db: Pick<Db, 'reviews'>, sellerId: string): PublicReview[] {
-  return visible(db.reviews.filter((r) => r.sellerId === sellerId))
+/** Every visible review of a farmer's products - her own list. */
+export function farmerProductReviews(db: Pick<Db, 'reviews'>, farmerId: string): PublicReview[] {
+  return visible(db.reviews.filter((r) => r.farmerId === farmerId))
 }
 
 /**
@@ -114,32 +114,32 @@ export function ratingsByProduct(db: Pick<Db, 'reviews'>): Map<string, RatingSum
 }
 
 /**
- * A SELLER'S RATING IS HER PRODUCTS' RATINGS, TAKEN TOGETHER.
+ * A FARMER'S RATING IS HER PRODUCTS' RATINGS, TAKEN TOGETHER.
  *
  * Buyers rate products, never the woman. Her score is every visible review of
  * every product she sells, each counted once - so a product rated forty times
  * weighs more than one rated twice, which is what a buyer reading "4.3 from 42
  * reviews" expects the number to mean. Averaging each product's average would
- * let one lucky five-star listing count as much as her best-seller.
+ * let one lucky five-star listing count as much as her best-farmer.
  *
  * Worked out on every request, like the product ratings: hiding a review
  * changes it at once, and nothing stored can go stale.
  */
-export function ratingsBySeller(db: Pick<Db, 'reviews'>): Map<string, RatingSummary> {
+export function ratingsByFarmer(db: Pick<Db, 'reviews'>): Map<string, RatingSummary> {
   const grouped = new Map<string, Review[]>()
   for (const r of db.reviews) {
-    const list = grouped.get(r.sellerId)
+    const list = grouped.get(r.farmerId)
     if (list) list.push(r)
-    else grouped.set(r.sellerId, [r])
+    else grouped.set(r.farmerId, [r])
   }
   const out = new Map<string, RatingSummary>()
   for (const [id, list] of grouped) out.set(id, summarizeReviews(list))
   return out
 }
 
-/** One seller's rating - see `ratingsBySeller`. */
-export function sellerRating(db: Pick<Db, 'reviews'>, sellerId: string): RatingSummary {
-  return summarizeReviews(db.reviews.filter((r) => r.sellerId === sellerId))
+/** One farmer's rating - see `ratingsByFarmer`. */
+export function farmerRating(db: Pick<Db, 'reviews'>, farmerId: string): RatingSummary {
+  return summarizeReviews(db.reviews.filter((r) => r.farmerId === farmerId))
 }
 
 export const NO_RATING: RatingSummary = { average: 0, count: 0, byStars: [0, 0, 0, 0, 0] }

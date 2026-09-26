@@ -1,7 +1,7 @@
 import { useT } from '../../i18n/I18nProvider.js'
 import { api } from '../../lib/api.js'
 import { Avatar } from '../../components/Avatar.js'
-import type { SellerBuyer } from '../../lib/api.js'
+import type { FarmerBuyer } from '../../lib/api.js'
 import {
   AppBar, Card, EmptyState, Loading, Pill, Rupees, SectionTitle, useAsync,
 } from '../../components/ui.js'
@@ -15,21 +15,21 @@ import { IconBuyers, IconCall } from '../../components/icons.js'
  *
  * Everything shown here she has already seen on her own order screens - this
  * only gathers it. The server derives the list from her orders alone, so a
- * buyer's dealings with any other seller are not hers to see.
+ * buyer's dealings with any other farmer are not hers to see.
  */
 export function MyBuyers() {
   const t = useT()
   const [data, loading] = useAsync(() => api.myBuyers(), [])
 
   if (loading) {
-    return <><AppBar title={t('buy.title')} backTo="/seller" /><div className="screen"><Loading /></div></>
+    return <><AppBar title={t('buy.title')} backTo="/farmer" /><div className="screen"><Loading /></div></>
   }
 
   const buyers = data?.buyers ?? []
 
   return (
     <>
-      <AppBar title={t('buy.title')} backTo="/seller" />
+      <AppBar title={t('buy.title')} backTo="/farmer" />
       <div className="screen stack">
         {buyers.length === 0 ? (
           <EmptyState icon={IconBuyers} title={t('buy.none')} body={t('buy.noneSub')} />
@@ -46,7 +46,7 @@ export function MyBuyers() {
   )
 }
 
-function BuyerCard({ buyer, t }: { buyer: SellerBuyer; t: (k: string) => string }) {
+function BuyerCard({ buyer, t }: { buyer: FarmerBuyer; t: (k: string) => string }) {
   return (
     <Card>
       <div className="row">

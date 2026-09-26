@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Product } from '@shared/types.js'
-import { PRODUCT_STATUS_STYLE, sellerMayDelete } from '@shared/seller.js'
+import { PRODUCT_STATUS_STYLE, farmerMayDelete } from '@shared/farmer.js'
 import { useT } from '../../i18n/I18nProvider.js'
 import { api } from '../../lib/api.js'
 import { sizeLabel } from '../../lib/productSize.js'
@@ -19,14 +19,14 @@ export default function MyProducts() {
   const t = useT()
   const nav = useNavigate()
   const { toast } = useToast()
-  const [data, loading, setData] = useAsync(() => api.myProducts(), [], 'seller:products')
+  const [data, loading, setData] = useAsync(() => api.myProducts(), [], 'farmer:products')
   const [toDelete, setToDelete] = useState<Product | null>(null)
 
   if (loading) {
-    return <><AppBar title={t('biz.myProducts')} backTo="/seller" /><div className="screen"><Loading /></div></>
+    return <><AppBar title={t('biz.myProducts')} backTo="/farmer" /><div className="screen"><Loading /></div></>
   }
   if (!data) {
-    return <><AppBar title={t('biz.myProducts')} backTo="/seller" /><div className="screen"><EmptyState title="—" /></div></>
+    return <><AppBar title={t('biz.myProducts')} backTo="/farmer" /><div className="screen"><EmptyState title="—" /></div></>
   }
 
   const { products } = data
@@ -49,7 +49,7 @@ export default function MyProducts() {
 
   return (
     <>
-      <AppBar title={t('biz.myProducts')} backTo="/seller" />
+      <AppBar title={t('biz.myProducts')} backTo="/farmer" />
       <div className="screen stack">
         {products.length === 0 ? (
           <Card>
@@ -69,13 +69,13 @@ export default function MyProducts() {
               const outOfStock = !p.madeToOrder && p.stock === 0
               return (
                 <Card key={p.id}>
-                  {/* The whole row is the way in to editing. A seller who
+                  {/* The whole row is the way in to editing. A farmer who
                       wants to fix a price taps the product, not a pencil the
                       size of a fingernail beside it. */}
                   <button
                     type="button"
                     className="tile-tap"
-                    onClick={() => nav(`/seller/products/${p.id}/edit`)}
+                    onClick={() => nav(`/farmer/products/${p.id}/edit`)}
                   >
                     <ProductImage
                       src={p.imageUrl}
@@ -112,12 +112,12 @@ export default function MyProducts() {
                     <Button
                       variant="quiet"
                       size="sm"
-                      onClick={() => nav(`/seller/products/${p.id}/edit`)}
+                      onClick={() => nav(`/farmer/products/${p.id}/edit`)}
                     >
                       <IconEdit aria-hidden="true" /> {t('common.edit')}
                     </Button>
                     {/* A sold-out crop is his to take down himself. */}
-                    {sellerMayDelete(p.status) && (
+                    {farmerMayDelete(p.status) && (
                       <Button variant="ghost" size="sm" onClick={() => setToDelete(p)}>
                         <IconTrash aria-hidden="true" /> {t('prod.deleteDraft')}
                       </Button>
@@ -129,7 +129,7 @@ export default function MyProducts() {
           </div>
         )}
 
-        <Button onClick={() => nav('/seller/upload')}>
+        <Button onClick={() => nav('/farmer/upload')}>
           <IconPlus aria-hidden="true" /> {t('prod.add')}
         </Button>
       </div>

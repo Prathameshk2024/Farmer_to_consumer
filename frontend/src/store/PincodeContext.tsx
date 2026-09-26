@@ -13,14 +13,14 @@ import { api } from '../lib/api.js'
  *   entry → validate → serviceability → catalog filtering → checkout
  *
  * It is persisted, so she is not asked again on her next visit, and the answer
- * comes from the server's view of which sellers actually cover that pincode -
+ * comes from the server's view of which farmers actually cover that pincode -
  * there is no hard-coded list of serviceable areas anywhere in the app.
  */
 
 export interface Serviceability {
   pincode: string
   serviceable: boolean
-  sellerCount: number
+  farmerCount: number
   productCount: number
   nearbyVillages: string[]
 }
@@ -72,7 +72,7 @@ export function PincodeProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Re-check the stored pincode on load: sellers open, close and change their
+  // Re-check the stored pincode on load: farmers open, close and change their
   // delivery areas, so a saved "serviceable" is not permanently true.
   useEffect(() => {
     if (!pincode || info) return

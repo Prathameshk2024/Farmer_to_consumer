@@ -1,7 +1,7 @@
 # Training session checklist
 
 For trainers and co-trainers running a 2–3 hour session on the app for rural
-women sellers, with students and teachers helping. Checked against the code on
+women farmers, with students and teachers helping. Checked against the code on
 `prathamesh2`.
 
 ---
@@ -15,7 +15,7 @@ hotspot, the whole room counts as one user (`backend/src/auth/rateLimit.ts`):
 | Limit | Value | What happens in the room |
 |---|---|---|
 | OTP requests from one connection | **20 per hour** | The 21st woman can't get a code for an hour |
-| Seller sign-ups from one connection | **10 per hour** | Only 10 women can register per hour |
+| Farmer sign-ups from one connection | **10 per hour** | Only 10 women can register per hour |
 | OTP codes per phone number | **3 per 24 hours** | Pressing "resend" 3 times locks her out until tomorrow |
 | Code checks from one connection | 50 per hour | Typos by the whole room add up |
 
@@ -31,8 +31,8 @@ hotspot, the whole room counts as one user (`backend/src/auth/rateLimit.ts`):
 
 **Accounts and data**
 - [ ] Make sure the admin console login works. Have **two admins** available: one presents, one approves listings and payments live.
-- [ ] Set up **one demo seller shop** (a trainer's number) with 3–4 approved products and a real UPI ID. All practice orders go to this shop.
-- [ ] Decide on practice orders: **women must not place test orders with real sellers.** Any order placed reaches the real seller.
+- [ ] Set up **one demo farmer shop** (a trainer's number) with 3–4 approved products and a real UPI ID. All practice orders go to this shop.
+- [ ] Decide on practice orders: **women must not place test orders with real farmers.** Any order placed reaches the real farmer.
 - [ ] Decide what happens to practice listings. Every new product goes to admin for checking. Approve the real ones; **reject** the practice ones, which gives the slot back.
 - [ ] Decide on the ₹50 pack: will women actually pay on the day? If yes, the admin needs the college account's bank statement or UPI app open, because approval needs 3 ticks: UTR matches, date and time match, money received.
 - [ ] Check the college UPI ID and name on the payment screen match the poster.
@@ -67,9 +67,9 @@ hotspot, the whole room counts as one user (`backend/src/auth/rateLimit.ts`):
 
 | Time | Part | Content |
 |---|---|---|
-| 0:00–0:15 | **Introduction** | Why the market is named after शांताबाई काकी, who can sell, what is sold. Photos of real sellers. |
+| 0:00–0:15 | **Introduction** | Why the market is named after शांताबाई काकी, who can sell, what is sold. Photos of real farmers. |
 | 0:15–0:30 | **Installing the app** | Install the APK and allow "unknown apps". Introduce the language (Marathi by default). |
-| 0:30–0:55 | **Login + seller registration** | In small groups (because of the limits above) |
+| 0:30–0:55 | **Login + farmer registration** | In small groups (because of the limits above) |
 | 0:55–1:05 | Tea break | Pending registrations get finished |
 | 1:05–1:40 | **Adding a product** | Photo, name, price, stock, "send for checking" |
 | 1:40–2:15 | **Orders and money** | Trainers place live orders; each woman accepts, packs and delivers |
@@ -92,7 +92,7 @@ hotspot, the whole room counts as one user (`backend/src/auth/rateLimit.ts`):
 - [ ] You don't need to log in every time. If you don't open the app for 15 days, you'll be asked again.
 - [ ] "Back" or refresh doesn't log you out. Only the **Log out** button does.
 
-### 3. Seller registration (6 screens)
+### 3. Farmer registration (6 screens)
 1. [ ] **About you**: name
 2. [ ] **Village and address**: pick the village from the list; pincode
 3. [ ] **Your business**: shop name, type of business, **do you sell food?** Explain carefully: **this answer is hard to change later**, and it decides which product categories she sees.
@@ -102,7 +102,7 @@ hotspot, the whole room counts as one user (`backend/src/auth/rateLimit.ts`):
    - A wrong UPI ID means buyers' money goes to a stranger.
    - If the app says "Did you mean @ybl?", read it and correct it.
 6. [ ] **Check**: read every answer. "बदला" (Change) takes you back to that screen.
-- [ ] Explain the **SMB ID** (e.g. SMB-ANADUR-01), including what the village and number mean.
+- [ ] Explain the **SMB ID** (e.g. F2C-ANADUR-001), including what the village and number mean.
 - [ ] Show that the first time a screen opens it explains itself (the walkthrough), and that **Help & Training** replays it any time.
 
 ### 4. The ₹50 pack
@@ -140,21 +140,21 @@ Trainers place orders from the buyer's side into the women's shops (or the demo 
   - [ ] ⚠️ **A UTR typed by the buyer is not money.** Always check your own UPI app.
   - [ ] Until you confirm the money, the "Packed" button doesn't appear. That is on purpose.
 - [ ] Packed → Out for delivery → Delivered
-- [ ] **Delivery charge:** the app doesn't ask for it, so the buyer sees "ask the seller". **Call the buyer and tell them the charge.** The buyer's phone number is on the order.
-- [ ] **Cancelling:** the seller can cancel between Accepted and Out for delivery. The button is at the bottom. **If money came in, you have to send it back yourself.** The app doesn't return money.
+- [ ] **Delivery charge:** the app doesn't ask for it, so the buyer sees "ask the farmer". **Call the buyer and tell them the charge.** The buyer's phone number is on the order.
+- [ ] **Cancelling:** the farmer can cancel between Accepted and Out for delivery. The button is at the bottom. **If money came in, you have to send it back yourself.** The app doesn't return money.
 - [ ] A buyer can cancel only before you accept. After that they'll call you.
 
 ### 7. The buyer's side (students/teachers)
 - [ ] Customer registration: phone, OTP, name
 - [ ] Browse by category, the product page, "More from this shop"
 - [ ] **A cart holds one shop's goods at a time.** Adding from another shop is refused; finish or empty the cart first.
-- [ ] Order → wait for the seller to accept → **then pay** (QR/UPI ID, then the 12-digit UTR)
+- [ ] Order → wait for the farmer to accept → **then pay** (QR/UPI ID, then the 12-digit UTR)
 - [ ] The order screen shows 4 stages: confirmed → shipped → out for delivery → delivered
 - [ ] **Rating is required after delivery.** Until they rate, the app won't let them do anything else or place a new order. Tell them in advance so it doesn't come as a surprise.
 - [ ] Only the buyer's first name is shown publicly.
 
 ### 8. Reviews and the business screen
-- [ ] The seller's rating is the average of her products' ratings
+- [ ] The farmer's rating is the average of her products' ratings
 - [ ] Where to see reviews, "My business", "My buyers"
 - [ ] Good packing, on-time delivery and honest photos lead to good ratings
 

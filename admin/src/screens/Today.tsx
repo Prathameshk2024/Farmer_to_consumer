@@ -56,7 +56,7 @@ export function Today() {
               <ActionTile
                 n={s.pendingVerification}
                 label={t('se.waitingVerification')}
-                onClick={() => nav('/sellers')}
+                onClick={() => nav('/farmers')}
               />
               <ActionTile
                 n={s.stuckOrders}
@@ -70,14 +70,14 @@ export function Today() {
         <section>
           <SectionTitle>{t('today.health')}</SectionTitle>
           <div className="tiles">
-            <Stat n={s.activeSellers} label={t('today.activeSellers')} />
-            <Stat n={s.totalSellers} label={t('today.totalSellers')} />
+            <Stat n={s.activeFarmers} label={t('today.activeFarmers')} />
+            <Stat n={s.totalFarmers} label={t('today.totalFarmers')} />
             <Stat n={s.newRegistrations} label={t('today.newThisWeek')} />
             <Stat n={s.ordersToday} label={t('today.ordersToday')} />
             <Stat n={s.ordersWeek} label={t('today.ordersWeek')} />
-            <Stat n={rupees(s.womenEarnedMonth)} label={t('today.earnedMonth')} />
-            <Stat n={rupees(s.womenEarnedTotal)} label={t('today.earnedTotal')} />
-            <Stat n={s.womenWithFirstEarning} label={t('today.firstEarning')} />
+            <Stat n={rupees(s.farmersEarnedMonth)} label={t('today.earnedMonth')} />
+            <Stat n={rupees(s.farmersEarnedTotal)} label={t('today.earnedTotal')} />
+            <Stat n={s.farmersWithFirstEarning} label={t('today.firstEarning')} />
           </div>
         </section>
 
@@ -92,7 +92,7 @@ export function Today() {
               <Donut
                 slices={s.earningBands.map((b) => ({ label: b.label, value: b.v }))}
                 ramp={RAMP_MAROON}
-                centerLabel={t('today.sellersLabel')}
+                centerLabel={t('today.farmersLabel')}
               />
             </Card>
 
@@ -105,7 +105,7 @@ export function Today() {
                   value: b.v,
                 }))}
                 ramp={RAMP_GREEN}
-                centerLabel={t('today.sellersLabel')}
+                centerLabel={t('today.farmersLabel')}
               />
             </Card>
           </div>

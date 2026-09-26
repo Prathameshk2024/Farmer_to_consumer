@@ -2,7 +2,7 @@
 
 The live project is on Firebase's free **Spark** plan, which has no managed
 backups and no point-in-time recovery — only the one hour of version history
-that recovered six sellers on 10 September 2026. So the backup is a copy into
+that recovered six farmers on 10 September 2026. So the backup is a copy into
 **separate free accounts**, made by `npm run backup` and put back by
 `npm run restore` (`backend/scripts/backup.ts` and `restore.ts`; the rules in
 `backend/src/db/backupPlan.ts`, the reading and writing they share in
@@ -36,7 +36,7 @@ Backup A was set up on 24 September 2026. **The logins for the backup
 accounts must be known to more than one person** — a backup nobody can sign in
 to is not a backup.
 
-What is copied: `sellers`, `products`, `orders`, `payments`, `customers`,
+What is copied: `farmers`, `products`, `orders`, `payments`, `customers`,
 `reviews`, `admins`, `authEvents`, and every image under
 `shanta-mahila-bazar/` (`product/` and `payment/`).
 
@@ -56,7 +56,7 @@ What is **not**:
   about 950 today, the same as one API start — out of Spark's 50,000 a day.
 - **The backup database mirrors the live one**, deletions included, writing
   only documents that changed. A copy that never deleted would bring back every
-  purged demo seller and deleted draft on the day it was restored.
+  purged demo farmer and deleted draft on the day it was restored.
 - **A live project that has shrunk is not copied.** If any collection has lost
   more than half its documents since the backup was taken, or the live read
   comes back empty, nothing is written, the backup keeps the older data, and
@@ -263,9 +263,9 @@ What building it means, measured on the copy of 23 September 2026:
 | Field | Documents with a Cloudinary URL |
 |---|---|
 | `products.imageUrl` | 33 |
-| `sellers.upiQrUrl` | 4 |
+| `farmers.upiQrUrl` | 4 |
 | `payments.screenshotUrl` | 6 |
-| `sellers.photo` | 0 today; the field exists and would need the same treatment if it ever holds one |
+| `farmers.photo` | 0 today; the field exists and would need the same treatment if it ever holds one |
 
 - **Replace the prefix only**: `https://res.cloudinary.com/<old>/` becomes
   `https://res.cloudinary.com/<new>/`. The rest of the URL — the version, the

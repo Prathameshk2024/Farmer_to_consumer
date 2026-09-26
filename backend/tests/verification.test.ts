@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { canSellNow, initialListingStatus } from '@shared/seller.js'
+import { canSellNow, initialListingStatus } from '@shared/farmer.js'
 
 process.env.SESSION_SECRET = 'test-secret-for-unit-tests'
 const { publiclyVisible } = await import('../src/routes/catalog.routes.js')

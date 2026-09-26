@@ -15,7 +15,7 @@ import { shouldRefresh, signToken, verifyToken } from '../auth/tokens.js'
  *      still exists, has been revoked, or has idled out.
  *
  * The second gate is the one that is new, and it is the whole point. Identity
- * is read from the RECORD, never from the token: `req.auth.sellerId` comes out
+ * is read from the RECORD, never from the token: `req.auth.farmerId` comes out
  * of the row in the database, so a token cannot assert an identity the server
  * did not issue even if the signing key were somehow forged. It also means
  * "log out" and "revoke her stolen phone" are real, because deleting the row
@@ -32,7 +32,7 @@ export interface AuthContext {
   role: Role
   userId: string
   phone?: string
-  sellerId?: string
+  farmerId?: string
   customerId?: string
   /** The session this request is authenticated by. */
   sessionId: string
@@ -58,7 +58,7 @@ export { SESSION_IDLE_MS, shouldRefresh, signToken, verifyToken } from '../auth/
  * Slides the idle window on both halves: the record's `lastSeenAt` moves, and
  * once a session is past halfway a freshly stamped token goes back on
  * `X-Session-Token` for the client to swap in. That is what makes the expiry
- * an INACTIVITY timeout rather than a hard cutoff that would sign a seller out
+ * an INACTIVITY timeout rather than a hard cutoff that would sign a farmer out
  * while she is packing an order.
  *
  * `lastSeenAt` is only PERSISTED every few minutes - see TOUCH_RESOLUTION_MS -
@@ -91,7 +91,7 @@ export function attachAuth(req: Request, res: Response, next: NextFunction): voi
     role: session.role,
     userId: session.userId,
     phone: session.phone,
-    sellerId: session.sellerId,
+    farmerId: session.farmerId,
     customerId: session.customerId,
     sessionId: session.id,
   }
@@ -123,9 +123,9 @@ export function requireRole(...roles: Role[]) {
   }
 }
 
-/** The seller id the caller is allowed to act as. */
-export function callerSellerId(req: Request): string | undefined {
-  return req.auth?.sellerId
+/** The farmer id the caller is allowed to act as. */
+export function callerFarmerId(req: Request): string | undefined {
+  return req.auth?.farmerId
 }
 
 /**

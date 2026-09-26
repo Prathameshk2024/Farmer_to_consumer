@@ -11,8 +11,8 @@ const { signToken, verifyToken, shouldRefresh, SESSION_IDLE_MS } =
  * Sessions expire on inactivity.
  *
  * The window differs by role because the risk does. An admin token verifies
- * farmers, blocks sellers and reads every buyer's address, and it is used at
- * a desk where signing in again costs nothing - so it is short. A seller's
+ * farmers, blocks farmers and reads every buyer's address, and it is used at
+ * a desk where signing in again costs nothing - so it is short. A farmer's
  * token is on a phone in a village, and re-issuing it costs an SMS and a
  * literacy hurdle, so it lives longer.
  *
@@ -29,12 +29,12 @@ const HOUR = 3_600_000
 const DAY = 24 * HOUR
 
 const admin = { sid: 'sess_admin', role: 'admin' as const }
-const seller = { sid: 'sess_seller', role: 'seller' as const }
+const farmer = { sid: 'sess_farmer', role: 'farmer' as const }
 
 test('the idle windows are the ones we intend', () => {
   assert.equal(SESSION_IDLE_MS.admin, 8 * HOUR, 'admin: one working day at most')
   // Inactive for more than 15 days: signed out. Asked for by the programme.
-  assert.equal(SESSION_IDLE_MS.seller, 15 * DAY)
+  assert.equal(SESSION_IDLE_MS.farmer, 15 * DAY)
   assert.equal(SESSION_IDLE_MS.customer, 15 * DAY)
 })
 
@@ -51,11 +51,11 @@ test('an admin token dies after eight idle hours', () => {
   assert.equal(verifyToken(token, issued + 9 * HOUR), null, 'gone at 9h')
 })
 
-test('a seller is not signed out overnight the way an admin is', () => {
+test('a farmer is not signed out overnight the way an admin is', () => {
   const issued = Date.now()
-  const token = signToken(seller, issued)
+  const token = signToken(farmer, issued)
 
-  assert.ok(verifyToken(token, issued + 3 * DAY), 'a seller may not open the app for days')
+  assert.ok(verifyToken(token, issued + 3 * DAY), 'a farmer may not open the app for days')
   assert.ok(verifyToken(token, issued + 14 * DAY), 'two weeks away is still signed in')
   assert.equal(verifyToken(token, issued + 16 * DAY), null, 'gone after 15 idle days')
 })
@@ -110,9 +110,9 @@ test('a token still early in its window is left alone', () => {
   assert.equal(shouldRefresh(claims, issued + 1 * HOUR), false)
 })
 
-test('a seller browsing daily is never signed out', () => {
+test('a farmer browsing daily is never signed out', () => {
   // Uses the app every 2 days for a month; each visit slides the window.
-  let token = signToken(seller, Date.now())
+  let token = signToken(farmer, Date.now())
   let now = Date.now()
 
   for (let visit = 0; visit < 15; visit++) {

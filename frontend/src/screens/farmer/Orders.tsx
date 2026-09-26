@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Order, OrderStatus } from '@shared/types.js'
 import {
-  HAPPY_PATH, SELLER_ACTIONS, STATUS_STYLE, awaitingPaymentConfirmation,
-  statusLabelKey, stepIndex, type SellerAction,
+  HAPPY_PATH, FARMER_ACTIONS, STATUS_STYLE, awaitingPaymentConfirmation,
+  statusLabelKey, stepIndex, type FarmerAction,
 } from '@shared/orderFlow.js'
 import { MAX_DELIVERY_ESTIMATE } from '@shared/orderFlow.js'
-import { sellerCanCancel } from '@shared/orderCancel.js'
+import { farmerCanCancel } from '@shared/orderCancel.js'
 import { useT } from '../../i18n/I18nProvider.js'
 import { CancelOrderSheet, OrderEndedNotice, RefundNotice } from '../../components/OrderCancel.js'
 import { api, ApiError } from '../../lib/api.js'
@@ -30,17 +30,17 @@ const TABS: { id: string; labelKey: string; statuses?: OrderStatus[] }[] = [
   { id: 'cancelled', labelKey: 'ord.cancelled', statuses: ['REJECTED', 'CANCELLED'] },
 ]
 
-export function SellerOrders() {
+export function FarmerOrders() {
   const t = useT()
   const nav = useNavigate()
   const [tab, setTab] = useState('action')
-  const [data, loading] = useAsync(() => api.myOrders(), [], 'seller:orders')
+  const [data, loading] = useAsync(() => api.myOrders(), [], 'farmer:orders')
 
   const orders = data?.orders ?? []
   const list = orders.filter((o) => {
     if (tab === 'action') {
       return (
-        SELLER_ACTIONS[o.status].length > 0 ||
+        FARMER_ACTIONS[o.status].length > 0 ||
         (o.paymentMode === 'UPI' && o.paymentStatus === 'UPI_SUBMITTED')
       )
     }
@@ -49,7 +49,7 @@ export function SellerOrders() {
 
   return (
     <>
-      <AppBar title={t('biz.myOrders')} backTo="/seller" />
+      <AppBar title={t('biz.myOrders')} backTo="/farmer" />
       <div className="hscroll" style={{ padding: 'var(--s3) var(--s4)', margin: 0 }}>
         {TABS.map((tb) => (
           <button
@@ -69,7 +69,7 @@ export function SellerOrders() {
           <Card><EmptyState icon={IconOrders} title={t('ord.noOrders')} body={t('ord.noOrdersSub')} /></Card>
         ) : (
           list.map((o) => (
-            <button key={o.id} className="tile" onClick={() => nav(`/seller/orders/${o.id}`)}>
+            <button key={o.id} className="tile" onClick={() => nav(`/farmer/orders/${o.id}`)}>
               <div className="tile__img" aria-hidden="true"><StatusIcon name={STATUS_STYLE[o.status].icon} /></div>
               <div className="tile__body">
                 <div className="tile__title">{o.customerName}</div>
@@ -93,41 +93,41 @@ export function SellerOrders() {
 /* Order detail - where the state machine actually runs                */
 /* ================================================================== */
 
-export function SellerOrderDetail() {
+export function FarmerOrderDetail() {
   const { orderId } = useParams()
   const t = useT()
   const { toast } = useToast()
   const [data, loading, setData] = useAsync(() => api.order(orderId!), [orderId])
 
-  const [confirm, setConfirm] = useState<SellerAction | null>(null)
+  const [confirm, setConfirm] = useState<FarmerAction | null>(null)
   const [actionErr, setActionErr] = useState('')
   const [rejectOpen, setRejectOpen] = useState(false)
   /** The Accept she has tapped, while she is being asked how long it will take. */
-  const [estimateFor, setEstimateFor] = useState<SellerAction | null>(null)
+  const [estimateFor, setEstimateFor] = useState<FarmerAction | null>(null)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [busy, setBusy] = useState(false)
 
   if (loading) {
-    return <><AppBar title={t('ord.order')} backTo="/seller/orders" /><div className="screen"><Loading /></div></>
+    return <><AppBar title={t('ord.order')} backTo="/farmer/orders" /><div className="screen"><Loading /></div></>
   }
   if (!data) {
-    return <><AppBar title={t('ord.order')} backTo="/seller/orders" /><div className="screen"><EmptyState title="—" /></div></>
+    return <><AppBar title={t('ord.order')} backTo="/farmer/orders" /><div className="screen"><EmptyState title="—" /></div></>
   }
 
   const order = data.order
   /**
-   * The seller may ACCEPT an order they have not been paid for - that is the
+   * The farmer may ACCEPT an order they have not been paid for - that is the
    * point of paying after acceptance - but they do not PACK one. The server
    * refuses it too; hiding the button is what stops their finding that out by
    * being told no.
    */
   const unpaid = awaitingPaymentConfirmation(order)
-  const actions = SELLER_ACTIONS[order.status].filter((a) => !(a.to === 'PACKED' && unpaid))
+  const actions = FARMER_ACTIONS[order.status].filter((a) => !(a.to === 'PACKED' && unpaid))
   const awaitingUpi = order.paymentMode === 'UPI' && order.paymentStatus === 'UPI_SUBMITTED'
   const waitingForBuyer = order.paymentMode === 'UPI' && order.paymentStatus === 'UPI_PENDING'
   const style = STATUS_STYLE[order.status]
 
-  async function run(action: SellerAction, extra?: { reason?: string; deliveryEstimate?: string }) {
+  async function run(action: FarmerAction, extra?: { reason?: string; deliveryEstimate?: string }) {
     setBusy(true)
     setActionErr('')
     try {
@@ -158,7 +158,7 @@ export function SellerOrderDetail() {
     <>
       <AppBar
         title={`${t('ord.order')} ${order.id}`}
-        backTo="/seller/orders"
+        backTo="/farmer/orders"
       />
 
       <div className="screen stack">
@@ -173,11 +173,11 @@ export function SellerOrderDetail() {
           <Notice tone="info" title={t('ord.etaLabel')}>{order.deliveryEstimate}</Notice>
         )}
 
-        <OrderEndedNotice order={order} viewer="seller" />
-        <RefundNotice order={order} viewer="seller" />
+        <OrderEndedNotice order={order} viewer="farmer" />
+        <RefundNotice order={order} viewer="farmer" />
 
         {/* What this buyer said about each product on the order, where she
-            can match it to what she sent. Read-only: see seller/Reviews.tsx. */}
+            can match it to what she sent. Read-only: see farmer/Reviews.tsx. */}
         {data.reviews?.length > 0 && (
           <div>
             <SectionTitle>{t('rev.fromBuyer')}</SectionTitle>
@@ -185,7 +185,7 @@ export function SellerOrderDetail() {
           </div>
         )}
 
-        {/* The seller is being asked to deliver somewhere they have not listed, so the
+        {/* The farmer is being asked to deliver somewhere they have not listed, so the
             question is put in front of them before Accept. */}
         {order.outsideArea && (
           <Notice tone="warn" title={t('ord.outsideArea')}>
@@ -193,9 +193,9 @@ export function SellerOrderDetail() {
           </Notice>
         )}
 
-        {/* Accepted, and the buyer has not paid yet. Nothing for the seller to do
+        {/* Accepted, and the buyer has not paid yet. Nothing for the farmer to do
             but wait - and know that is what they are waiting for. The buyer is
-            named rather than called "she": sellers here are women, buyers are
+            named rather than called "she": farmers here are women, buyers are
             anyone, and a pronoun guessed from nothing is wrong for half of them.
             Without a name on record it falls back to "the customer". */}
         {waitingForBuyer && order.status === 'ACCEPTED' && (
@@ -283,7 +283,7 @@ export function SellerOrderDetail() {
         {/* Below everything and outside the action bar, on purpose: the bar
             is where her thumb goes forty times a day to move orders along,
             and "cancel" must never be the button that happens to be there. */}
-        {sellerCanCancel(order.status) && (
+        {farmerCanCancel(order.status) && (
           <Button variant="ghost" disabled={busy} onClick={() => setCancelOpen(true)}>
             {t('cancel.button')}
           </Button>
@@ -312,7 +312,7 @@ export function SellerOrderDetail() {
 
       <CancelOrderSheet
         order={order}
-        by="seller"
+        by="farmer"
         open={cancelOpen}
         onClose={() => setCancelOpen(false)}
         onCancelled={(o) => {

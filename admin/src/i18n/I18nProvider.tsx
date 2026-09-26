@@ -5,7 +5,7 @@ import {
 import { dictionaries, LANGS, type LangCode } from './strings.js'
 
 /**
- * Deliberately a copy of the seller app's provider rather than a shared one.
+ * Deliberately a copy of the farmer app's provider rather than a shared one.
  *
  * `shared/` is framework-free on purpose - the backend imports from it - and
  * moving a React context in there would make every backend build carry React.
@@ -22,7 +22,7 @@ interface I18nValue {
 
 const I18nContext = createContext<I18nValue | null>(null)
 
-// Its own key, so an admin's choice and a seller's choice cannot overwrite
+// Its own key, so an admin's choice and a farmer's choice cannot overwrite
 // each other when both apps are open on one machine during development.
 const STORAGE_KEY = 'wb.admin.lang'
 

@@ -12,28 +12,28 @@ import { PincodeProvider } from './store/PincodeContext.js'
 import {
   RESTORE_TICK_MS, RESTORE_WINDOW_MS, makeRestorer, recallScroll, rememberScroll,
 } from './lib/scrollMemory.js'
-import { CustomerLayout, SellerLayout } from './components/layouts.js'
+import { CustomerLayout, FarmerLayout } from './components/layouts.js'
 import OfflineScreen from './components/OfflineScreen.js'
 
 import Landing from './screens/landing/Landing.js'
 import { OtpScreen, PhoneScreen } from './screens/auth/Auth.js'
-import SellerRegister from './screens/auth/SellerRegister.js'
+import FarmerRegister from './screens/auth/FarmerRegister.js'
 import CustomerRegister from './screens/auth/CustomerRegister.js'
 import Notifications from './screens/Notifications.js'
 
-import MyBusiness from './screens/seller/MyBusiness.js'
-import MyProducts from './screens/seller/MyProducts.js'
-import UploadProduct from './screens/seller/UploadProduct.js'
-import EditProduct from './screens/seller/EditProduct.js'
-import EditProfile from './screens/seller/EditProfile.js'
-import { SellerOrderDetail, SellerOrders } from './screens/seller/Orders.js'
-import { SellerGrowth, SellerHelp, SellerProfile } from './screens/seller/Misc.js'
-import { MyBuyers } from './screens/seller/MyBuyers.js'
-import { SellerReviews } from './screens/seller/Reviews.js'
-import PaymentQr from './screens/seller/PaymentQr.js'
+import MyBusiness from './screens/farmer/MyBusiness.js'
+import MyProducts from './screens/farmer/MyProducts.js'
+import UploadProduct from './screens/farmer/UploadProduct.js'
+import EditProduct from './screens/farmer/EditProduct.js'
+import EditProfile from './screens/farmer/EditProfile.js'
+import { FarmerOrderDetail, FarmerOrders } from './screens/farmer/Orders.js'
+import { FarmerGrowth, FarmerHelp, FarmerProfile } from './screens/farmer/Misc.js'
+import { MyBuyers } from './screens/farmer/MyBuyers.js'
+import { FarmerReviews } from './screens/farmer/Reviews.js'
+import PaymentQr from './screens/farmer/PaymentQr.js'
 
 import {
-  Categories, CategoryProducts, Explore, ProductDetail, SellerShop,
+  Categories, CategoryProducts, Explore, ProductDetail, FarmerShop,
 } from './screens/customer/Browse.js'
 import {
   Cart, Checkout, CustomerOrders, CustomerProfile, OrderPlaced, TrackOrder,
@@ -42,13 +42,13 @@ import {
 /**
  * NOTE: there is no /admin route here, and that is deliberate.
  * The client wants the admin console as a separate site, so this app ships the
- * seller and customer experiences only. Everything an admin console needs is
+ * farmer and customer experiences only. Everything an admin console needs is
  * exposed as JSON by the backend at /api/admin/*.
  */
 
 /**
  * A wrong-role session is sent to its OWN home, never to the landing page.
- * Bouncing a signed-in seller out to `/` for touching a customer URL reads
+ * Bouncing a signed-in farmer out to `/` for touching a customer URL reads
  * exactly like being logged out, which is the thing this app must never do by
  * accident.
  */
@@ -62,19 +62,19 @@ function Require({ role, children }: { role: Role; children: ReactNode }) {
 /**
  * The wizard needs a verified number, not a session.
  *
- * `/sellers/register` takes her phone out of a single-use ticket and ignores
+ * `/farmers/register` takes her phone out of a single-use ticket and ignores
  * the one in the body, so without a ticket the six screens end in a refusal
  * she cannot act on. Send her to the OTP screen up front instead - which, if
  * she does still hold a live ticket, offers to carry on rather than spending
  * another SMS.
  *
- * A seller session passes too: the last thing the wizard does is spend the
+ * A farmer session passes too: the last thing the wizard does is spend the
  * ticket and sign her in, and it is still on screen showing her new ID.
  */
 function RequireTicket({ children }: { children: ReactNode }) {
   const { session } = useAuth()
-  if (!liveTicket() && session?.role !== 'seller') {
-    return <Navigate to="/login/seller" replace />
+  if (!liveTicket() && session?.role !== 'farmer') {
+    return <Navigate to="/login/farmer" replace />
   }
   return <>{children}</>
 }
@@ -198,19 +198,19 @@ export default function App() {
             <Routes>
               {/* ---- public ---------------------------------------- */}
               {/* The landing page stays reachable while signed in. It used to
-                  redirect, which meant a back press out of /seller landed on a
+                  redirect, which meant a back press out of /farmer landed on a
                   page that immediately threw her somewhere else - and the
                   "carry on to your shop" decision had nowhere to live. */}
               <Route path="/" element={<Landing />} />
 
               {/* Two doors from the landing page, one per role. Both go
-                  through login; `join` is only the seller's "I am new" path. */}
+                  through login; `join` is only the farmer's "I am new" path. */}
               <Route path="/join/:role" element={<PhoneScreen mode="join" />} />
               <Route path="/login/:role" element={<PhoneScreen mode="login" />} />
               <Route path="/otp/:role" element={<OtpScreen />} />
               <Route
-                path="/register/seller"
-                element={<RequireTicket><SellerRegister /></RequireTicket>}
+                path="/register/farmer"
+                element={<RequireTicket><FarmerRegister /></RequireTicket>}
               />
 
               {/* She is signed in by the time she reaches this one - all that
@@ -220,21 +220,21 @@ export default function App() {
                 element={<Require role="customer"><CustomerRegister /></Require>}
               />
 
-              {/* ---- seller app ------------------------------------ */}
-              <Route path="/seller" element={<Require role="seller"><SellerLayout /></Require>}>
+              {/* ---- farmer app ------------------------------------ */}
+              <Route path="/farmer" element={<Require role="farmer"><FarmerLayout /></Require>}>
                 <Route index element={<MyBusiness />} />
-                <Route path="orders" element={<SellerOrders />} />
-                <Route path="orders/:orderId" element={<SellerOrderDetail />} />
+                <Route path="orders" element={<FarmerOrders />} />
+                <Route path="orders/:orderId" element={<FarmerOrderDetail />} />
                 <Route path="products" element={<MyProducts />} />
                 <Route path="products/:productId/edit" element={<EditProduct />} />
                 <Route path="upload" element={<UploadProduct />} />
-                <Route path="profile" element={<SellerProfile />} />
+                <Route path="profile" element={<FarmerProfile />} />
                 <Route path="profile/edit" element={<EditProfile />} />
                 <Route path="notifications" element={<Notifications />} />
-                <Route path="help" element={<SellerHelp />} />
-                <Route path="growth" element={<SellerGrowth />} />
+                <Route path="help" element={<FarmerHelp />} />
+                <Route path="growth" element={<FarmerGrowth />} />
                 <Route path="buyers" element={<MyBuyers />} />
-                <Route path="reviews" element={<SellerReviews />} />
+                <Route path="reviews" element={<FarmerReviews />} />
                 <Route path="payment" element={<PaymentQr />} />
               </Route>
 
@@ -250,7 +250,7 @@ export default function App() {
                 <Route path="categories" element={<Categories />} />
                 <Route path="c/:categoryId" element={<CategoryProducts />} />
                 <Route path="p/:productId" element={<ProductDetail />} />
-                <Route path="seller/:sellerId" element={<SellerShop />} />
+                <Route path="farmer/:farmerId" element={<FarmerShop />} />
                 <Route path="cart" element={<Cart />} />
                 <Route path="checkout" element={<Checkout />} />
                 <Route path="orders" element={<CustomerOrders />} />

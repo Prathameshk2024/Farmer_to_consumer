@@ -1,12 +1,12 @@
 /**
  * REMOVE THE DEMO DATA FROM A LIVE DATABASE
  * =========================================
- * The seed in seed.ts invents three sellers and their products so a fresh
- * clone is usable. Once real women are registering, those invented sellers are
+ * The seed in seed.ts invents three farmers and their products so a fresh
+ * clone is usable. Once real women are registering, those invented farmers are
  * showing up in the customer catalogue beside them, which is not acceptable.
  *
  * This deletes them and everything hanging off them - their products, the
- * orders placed against them and the customers those orders created. Real sellers and anything belonging to them are left
+ * orders placed against them and the customers those orders created. Real farmers and anything belonging to them are left
  * exactly as they are.
  *
  * A seed record is identified by the id shapes seed.ts hard-codes (s1, p3, o2,
@@ -45,16 +45,16 @@ async function main(): Promise<void> {
   console.log(describeConfig())
   console.log('')
 
-  const seedSellers = db.sellers.filter((s) => isSeedId(s.id))
-  const seedSellerIds = new Set(seedSellers.map((s) => s.id))
-  const realSellers = db.sellers.filter((s) => !seedSellerIds.has(s.id))
+  const seedFarmers = db.farmers.filter((s) => isSeedId(s.id))
+  const seedFarmerIds = new Set(seedFarmers.map((s) => s.id))
+  const realFarmers = db.farmers.filter((s) => !seedFarmerIds.has(s.id))
 
-  // Anything belonging to a demo seller goes with her, whatever its own id.
+  // Anything belonging to a demo farmer goes with her, whatever its own id.
   const doomedProducts = db.products.filter(
-    (p) => seedSellerIds.has(p.sellerId) || isSeedId(p.id),
+    (p) => seedFarmerIds.has(p.farmerId) || isSeedId(p.id),
   )
   const doomedOrders = db.orders.filter(
-    (o) => seedSellerIds.has(o.sellerId) || isSeedId(o.id),
+    (o) => seedFarmerIds.has(o.farmerId) || isSeedId(o.id),
   )
 
   // A customer is demo data only if she exists BECAUSE of a demo order: she
@@ -73,7 +73,7 @@ async function main(): Promise<void> {
   // Feedback goes with the order it was written on. Left behind, it would be
   // stars on a shop that no longer exists.
   const doomedReviews = db.reviews.filter(
-    (r) => seedSellerIds.has(r.sellerId) || doomedOrders.some((o) => o.id === r.orderId),
+    (r) => seedFarmerIds.has(r.farmerId) || doomedOrders.some((o) => o.id === r.orderId),
   )
 
   const show = (title: string, rows: string[]) => {
@@ -84,19 +84,19 @@ async function main(): Promise<void> {
     console.log('')
   }
 
-  show('KEEPING - registered sellers', realSellers.map((s) => {
-    const n = db.products.filter((p) => p.sellerId === s.id).length
+  show('KEEPING - registered farmers', realFarmers.map((s) => {
+    const n = db.products.filter((p) => p.farmerId === s.id).length
     return `${s.id.padEnd(16)} ${s.name.padEnd(20)} ${s.status.padEnd(10)} ${n} products`
   }))
 
-  show('DELETING - demo sellers', seedSellers.map(
+  show('DELETING - demo farmers', seedFarmers.map(
     (s) => `${s.id.padEnd(16)} ${s.name.padEnd(20)} ${s.status}`,
   ))
   show('DELETING - products', doomedProducts.map(
-    (p) => `${p.id.padEnd(16)} seller=${p.sellerId.padEnd(10)} ${p.name}`,
+    (p) => `${p.id.padEnd(16)} farmer=${p.farmerId.padEnd(10)} ${p.name}`,
   ))
   show('DELETING - orders', doomedOrders.map(
-    (o) => `${o.id.padEnd(16)} seller=${o.sellerId.padEnd(10)} ${o.customerName}`,
+    (o) => `${o.id.padEnd(16)} farmer=${o.farmerId.padEnd(10)} ${o.customerName}`,
   ))
   show('DELETING - customers', doomedCustomers.map(
     (c) => `${c.id.padEnd(16)} ${c.name || '(no name)'}`,
@@ -106,11 +106,11 @@ async function main(): Promise<void> {
   ))
 
   console.log(
-    `  SUMMARY  ${seedSellers.length} sellers, ${doomedProducts.length} products, ` +
+    `  SUMMARY  ${seedFarmers.length} farmers, ${doomedProducts.length} products, ` +
       `${doomedOrders.length} orders, ${doomedCustomers.length} customers, ` +
       `${doomedReviews.length} reviews`,
   )
-  console.log(`           ${realSellers.length} registered seller(s) kept`)
+  console.log(`           ${realFarmers.length} registered farmer(s) kept`)
 
   if (!commit) {
     console.log('')
@@ -120,7 +120,7 @@ async function main(): Promise<void> {
     return
   }
 
-  db.sellers = db.sellers.filter((s) => !seedSellerIds.has(s.id))
+  db.farmers = db.farmers.filter((s) => !seedFarmerIds.has(s.id))
   db.products = db.products.filter((p) => !doomedProducts.includes(p))
   db.orders = db.orders.filter((o) => !doomedOrders.includes(o))
   db.customers = db.customers.filter((c) => !doomedCustomers.includes(c))

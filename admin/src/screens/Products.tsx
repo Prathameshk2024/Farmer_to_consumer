@@ -127,7 +127,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
 
           <div className="small dim">
             {rupees(product.price)}
-            {product.seller && <> · {t('pr.by')}: {product.seller.name}</>}
+            {product.farmer && <> · {t('pr.by')}: {product.farmer.name}</>}
           </div>
 
           {/* What the buyers actually said, each with its reason, because
@@ -205,7 +205,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
 
 /**
  * Cloudinary photo when there is one, her chosen emoji when there is not -
- * the seller app falls back the same way when image uploads are switched off.
+ * the farmer app falls back the same way when image uploads are switched off.
  */
 function ProductThumb({ product }: { product: ProductRow }) {
   const box: React.CSSProperties = {

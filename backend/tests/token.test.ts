@@ -11,7 +11,7 @@ const { signToken, verifyToken } = await import('../src/auth/tokens.js')
 /**
  * The token is a POINTER plus a signature, and that is the whole design.
  *
- * It used to carry the userId, the sellerId and the customerId, which made it
+ * It used to carry the userId, the farmerId and the customerId, which made it
  * a self-contained claim about who you are - and a claim is only as good as
  * the checking around it. Now it carries a session id, and identity is read
  * from that session record on every request. These tests hold the signature
@@ -27,7 +27,7 @@ test('a token carries no identity at all', () => {
   const body = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as Record<string, unknown>
 
   assert.deepEqual(Object.keys(body).sort(), ['iat', 'role', 'sid'])
-  for (const leaked of ['userId', 'customerId', 'sellerId', 'phone']) {
+  for (const leaked of ['userId', 'customerId', 'farmerId', 'phone']) {
     assert.equal(body[leaked], undefined, `${leaked} must not be in the token`)
   }
 })
@@ -82,7 +82,7 @@ test('rejects a signature made with the right key but the wrong purpose', () => 
   // be presented where a session token was expected.
   const payload = Buffer.from(JSON.stringify(CLAIMS), 'utf8').toString('base64url')
   const asTicket = createHmac('sha256', process.env.SESSION_SECRET!)
-    .update(`ticket:seller-register ${payload}`)
+    .update(`ticket:farmer-register ${payload}`)
     .digest('base64url')
 
   assert.equal(verifyToken(`${payload}.${asTicket}`), null)

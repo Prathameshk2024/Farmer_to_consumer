@@ -51,7 +51,7 @@ app repeats, with the gender it uses them in:
 throughout, in all three modules. It was written feminine for a while — `ऑर्डर
 आली`, `माझ्या ऑर्डर` — which is the Hindi gender for the loanword, not the
 Marathi one, and it read wrong to every native speaker who opened the app. The
-seller's side and the buyer's side must not disagree about it either: the same
+farmer's side and the buyer's side must not disagree about it either: the same
 order is one object, described to two people.
 
 A list of mixed nouns takes the **plural**: "नाव, फोन आणि पत्ता **दिसतात**",
@@ -78,7 +78,7 @@ skimming.
 | to view | `पहा` | `पाहा` (in imperatives) |
 | slot | `जागा` | `स्लॉट`, `पॅक` (पॅक is ours, not hers) |
 | product | `उत्पादन` | `प्रॉडक्ट`, `माल` |
-| seller | `विक्रेती` | `विक्रेता` (every seller here is a woman) |
+| farmer | `विक्रेती` | `विक्रेता` (every farmer here is a woman) |
 | cart | `टोपली` | `कार्ट` |
 | payment | `भरणा` | `पेमेंट` in admin-facing text |
 

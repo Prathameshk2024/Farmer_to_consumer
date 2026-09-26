@@ -7,10 +7,10 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const shared = path.resolve(here, '../shared/src')
 
 /**
- * The admin console is a separate deployment from the seller app - its own
+ * The admin console is a separate deployment from the farmer app - its own
  * Vercel project, pointed at the same Cloud Run API - but it lives in this repo so
  * it imports `shared/src/types.ts` directly. A copied type would drift the
- * first time Seller or Product changed, and drift silently.
+ * first time Farmer or Product changed, and drift silently.
  */
 export default defineConfig({
   plugins: [react()],
@@ -18,7 +18,7 @@ export default defineConfig({
     alias: [{ find: /^@shared\/(.*)\.js$/, replacement: `${shared}/$1.ts` }],
   },
   server: {
-    // 5174, so it can run beside the seller app on 5173 without a fight.
+    // 5174, so it can run beside the farmer app on 5173 without a fight.
     port: 5174,
     host: true,
     fs: { allow: [here, shared] },

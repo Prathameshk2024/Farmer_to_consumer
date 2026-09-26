@@ -1,15 +1,15 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import type { Order, Review, Seller } from '@shared/types.js'
+import type { Order, Review, Farmer } from '@shared/types.js'
 import {
-  SELLER_PII_FIELDS, UNDO_DAYS, closeReasonProblem, confirmProblem, daysUntilScrub, openOrders,
+  FARMER_PII_FIELDS, UNDO_DAYS, closeReasonProblem, confirmProblem, daysUntilScrub, openOrders,
 } from '@shared/accountClose.js'
 import {
-  closeCustomer, openOrdersForSeller, requestSellerClose, restoreSeller,
-  scrubSeller, sweepClosedAccounts,
+  closeCustomer, openOrdersForFarmer, requestFarmerClose, restoreFarmer,
+  scrubFarmer, sweepClosedAccounts,
 } from '../src/db/accountClose.js'
 import { emptyDb, type Db } from '../src/db/seed.js'
-import { canSellNow } from '@shared/seller.js'
+import { canSellNow } from '@shared/farmer.js'
 
 /**
  * DELETING AN ACCOUNT.
@@ -19,7 +19,7 @@ import { canSellNow } from '@shared/seller.js'
  * each be worse than not shipping the feature at all:
  *
  *   1. A woman loses her shop to a stray tap.
- *   2. A buyer is left waiting on an order whose seller has vanished.
+ *   2. A buyer is left waiting on an order whose farmer has vanished.
  *   3. A deletion runs and a phone number survives it.
  *
  * The tests below are those three, in that order.
@@ -27,12 +27,12 @@ import { canSellNow } from '@shared/seller.js'
 
 const DAY = 24 * 60 * 60 * 1000
 
-function seller(over: Partial<Seller> = {}): Seller {
+function farmer(over: Partial<Farmer> = {}): Farmer {
   return {
     id: 's1',
-    womenBizId: 'SMB-ANADUR-01',
+    farmerCode: 'F2C-ANADUR-001',
     name: 'सुनीता पाटील',
-    photo: 'https://res.cloudinary.com/x/image/upload/v1/smb/seller/her.jpg',
+    photo: 'https://res.cloudinary.com/x/image/upload/v1/smb/farmer/her.jpg',
     phone: '9822011223',
     whatsapp: '9822011223',
     age: 38,
@@ -73,12 +73,12 @@ function seller(over: Partial<Seller> = {}): Seller {
     qrOrders: 0,
     createdAt: '2026-01-01T00:00:00.000Z',
     ...over,
-  } as Seller
+  } as Farmer
 }
 
-function dbWith(s: Seller): Db {
+function dbWith(s: Farmer): Db {
   const db = emptyDb()
-  db.sellers.push(s)
+  db.farmers.push(s)
   return db
 }
 
@@ -106,10 +106,10 @@ test('a reason is required, and only "other" needs words', () => {
 
 test('asking closes the shop today and erases her in seven days', () => {
   const now = Date.parse('2026-09-25T10:00:00.000Z')
-  const s = seller()
+  const s = farmer()
   const db = dbWith(s)
 
-  requestSellerClose(db, s, { reason: 'not_selling' }, now)
+  requestFarmerClose(db, s, { reason: 'not_selling' }, now)
 
   assert.equal(s.status, 'CLOSED')
   assert.equal(canSellNow(s), false, 'her shop leaves the catalogue at once')
@@ -120,11 +120,11 @@ test('asking closes the shop today and erases her in seven days', () => {
 
 test('signing in inside the week puts everything back', () => {
   const now = Date.parse('2026-09-25T10:00:00.000Z')
-  const s = seller()
+  const s = farmer()
   const db = dbWith(s)
 
-  requestSellerClose(db, s, { reason: 'too_hard' }, now)
-  restoreSeller(s)
+  requestFarmerClose(db, s, { reason: 'too_hard' }, now)
+  restoreFarmer(s)
 
   assert.equal(s.status, 'ACTIVE')
   assert.equal(s.closingAt, undefined)
@@ -137,9 +137,9 @@ test('signing in inside the week puts everything back', () => {
 })
 
 test('restoring never skips the verification', () => {
-  const s = seller({ status: 'PENDING_VERIFICATION', verifiedAt: undefined })
-  requestSellerClose(dbWith(s), s, { reason: 'too_hard' })
-  restoreSeller(s)
+  const s = farmer({ status: 'PENDING_VERIFICATION', verifiedAt: undefined })
+  requestFarmerClose(dbWith(s), s, { reason: 'too_hard' })
+  restoreFarmer(s)
   assert.equal(s.status, 'PENDING_VERIFICATION')
 })
 
@@ -148,13 +148,13 @@ test('restoring never skips the verification', () => {
 /* ------------------------------------------------------------------ */
 
 test('an order still in flight blocks the close', () => {
-  const db = dbWith(seller())
+  const db = dbWith(farmer())
   db.orders.push(
-    { id: 'o1', sellerId: 's1', customerId: 'c-98', customerPhone: '98', status: 'PACKED' } as Order,
-    { id: 'o2', sellerId: 's1', customerId: 'c-98', customerPhone: '98', status: 'DELIVERED' } as Order,
+    { id: 'o1', farmerId: 's1', customerId: 'c-98', customerPhone: '98', status: 'PACKED' } as Order,
+    { id: 'o2', farmerId: 's1', customerId: 'c-98', customerPhone: '98', status: 'DELIVERED' } as Order,
   )
 
-  const open = openOrdersForSeller(db, 's1')
+  const open = openOrdersForFarmer(db, 's1')
   assert.deepEqual(open.map((o) => o.id), ['o1'], 'only the one somebody is waiting on')
 })
 
@@ -171,20 +171,20 @@ test('delivered, rejected and cancelled orders are nobody\'s business any more',
 
 test('the sweep empties her on the seventh day, and only then', () => {
   const now = Date.parse('2026-09-25T10:00:00.000Z')
-  const s = seller()
+  const s = farmer()
   const db = dbWith(s)
 
-  requestSellerClose(db, s, { reason: 'personal' }, now)
+  requestFarmerClose(db, s, { reason: 'personal' }, now)
   assert.equal(sweepClosedAccounts(db, now + UNDO_DAYS * DAY, () => true), 1)
   assert.ok(s.closedAt, 'and the row says when it emptied')
 })
 
 test('every field that is HER is gone', () => {
-  const s = seller()
+  const s = farmer()
   const db = dbWith(s)
-  scrubSeller(db, s, Date.now(), () => true)
+  scrubFarmer(db, s, Date.now(), () => true)
 
-  for (const field of SELLER_PII_FIELDS) {
+  for (const field of FARMER_PII_FIELDS) {
     const left = (s as unknown as Record<string, unknown>)[field]
     const emptied =
       left === undefined || left === '' ||
@@ -195,11 +195,11 @@ test('every field that is HER is gone', () => {
 })
 
 test('no session outlives the erasing, and none keeps her number', () => {
-  const s = seller()
+  const s = farmer()
   const db = dbWith(s)
   const now = Date.now()
   const session = (id: string, revokedAt?: string) => ({
-    id, role: 'seller' as const, userId: 's1', sellerId: 's1', phone: '9822011223',
+    id, role: 'farmer' as const, userId: 's1', farmerId: 's1', phone: '9822011223',
     createdAt: '', lastSeenAt: new Date(now).toISOString(),
     expiresAt: new Date(now + 90 * DAY).toISOString(), revokedAt,
   })
@@ -207,7 +207,7 @@ test('no session outlives the erasing, and none keeps her number', () => {
   // at the notice, never restored and never logged out of.
   db.sessions.push(session('asked', new Date(now - 7 * DAY).toISOString()), session('peeked'))
 
-  scrubSeller(db, s, now, () => true)
+  scrubFarmer(db, s, now, () => true)
 
   for (const x of db.sessions) {
     assert.ok(x.revokedAt, `session ${x.id} still signs somebody in as an erased shop`)
@@ -230,19 +230,19 @@ test('a closing buyer leaves no phone number on her sessions either', () => {
 })
 
 test('her phone number goes back into circulation', () => {
-  const s = seller()
+  const s = farmer()
   const db = dbWith(s)
-  scrubSeller(db, s, Date.now(), () => true)
+  scrubFarmer(db, s, Date.now(), () => true)
 
-  // This is the check `POST /sellers/register` makes. If a blank phone did not
+  // This is the check `POST /farmers/register` makes. If a blank phone did not
   // free the number, a woman who closed her account could never come back.
-  assert.equal(db.sellers.some((x) => x.phone === '9822011223'), false)
+  assert.equal(db.farmers.some((x) => x.phone === '9822011223'), false)
 })
 
 test('her bank QR is destroyed, not merely unlinked', () => {
-  const s = seller()
+  const s = farmer()
   const destroyed: (string | undefined)[] = []
-  scrubSeller(dbWith(s), s, Date.now(), (id) => destroyed.push(id))
+  scrubFarmer(dbWith(s), s, Date.now(), (id) => destroyed.push(id))
   assert.ok(destroyed.includes('smb/qr/her'))
 })
 
@@ -258,12 +258,12 @@ test('closing a buyer account takes her off the orders she placed', () => {
     createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
   })
   db.orders.push({
-    id: 'o1', sellerId: 's1', customerId: 'c-9876543210', customerName: 'आशा',
+    id: 'o1', farmerId: 's1', customerId: 'c-9876543210', customerName: 'आशा',
     customerPhone: '9876543210', address: 'घर क्र. 4, आणदुर', pincode: '413601',
     status: 'DELIVERED', total: 220,
   } as Order)
   db.reviews.push({
-    id: 'r1', customerId: 'c-9876543210', customerName: 'आशा', sellerId: 's1',
+    id: 'r1', customerId: 'c-9876543210', customerName: 'आशा', farmerId: 's1',
     productId: 'p1', rating: 5,
   } as Review)
 
@@ -273,7 +273,7 @@ test('closing a buyer account takes her off the orders she placed', () => {
   const o = db.orders[0]!
   assert.equal(o.customerPhone, '')
   assert.equal(o.address, '')
-  assert.equal(o.customerName, 'ग्राहक', 'the seller keeps a sale, not a person')
+  assert.equal(o.customerName, 'ग्राहक', 'the farmer keeps a sale, not a person')
   assert.equal(o.total, 220, 'and the sale itself is untouched')
   assert.equal(o.pincode, '413601', 'the village stays - it is a delivery area, not a doorstep')
   assert.equal(db.reviews[0]!.customerName, 'ग्राहक', 'her name leaves her reviews too')

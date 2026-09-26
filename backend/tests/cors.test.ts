@@ -6,7 +6,7 @@ process.env.SESSION_SECRET = 'test-secret-for-unit-tests'
 const { parseCorsOrigin } = await import('../src/config.js')
 
 /**
- * Two front ends share one API: the seller/customer app and the admin site,
+ * Two front ends share one API: the farmer/customer app and the admin site,
  * deployed separately. `cors({ origin })` takes a list, but an environment
  * variable is one string - so "a.vercel.app,b.vercel.app" arrives as a single
  * literal origin that matches neither site, and every request from both is

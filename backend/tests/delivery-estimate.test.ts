@@ -1,14 +1,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  MAX_DELIVERY_ESTIMATE, SELLER_ACTIONS, actionFor, cleanDeliveryEstimate,
+  MAX_DELIVERY_ESTIMATE, FARMER_ACTIONS, actionFor, cleanDeliveryEstimate,
 } from '@shared/orderFlow.js'
 
 /**
  * "YES" AND "WHEN?" ARE ONE MOMENT.
  *
  * A buyer whose order was accepted used to be told ACCEPTED and nothing about
- * time. The seller is asked as she accepts, because that is the moment she
+ * time. The farmer is asked as she accepts, because that is the moment she
  * knows: she has just read the address, the quantity and what is on her shelf.
  *
  * Her words, not a date. The honest answer in a village with one bus a day is
@@ -20,7 +20,7 @@ test('accepting is where the question belongs, and nowhere else', () => {
   assert.equal(actionFor('PLACED', 'ACCEPTED')?.needsEstimate, true)
   assert.equal(actionFor('ACCEPTED', 'PACKED')?.needsEstimate, undefined)
   assert.equal(
-    SELLER_ACTIONS.PLACED.find((a) => a.to === 'REJECTED')?.needsEstimate,
+    FARMER_ACTIONS.PLACED.find((a) => a.to === 'REJECTED')?.needsEstimate,
     undefined,
     'a refusal has no delivery time',
   )

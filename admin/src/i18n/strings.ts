@@ -1,11 +1,11 @@
 /**
  * Every word the admin console says, in both languages.
  *
- * Marathi is the default here as it is in the seller app - the people running
+ * Marathi is the default here as it is in the farmer app - the people running
  * this programme work in Marathi, and an English-only console would quietly
  * decide who is allowed to administer it. The toggle is one click.
  *
- * DATA IS NEVER TRANSLATED. A seller's name, her village, her product title
+ * DATA IS NEVER TRANSLATED. A farmer's name, her village, her product title
  * are rendered exactly as stored. Only the console's own chrome lives here.
  *
  * Both dictionaries must hold identical keys - tests/i18n.test.ts fails the
@@ -32,15 +32,15 @@ const mr: Record<string, string> = {
   'nav.today': 'आज',
   'nav.home': 'मुख्यपृष्ठ',
   'nav.products': 'उत्पादने',
-  'nav.sellers': 'विक्रेत्या',
+  'nav.farmers': 'विक्रेत्या',
   'nav.orders': 'ऑर्डर',
   'nav.complaints': 'तक्रारी',
   'cm.title': 'तक्रारी',
   'cm.tab.OPEN': 'नवीन', 'cm.tab.RESOLVED': 'निकाली', 'cm.tab.ALL': 'सर्व',
   'cm.empty': 'एकही तक्रार नाही',
   'cm.emptySub': 'विक्रेती किंवा ग्राहकाने तक्रार नोंदवली की ती इथे दिसेल.',
-  'cm.fromSeller': 'विक्रेती', 'cm.fromCustomer': 'ग्राहक',
-  'cm.call': 'फोन करा', 'cm.openSeller': 'खाते उघडा',
+  'cm.fromFarmer': 'विक्रेती', 'cm.fromCustomer': 'ग्राहक',
+  'cm.call': 'फोन करा', 'cm.openFarmer': 'खाते उघडा',
   'cm.resolve': 'निकाली काढा',
   'cm.resolved': 'तक्रार निकाली काढली',
   'cm.resolvedBy': '{who} यांनी निकाली काढली',
@@ -115,7 +115,7 @@ const mr: Record<string, string> = {
   'home.goto': 'विभाग',
   'home.queueEmpty': 'सध्या मंजुरीसाठी काहीही नाही',
   'home.sectionProducts': 'विक्रीतील माल पहा आणि तक्रार आलेला माल काढा',
-  'home.sectionSellers': 'नोंदणी झालेले शेतकरी, तपासणी आणि खाती',
+  'home.sectionFarmers': 'नोंदणी झालेले शेतकरी, तपासणी आणि खाती',
   'home.sectionOrders': 'ऑर्डरवर लक्ष ठेवा आणि अडकलेले शोधा',
   'home.sectionImpact': 'देणगीदारांसाठी आकडे',
   'today.title': 'आज',
@@ -123,8 +123,8 @@ const mr: Record<string, string> = {
   'today.allClear': 'सर्व काम पूर्ण झाले',
   'today.allClearSub': 'सध्या मंजुरीसाठी काहीही प्रलंबित नाही.',
   'today.stuckOrders': 'अडकलेले ऑर्डर',
-  'today.activeSellers': 'सक्रिय विक्रेत्या',
-  'today.totalSellers': 'एकूण विक्रेत्या',
+  'today.activeFarmers': 'सक्रिय विक्रेत्या',
+  'today.totalFarmers': 'एकूण विक्रेत्या',
   'today.newThisWeek': 'या आठवड्यात नवीन',
   'today.ordersToday': 'आजचे ऑर्डर',
   'today.ordersWeek': 'या आठवड्यातील ऑर्डर',
@@ -138,13 +138,13 @@ const mr: Record<string, string> = {
   'ok.signedIn': 'साइन इन झाले',
   'ok.signedOut': 'साइन आउट झाले',
   'ok.productRejected': 'उत्पादन नाकारले',
-  'ok.sellerUpdated': 'विक्रेतीची माहिती अपडेट झाली',
+  'ok.farmerUpdated': 'विक्रेतीची माहिती अपडेट झाली',
   'today.growth': 'वाढ आणि वापर',
   'today.earningSpread': 'कमाईची विभागणी',
   'today.earningSpreadSub': 'प्रत्येक टप्प्यात किती विक्रेत्या आहेत',
   'today.readinessSpread': 'डिजिटल तयारी',
   'today.readinessSpreadSub': 'नोंदणीनंतर स्कोअर कसा वाढला',
-  'today.sellersLabel': 'विक्रेत्या',
+  'today.farmersLabel': 'विक्रेत्या',
 
 
   /* ---- products -------------------------------------------------- */
@@ -171,7 +171,7 @@ const mr: Record<string, string> = {
   'pr.emptySub': 'विक्रेत्यांनी नवीन उत्पादन टाकल्यावर इथे दिसेल.',
   'pr.by': 'विक्रेती',
 
-  /* ---- sellers --------------------------------------------------- */
+  /* ---- farmers --------------------------------------------------- */
   'se.title': 'विक्रेत्या',
   'se.searchHint': 'नाव, गाव किंवा फोन',
   'se.status': 'स्थिती',
@@ -196,11 +196,11 @@ const mr: Record<string, string> = {
   'sel.verify': 'शेतकरी तपासला',
   'sel.verifyConsequence': 'याचा विक्रीसाठी टाकलेला माल लगेच ग्राहकांना दिसेल.',
 
-  /* ---- seller statuses ------------------------------------------- */
+  /* ---- farmer statuses ------------------------------------------- */
   'c.yes': 'होय',
   'c.no': 'नाही',
 
-  /* ---- one seller's page ----------------------------------------- */
+  /* ---- one farmer's page ----------------------------------------- */
   'sd.open': 'तपशील',
   'sd.back': 'विक्रेत्यांच्या यादीकडे',
   'sd.notFound': 'ही विक्रेती सापडली नाही',
@@ -266,7 +266,7 @@ const mr: Record<string, string> = {
   'or.stuck': 'अडकलेले',
   'or.customerHidden': 'ग्राहक',
   'or.customerHiddenNote': 'ग्राहकाचे नाव, फोन आणि पत्ता ऑर्डर उघडल्यावरच दिसतात.',
-  'or.seller': 'विक्रेती',
+  'or.farmer': 'विक्रेती',
   'or.placed': 'ऑर्डर वेळ',
   'or.total': 'रक्कम',
   'or.pincode': 'पिनकोड',
@@ -292,7 +292,7 @@ const mr: Record<string, string> = {
   'sort.priceLow': 'कमी किंमत आधी',
   'sort.amountHigh': 'जास्त रक्कम आधी',
   'sort.amountLow': 'कमी रक्कम आधी',
-  'or.endedBySeller': 'विक्रेतीने थांबवले',
+  'or.endedByFarmer': 'विक्रेतीने थांबवले',
   'or.endedByCustomer': 'ग्राहकाने रद्द केले',
   'cancel.customer.changed_mind': 'विचार बदलला',
   'cancel.customer.wrong_items': 'चुकीची वस्तू किंवा संख्या निवडली',
@@ -300,13 +300,13 @@ const mr: Record<string, string> = {
   'cancel.customer.found_elsewhere': 'दुसरीकडून घेतले',
   'cancel.customer.taking_long': 'खूप वेळ लागत होता',
   'cancel.customer.other': 'दुसरे कारण',
-  'cancel.seller.out_of_stock': 'माल संपला',
-  'cancel.seller.cannot_deliver': 'तिथे पोहोचवू शकत नाही',
-  'cancel.seller.customer_unreachable': 'ग्राहकाशी संपर्क होत नाही',
-  'cancel.seller.customer_asked': 'ग्राहकाने रद्द करायला सांगितले',
-  'cancel.seller.payment_not_received': 'पैसे आले नाहीत',
-  'cancel.seller.emergency': 'अचानक अडचण आली',
-  'cancel.seller.other': 'दुसरे कारण',
+  'cancel.farmer.out_of_stock': 'माल संपला',
+  'cancel.farmer.cannot_deliver': 'तिथे पोहोचवू शकत नाही',
+  'cancel.farmer.customer_unreachable': 'ग्राहकाशी संपर्क होत नाही',
+  'cancel.farmer.customer_asked': 'ग्राहकाने रद्द करायला सांगितले',
+  'cancel.farmer.payment_not_received': 'पैसे आले नाहीत',
+  'cancel.farmer.emergency': 'अचानक अडचण आली',
+  'cancel.farmer.other': 'दुसरे कारण',
 
   /* ---- impact ---------------------------------------------------- */
   'im.title': 'परिणाम',
@@ -324,7 +324,7 @@ const mr: Record<string, string> = {
   'im.readiness': 'डिजिटल तयारी',
 
   /* ---- server errors, mirrored from the API ---------------------- */
-  'err.sellerNotFound': 'ही विक्रेती सापडली नाही',
+  'err.farmerNotFound': 'ही विक्रेती सापडली नाही',
   'err.productNotFound': 'हे उत्पादन सापडले नाही',
   'err.alreadySettled': 'यावर आधीच निर्णय झाला आहे',
   'err.notAllowed': 'तुम्हाला परवानगी नाही',
@@ -344,15 +344,15 @@ const en: Record<string, string> = {
   'nav.today': 'Today',
   'nav.home': 'Home',
   'nav.products': 'Products',
-  'nav.sellers': 'Sellers',
+  'nav.farmers': 'Farmers',
   'nav.orders': 'Orders',
   'nav.complaints': 'Complaints',
   'cm.title': 'Complaints',
   'cm.tab.OPEN': 'Open', 'cm.tab.RESOLVED': 'Done', 'cm.tab.ALL': 'All',
   'cm.empty': 'No complaints',
-  'cm.emptySub': 'When a seller or a buyer writes in, it appears here.',
-  'cm.fromSeller': 'Seller', 'cm.fromCustomer': 'Buyer',
-  'cm.call': 'Call', 'cm.openSeller': 'Open her account',
+  'cm.emptySub': 'When a farmer or a buyer writes in, it appears here.',
+  'cm.fromFarmer': 'Farmer', 'cm.fromCustomer': 'Buyer',
+  'cm.call': 'Call', 'cm.openFarmer': 'Open her account',
   'cm.resolve': 'Mark done',
   'cm.resolved': 'Complaint marked done',
   'cm.resolvedBy': 'Done by {who}',
@@ -360,7 +360,7 @@ const en: Record<string, string> = {
   'nav.reviews': 'Reviews',
 
   'rv.title': 'Reviews',
-  'rv.intro': 'Buyers rate each product they receive. A seller whose products collect low ratings needs a call before anything else. A review with abuse or a phone number in it can be hidden here; its words cannot be edited.',
+  'rv.intro': 'Buyers rate each product they receive. A farmer whose products collect low ratings needs a call before anything else. A review with abuse or a phone number in it can be hidden here; its words cannot be edited.',
   'rv.product': 'Product',
   'rv.filterAll': 'All reviews',
   'rv.filterLow': 'Low ratings (1 or 2 stars)',
@@ -426,7 +426,7 @@ const en: Record<string, string> = {
   'home.goto': 'Sections',
   'home.queueEmpty': 'Nothing is waiting for approval',
   'home.sectionProducts': 'See what is on sale and take down reported listings',
-  'home.sectionSellers': 'Registered farmers, verification and accounts',
+  'home.sectionFarmers': 'Registered farmers, verification and accounts',
   'home.sectionOrders': 'Watch orders and find the ones that are stuck',
   'home.sectionImpact': 'The figures a funder asks for',
   'today.title': 'Today',
@@ -434,8 +434,8 @@ const en: Record<string, string> = {
   'today.allClear': 'Nothing waiting',
   'today.allClearSub': 'No approvals are pending right now.',
   'today.stuckOrders': 'Orders stuck',
-  'today.activeSellers': 'Active sellers',
-  'today.totalSellers': 'Total sellers',
+  'today.activeFarmers': 'Active farmers',
+  'today.totalFarmers': 'Total farmers',
   'today.newThisWeek': 'New this week',
   'today.ordersToday': 'Orders today',
   'today.ordersWeek': 'Orders this week',
@@ -449,13 +449,13 @@ const en: Record<string, string> = {
   'ok.signedIn': 'Signed in',
   'ok.signedOut': 'Signed out',
   'ok.productRejected': 'Product rejected',
-  'ok.sellerUpdated': 'Seller updated',
+  'ok.farmerUpdated': 'Farmer updated',
   'today.growth': 'Growth and usage',
   'today.earningSpread': 'Earnings spread',
-  'today.earningSpreadSub': 'How many sellers sit in each band',
+  'today.earningSpreadSub': 'How many farmers sit in each band',
   'today.readinessSpread': 'Digital readiness',
-  'today.readinessSpreadSub': 'Where sellers are on the index',
-  'today.sellersLabel': 'sellers',
+  'today.readinessSpreadSub': 'Where farmers are on the index',
+  'today.farmersLabel': 'farmers',
 
 
   /* ---- products -------------------------------------------------- */
@@ -480,10 +480,10 @@ const en: Record<string, string> = {
   'pr.food': 'Food',
   'pr.empty': 'Nothing to review',
   'pr.emptySub': 'New listings will appear here.',
-  'pr.by': 'Seller',
+  'pr.by': 'Farmer',
 
-  /* ---- sellers --------------------------------------------------- */
-  'se.title': 'Sellers',
+  /* ---- farmers --------------------------------------------------- */
+  'se.title': 'Farmers',
   'se.searchHint': 'Name, village or phone',
   'se.status': 'Status',
   'se.village': 'Village',
@@ -492,11 +492,11 @@ const en: Record<string, string> = {
   'se.upi': 'UPI',
   'se.block': 'Block',
   'se.unblock': 'Unblock',
-  'se.blockConfirm': 'Block this seller? Her products stop showing to customers.',
-  'se.empty': 'No sellers yet',
+  'se.blockConfirm': 'Block this farmer? Her products stop showing to customers.',
+  'se.empty': 'No farmers yet',
   'se.emptySub': 'The first registration will appear here.',
   'se.products': 'Products',
-  'se.blockTitle': 'Block this seller?',
+  'se.blockTitle': 'Block this farmer?',
   'se.blockDesc': 'Her products stop showing to customers and no new orders arrive. She sees this reason in her own app.',
   'se.blockReason': 'Reason (she reads this)',
   'se.blockConfirmBtn': 'Yes, block',
@@ -507,14 +507,14 @@ const en: Record<string, string> = {
   'sel.verify': 'Verify farmer',
   'sel.verifyConsequence': 'His live listings will be visible to buyers at once.',
 
-  /* ---- seller statuses ------------------------------------------- */
+  /* ---- farmer statuses ------------------------------------------- */
   'c.yes': 'Yes',
   'c.no': 'No',
 
-  /* ---- one seller's page ----------------------------------------- */
+  /* ---- one farmer's page ----------------------------------------- */
   'sd.open': 'Details',
-  'sd.back': 'Back to sellers',
-  'sd.notFound': 'No such seller',
+  'sd.back': 'Back to farmers',
+  'sd.notFound': 'No such farmer',
   'sd.joined': 'Joined',
   'sd.shopClosed': 'Shop closed',
   'sd.upiVerified': 'UPI checked',
@@ -575,14 +575,14 @@ const en: Record<string, string> = {
   'or.stuck': 'Stuck',
   'or.customerHidden': 'Customer',
   'or.customerHiddenNote': 'The buyer’s name, phone and address show only inside an order.',
-  'or.seller': 'Seller',
+  'or.farmer': 'Farmer',
   'or.placed': 'Placed',
   'or.total': 'Total',
   'or.pincode': 'Pincode',
   'or.filterStatus': 'Status',
   'or.filterPincode': 'Pincode',
   'or.open': 'Open',
-  'or.readOnly': 'Moving an order along is the seller’s job. This is read-only.',
+  'or.readOnly': 'Moving an order along is the farmer’s job. This is read-only.',
   'or.customer': 'Customer',
   'or.address': 'Address',
   'or.items': 'Items',
@@ -601,7 +601,7 @@ const en: Record<string, string> = {
   'sort.priceLow': 'Lowest price first',
   'sort.amountHigh': 'Highest amount first',
   'sort.amountLow': 'Lowest amount first',
-  'or.endedBySeller': 'Stopped by the seller',
+  'or.endedByFarmer': 'Stopped by the farmer',
   'or.endedByCustomer': 'Cancelled by the customer',
   'cancel.customer.changed_mind': 'Changed their mind',
   'cancel.customer.wrong_items': 'Picked the wrong item or quantity',
@@ -609,13 +609,13 @@ const en: Record<string, string> = {
   'cancel.customer.found_elsewhere': 'Bought it elsewhere',
   'cancel.customer.taking_long': 'It was taking too long',
   'cancel.customer.other': 'Other',
-  'cancel.seller.out_of_stock': 'Out of stock',
-  'cancel.seller.cannot_deliver': 'Cannot deliver there',
-  'cancel.seller.customer_unreachable': 'Could not reach the customer',
-  'cancel.seller.customer_asked': 'The customer asked to cancel',
-  'cancel.seller.payment_not_received': 'Payment did not arrive',
-  'cancel.seller.emergency': 'Something urgent came up',
-  'cancel.seller.other': 'Other',
+  'cancel.farmer.out_of_stock': 'Out of stock',
+  'cancel.farmer.cannot_deliver': 'Cannot deliver there',
+  'cancel.farmer.customer_unreachable': 'Could not reach the customer',
+  'cancel.farmer.customer_asked': 'The customer asked to cancel',
+  'cancel.farmer.payment_not_received': 'Payment did not arrive',
+  'cancel.farmer.emergency': 'Something urgent came up',
+  'cancel.farmer.other': 'Other',
 
   /* ---- impact ---------------------------------------------------- */
   'im.title': 'Impact',
@@ -633,7 +633,7 @@ const en: Record<string, string> = {
   'im.readiness': 'Digital readiness',
 
   /* ---- server errors, mirrored from the API ---------------------- */
-  'err.sellerNotFound': 'That seller was not found',
+  'err.farmerNotFound': 'That farmer was not found',
   'err.productNotFound': 'That product was not found',
   'err.alreadySettled': 'This has already been decided',
   'err.notAllowed': 'You do not have permission',

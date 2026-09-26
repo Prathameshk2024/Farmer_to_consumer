@@ -22,7 +22,7 @@ export function when(iso: string): string {
 /**
  * The customer's details, as the ORDERS LIST is allowed to see them.
  *
- * An admin chasing a stuck order needs to know which order and which seller.
+ * An admin chasing a stuck order needs to know which order and which farmer.
  * She does not need the buyer's name, phone and home address on screen while
  * she does it - that is a list of women's home addresses on a console that
  * will live at a public URL.

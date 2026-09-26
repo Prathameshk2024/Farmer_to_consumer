@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { initialsOf } from '../src/lib/initials.js'
 
 /**
- * Sellers are shown by their initials rather than by a shared 👩, and almost
+ * Farmers are shown by their initials rather than by a shared 👩, and almost
  * every one of those names is in Devanagari - where the obvious implementation
  * is quietly wrong.
  *
@@ -62,7 +62,7 @@ test('a nameless record renders nothing rather than a stray letter', () => {
 })
 
 test('a shop name works as well as a person name', () => {
-  // The cart shows sellers by shop, and the profile shows them by person.
+  // The cart shows farmers by shop, and the profile shows them by person.
   assert.equal(initialsOf('कुंभार गृहउद्योग'), 'कुं')
   assert.equal(initialsOf('Sunita Home Foods'), 'SF')
 })

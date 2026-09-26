@@ -9,7 +9,7 @@ import { MdCurrencyRupee } from 'react-icons/md'
 /**
  * ICONS
  * =====
- * Same arrangement as the seller app's `components/icons.tsx`: every icon in
+ * Same arrangement as the farmer app's `components/icons.tsx`: every icon in
  * the console comes from react-icons, and every screen imports it from HERE
  * rather than from `react-icons/*` directly. The set can then be swapped in one
  * file, and a screen reads as intent (`IconPayments`) rather than as a vendor's
@@ -30,7 +30,7 @@ export const IconHome: IconType = FiHome
 export const IconToday: IconType = FiClipboard
 export const IconPayments: IconType = MdCurrencyRupee
 export const IconProducts: IconType = FiPackage
-export const IconSellers: IconType = FiUsers
+export const IconFarmers: IconType = FiUsers
 export const IconOrders: IconType = FiFileText
 export const IconReviews: IconType = FiStar
 export const IconImpact: IconType = FiBarChart2

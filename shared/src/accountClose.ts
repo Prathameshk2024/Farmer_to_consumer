@@ -10,16 +10,16 @@ import type { Order, OrderStatus } from './types.js'
  * WHAT "DELETED" MEANS HERE. The row stays and the person is erased. Three
  * reasons, in order of weight:
  *
- * 1. A past order is the BUYER's record as much as the seller's, so it
+ * 1. A past order is the BUYER's record as much as the farmer's, so it
  *    outlives her account; the privacy policy says so.
  * 2. Removing rows can be REFUSED. A single persist may not delete more than
- *    half a collection (`isBulkDelete`), and a seller with five listings in a
+ *    half a collection (`isBulkDelete`), and a farmer with five listings in a
  *    small catalogue is more than half of it. A delete that sometimes does not
  *    delete is worse than none.
- * 3. Orders and the admin console look a seller up by id. An id pointing at
+ * 3. Orders and the admin console look a farmer up by id. An id pointing at
  *    nothing is a blank shop name on somebody else's order screen.
  *
- * So `scrubSeller` empties every field that is *her* - phone, name, photo,
+ * So `scrubFarmer` empties every field that is *her* - phone, name, photo,
  * address, UPI, the readiness answers, an admin's notes about her - and leaves
  * an id, a status of CLOSED and the money trail. Her phone number goes back
  * into circulation: registration checks it against stored phones, and hers is
@@ -59,7 +59,7 @@ export function closeReasonKey(reason: string): string {
  * An order nobody has to do anything about any more.
  *
  * Deleting an account with an order in flight strands the other side: a buyer
- * waiting for a delivery, or a seller who has cooked for one. She finishes or
+ * waiting for a delivery, or a farmer who has cooked for one. She finishes or
  * cancels it first - both are buttons she already has.
  */
 export function orderIsFinished(status: OrderStatus): boolean {
@@ -116,19 +116,19 @@ export function daysUntilScrub(closingAt: string, now = Date.now()): number {
 }
 
 /**
- * Every field on a seller that is the woman rather than the shop's history.
+ * Every field on a farmer that is the woman rather than the shop's history.
  *
  * One list so that the scrub and the test that guards it cannot drift: a field
- * added to `Seller` and forgotten here is a phone number surviving a deletion,
+ * added to `Farmer` and forgotten here is a phone number surviving a deletion,
  * and `backend/tests/account-close.test.ts` fails the day that happens.
  *
  * `shopName` and `name` are not in it - they are replaced by a placeholder
  * rather than emptied, because a buyer's own order screen still has to say who
- * she bought from. `womenBizId` stays: it is the programme's serial, it is
+ * she bought from. `farmerCode` stays: it is the programme's serial, it is
  * printed on packaging that has already gone out, and it names a village, not
  * a woman.
  */
-export const SELLER_PII_FIELDS = [
+export const FARMER_PII_FIELDS = [
   'phone',
   'whatsapp',
   'photo',

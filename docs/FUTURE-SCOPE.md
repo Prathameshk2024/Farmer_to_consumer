@@ -47,16 +47,16 @@ Done also means:
   live account's full keys. If the Cloudinary plan allows a key with
   restricted permissions, the same reasoning applies.
 
-## Delivery charge by distance, set by the seller
+## Delivery charge by distance, set by the farmer
 
 *Added 25 September 2026.*
 
-A seller has one flat `deliveryFee` (and `freeDeliveryAbove`), and no screen
+A farmer has one flat `deliveryFee` (and `freeDeliveryAbove`), and no screen
 asks her for either — so almost every order carries 0, which the cart shows
-as "ask the seller" (see *One seller per cart* in `CLAUDE.md`). The buyer
+as "ask the farmer" (see *One farmer per cart* in `CLAUDE.md`). The buyer
 learns the real charge only on a phone call after ordering.
 
-Give the seller the option of charges by distance: for example ₹20 up to
+Give the farmer the option of charges by distance: for example ₹20 up to
 5 km, ₹40 up to 10 km, ₹60 up to 20 km — bands she chooses. The checkout
 then works out the charge for the buyer's address and shows
 
@@ -70,14 +70,14 @@ To settle before building it:
 
 - **Where the distance comes from.** Nothing in the app has a location today —
   only pincodes. The cheapest honest answer is the distance between the
-  centres of the seller's and the buyer's pincodes, from a bundled
+  centres of the farmer's and the buyer's pincodes, from a bundled
   Maharashtra pincode table; asking for GPS adds a permission prompt and a
   wrong-location problem. Say on screen that the figure is approximate.
-- **It stays optional.** A seller who sets no bands keeps today's behaviour,
-  and 0 still means "ask the seller", never "free".
+- **It stays optional.** A farmer who sets no bands keeps today's behaviour,
+  and 0 still means "ask the farmer", never "free".
 - **Beyond her last band.** Her pincode list is a hint, not a gate (*Where an
   order may go*), so an address past the last band should fall back to "ask
-  the seller" rather than refuse the order.
+  the farmer" rather than refuse the order.
 - **`freeDeliveryAbove` still wins** when the order meets it — that is her
   promise.
 - The server computes the charge; the client's figure is only a preview.
@@ -105,7 +105,7 @@ The server half is already built and unused:
 
 Done means:
 
-- A "signed-in devices" section on the seller's profile (`screens/seller/Misc.tsx`)
+- A "signed-in devices" section on the farmer's profile (`screens/farmer/Misc.tsx`)
   and on the buyer's, listing each session with its device and when it was
   last used, the current one marked "this phone" and without a sign-out
   button — Log out already does that.
@@ -191,13 +191,13 @@ copy that was wrong, treated as the truth — goes away. Scripts
 
 - **Reads move from each start to each request.** The session lookup becomes
   one read on every authenticated request. One catalogue page needs every
-  LIVE product, each one's seller (`publiclyVisible`) and every review
+  LIVE product, each one's farmer (`publiclyVisible`) and every review
   (`ratingsByProduct`). The admin console loads whole lists and sorts them in
   the browser. Without a cache, or ratings and counts stored as fields,
   ordinary browsing can out-read ten full starts a day.
 - **Rules that scan a whole collection need another shape.** The
   duplicate-UTR check, slot counting, the per-village serial in the
-  `SMB-<VILLAGE>-<NN>` ID, seller ratings and the dashboard counts each need a
+  `F2C-<VILLAGE>-<NNN>` ID, farmer ratings and the dashboard counts each need a
   query with an index, or a stored counter. The 48-hour sweep of rejected
   listings and the archive purge need a scheduled job instead of running at
   boot.
@@ -210,7 +210,7 @@ copy that was wrong, treated as the truth — goes away. Scripts
   (`auth/rateLimit.ts`) is a `Map`; with two instances "three codes a day"
   becomes six. It needs a shared store.
 - **Latency.** Each request pays network round trips, and reads made one
-  after another (session → order → seller) add up on rural 4G.
+  after another (session → order → farmer) add up on rural 4G.
 - **Size of the rewrite.** `getDb()` has about 75 call sites in 15 files, and
   every helper beneath them becomes async. The diffed, batched `save()` gives
   way to explicit writes in each route — each one a place to forget a write.
@@ -219,7 +219,7 @@ copy that was wrong, treated as the truth — goes away. Scripts
 
 **How.** One collection at a time, not all at once. Start with the ones that
 grow without limit — `orders`, `reviews`, `sessions` — and keep the small,
-slow-changing ones (`sellers`, `products`, `admins`) in memory until they
+slow-changing ones (`farmers`, `products`, `admins`) in memory until they
 too need to move. `--max-instances=1` stays until the **last** collection
 has moved; a single in-memory collection is enough for two instances to
 overwrite each other.

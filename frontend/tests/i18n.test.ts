@@ -9,7 +9,7 @@ import { dictionaries } from '../src/i18n/strings.js'
  * dictionaries have to stay the same shape - a key present in one and missing
  * from the other silently serves the wrong language to whoever is reading.
  *
- * These also catch the bug that prompted them: a seller switched to English
+ * These also catch the bug that prompted them: a farmer switched to English
  * and the example text inside the empty inputs stayed in Marathi, because the
  * placeholders had been written straight into the JSX instead of going through
  * `t()`. A label is obviously user-facing text; a placeholder is exactly as

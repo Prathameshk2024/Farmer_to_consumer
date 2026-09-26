@@ -1,9 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { defaultAbout, validateSellerProfile } from '@shared/seller.js'
+import { defaultAbout, validateFarmerProfile } from '@shared/farmer.js'
 
 /**
- * A new seller's shop page should not be blank.
+ * A new farmer's shop page should not be blank.
  *
  * `about` is optional at registration, and most women skip it - it is the one
  * free-text field in a long form, on a phone, in Marathi. Left empty, her shop
@@ -29,7 +29,7 @@ test('a shop with no description gets one built from her own details', () => {
   assert.ok(about.length > 0)
 })
 
-test('a food seller is described as one', () => {
+test('a food farmer is described as one', () => {
   const about = defaultAbout({ ...base, sellsFood: true })
 
   assert.ok(about.includes('घरगुती'), 'homemade is the whole proposition for food')
@@ -73,44 +73,44 @@ test('zero years is not mentioned as an achievement', () => {
 /* ------------------------------------------------------------------ */
 
 /**
- * The allow-list on PATCH /sellers/me decides WHICH fields can move - status
+ * The allow-list on PATCH /farmers/me decides WHICH fields can move - status
  * and her SMB ID are not on it. This decides whether the values are
  * usable, and it runs on the server because the form is not the rule: anything
  * holding her token can send a delivery fee of -500.
  */
 
 test('an edit that clears a required field is refused', () => {
-  assert.equal(validateSellerProfile({ name: '   ' }).name, 'नाव आवश्यक आहे')
-  assert.equal(validateSellerProfile({ shopName: '' }).shopName, 'दुकानाचे नाव आवश्यक आहे')
+  assert.equal(validateFarmerProfile({ name: '   ' }).name, 'नाव आवश्यक आहे')
+  assert.equal(validateFarmerProfile({ shopName: '' }).shopName, 'दुकानाचे नाव आवश्यक आहे')
 })
 
 /** Absent is not empty: she is editing her shop name, not deleting her age. */
 test('a field she did not send is not validated', () => {
-  assert.deepEqual(validateSellerProfile({ shopName: 'अर्पिता गृह उद्योग' }), {})
+  assert.deepEqual(validateFarmerProfile({ shopName: 'अर्पिता गृह उद्योग' }), {})
 })
 
 test('money and counts can never be negative', () => {
-  const f = validateSellerProfile({ deliveryFee: -20, minOrder: -1, monthlyCapacity: -5 })
+  const f = validateFarmerProfile({ deliveryFee: -20, minOrder: -1, monthlyCapacity: -5 })
 
   assert.ok(f.deliveryFee, 'a negative delivery fee would pay the customer')
   assert.ok(f.minOrder)
   assert.ok(f.monthlyCapacity)
-  assert.deepEqual(validateSellerProfile({ deliveryFee: 0, minOrder: 100 }), {}, 'free delivery is legal')
+  assert.deepEqual(validateFarmerProfile({ deliveryFee: 0, minOrder: 100 }), {}, 'free delivery is legal')
 })
 
 test('a UPI id that cannot be paid is refused', () => {
-  assert.ok(validateSellerProfile({ upiId: 'sunita' }).upiId)
-  assert.deepEqual(validateSellerProfile({ upiId: 'sunita@ybl' }), {})
+  assert.ok(validateFarmerProfile({ upiId: 'sunita' }).upiId)
+  assert.deepEqual(validateFarmerProfile({ upiId: 'sunita@ybl' }), {})
 })
 
 /** Her delivery pincodes are where orders come from. A typo is a lost order. */
 test('every delivery pincode has to be a pincode', () => {
-  assert.ok(validateSellerProfile({ pincodes: ['413601', '41360'] }).pincodes)
-  assert.deepEqual(validateSellerProfile({ pincodes: ['413601', '413606'] }), {})
+  assert.ok(validateFarmerProfile({ pincodes: ['413601', '41360'] }).pincodes)
+  assert.deepEqual(validateFarmerProfile({ pincodes: ['413601', '413606'] }), {})
 })
 
 test('age stays inside the range the registration form asks for', () => {
-  assert.ok(validateSellerProfile({ age: 12 }).age)
-  assert.ok(validateSellerProfile({ age: 120 }).age)
-  assert.deepEqual(validateSellerProfile({ age: 34 }), {})
+  assert.ok(validateFarmerProfile({ age: 12 }).age)
+  assert.ok(validateFarmerProfile({ age: 120 }).age)
+  assert.deepEqual(validateFarmerProfile({ age: 34 }), {})
 })

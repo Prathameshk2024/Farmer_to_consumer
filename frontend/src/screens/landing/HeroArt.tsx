@@ -11,7 +11,7 @@
  * look like one specific woman, and this page speaks for all of them.
  *
  * >>> REPLACE ME <<<  The best version of this is a real photograph of one of
- * your own sellers, taken during the village survey, with her permission.
+ * your own farmers, taken during the village survey, with her permission.
  * Drop it in as <img src="..." alt="..."> inside the same <figure> and the
  * layout is unchanged.
  */

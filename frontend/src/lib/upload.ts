@@ -14,7 +14,7 @@ import {
  *
  * Before it leaves the device it is downscaled and re-encoded. A modern phone
  * camera produces 3-6MB per shot; on a village 4G connection that is close to
- * a minute of uploading, and it is the single most likely place a seller gives
+ * a minute of uploading, and it is the single most likely place a farmer gives
  * up halfway through adding her first product.
  */
 
@@ -105,7 +105,7 @@ async function getSignature(kind: UploadKind): Promise<Signature> {
   const token = getToken()
 
   /**
-   * During REGISTRATION there is no session yet - the seller record is created
+   * During REGISTRATION there is no session yet - the farmer record is created
    * at the very end - so her registration ticket is the proof she offers
    * instead. The server accepts either. Without this the payment-QR upload on
    * the last wizard screen answered 401, which the app could only report as

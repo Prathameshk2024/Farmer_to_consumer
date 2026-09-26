@@ -25,21 +25,21 @@ const {
 const HOUR = 3_600_000
 const DAY = 24 * HOUR
 
-function dbWithSeller(now = Date.now()) {
+function dbWithFarmer(now = Date.now()) {
   const db = emptyDb()
-  const session = createSession(db, { role: 'seller', userId: 's1', sellerId: 's1', phone: '9822011223' }, now)
+  const session = createSession(db, { role: 'farmer', userId: 's1', farmerId: 's1', phone: '9822011223' }, now)
   return { db, session }
 }
 
 test('a fresh session resolves', () => {
   const now = Date.now()
-  const { db, session } = dbWithSeller(now)
+  const { db, session } = dbWithFarmer(now)
 
   assert.equal(findLiveSession(db, session.id, now)?.userId, 's1')
 })
 
 test('an unknown session id resolves to nothing', () => {
-  const { db } = dbWithSeller()
+  const { db } = dbWithFarmer()
   assert.equal(findLiveSession(db, 'sess_not_a_real_id'), null)
 })
 
@@ -47,7 +47,7 @@ test('logging out kills the session immediately', () => {
   // The whole point. A token pointing here is worthless from this moment,
   // however well signed it is and however much of its window is left.
   const now = Date.now()
-  const { db, session } = dbWithSeller(now)
+  const { db, session } = dbWithFarmer(now)
 
   assert.equal(revokeSession(db, session.id, 'logout', now), true)
   assert.equal(findLiveSession(db, session.id, now), null)
@@ -56,7 +56,7 @@ test('logging out kills the session immediately', () => {
 test('revoking twice is not an error the second time', () => {
   // A client tidying up after an expired session must not be handed a failure
   // for doing the right thing.
-  const { db, session } = dbWithSeller()
+  const { db, session } = dbWithFarmer()
 
   assert.equal(revokeSession(db, session.id, 'logout'), true)
   assert.equal(revokeSession(db, session.id, 'logout'), false)
@@ -65,7 +65,7 @@ test('revoking twice is not an error the second time', () => {
 test('her phone was stolen: every device signs out at once', () => {
   const db = emptyDb()
   for (let i = 0; i < 3; i++) {
-    createSession(db, { role: 'seller', userId: 's1', sellerId: 's1' })
+    createSession(db, { role: 'farmer', userId: 's1', farmerId: 's1' })
   }
   createSession(db, { role: 'customer', userId: 'c-9011223344', customerId: 'c-9011223344' })
 
@@ -79,7 +79,7 @@ test('a session idles out on the server, not only in the token', () => {
   // A client that simply never hands its token back for re-stamping could
   // otherwise keep an old one alive. The record is the authority.
   const issued = Date.now()
-  const { db, session } = dbWithSeller(issued)
+  const { db, session } = dbWithFarmer(issued)
 
   assert.ok(findLiveSession(db, session.id, issued + 14 * DAY))
   assert.equal(findLiveSession(db, session.id, issued + 16 * DAY), null)
@@ -87,9 +87,9 @@ test('a session idles out on the server, not only in the token', () => {
 
 test('an absolute ceiling ends even a session in constant use', () => {
   // Idle expiry alone means a quietly copied token can be kept alive forever
-  // simply by being used. Ninety days is the hard stop for a seller.
+  // simply by being used. Ninety days is the hard stop for a farmer.
   const issued = Date.now()
-  const { db, session } = dbWithSeller(issued)
+  const { db, session } = dbWithFarmer(issued)
 
   // Kept perfectly warm the whole time.
   let now = issued
@@ -105,7 +105,7 @@ test('lastSeenAt is only worth persisting every few minutes', () => {
   // Every authenticated request slides the window; writing each one would turn
   // a page load into a database write per request.
   const now = Date.now()
-  const { session } = dbWithSeller(now)
+  const { session } = dbWithFarmer(now)
 
   assert.equal(touchSession(session, now + 60_000), false, 'a minute later: not worth a write')
   assert.equal(touchSession(session, now + TOUCH_RESOLUTION_MS + 1000), true)
@@ -133,9 +133,9 @@ test('pruning drops what nothing can use, and keeps recent revocations', () => {
   const now = Date.now()
   const db = emptyDb()
 
-  const idled = createSession(db, { role: 'seller', userId: 's1' }, now - 30 * DAY)
-  const justRevoked = createSession(db, { role: 'seller', userId: 's2' }, now)
-  const longRevoked = createSession(db, { role: 'seller', userId: 's3' }, now - 30 * DAY)
+  const idled = createSession(db, { role: 'farmer', userId: 's1' }, now - 30 * DAY)
+  const justRevoked = createSession(db, { role: 'farmer', userId: 's2' }, now)
+  const longRevoked = createSession(db, { role: 'farmer', userId: 's3' }, now - 30 * DAY)
 
   revokeSession(db, justRevoked.id, 'logout', now)
   revokeSession(db, longRevoked.id, 'logout', now - 20 * DAY)
@@ -154,7 +154,7 @@ test('the admin ceiling is far shorter than them one', () => {
   const db = emptyDb()
 
   const admin = createSession(db, { role: 'admin', userId: 'adm1' }, now)
-  const seller = createSession(db, { role: 'seller', userId: 's1' }, now)
+  const farmer = createSession(db, { role: 'farmer', userId: 's1' }, now)
 
-  assert.ok(Date.parse(admin.expiresAt) < Date.parse(seller.expiresAt))
+  assert.ok(Date.parse(admin.expiresAt) < Date.parse(farmer.expiresAt))
 })

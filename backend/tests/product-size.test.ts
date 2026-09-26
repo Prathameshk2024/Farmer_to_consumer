@@ -1,12 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { needsPieceCount, sizeProblems } from '@shared/seller.js'
+import { needsPieceCount, sizeProblems } from '@shared/farmer.js'
 
 /**
  * A PRICE WITHOUT A SIZE IS NOT A PRICE.
  *
  * "₹80 for pickle" tells a buyer nothing until she knows whether that is a
- * 200g jar or a kilo, and she cannot compare two sellers without it. So every
+ * 200g jar or a kilo, and she cannot compare two farmers without it. So every
  * listing says how much one of them is, counted in its own unit.
  */
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Seller } from '@shared/types.js'
-import { EDUCATION_LEVELS } from '@shared/seller.js'
+import type { Farmer } from '@shared/types.js'
+import { EDUCATION_LEVELS } from '@shared/farmer.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
@@ -21,7 +21,7 @@ import { IconBack } from '../../components/icons.js'
  * name had no way to correct it from inside the app.
  *
  * WHAT IS NOT HERE, AND WHY
- * The server's allow-list on PATCH /sellers/me is what actually decides this;
+ * The server's allow-list on PATCH /farmers/me is what actually decides this;
  * the form only offers what that list already accepts. Missing on purpose:
  *
  *  - her PHONE, because it is her account. Changing it is changing who you
@@ -61,26 +61,26 @@ export default function EditProfile() {
   const [saved, setSaved] = useState(false)
 
   if (loading || !me) {
-    return <><AppBar title={t('prof.edit')} backTo="/seller/profile" /><div className="screen"><Loading /></div></>
+    return <><AppBar title={t('prof.edit')} backTo="/farmer/profile" /><div className="screen"><Loading /></div></>
   }
 
-  const seller: Seller = me.seller
+  const farmer: Farmer = me.farmer
 
   // Seeded from the record on first render, not from a useEffect: the fetch has
   // already resolved by the time this runs, and an effect would flash an empty
   // form first.
   const f = form ?? {
-    name: seller.name,
-    shopName: seller.shopName,
-    about: seller.about ?? '',
-    whatsapp: seller.whatsapp ?? '',
-    age: seller.age ? String(seller.age) : '',
-    education: seller.education ?? '',
-    shgName: seller.shgName ?? '',
-    yearsInBusiness: seller.yearsInBusiness != null ? String(seller.yearsInBusiness) : '',
-    monthlyCapacity: seller.monthlyCapacity != null ? String(seller.monthlyCapacity) : '',
-    upiId: seller.upiId,
-    upiQrUrl: seller.upiQrUrl ?? '',
+    name: farmer.name,
+    shopName: farmer.shopName,
+    about: farmer.about ?? '',
+    whatsapp: farmer.whatsapp ?? '',
+    age: farmer.age ? String(farmer.age) : '',
+    education: farmer.education ?? '',
+    shgName: farmer.shgName ?? '',
+    yearsInBusiness: farmer.yearsInBusiness != null ? String(farmer.yearsInBusiness) : '',
+    monthlyCapacity: farmer.monthlyCapacity != null ? String(farmer.monthlyCapacity) : '',
+    upiId: farmer.upiId,
+    upiQrUrl: farmer.upiQrUrl ?? '',
   }
 
   const set = (k: keyof typeof f, v: string) => {
@@ -130,7 +130,7 @@ export default function EditProfile() {
 
   return (
     <>
-      <AppBar title={t('prof.edit')} backTo="/seller/profile" />
+      <AppBar title={t('prof.edit')} backTo="/farmer/profile" />
       <div className="screen stack">
         {saved && <Notice tone="ok">{t('prof.saved')}</Notice>}
         {err && <Notice tone="danger">{err}</Notice>}
@@ -228,7 +228,7 @@ export default function EditProfile() {
 
       <div className="actionbar">
         <div className="btn-row">
-          <Button variant="quiet" onClick={() => nav('/seller/profile')}>
+          <Button variant="quiet" onClick={() => nav('/farmer/profile')}>
             <IconBack aria-hidden="true" /> {t('common.back')}
           </Button>
           <Button onClick={save} disabled={busy}>

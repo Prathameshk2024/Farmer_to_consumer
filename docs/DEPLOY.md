@@ -5,7 +5,7 @@ The shape:
 ```
        Cloud Run                        Vercel project 1
    ┌──────────────────┐            ┌──────────────────────┐
-   │  Express API     │ ◄───────── │  seller + buyer app  │   frontend/
+   │  Express API     │ ◄───────── │  farmer + buyer app  │   frontend/
    │  + Firestore     │            └──────────────────────┘
    │  + Cloudinary    │            Vercel project 2
    │                  │ ◄───────── ┌──────────────────────┐
@@ -164,7 +164,7 @@ refuses the number.
 `backend/src/db/firestore.ts` loads the whole database into memory at boot and
 writes changes back. That is deliberate and documented there, and it is correct
 for **one** process only. Two instances each hold their own snapshot and
-overwrite each other's writes — orders vanish, sellers reappear after deletion,
+overwrite each other's writes — orders vanish, farmers reappear after deletion,
 and nothing in the logs says why.
 
 So: **maximum instances stays at 1.** If you outgrow one instance, the fix is
@@ -202,7 +202,7 @@ changes nothing until the next revision is deployed.
 | `MSG91_AUTH_KEY` | **Secret.** The account Auth Key, and the only thing that can check a widget token. Never copy it into a `VITE_*` variable. |
 | `MSG91_WIDGET_ID` | The OTP widget's id. With `MSG91_AUTH_KEY` this selects the widget, which needs no DLT registration. |
 | `MSG91_TEMPLATE_ID` / `MSG91_SENDER` | Only for your own DLT-approved template. Leave unset while using the widget. |
-| `SEED_DEMO_DATA` | Leave unset. Setting it would put invented sellers in front of real customers. |
+| `SEED_DEMO_DATA` | Leave unset. Setting it would put invented farmers in front of real customers. |
 | `ALLOW_BULK_DELETE` | Leave unset. It is for one command run by hand, never for the service. |
 
 Generate the session secret with:
@@ -215,7 +215,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 With minimum instances at 0, Cloud Run stops an idle instance, and the next
 request waits while a new one boots — and boot here means loading the **whole
-database** from Firestore before the first request is answered. For a seller on
+database** from Firestore before the first request is answered. For a farmer on
 a rural connection that wait reads as a broken app. `--min-instances 1` keeps
 one warm and is billed for it.
 
@@ -275,14 +275,14 @@ will then block.
 { "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
 ```
 
-Both apps route in the browser. Vercel knows nothing about `/seller/orders` or
+Both apps route in the browser. Vercel knows nothing about `/farmer/orders` or
 `/payments`, so without this, **reloading any page other than the home page
 returns 404** — the first thing anyone does after being sent a link. Static
 files are matched before rewrites, so `/assets/…` still serves the real bundle.
 
 The rewrite only works with absolute asset paths, which is Vite's default and
 why neither app sets `base`. A relative base is resolved against the current
-directory: reloading `/seller/orders` asks for `/seller/assets/index-xxx.js`,
+directory: reloading `/farmer/orders` asks for `/farmer/assets/index-xxx.js`,
 the rewrite answers with `index.html`, and a script tag receiving HTML is a
 blank screen. Nothing to configure in Vercel; the default `npm run build` is
 right.

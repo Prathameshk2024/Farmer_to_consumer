@@ -6,7 +6,7 @@ import { isStuck, maskCustomer, maskedLabel, rupees, when } from '../src/lib/for
 function order(over: Partial<Order> = {}): Order {
   return {
     id: 'SMB1043',
-    sellerId: 's1',
+    farmerId: 's1',
     customerId: 'c-9011223344',
     customerName: 'प्रिया देशमुख',
     customerPhone: '9011223344',
@@ -21,7 +21,7 @@ function order(over: Partial<Order> = {}): Order {
     paymentStatus: 'PENDING',
     status: 'ACCEPTED',
     placedAt: '2026-09-04T08:00:00.000Z',
-    events: [{ to: 'ACCEPTED', at: '2026-09-04T08:00:00.000Z', by: 'seller' }],
+    events: [{ to: 'ACCEPTED', at: '2026-09-04T08:00:00.000Z', by: 'farmer' }],
     ...over,
   } as Order
 }
@@ -63,7 +63,7 @@ test('a Devanagari initial is one character, not one byte', () => {
 test('stuck matches the thresholds /admin/stats already uses', () => {
   const now = new Date('2026-09-04T10:00:00.000Z').getTime()
   const at = (iso: string, status: Order['status']) =>
-    order({ status, events: [{ to: status, at: iso, by: 'seller' }] })
+    order({ status, events: [{ to: status, at: iso, by: 'farmer' }] })
 
   assert.equal(isStuck(at('2026-09-03T09:00:00.000Z', 'ACCEPTED'), now), true, '25h accepted')
   assert.equal(isStuck(at('2026-09-03T11:00:00.000Z', 'ACCEPTED'), now), false, '23h accepted')

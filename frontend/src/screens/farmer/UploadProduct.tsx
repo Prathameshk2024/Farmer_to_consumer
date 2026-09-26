@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Category, Unit } from '@shared/types.js'
-import { canSellNow, needsPieceCount } from '@shared/seller.js'
+import { canSellNow, needsPieceCount } from '@shared/farmer.js'
 import { sizeLabel } from '../../lib/productSize.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { useAuth } from '../../store/AuthContext.js'
@@ -29,9 +29,9 @@ const STEPS = ['photo', 'basics', 'food', 'details', 'price', 'stock', 'preview'
  *
  * Step 3 is the branch everything depends on: food asks for the ingredients
  * and veg/non-veg, non-food asks what it is made of. Every extra field is a
- * place a first-time seller abandons.
+ * place a first-time farmer abandons.
  *
- * The product NAME uses voice input, because a seller who speaks Marathi
+ * The product NAME uses voice input, because a farmer who speaks Marathi
  * fluently may still be unable to type it on a phone keyboard.
  */
 export default function UploadProduct() {
@@ -44,13 +44,13 @@ export default function UploadProduct() {
   const [me, loadingMe] = useAsync(() => api.me(), [])
   const [catData] = useAsync(() => api.categories(), [])
 
-  /* The draft belongs to ONE seller. Read it from the session rather than
+  /* The draft belongs to ONE farmer. Read it from the session rather than
      from api.me(), which has not answered yet at first render - and a draft
      keyed on nothing is how a stranger's photo reached the next woman to
      register on the same phone. */
-  const sellerId = session?.sellerId
+  const farmerId = session?.farmerId
 
-  const restored = useState(() => readDraft(localStorage, sellerId))[0]
+  const restored = useState(() => readDraft(localStorage, farmerId))[0]
   const [step, setStep] = useState(restored?.step ?? 0)
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -63,8 +63,8 @@ export default function UploadProduct() {
   const [d, setD] = useState<Draft>(restored?.d ?? BLANK)
 
   useEffect(() => {
-    writeDraft(localStorage, sellerId, step, d)
-  }, [sellerId, step, d])
+    writeDraft(localStorage, farmerId, step, d)
+  }, [farmerId, step, d])
 
   /* One route, seven screens. A step change is not a navigation, so nothing
      moves the scroll on its own and the next question opened at whatever
@@ -85,19 +85,19 @@ export default function UploadProduct() {
     return <><AppBar title={t('prod.add')} /><div className="screen"><EmptyState title="—" /></div></>
   }
 
-  const seller = me.seller
+  const farmer = me.farmer
 
   /* Not verified yet (or blocked): the server would refuse to put anything
      on sale, so he is told here rather than at the last step. */
-  if (!canSellNow(seller)) {
+  if (!canSellNow(farmer)) {
     return (
       <>
         <AppBar title={t('prod.add')} />
         <div className="screen stack">
-          {seller.status === 'BLOCKED'
+          {farmer.status === 'BLOCKED'
             ? <Notice tone="danger">{t('biz.blockedTitle')}</Notice>
             : <Notice tone="warn">{t('biz.pendingVerification')}</Notice>}
-          <Button variant="ghost" onClick={() => nav('/seller/products')}>{t('biz.myProducts')}</Button>
+          <Button variant="ghost" onClick={() => nav('/farmer/products')}>{t('biz.myProducts')}</Button>
         </div>
       </>
     )
@@ -156,7 +156,7 @@ export default function UploadProduct() {
   }
 
   function back() {
-    if (step === 0) nav('/seller')
+    if (step === 0) nav('/farmer')
     else goToStep(step - 1)
   }
 
@@ -183,9 +183,9 @@ export default function UploadProduct() {
         madeToOrder: d.madeToOrder,
         asDraft,
       })
-      clearDraft(localStorage, sellerId)
+      clearDraft(localStorage, farmerId)
       toast(t(asDraft ? 'ok.productDraft' : 'ok.productPublished'))
-      nav('/seller/products', { replace: true })
+      nav('/farmer/products', { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
         setServerError(err.messageMr ?? err.message)
@@ -542,7 +542,7 @@ export default function UploadProduct() {
         )}
       </div>
 
-      <PageTour id="seller.upload" />
+      <PageTour id="farmer.upload" />
     </>
   )
 }

@@ -15,7 +15,7 @@
  * credential in a log file.
  */
 
-import { samePhone } from '@shared/seller.js'
+import { samePhone } from '@shared/farmer.js'
 
 
 export interface OtpProvider {
@@ -92,7 +92,7 @@ export function msg91WidgetProvider(cfg: Msg91WidgetConfig): OtpProvider {
            * and reads on screen as "that OTP is wrong". A day was spent on
            * that once. Dashboard -> username -> Authkey -> Actions. 701 the
            * token is bad, expired, or already spent. The only one of these the
-           * seller can cause, and the one that means the flow is working -
+           * farmer can cause, and the one that means the flow is working -
            * MSG91 got as far as looking at the token. 201 OUR auth key is
            * wrong or deleted - nobody can ever log in 701 "invalid
            * access-token". The ONLY one of these that is

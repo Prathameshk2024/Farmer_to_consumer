@@ -8,7 +8,7 @@ import { CATEGORIES } from '../src/db/seed.js'
  * Twelve categories cannot name everything a village makes, and a woman whose
  * product is not on the list had two ways out: file it under something it is
  * not, or stop. The first poisons the category filter for every buyer looking
- * for pickle; the second loses the seller.
+ * for pickle; the second loses the farmer.
  *
  * `other` is the answer, and what makes it work is that it has **no** `food`
  * flag. Both wizard screens filter the list by the food question she has
@@ -19,7 +19,7 @@ import { CATEGORIES } from '../src/db/seed.js'
 
 test('there is a category for everything the list forgot', () => {
   const other = CATEGORIES.find((c) => c.id === 'other')
-  assert.ok(other, 'a seller whose product is not listed needs somewhere to put it')
+  assert.ok(other, 'a farmer whose product is not listed needs somewhere to put it')
   assert.equal(other.food, undefined, 'no food flag, so it shows in both halves of the wizard')
 })
 

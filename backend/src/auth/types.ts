@@ -23,7 +23,7 @@ export interface SessionRecord {
   role: Role
   userId: string
   phone?: string
-  sellerId?: string
+  farmerId?: string
   customerId?: string
   createdAt: string
   /** Slid forward on use; the idle window is measured from here. */
@@ -66,7 +66,7 @@ export type AuthEventType =
   | 'session.revoked'
   | 'admin.login.ok'
   | 'admin.login.fail'
-  | 'register.seller'
+  | 'register.farmer'
   | 'register.customer'
   | 'ratelimit'
 

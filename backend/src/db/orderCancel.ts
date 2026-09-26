@@ -13,7 +13,7 @@ export type CancelResult =
  * whether they may end it NOW, and whether they said why.
  *
  * Status is checked against the order as it is at this instant, not as the
- * screen last showed it. A buyer pressing cancel while the seller presses
+ * screen last showed it. A buyer pressing cancel while the farmer presses
  * accept is the race this matters for, and one server process means whichever
  * lands first wins cleanly - the second gets a 409 in words.
  */

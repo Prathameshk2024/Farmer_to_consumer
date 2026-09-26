@@ -1,5 +1,5 @@
 import type { BusinessType, DigitalProfile, DispatchTime } from '@shared/types.js'
-import { normalizePhone } from '@shared/seller.js'
+import { normalizePhone } from '@shared/farmer.js'
 
 /**
  * THE HALF-FILLED REGISTRATION
@@ -74,7 +74,7 @@ export interface DraftStore {
  * having a second copy here is how the two drift apart.
  */
 export function draftKey(phone: string): string {
-  return `wb.draft.seller.${normalizePhone(phone)}`
+  return `wb.draft.farmer.${normalizePhone(phone)}`
 }
 
 export function writeDraft(store: DraftStore, phone: string, step: number, d: Draft): void {

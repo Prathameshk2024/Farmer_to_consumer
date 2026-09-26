@@ -1,11 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { clearName, customerDraftKey, readName, writeName } from '../src/screens/auth/customerDraft.js'
-import { draftKey } from '../src/screens/auth/sellerDraft.js'
+import { draftKey } from '../src/screens/auth/farmerDraft.js'
 
 /**
  * The customer registration screen asks one question - her name - and keeps
- * the answer on the device for the same reason the seller wizard keeps six
+ * the answer on the device for the same reason the farmer wizard keeps six
  * screens of them: pressing back must not cost her the typing.
  *
  * The rule that matters is the key. On a shared handset one woman registers
@@ -34,8 +34,8 @@ test('the key is the phone, however it was spelled', () => {
   assert.equal(customerDraftKey('+91 98220 11223'), customerDraftKey('9822011223'))
 })
 
-test('a seller draft and a customer draft never share a drawer', () => {
-  // The same woman may do both on the same handset, and the seller draft is an
+test('a farmer draft and a customer draft never share a drawer', () => {
+  // The same woman may do both on the same handset, and the farmer draft is an
   // object while this one is a bare string - crossing them would throw.
   assert.notEqual(customerDraftKey('9822011223'), draftKey('9822011223'))
 })

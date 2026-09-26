@@ -6,7 +6,7 @@
  * HTTP and uses exactly the same endpoints the real console will, so anything
  * that works here will work there.
  *
- *   npx tsx backend/scripts/admin.ts sellers
+ *   npx tsx backend/scripts/admin.ts farmers
  *   npx tsx backend/scripts/admin.ts verify 9822011223
  *
  * Env: API_URL (default http://localhost:4000), ADMIN_EMAIL, ADMIN_PASSWORD.
@@ -64,43 +64,43 @@ async function login(): Promise<void> {
   }
 }
 
-interface SellerRow { id: string; name: string; phone: string; womenBizId: string; status: string }
+interface FarmerRow { id: string; name: string; phone: string; farmerCode: string; status: string }
 
 /** One farmer at a time, by phone, id or SMB id - after an admin has checked him. */
 async function verify(target: string | undefined): Promise<void> {
-  const r = await call<{ sellers: SellerRow[] }>('/api/admin/sellers')
-  const seller = r.sellers.find((s) => s.id === target || s.phone === target || s.womenBizId === target)
-  if (!seller) {
-    console.error(c.red(`\n  No seller matches "${target ?? ''}".\n`))
+  const r = await call<{ farmers: FarmerRow[] }>('/api/admin/farmers')
+  const farmer = r.farmers.find((s) => s.id === target || s.phone === target || s.farmerCode === target)
+  if (!farmer) {
+    console.error(c.red(`\n  No farmer matches "${target ?? ''}".\n`))
     process.exit(1)
   }
-  const out = await call<{ seller: SellerRow }>(`/api/admin/sellers/${seller.id}/verify`, { method: 'POST' })
-  console.log(c.green(`\n  ✓ Verified ${out.seller.name} (${out.seller.womenBizId})\n`))
+  const out = await call<{ farmer: FarmerRow }>(`/api/admin/farmers/${farmer.id}/verify`, { method: 'POST' })
+  console.log(c.green(`\n  ✓ Verified ${out.farmer.name} (${out.farmer.farmerCode})\n`))
 }
 
-async function sellers(): Promise<void> {
-  const r = await call<{ sellers: SellerRow[] }>('/api/admin/sellers')
-  console.log(c.bold(`\n  ${r.sellers.length} seller(s)\n`))
-  for (const s of r.sellers) {
+async function farmers(): Promise<void> {
+  const r = await call<{ farmers: FarmerRow[] }>('/api/admin/farmers')
+  console.log(c.bold(`\n  ${r.farmers.length} farmer(s)\n`))
+  for (const s of r.farmers) {
     const status = s.status === 'ACTIVE' ? c.green(s.status) : c.amber(s.status)
     console.log(
-      `  ${s.womenBizId.padEnd(18)} ${s.name.padEnd(18)} +91 ${s.phone}  ${status}`,
+      `  ${s.farmerCode.padEnd(18)} ${s.name.padEnd(18)} +91 ${s.phone}  ${status}`,
     )
   }
   console.log('')
 }
 
 async function main(): Promise<void> {
-  const [cmd = 'sellers', a1] = process.argv.slice(2)
+  const [cmd = 'farmers', a1] = process.argv.slice(2)
   await login()
 
   switch (cmd) {
-    case 'sellers': await sellers(); break
+    case 'farmers': await farmers(); break
     case 'verify': await verify(a1); break
     default:
       console.log(`
   Commands:
-    sellers                     every seller with status
+    farmers                     every farmer with status
     verify <id|phone|smb-id>    verify a farmer once, after checking him
 `)
   }

@@ -13,7 +13,7 @@ import type { Order, OrderEvent, OrderStatus } from './types.js'
  * so a buyer who wants out from there has to ask her - "customer asked to
  * cancel" is on her list for exactly that.
  *
- * THE SELLER, AT ANY STEP AFTER ACCEPTING, UP TO THE DOORSTEP. Before
+ * THE FARMER, AT ANY STEP AFTER ACCEPTING, UP TO THE DOORSTEP. Before
  * acceptance she already has Reject. DELIVERED is the end: goods in the
  * buyer's hand are not un-delivered by a button, and a dispute there is a
  * conversation, not a state.
@@ -22,7 +22,7 @@ import type { Order, OrderEvent, OrderStatus } from './types.js'
  * because typing is the step these users skip or cannot do. "Other" is the
  * escape hatch, and only there is a few words of text required.
  *
- * What is stored is the CODE, not the sentence. The buyer reads the seller's
+ * What is stored is the CODE, not the sentence. The buyer reads the farmer's
  * reason in the buyer's language, and the admin in theirs; a translated string
  * frozen into the event would be in whichever language the canceller had on.
  */
@@ -36,7 +36,7 @@ export const CUSTOMER_CANCEL_REASONS = [
   'other',
 ] as const
 
-export const SELLER_CANCEL_REASONS = [
+export const FARMER_CANCEL_REASONS = [
   'out_of_stock',
   'cannot_deliver',
   'customer_unreachable',
@@ -47,8 +47,8 @@ export const SELLER_CANCEL_REASONS = [
 ] as const
 
 export type CustomerCancelReason = (typeof CUSTOMER_CANCEL_REASONS)[number]
-export type SellerCancelReason = (typeof SELLER_CANCEL_REASONS)[number]
-export type CancelBy = 'customer' | 'seller'
+export type FarmerCancelReason = (typeof FARMER_CANCEL_REASONS)[number]
+export type CancelBy = 'customer' | 'farmer'
 
 /** "Other" needs words; a single letter is not a reason anybody can act on. */
 export const CANCEL_NOTE_MIN = 5
@@ -58,16 +58,16 @@ export function customerCanCancel(status: OrderStatus): boolean {
   return status === 'PLACED'
 }
 
-export function sellerCanCancel(status: OrderStatus): boolean {
+export function farmerCanCancel(status: OrderStatus): boolean {
   return status === 'ACCEPTED' || status === 'PACKED' || status === 'OUT_FOR_DELIVERY'
 }
 
 export function canCancel(by: CancelBy, status: OrderStatus): boolean {
-  return by === 'customer' ? customerCanCancel(status) : sellerCanCancel(status)
+  return by === 'customer' ? customerCanCancel(status) : farmerCanCancel(status)
 }
 
 export function cancelReasons(by: CancelBy): readonly string[] {
-  return by === 'customer' ? CUSTOMER_CANCEL_REASONS : SELLER_CANCEL_REASONS
+  return by === 'customer' ? CUSTOMER_CANCEL_REASONS : FARMER_CANCEL_REASONS
 }
 
 /** Dictionary key for a reason code, on either side. */
@@ -77,7 +77,7 @@ export function cancelReasonKey(by: CancelBy, reason: string): string {
 
 /**
  * The event that ended this order early - a cancel by either side, or the
- * seller's reject - so both order screens can say who called it off and why.
+ * farmer's reject - so both order screens can say who called it off and why.
  */
 export function endingEvent(order: Pick<Order, 'status' | 'events'>): OrderEvent | undefined {
   if (order.status !== 'CANCELLED' && order.status !== 'REJECTED') return undefined
@@ -85,10 +85,10 @@ export function endingEvent(order: Pick<Order, 'status' | 'events'>): OrderEvent
 }
 
 /**
- * WHAT THE SELLER OWES BACK ON A CANCELLED ORDER.
+ * WHAT THE FARMER OWES BACK ON A CANCELLED ORDER.
  *
  * This app moves no money, so it cannot refund any: whatever the buyer paid
- * is in the seller's account and only she can send it back. The sheet says so
+ * is in the farmer's account and only she can send it back. The sheet says so
  * the moment she cancels, and her order screen keeps saying it afterwards.
  *
  * - `confirmed` - she has already said the money arrived.

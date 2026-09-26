@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Order } from '@shared/types.js'
 import { daysUntilScrub } from '@shared/accountClose.js'
-import { needsSellerAction, STATUS_STYLE, statusLabelKey } from '@shared/orderFlow.js'
+import { needsFarmerAction, STATUS_STYLE, statusLabelKey } from '@shared/orderFlow.js'
 import { useT } from '../../i18n/I18nProvider.js'
 import { useToast } from '../../store/ToastContext.js'
 import { api } from '../../lib/api.js'
@@ -25,7 +25,7 @@ export default function MyBusiness() {
   const nav = useNavigate()
 
   const [me, loadingMe, setMe] = useAsync(() => api.me(), [])
-  const [orderData, loadingOrders] = useAsync(() => api.myOrders(), [], 'seller:orders')
+  const [orderData, loadingOrders] = useAsync(() => api.myOrders(), [], 'farmer:orders')
   // Not waited on: reviews are not what she opened this screen to act on.
   const [reviewData] = useAsync(() => api.myReviews(), [])
   const { toast } = useToast()
@@ -48,9 +48,9 @@ export default function MyBusiness() {
     )
   }
 
-  const seller = me.seller
+  const farmer = me.farmer
   const orders = orderData?.orders ?? []
-  const actionable = orders.filter(needsSellerAction)
+  const actionable = orders.filter(needsFarmerAction)
 
   // Earned today = orders actually DELIVERED today, read off the event trail
   // rather than the placed date. An order placed Monday and delivered
@@ -65,16 +65,16 @@ export default function MyBusiness() {
   const todayOrders = orders.filter((o) => isToday(o.placedAt)).length
 
   async function toggleShop() {
-    const res = await api.updateMe({ isOpen: !seller.isOpen })
-    setMe({ ...me!, seller: res.seller })
+    const res = await api.updateMe({ isOpen: !farmer.isOpen })
+    setMe({ ...me!, farmer: res.farmer })
   }
 
   return (
     <>
       <AppBar
         brand
-        title={seller.shopName}
-        sub={`${seller.womenBizId} · ${seller.village}`}
+        title={farmer.shopName}
+        sub={`${farmer.farmerCode} · ${farmer.village}`}
       />
 
       <div className="screen stack">
@@ -82,12 +82,12 @@ export default function MyBusiness() {
             same as waiting for approval and must not read like it: she is told
             plainly, given the admin's reason if there was one, and pointed at
             support rather than left to wonder why her shop went quiet. */}
-        {seller.status === 'BLOCKED' && (
+        {farmer.status === 'BLOCKED' && (
           <Notice tone="danger" title={t('biz.blockedTitle')}>
             <div>{t('biz.blockedBody')}</div>
-            {seller.blockReason && (
+            {farmer.blockReason && (
               <div style={{ marginTop: 6 }}>
-                <strong>{t('biz.blockedReason')}:</strong> {seller.blockReason}
+                <strong>{t('biz.blockedReason')}:</strong> {farmer.blockReason}
               </div>
             )}
           </Notice>
@@ -98,16 +98,16 @@ export default function MyBusiness() {
             moment, so the way out of it is the first thing on her home
             screen - not buried in the profile she would have to go looking
             through, having already decided once to leave. */}
-        {seller.status === 'CLOSED' && seller.closingAt && (
+        {farmer.status === 'CLOSED' && farmer.closingAt && (
           <Notice tone="danger" title={t('close.closingTitle')}>
-            <div>{t('close.closingBody', { days: daysUntilScrub(seller.closingAt) })}</div>
+            <div>{t('close.closingBody', { days: daysUntilScrub(farmer.closingAt) })}</div>
             <div style={{ marginTop: 'var(--s3)' }}>
               <Button
                 size="sm"
                 disabled={restoring}
                 onClick={() => {
                   setRestoring(true)
-                  void api.restoreSellerAccount()
+                  void api.restoreFarmerAccount()
                     .then(async () => { toast(t('close.restored')); setMe(await api.me()) })
                     .catch(() => toast(t('close.restoreFailed')))
                     .finally(() => setRestoring(false))
@@ -121,19 +121,19 @@ export default function MyBusiness() {
 
         {/* Registered and waiting for the one check. Nothing he lists is
             public until then, so he is told why rather than left guessing. */}
-        {seller.status === 'PENDING_VERIFICATION' && (
+        {farmer.status === 'PENDING_VERIFICATION' && (
           <Notice tone="warn">{t('biz.pendingVerification')}</Notice>
         )}
 
         {/* Shop open toggle: one tap, right at the top. */}
-        <Card className={seller.isOpen ? '' : 'notice--warn'} data-wt="biz-shop">
+        <Card className={farmer.isOpen ? '' : 'notice--warn'} data-wt="biz-shop">
           <div className="row-between">
             <div className="stack-sm" style={{ gap: 2 }}>
-              <strong>{seller.isOpen ? t('biz.shopOpen') : t('biz.shopClosed')}</strong>
+              <strong>{farmer.isOpen ? t('biz.shopOpen') : t('biz.shopClosed')}</strong>
               <span className="small dim">{t('biz.shopOpenHint')}</span>
             </div>
-            <Button variant={seller.isOpen ? 'quiet' : 'primary'} size="sm" onClick={toggleShop}>
-              {seller.isOpen ? <IconPause aria-hidden="true" /> : <IconPlay aria-hidden="true" />}
+            <Button variant={farmer.isOpen ? 'quiet' : 'primary'} size="sm" onClick={toggleShop}>
+              {farmer.isOpen ? <IconPause aria-hidden="true" /> : <IconPlay aria-hidden="true" />}
             </Button>
           </div>
         </Card>
@@ -155,7 +155,7 @@ export default function MyBusiness() {
         <div data-wt="biz-action">
           <SectionTitle
             action={
-              <button className="btn btn--quiet btn--sm" onClick={() => nav('/seller/orders')}>
+              <button className="btn btn--quiet btn--sm" onClick={() => nav('/farmer/orders')}>
                 {t('common.viewAll')}
               </button>
             }
@@ -170,7 +170,7 @@ export default function MyBusiness() {
           ) : (
             <div className="stack-sm">
               {actionable.map((o) => (
-                <ActionRow key={o.id} order={o} onOpen={() => nav(`/seller/orders/${o.id}`)} />
+                <ActionRow key={o.id} order={o} onOpen={() => nav(`/farmer/orders/${o.id}`)} />
               ))}
             </div>
           )}
@@ -178,7 +178,7 @@ export default function MyBusiness() {
 
         {/* Her rating - her products' ratings together, exactly as buyers see
             it on her card - and one tap to what they said. */}
-        <button className="card card--tap" onClick={() => nav('/seller/reviews')}>
+        <button className="card card--tap" onClick={() => nav('/farmer/reviews')}>
           <div className="row-between">
             <div className="stack-sm" style={{ gap: 2 }}>
               <strong>{t('rev.title')}</strong>
@@ -190,14 +190,14 @@ export default function MyBusiness() {
         </button>
 
         <div className="pgrid pgrid--2" data-wt="biz-links">
-          <QuickLink icon={IconProduct} label={t('biz.myProducts')} to="/seller/products" />
-          <QuickLink icon={IconOrders} label={t('biz.myOrders')} to="/seller/orders" />
-          <QuickLink icon={IconGrowth} label={t('biz.myGrowth')} to="/seller/growth" />
-          <QuickLink icon={IconBuyers} label={t('buy.tile')} to="/seller/buyers" />
+          <QuickLink icon={IconProduct} label={t('biz.myProducts')} to="/farmer/products" />
+          <QuickLink icon={IconOrders} label={t('biz.myOrders')} to="/farmer/orders" />
+          <QuickLink icon={IconGrowth} label={t('biz.myGrowth')} to="/farmer/growth" />
+          <QuickLink icon={IconBuyers} label={t('buy.tile')} to="/farmer/buyers" />
         </div>
       </div>
 
-      <PageTour id="seller.business" />
+      <PageTour id="farmer.business" />
     </>
   )
 }

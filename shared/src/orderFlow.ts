@@ -8,7 +8,7 @@ import type { Order, OrderStatus, PaymentMode, PaymentStatus } from './types.js'
  *   PLACED -> ACCEPTED -> PACKED -> OUT_FOR_DELIVERY -> DELIVERED
  *
  * DELIVERED is the end. There was a COMPLETED after it, and it meant nothing
- * to either side: the seller had already handed the goods over and been paid,
+ * to either side: the farmer had already handed the goods over and been paid,
  * the customer already had them, and no screen offered a way to reach it - so
  * every real order sat at DELIVERED with one greyed-out step below it,
  * implying something was still outstanding when nothing was.
@@ -17,7 +17,7 @@ import type { Order, OrderStatus, PaymentMode, PaymentStatus } from './types.js'
  * because a cash order and a UPI order have to walk the same six screens.
  * Inserting a payment state into the middle is the change that would break it.
  *
- * There is no delivery OTP. The seller marks DELIVERED herself and that is
+ * There is no delivery OTP. The farmer marks DELIVERED herself and that is
  * accepted at face value; the trail in `events` is what admin reviews if a
  * customer disputes it. (The login OTP is a different thing entirely and is
  * still required - see backend/src/services/otp.service.ts.)
@@ -34,7 +34,7 @@ export const HAPPY_PATH: OrderStatus[] = [
   'DELIVERED',
 ]
 
-export interface SellerAction {
+export interface FarmerAction {
   to: OrderStatus
   labelKey: string
   tone: 'primary' | 'ghost'
@@ -60,7 +60,7 @@ export function cleanDeliveryEstimate(raw: unknown): string | undefined {
   return text ? text.slice(0, MAX_DELIVERY_ESTIMATE) : undefined
 }
 
-export const SELLER_ACTIONS: Record<OrderStatus, SellerAction[]> = {
+export const FARMER_ACTIONS: Record<OrderStatus, FarmerAction[]> = {
   PLACED: [
     { to: 'ACCEPTED', labelKey: 'ord.accept', tone: 'primary', needsEstimate: true },
     { to: 'REJECTED', labelKey: 'ord.reject', tone: 'ghost', needsReason: true },
@@ -110,13 +110,13 @@ export const STATUS_STYLE: Record<
  * A buyer does not need "packed" and "accepted" as separate steps - she needs
  * to know it is confirmed, on its way, nearly here, arrived. So:
  *
- *   Order confirmed    <- ACCEPTED           (the seller said yes)
+ *   Order confirmed    <- ACCEPTED           (the farmer said yes)
  *   Shipped            <- PACKED
  *   Out for delivery   <- OUT_FOR_DELIVERY
  *   Delivered          <- DELIVERED
  *
  * A PLACED order has reached none of them yet; its screen says it is waiting
- * for the seller. The seller's own screens keep all five states.
+ * for the farmer. The farmer's own screens keep all five states.
  */
 export const BUYER_STAGES: { key: string; status: OrderStatus }[] = [
   { key: 'track.confirmed', status: 'ACCEPTED' },
@@ -150,21 +150,21 @@ export function isCancelled(status: OrderStatus): boolean {
 
 /** Server-side guard: is this transition legal from where the order is now? */
 export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
-  return (SELLER_ACTIONS[from] || []).some((a) => a.to === to)
+  return (FARMER_ACTIONS[from] || []).some((a) => a.to === to)
 }
 
-export function actionFor(from: OrderStatus, to: OrderStatus): SellerAction | undefined {
-  return (SELLER_ACTIONS[from] || []).find((a) => a.to === to)
+export function actionFor(from: OrderStatus, to: OrderStatus): FarmerAction | undefined {
+  return (FARMER_ACTIONS[from] || []).find((a) => a.to === to)
 }
 
 /**
- * Does this order need the seller to do something right now? Drives the action
+ * Does this order need the farmer to do something right now? Drives the action
  * queue on My Business - the most important widget in the app.
  */
-export function needsSellerAction(order: Order): boolean {
+export function needsFarmerAction(order: Order): boolean {
   if (isCancelled(order.status)) return false
   if (order.paymentMode === 'UPI' && order.paymentStatus === 'UPI_SUBMITTED') return true
-  return (SELLER_ACTIONS[order.status] || []).length > 0
+  return (FARMER_ACTIONS[order.status] || []).length > 0
 }
 
 export function initialPaymentStatus(mode: PaymentMode): PaymentStatus {
@@ -174,15 +174,15 @@ export function initialPaymentStatus(mode: PaymentMode): PaymentStatus {
 /**
  * MONEY AFTER ACCEPTANCE, NOT BEFORE.
  *
- * A buyer used to pay at checkout, before the seller had seen the order. Now
+ * A buyer used to pay at checkout, before the farmer had seen the order. Now
  * that their delivery-area list is a hint rather than a gate, rejection is a
  * normal outcome - and a rejected prepaid order leaves the money in they
  * account with no refund path in this app.
  *
- * So the order reaches the seller's unpaid, and these two say whose turn it is.
+ * So the order reaches the farmer's unpaid, and these two say whose turn it is.
  */
 
-/** The seller's turn is done: the buyer owes the money and can pay it now. */
+/** The farmer's turn is done: the buyer owes the money and can pay it now. */
 export function awaitingCustomerPayment(
   o: Pick<Order, 'paymentMode' | 'paymentStatus' | 'status'>,
 ): boolean {
@@ -190,9 +190,9 @@ export function awaitingCustomerPayment(
 }
 
 /**
- * The seller has not been paid yet, so they do not pack.
+ * The farmer has not been paid yet, so they do not pack.
  *
- * A typed reference number is a claim, not money - only the seller's own
+ * A typed reference number is a claim, not money - only the farmer's own
  * confirmation, made after looking at their UPI app, counts.
  */
 export function awaitingPaymentConfirmation(

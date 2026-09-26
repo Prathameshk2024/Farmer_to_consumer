@@ -19,7 +19,7 @@ interface ImportMeta {
 /**
  * Web Speech API. Chrome on Android exposes it as webkitSpeechRecognition and
  * TypeScript's DOM lib does not declare it, so we declare the slice we use.
- * This is what makes voice typing possible for a seller who cannot type
+ * This is what makes voice typing possible for a farmer who cannot type
  * Devanagari on a phone keyboard.
  */
 interface SpeechRecognitionResultLike {

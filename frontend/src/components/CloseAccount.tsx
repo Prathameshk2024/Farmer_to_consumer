@@ -26,20 +26,20 @@ import { Button, Choice, Field, Notice, TextInput, VoiceInput } from './ui.js'
  *      three-a-day ceiling, proving possession of a phone she is already
  *      signed in on). Four digits she knows by heart, which a thumb does not
  *      produce by accident.
- *   4. What happens next, which for a seller is the week she has to change
+ *   4. What happens next, which for a farmer is the week she has to change
  *      her mind.
  *
  * An order still in flight is not an error but a thing to do first: the server
  * answers 409 and the sheet says so, because a buyer waiting on a delivery
- * cannot be left holding an order whose seller has vanished.
+ * cannot be left holding an order whose farmer has vanished.
  */
 export function CloseAccountSheet({
   role, phone, productCount, open, onClose,
 }: {
-  role: 'seller' | 'customer'
+  role: 'farmer' | 'customer'
   /** Her own number. The last four digits of it are the final confirmation. */
   phone: string
-  /** Seller only: how many listings go with the shop, so step 1 is a fact. */
+  /** Farmer only: how many listings go with the shop, so step 1 is a fact. */
   productCount?: number
   open: boolean
   onClose: () => void
@@ -56,7 +56,7 @@ export function CloseAccountSheet({
 
   if (!open) return null
 
-  const seller = role === 'seller'
+  const farmer = role === 'farmer'
 
   function close() {
     setStep(1)
@@ -73,8 +73,8 @@ export function CloseAccountSheet({
     setErr('')
     setBlocked([])
     try {
-      if (seller) {
-        await api.closeSellerAccount({
+      if (farmer) {
+        await api.closeFarmerAccount({
           reason,
           note: reason === 'other' ? note.trim() : undefined,
           confirm: digits,
@@ -110,12 +110,12 @@ export function CloseAccountSheet({
           <div className="stack">
             <div className="stack-sm">
               <h2 className="h2">{t('close.q1')}</h2>
-              <p className="body muted">{seller ? t('close.sel.q1Sub') : t('close.cus.q1Sub')}</p>
+              <p className="body muted">{farmer ? t('close.sel.q1Sub') : t('close.cus.q1Sub')}</p>
             </div>
 
             {/* Her own numbers, not a warning in the abstract. A woman with
                 five listings is being told about those five. */}
-            {seller && (
+            {farmer && (
               <Notice tone="warn" title={t('close.sel.whatGoesTitle')}>
                 {t('close.sel.whatGoes', { n: productCount ?? 0 })}
               </Notice>
@@ -169,7 +169,7 @@ export function CloseAccountSheet({
           <div className="stack">
             <div className="stack-sm">
               <h2 className="h2">{t('close.q3')}</h2>
-              <p className="body muted">{seller ? t('close.sel.q3Sub') : t('close.cus.q3Sub')}</p>
+              <p className="body muted">{farmer ? t('close.sel.q3Sub') : t('close.cus.q3Sub')}</p>
             </div>
 
             <Field label={t('close.digitsLabel')} hint={t('close.digitsHint')}>
@@ -211,7 +211,7 @@ export function CloseAccountSheet({
             <div className="stack-sm">
               <h2 className="h2">{t('close.doneTitle')}</h2>
               <p className="body">
-                {seller ? t('close.sel.doneBody', { days: UNDO_DAYS }) : t('close.cus.doneBody')}
+                {farmer ? t('close.sel.doneBody', { days: UNDO_DAYS }) : t('close.cus.doneBody')}
               </p>
             </div>
             <Button onClick={done}>{t('close.doneAck')}</Button>

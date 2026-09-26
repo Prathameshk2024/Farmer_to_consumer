@@ -17,7 +17,7 @@ import { Button, Card, Field, Notice, SectionTitle, VoiceInput } from './ui.js'
 /**
  * RATINGS, ON EVERY SCREEN THAT SHOWS THEM.
  *
- * Products are rated, sellers are not. Stars are never alone: every row of
+ * Products are rated, farmers are not. Stars are never alone: every row of
  * them carries the number and a word - "4 · चांगला" - so nobody has to count
  * gold shapes.
  */
@@ -113,7 +113,7 @@ export function ReviewItem({
    * to flag them - but a link under every review, above another one for the
    * listing itself, turned the product screen into a column of "Report" and
    * made the word meaningless. So the buyer reports the LISTING, at the foot
-   * of the product page, and this is on for the seller only: an abusive
+   * of the product page, and this is on for the farmer only: an abusive
    * review is aimed at her, and My Reviews is the one screen where she reads
    * them all. Not her order screen, which shows the same words again.
    */
@@ -373,7 +373,7 @@ export function OrderRatings({
  *
  * Checked when the app opens, when she comes back to it, every two minutes
  * while it is open, and on moving between screens (at most every 30 seconds,
- * for rural data) - so an order the seller marks delivered while she is
+ * for rural data) - so an order the farmer marks delivered while she is
  * browsing is asked about within moments rather than on her next visit.
  *
  * `onBlockingChange` lets the layout make everything behind the screen inert,

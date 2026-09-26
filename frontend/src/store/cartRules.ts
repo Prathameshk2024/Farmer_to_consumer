@@ -1,9 +1,9 @@
 import type { CartItem } from '@shared/types.js'
 
 /**
- * ONE SELLER AT A TIME.
+ * ONE FARMER AT A TIME.
  *
- * A cart used to hold anybody's goods and split into one order per seller at
+ * A cart used to hold anybody's goods and split into one order per farmer at
  * checkout. It works, but it asks a woman buying her first thing online to
  * understand that one basket became three orders, three deliveries arranged
  * with three strangers and three separate UPI payments - on the screen where
@@ -17,17 +17,17 @@ import type { CartItem } from '@shared/types.js'
  */
 
 /** The shop that owns the cart, or null when it is empty. */
-export function cartSeller(items: CartItem[]): string | null {
-  return items[0]?.sellerId ?? null
+export function cartFarmer(items: CartItem[]): string | null {
+  return items[0]?.farmerId ?? null
 }
 
 /** The shop's name as it was when she added the first item, for the refusal. */
-export function cartSellerName(items: CartItem[]): string | undefined {
-  return items[0]?.sellerName
+export function cartFarmerName(items: CartItem[]): string | undefined {
+  return items[0]?.farmerName
 }
 
 /** May this product go in? True while the cart is empty or already hers. */
-export function canAddFrom(items: CartItem[], sellerId: string): boolean {
-  const owner = cartSeller(items)
-  return owner === null || owner === sellerId
+export function canAddFrom(items: CartItem[], farmerId: string): boolean {
+  const owner = cartFarmer(items)
+  return owner === null || owner === farmerId
 }

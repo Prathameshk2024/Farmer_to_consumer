@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const res = await api.signIn(email, password)
-    // A 200 with no token would sign the seller in with no credentials: the
+    // A 200 with no token would sign the farmer in with no credentials: the
     // shell renders and every panel on it answers 401. Fail on the sign-in
     // screen, where the message can still be read, rather than one screen
     // later.

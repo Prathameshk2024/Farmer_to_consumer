@@ -73,7 +73,7 @@ function isRealName(name: string): boolean {
  * Is this customer REGISTERED, as opposed to merely authenticated?
  *
  * A verified phone proves who she is; it does not finish an account. The name
- * does, because the name is what the seller reads on the order and what she is
+ * does, because the name is what the farmer reads on the order and what she is
  * called when a woman in a village phones her about a delivery. So a record
  * that exists but carries no name - or carries the ग्राहक placeholder a
  * checkout left behind - is not registered, and login sends her to the one
@@ -289,7 +289,7 @@ export function deriveCustomersFromOrders(orders: Order[]): Customer[] {
 /* Her buyers                                                          */
 /* ------------------------------------------------------------------ */
 
-export interface SellerBuyer {
+export interface FarmerBuyer {
   customerId: string
   name: string
   phone: string
@@ -305,23 +305,23 @@ export interface SellerBuyer {
 const NOT_A_SALE = new Set(['CANCELLED', 'REJECTED'])
 
 /**
- * The buyers behind a seller's own orders.
+ * The buyers behind a farmer's own orders.
  *
- * Scoped to `sellerId` and built ONLY from orders belonging to her. She sees
+ * Scoped to `farmerId` and built ONLY from orders belonging to her. She sees
  * nothing about a buyer beyond what her own order already told her - not the
  * addresses that buyer saved for somebody else, not her orders with another
- * seller. That scoping is the whole privacy rule for this screen, which is why
+ * farmer. That scoping is the whole privacy rule for this screen, which is why
  * it lives here rather than being assembled in the route.
  *
  * Counts and totals are derived on every call rather than stored. A counter
  * would go wrong the first time an order is cancelled, and go wrong quietly.
  */
-export function buyersForSeller(db: Db, sellerId: string): SellerBuyer[] {
-  const mine = db.orders.filter((o) => o.sellerId === sellerId)
-  const byCustomer = new Map<string, SellerBuyer>()
+export function buyersForFarmer(db: Db, farmerId: string): FarmerBuyer[] {
+  const mine = db.orders.filter((o) => o.farmerId === farmerId)
+  const byCustomer = new Map<string, FarmerBuyer>()
 
   // Newest first, so the first order seen for a buyer is her most recent and
-  // supplies the name and address the seller should be looking at.
+  // supplies the name and address the farmer should be looking at.
   for (const o of [...mine].sort((a, b) => (a.placedAt < b.placedAt ? 1 : -1))) {
     let buyer = byCustomer.get(o.customerId)
 
@@ -342,7 +342,7 @@ export function buyersForSeller(db: Db, sellerId: string): SellerBuyer[] {
     }
 
     // A buyer whose every order fell through still belongs on the list, at
-    // zero. Dropping her would tell the seller nobody ever tried.
+    // zero. Dropping her would tell the farmer nobody ever tried.
     if (!NOT_A_SALE.has(o.status)) {
       buyer.orderCount += 1
       buyer.totalSpent += o.total

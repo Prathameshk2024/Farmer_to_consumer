@@ -1,17 +1,17 @@
 import { Router } from 'express'
-import type { Order, OrderStatus, PaymentMode, SellerGroup } from '@shared/types.js'
+import type { Order, OrderStatus, PaymentMode, FarmerGroup } from '@shared/types.js'
 import {
   actionFor, awaitingCustomerPayment, awaitingPaymentConfirmation, canTransition,
   cleanDeliveryEstimate, initialPaymentStatus,
 } from '@shared/orderFlow.js'
-import { isMaharashtraPincode } from '@shared/seller.js'
+import { isMaharashtraPincode } from '@shared/farmer.js'
 import { normalizeUtr, utrProblem } from '@shared/payment.js'
 import { getDb, save } from '../db/store.js'
 import { recordOrderCustomer } from '../db/customers.js'
 import { cancelOrder } from '../db/orderCancel.js'
 import { ordersToRate, writeRatings } from '../db/reviews.js'
 import { toPublicReview } from '@shared/review.js'
-import { canSellNow } from '@shared/seller.js'
+import { canSellNow } from '@shared/farmer.js'
 import { newShortId } from '../db/ids.js'
 import { requireRole } from '../middleware/auth.js'
 
@@ -21,12 +21,12 @@ export const ordersRouter: Router = Router()
 /* Reading                                                             */
 /* ------------------------------------------------------------------ */
 
-ordersRouter.get('/mine', requireRole('seller', 'customer'), (req, res) => {
+ordersRouter.get('/mine', requireRole('farmer', 'customer'), (req, res) => {
   const db = getDb()
   const auth = req.auth!
   const list =
-    auth.role === 'seller'
-      ? db.orders.filter((o) => o.sellerId === auth.sellerId)
+    auth.role === 'farmer'
+      ? db.orders.filter((o) => o.farmerId === auth.farmerId)
       : db.orders.filter((o) => o.customerId === auth.customerId)
 
   res.json({
@@ -37,7 +37,7 @@ ordersRouter.get('/mine', requireRole('seller', 'customer'), (req, res) => {
   })
 })
 
-ordersRouter.get('/:id', requireRole('seller', 'customer'), (req, res) => {
+ordersRouter.get('/:id', requireRole('farmer', 'customer'), (req, res) => {
   const db = getDb()
   const auth = req.auth!
   const order = db.orders.find((o) => o.id === req.params.id)
@@ -47,7 +47,7 @@ ordersRouter.get('/:id', requireRole('seller', 'customer'), (req, res) => {
   }
   // An order is only visible to the two parties on it.
   const mine =
-    (auth.role === 'seller' && order.sellerId === auth.sellerId) ||
+    (auth.role === 'farmer' && order.farmerId === auth.farmerId) ||
     (auth.role === 'customer' && order.customerId === auth.customerId)
   if (!mine) {
     res.status(403).json({ error: 'Not your order' })
@@ -57,8 +57,8 @@ ordersRouter.get('/:id', requireRole('seller', 'customer'), (req, res) => {
   /**
    * HER NUMBER, TO THE PERSON WHO ORDERED FROM HER - AND NOBODY ELSE.
    *
-   * It is not on any public seller endpoint (`publicSeller` in
-   * db/publicSeller.ts is an allow-list without it), so browsing the
+   * It is not on any public farmer endpoint (`publicFarmer` in
+   * db/publicFarmer.ts is an allow-list without it), so browsing the
    * catalogue never exposes it. It IS on the order, from the
    * moment the order exists: a buyer who has paid by UPI and is waiting for
    * food needs to be able to ring the woman making it, and this route already
@@ -68,10 +68,10 @@ ordersRouter.get('/:id', requireRole('seller', 'customer'), (req, res) => {
    * the gap between placing and accepting is the window in which a buyer most
    * needs to reach her.
    */
-  const seller = db.sellers.find((s) => s.id === order.sellerId)
+  const farmer = db.farmers.find((s) => s.id === order.farmerId)
 
   // One review per product on this order. The buyer sees their own whatever
-  // became of them, so a hidden one can say so. The seller sees only those
+  // became of them, so a hidden one can say so. The farmer sees only those
   // still up: a review an admin took down is not hers to keep reading.
   const reviews = db.reviews
     .filter((r) => r.orderId === order.id && (auth.role === 'customer' || !r.hidden))
@@ -80,26 +80,26 @@ ordersRouter.get('/:id', requireRole('seller', 'customer'), (req, res) => {
   res.json({
     order,
     reviews,
-    seller: seller && {
-      id: seller.id,
-      womenBizId: seller.womenBizId,
-      name: seller.name,
-      photo: seller.photo,
-      shopName: seller.shopName,
-      shopSlug: seller.shopSlug,
-      upiId: seller.upiId,
-      phone: seller.phone,
+    farmer: farmer && {
+      id: farmer.id,
+      farmerCode: farmer.farmerCode,
+      name: farmer.name,
+      photo: farmer.photo,
+      shopName: farmer.shopName,
+      shopSlug: farmer.shopSlug,
+      upiId: farmer.upiId,
+      phone: farmer.phone,
     },
   })
 })
 
 /* ------------------------------------------------------------------ */
-/* Checkout - one order per seller                                     */
+/* Checkout - one order per farmer                                     */
 /* ------------------------------------------------------------------ */
 
 interface PlaceBody {
   address: { line: string; landmark?: string; pincode: string }
-  groups: SellerGroup[]
+  groups: FarmerGroup[]
   paymentMode: PaymentMode
   customerName?: string
   sourceShareCode?: string
@@ -137,20 +137,20 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
   const created: Order[] = []
 
   for (const g of b.groups) {
-    const seller = db.sellers.find((s) => s.id === g.sellerId)
+    const farmer = db.farmers.find((s) => s.id === g.farmerId)
     // A blocked, closed or unverified shop takes no new orders. Orders it
     // already has carry on: she can still deliver them, or cancel and refund.
-    if (!seller || !canSellNow(seller) || !seller.isOpen) {
+    if (!farmer || !canSellNow(farmer) || !farmer.isOpen) {
       res.status(409).json({
-        error: 'Seller unavailable',
+        error: 'Farmer unavailable',
         messageMr: 'ही विक्रेती सध्या ऑर्डर घेत नाही',
       })
       return
     }
     /**
-     * The seller's listed areas are a hint now, not a gate.
+     * The farmer's listed areas are a hint now, not a gate.
      *
-     * Anywhere in Maharashtra the order goes to the seller and they decide -
+     * Anywhere in Maharashtra the order goes to the farmer and they decide -
      * the list was one pincode written at registration, and refusing 413002
      * because they typed 413004 threw away orders they would have taken.
      * Outside Maharashtra is still refused here, before them sees it.
@@ -162,7 +162,7 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
       })
       return
     }
-    const outsideArea = !seller.pincodes.includes(b.address.pincode)
+    const outsideArea = !farmer.pincodes.includes(b.address.pincode)
 
     const items = g.items.map((i) => {
       const product = db.products.find((p) => p.id === i.productId)
@@ -179,24 +179,24 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
     })
 
     const itemsTotal = items.reduce((n, i) => n + i.price * i.qty, 0)
-    if (seller.minOrder > 0 && itemsTotal < seller.minOrder) {
+    if (farmer.minOrder > 0 && itemsTotal < farmer.minOrder) {
       res.status(409).json({
         error: 'Below minimum',
-        messageMr: `${seller.shopName} किमान ऑर्डर ₹${seller.minOrder}`,
+        messageMr: `${farmer.shopName} किमान ऑर्डर ₹${farmer.minOrder}`,
       })
       return
     }
 
     const deliveryFee =
-      seller.freeDeliveryAbove > 0 && itemsTotal >= seller.freeDeliveryAbove
+      farmer.freeDeliveryAbove > 0 && itemsTotal >= farmer.freeDeliveryAbove
         ? 0
-        : seller.deliveryFee
+        : farmer.deliveryFee
 
     const now = new Date().toISOString()
     const order: Order = {
       id: newShortId('SMB', (id) => db.orders.some((o) => o.id === id)),
       groupId,
-      sellerId: seller.id,
+      farmerId: farmer.id,
       customerId: auth.customerId!,
       customerName: b.customerName ?? 'ग्राहक',
       customerPhone: auth.phone ?? '',
@@ -218,11 +218,11 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
 
     db.orders.unshift(order)
     created.push(order)
-    if (order.sourceShareCode === seller.shopSlug) seller.qrOrders += 1
+    if (order.sourceShareCode === farmer.shopSlug) farmer.qrOrders += 1
   }
 
   // Remember who she is and where she asked for it. A cart split across three
-  // sellers is three orders but one customer, so this runs once on the first.
+  // farmers is three orders but one customer, so this runs once on the first.
   if (created[0]) recordOrderCustomer(db, created[0])
 
   save()
@@ -233,10 +233,10 @@ ordersRouter.post('/', requireRole('customer'), (req, res) => {
 /* Moving along the state machine                                      */
 /* ------------------------------------------------------------------ */
 
-ordersRouter.post('/:id/advance', requireRole('seller'), (req, res) => {
+ordersRouter.post('/:id/advance', requireRole('farmer'), (req, res) => {
   const db = getDb()
   const order = db.orders.find(
-    (o) => o.id === req.params.id && o.sellerId === req.auth!.sellerId,
+    (o) => o.id === req.params.id && o.farmerId === req.auth!.farmerId,
   )
   if (!order) {
     res.status(404).json({ error: 'Order not found' })
@@ -262,7 +262,7 @@ ordersRouter.post('/:id/advance', requireRole('seller'), (req, res) => {
   /**
    * The gate that makes "pay after acceptance" safe.
    *
-   * The seller accepts an order they have not been paid for - that is the
+   * The farmer accepts an order they have not been paid for - that is the
    * whole point, because the buyer pays once they have said yes. Packing is
    * where it stops: nothing leaves their kitchen until they have seen the
    * money in their own UPI app and pressed "payment received".
@@ -279,7 +279,7 @@ ordersRouter.post('/:id/advance', requireRole('seller'), (req, res) => {
   order.events.push({
     to,
     at: new Date().toISOString(),
-    by: 'seller',
+    by: 'farmer',
     note: req.body?.reason,
   })
 
@@ -308,17 +308,17 @@ ordersRouter.post('/:id/advance', requireRole('seller'), (req, res) => {
 
 /**
  * Either party calling the order off - the buyer before acceptance, the
- * seller after it. One route, because it is one state and one event; which
+ * farmer after it. One route, because it is one state and one event; which
  * side is asking comes from the session, never from the body.
  */
-ordersRouter.post('/:id/cancel', requireRole('seller', 'customer'), (req, res) => {
+ordersRouter.post('/:id/cancel', requireRole('farmer', 'customer'), (req, res) => {
   const db = getDb()
   const auth = req.auth!
-  const by = auth.role === 'seller' ? 'seller' : 'customer'
+  const by = auth.role === 'farmer' ? 'farmer' : 'customer'
   const order = db.orders.find(
     (o) =>
       o.id === req.params.id &&
-      (by === 'seller' ? o.sellerId === auth.sellerId : o.customerId === auth.customerId),
+      (by === 'farmer' ? o.farmerId === auth.farmerId : o.customerId === auth.customerId),
   )
   if (!order) {
     res.status(404).json({ error: 'Order not found', messageMr: 'हे ऑर्डर सापडले नाही' })
@@ -336,10 +336,10 @@ ordersRouter.post('/:id/cancel', requireRole('seller', 'customer'), (req, res) =
 })
 
 /**
- * The buyer paying, after the seller has accepted.
+ * The buyer paying, after the farmer has accepted.
  *
  * This is what used to happen at checkout. It is a claim, not a verified
- * payment - the seller confirms it they below - but it is a claim made against
+ * payment - the farmer confirms it they below - but it is a claim made against
  * a real order they have agreed to deliver, with the order id in the UPI note,
  * so they can match it to a line in their bank statement.
  */
@@ -373,7 +373,7 @@ ordersRouter.post('/:id/pay', requireRole('customer'), (req, res) => {
    * is either a slip - she paid once and typed it twice - or somebody walking
    * one real payment across several orders.
    *
-   * A seller confirms payments by eye, against a statement that shows each
+   * A farmer confirms payments by eye, against a statement that shows each
    * reference once, and duplicates are exactly what that check cannot catch:
    * the line is there, it just is not for this order. An order has no admin
    * in the loop, so here it is refused outright. The same UTR on THIS order is left alone -
@@ -420,10 +420,10 @@ ordersRouter.post('/:id/review', requireRole('customer'), (req, res) => {
   res.json({ reviews: result.reviews })
 })
 
-ordersRouter.post('/:id/confirm-payment', requireRole('seller'), (req, res) => {
+ordersRouter.post('/:id/confirm-payment', requireRole('farmer'), (req, res) => {
   const db = getDb()
   const order = db.orders.find(
-    (o) => o.id === req.params.id && o.sellerId === req.auth!.sellerId,
+    (o) => o.id === req.params.id && o.farmerId === req.auth!.farmerId,
   )
   if (!order) {
     res.status(404).json({ error: 'Order not found' })

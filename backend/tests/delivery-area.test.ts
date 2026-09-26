@@ -1,13 +1,13 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { isMaharashtraPincode } from '@shared/seller.js'
+import { isMaharashtraPincode } from '@shared/farmer.js'
 
 /**
  * WHO DECIDES WHETHER SHE CAN DELIVER THERE.
  *
  * Her delivery-area list is one pincode - her own - written at registration
  * and never editable, so a buyer one village away was refused by the server
- * before the seller ever saw the order. A woman in 413004 will happily carry a
+ * before the farmer ever saw the order. A woman in 413004 will happily carry a
  * jar of pickle to 413002; nobody asked her.
  *
  * So the list stops being a gate. Anywhere in Maharashtra the order reaches

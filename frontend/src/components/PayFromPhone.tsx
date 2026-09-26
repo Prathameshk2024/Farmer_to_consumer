@@ -8,7 +8,7 @@ import { useT } from '../i18n/I18nProvider.js'
  * everything filled in. It opened them, and then they refused to pay:
  * "declined for security reasons". UPI apps now treat a payment that ANOTHER
  * app starts, to a PERSONAL UPI ID, as the shape of a scam - and every payee
- * in this market, sellers and the college alike, is a personal UPI ID. Nothing
+ * in this market, farmers and the college alike, is a personal UPI ID. Nothing
  * in the link can change that; tested on real phones, 14 September 2026.
  *
  * What those same apps do accept is a payment she starts inside them: scanning

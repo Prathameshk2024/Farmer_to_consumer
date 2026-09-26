@@ -203,7 +203,7 @@ function readSessionSecret(): string {
 export const SESSION_SECRET = readSessionSecret()
 
 /**
- * Whether an EMPTY database should be filled with the demo sellers and
+ * Whether an EMPTY database should be filled with the demo farmers and
  * products in seed.ts.
  *
  * Off unless asked for. It used to be automatic, which is right for a fresh
@@ -220,7 +220,7 @@ export const SEED_DEMO_DATA = /^(1|true|yes)$/i.test(firstOf('SEED_DEMO_DATA') ?
 /**
  * Which browser origins may call this API.
  *
- * Two front ends share one backend - the seller/customer app and the admin
+ * Two front ends share one backend - the farmer/customer app and the admin
  * site, deployed separately - so this has to be a LIST. An environment
  * variable is a single string, and handing
  * "https://a.vercel.app,https://b.vercel.app" straight to `cors()` makes it one
@@ -375,7 +375,7 @@ export const ADMIN_BOOTSTRAP = readAdminBootstrap()
  *
  * It used to be gated on NODE_ENV alone, which fails open: a host where
  * NODE_ENV is simply unset - the default on more platforms than not - left a
- * public, unauthenticated endpoint that destroys every seller, product and
+ * public, unauthenticated endpoint that destroys every farmer, product and
  * order. Now it needs an explicit opt-in as well, so forgetting a variable
  * closes the door instead of opening it.
  */

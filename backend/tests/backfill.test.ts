@@ -15,7 +15,7 @@ import { deriveCustomersFromOrders, planBackfill } from '../src/db/customers.js'
 function order(over: Partial<Order>): Order {
   return {
     id: 'SMB0000',
-    sellerId: 's1',
+    farmerId: 's1',
     customerId: 'c1',
     customerName: 'कोणीतरी',
     customerPhone: '9000000000',

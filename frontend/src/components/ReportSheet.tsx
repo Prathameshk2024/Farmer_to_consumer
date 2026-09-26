@@ -13,7 +13,7 @@ import { Button, Choice, Notice, VoiceInput } from './ui.js'
  * One sheet for every kind of report, because the shape is always the same:
  * what is wrong, in her words where the list cannot say it, and then it is
  * gone from her hands. It is deliberately NOT a conversation - she is not
- * asked to argue with a seller, and nothing is shown to the seller.
+ * asked to argue with a farmer, and nothing is shown to the farmer.
  *
  * Two screens, not one: the reason, then a plain confirmation that somebody
  * will look. Sending has to feel like it landed somewhere, or the next time

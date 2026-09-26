@@ -7,8 +7,8 @@ import { SignIn } from './screens/SignIn.js'
 import { Home } from './screens/Home.js'
 import { Today } from './screens/Today.js'
 import { Products } from './screens/Products.js'
-import { Sellers } from './screens/Sellers.js'
-import { SellerDetail } from './screens/SellerDetail.js'
+import { Farmers } from './screens/Farmers.js'
+import { FarmerDetail } from './screens/FarmerDetail.js'
 import { Orders } from './screens/Orders.js'
 import { Reviews } from './screens/Reviews.js'
 import { Complaints } from './screens/Complaints.js'
@@ -17,9 +17,9 @@ import { Impact } from './screens/Impact.js'
 /**
  * The admin console.
  *
- * Deployed separately from the seller app - its own Vercel project - but
+ * Deployed separately from the farmer app - its own Vercel project - but
  * pointed at the same API, and importing the same `shared/` types so a change
- * to Seller or Product cannot silently break one and not the other.
+ * to Farmer or Product cannot silently break one and not the other.
  */
 export default function App() {
   return (
@@ -49,8 +49,8 @@ function Gate() {
         <Route path="/" element={<Home />} />
         <Route path="/today" element={<Today />} />
         <Route path="/products" element={<Products />} />
-        <Route path="/sellers" element={<Sellers />} />
-        <Route path="/sellers/:sellerId" element={<SellerDetail />} />
+        <Route path="/farmers" element={<Farmers />} />
+        <Route path="/farmers/:farmerId" element={<FarmerDetail />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/complaints" element={<Complaints />} />

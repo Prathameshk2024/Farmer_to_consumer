@@ -1,11 +1,11 @@
 import { Router, type Request } from 'express'
 import type { AdminStats, ReadinessBand } from '@shared/types.js'
-import { canSellNow } from '@shared/seller.js'
+import { canSellNow } from '@shared/farmer.js'
 import { BAND_LABEL } from '@shared/readiness.js'
 import { summarizeReviews } from '@shared/review.js'
 import { getDb, save } from '../db/store.js'
 import { documentCount, startsWithinFreeReads } from '../db/firestore.js'
-import { appendNotice as notifySeller } from '../db/notices.js'
+import { appendNotice as notifyFarmer } from '../db/notices.js'
 import { requireRole } from '../middleware/auth.js'
 import { destroyImage } from './uploads.routes.js'
 
@@ -66,9 +66,9 @@ adminRouter.get('/stats', (_req, res) => {
     })
     .reduce((n, o) => n + o.total, 0)
 
-  const sellersWithEarnings = new Set(delivered.map((o) => o.sellerId))
+  const farmersWithEarnings = new Set(delivered.map((o) => o.farmerId))
 
-  // A stuck order is one the seller has taken responsibility for and then
+  // A stuck order is one the farmer has taken responsibility for and then
   // sat on. These are the ones admin exists to chase.
   const stuck = db.orders.filter((o) => {
     const last = o.events[o.events.length - 1]
@@ -82,15 +82,15 @@ adminRouter.get('/stats', (_req, res) => {
   const bands: Record<ReadinessBand, number> = {
     starter: 0, basic: 0, advanced: 0, digital: 0,
   }
-  for (const s of db.sellers) bands[s.readinessBand] += 1
+  for (const s of db.farmers) bands[s.readinessBand] += 1
 
   const bandOf = (v: number) =>
     v === 0 ? '₹0' : v < 1000 ? '< ₹1,000' : v <= 5000 ? '₹1,000-5,000' : '> ₹5,000'
-  const perSeller = new Map<string, number>()
-  for (const s of db.sellers) perSeller.set(s.id, 0)
-  for (const o of delivered) perSeller.set(o.sellerId, (perSeller.get(o.sellerId) ?? 0) + o.total)
+  const perFarmer = new Map<string, number>()
+  for (const s of db.farmers) perFarmer.set(s.id, 0)
+  for (const o of delivered) perFarmer.set(o.farmerId, (perFarmer.get(o.farmerId) ?? 0) + o.total)
   const earningBandCounts = new Map<string, number>()
-  for (const v of perSeller.values()) {
+  for (const v of perFarmer.values()) {
     const label = bandOf(v)
     earningBandCounts.set(label, (earningBandCounts.get(label) ?? 0) + 1)
   }
@@ -107,18 +107,18 @@ adminRouter.get('/stats', (_req, res) => {
       (o) => Date.now() - new Date(o.placedAt).getTime() < 7 * 86_400_000,
     ).length,
     // "Active" means a buyer can reach him today.
-    activeSellers: db.sellers.filter((s) => canSellNow(s)).length,
-    totalSellers: db.sellers.length,
-    newRegistrations: db.sellers.filter(
+    activeFarmers: db.farmers.filter((s) => canSellNow(s)).length,
+    totalFarmers: db.farmers.length,
+    newRegistrations: db.farmers.filter(
       (s) => Date.now() - new Date(s.createdAt).getTime() < 7 * 86_400_000,
     ).length,
-    pendingVerification: db.sellers.filter((s) => s.status === 'PENDING_VERIFICATION').length,
+    pendingVerification: db.farmers.filter((s) => s.status === 'PENDING_VERIFICATION').length,
     stuckOrders: stuck.length,
     openDisputes: 0,
-    womenEarnedTotal: earnedTotal,
-    womenEarnedMonth: earnedMonth,
+    farmersEarnedTotal: earnedTotal,
+    farmersEarnedMonth: earnedMonth,
     // The most truthful single measure of whether the platform works.
-    womenWithFirstEarning: sellersWithEarnings.size,
+    farmersWithFirstEarning: farmersWithEarnings.size,
     repurchaseRate: ordersByPhone.size ? repeatBuyers / ordersByPhone.size : 0,
     // On the dashboard because the boot log is the one place nobody reads.
     // docs/CAPACITY.md §4: on Spark, this size decides how many starts a day
@@ -138,19 +138,19 @@ adminRouter.get('/stats', (_req, res) => {
   res.json({ stats, bandLabels: BAND_LABEL })
 })
 
-adminRouter.post('/sellers/:id/verify', (req, res) => {
+adminRouter.post('/farmers/:id/verify', (req, res) => {
   const db = getDb()
-  const seller = db.sellers.find((s) => s.id === req.params.id)
-  if (!seller) { res.status(404).json({ error: 'Not found', messageMr: 'शेतकरी सापडला नाही' }); return }
-  if (seller.status !== 'PENDING_VERIFICATION') {
+  const farmer = db.farmers.find((s) => s.id === req.params.id)
+  if (!farmer) { res.status(404).json({ error: 'Not found', messageMr: 'शेतकरी सापडला नाही' }); return }
+  if (farmer.status !== 'PENDING_VERIFICATION') {
     res.status(409).json({ error: 'Not pending', messageMr: 'हा शेतकरी आधीच तपासलेला आहे' }); return
   }
-  seller.status = 'ACTIVE'
-  seller.verifiedAt = new Date().toISOString()
-  seller.verifiedBy = verifierName(db, req)
-  notifySeller(seller, 'VERIFIED')
+  farmer.status = 'ACTIVE'
+  farmer.verifiedAt = new Date().toISOString()
+  farmer.verifiedBy = verifierName(db, req)
+  notifyFarmer(farmer, 'VERIFIED')
   save()
-  res.json({ seller })
+  res.json({ farmer })
 })
 
 /* ------------------------------------------------------------------ */
@@ -177,7 +177,7 @@ adminRouter.get('/products', (req, res) => {
     : db.products.filter((p) => (status === 'ALL' ? true : p.status === status))
   ).map((p) => ({
     ...p,
-    seller: db.sellers.find((s) => s.id === p.sellerId),
+    farmer: db.farmers.find((s) => s.id === p.farmerId),
     reports: reportsFor(p.id),
   }))
 
@@ -246,7 +246,7 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
    * him, on the notice below, which is where he reads every other admin
    * decision. It is not lost with the row.
    */
-  const owner = db.sellers.find((s) => s.id === product.sellerId)
+  const owner = db.farmers.find((s) => s.id === product.farmerId)
 
   db.products.splice(db.products.indexOf(product), 1)
   // Its reports go with it: they are about a listing that no longer exists.
@@ -258,7 +258,7 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
   // This is the last moment we know the public id.
   void destroyImage(product.imagePublicId)
   if (owner) {
-    notifySeller(owner, 'PRODUCT_REJECTED', { subject: product.name, note: reason })
+    notifyFarmer(owner, 'PRODUCT_REJECTED', { subject: product.name, note: reason })
   }
   save()
   res.json({ product })
@@ -269,7 +269,7 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
 /* ------------------------------------------------------------------ */
 
 /**
- * What sellers and buyers have written from Help & Training, newest first.
+ * What farmers and buyers have written from Help & Training, newest first.
  * Open ones by default: this is a queue to work through, not an archive.
  */
 adminRouter.get('/complaints', (req, res) => {
@@ -304,11 +304,11 @@ adminRouter.post('/complaints/:id/resolve', (req, res) => {
 
 adminRouter.get('/orders', (req, res) => {
   const db = getDb()
-  const { status, sellerId, pincode } = req.query as Record<string, string | undefined>
+  const { status, farmerId, pincode } = req.query as Record<string, string | undefined>
 
   let list = [...db.orders]
   if (status) list = list.filter((o) => o.status === status)
-  if (sellerId) list = list.filter((o) => o.sellerId === sellerId)
+  if (farmerId) list = list.filter((o) => o.farmerId === farmerId)
   if (pincode) list = list.filter((o) => o.pincode === pincode)
 
   res.json({
@@ -316,8 +316,8 @@ adminRouter.get('/orders', (req, res) => {
       .sort((a, b) => b.placedAt.localeCompare(a.placedAt))
       .map((o) => ({
         ...o,
-        seller: db.sellers.find((s) => s.id === o.sellerId)?.shopName,
-        womenBizId: db.sellers.find((s) => s.id === o.sellerId)?.womenBizId,
+        farmer: db.farmers.find((s) => s.id === o.farmerId)?.shopName,
+        farmerCode: db.farmers.find((s) => s.id === o.farmerId)?.farmerCode,
       })),
   })
 })
@@ -330,19 +330,19 @@ adminRouter.get('/orders', (req, res) => {
  * Every review on the platform, hidden ones included.
  *
  * The admin reads what the public reads plus what was taken down, with the
- * seller's shop beside each one. Low ratings are the signal worth acting on -
- * a seller collecting ones and twos needs a call from a coordinator long
+ * farmer's shop beside each one. Low ratings are the signal worth acting on -
+ * a farmer collecting ones and twos needs a call from a coordinator long
  * before she needs blocking - so `maxRating` filters to them.
  */
 adminRouter.get('/reviews', (req, res) => {
   const db = getDb()
-  const { sellerId, maxRating, hidden, reported } = req.query as Record<string, string | undefined>
+  const { farmerId, maxRating, hidden, reported } = req.query as Record<string, string | undefined>
 
   const open = db.reports.filter((r) => r.targetType === 'review' && !r.reviewedAt)
   const reportsFor = (id: string) => open.filter((r) => r.targetId === id)
 
   let list = [...db.reviews]
-  if (sellerId) list = list.filter((r) => r.sellerId === sellerId)
+  if (farmerId) list = list.filter((r) => r.farmerId === farmerId)
   if (maxRating) list = list.filter((r) => r.rating <= Number(maxRating))
   if (hidden === 'true') list = list.filter((r) => r.hidden)
   if (hidden === 'false') list = list.filter((r) => !r.hidden)
@@ -350,14 +350,14 @@ adminRouter.get('/reviews', (req, res) => {
   // nothing by itself, it puts it in front of somebody who can decide.
   if (reported === 'true') list = list.filter((r) => reportsFor(r.id).length > 0)
 
-  const sellerById = new Map(db.sellers.map((s) => [s.id, s]))
+  const farmerById = new Map(db.farmers.map((s) => [s.id, s]))
   res.json({
     reviews: list
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .map((r) => ({
         ...r,
-        seller: sellerById.get(r.sellerId)?.shopName,
-        womenBizId: sellerById.get(r.sellerId)?.womenBizId,
+        farmer: farmerById.get(r.farmerId)?.shopName,
+        farmerCode: farmerById.get(r.farmerId)?.farmerCode,
         reports: reportsFor(r.id),
       })),
     summary: summarizeReviews(list),
@@ -391,7 +391,7 @@ adminRouter.post('/reviews/:id/clear-reports', (req, res) => {
  *
  * Hiding is the only thing an admin can do to a review. Editing a buyer's
  * words would make every review on the platform something the platform might
- * have written; deleting would leave nothing to look at if the seller or the
+ * have written; deleting would leave nothing to look at if the farmer or the
  * buyer disputes the decision. A reason is required to hide, and kept.
  */
 adminRouter.post('/reviews/:id/hide', (req, res) => {
@@ -422,19 +422,19 @@ adminRouter.post('/reviews/:id/hide', (req, res) => {
   res.json({ review })
 })
 
-adminRouter.get('/sellers', (_req, res) => {
+adminRouter.get('/farmers', (_req, res) => {
   const db = getDb()
   // What each woman has earned, for "highest earnings first" - counted the
   // way her own page and /admin/impact count it, delivered orders only. One
-  // pass over orders, not one filter per seller.
+  // pass over orders, not one filter per farmer.
   const earned = new Map<string, number>()
   for (const o of db.orders) {
-    if (o.status === 'DELIVERED') earned.set(o.sellerId, (earned.get(o.sellerId) ?? 0) + o.total)
+    if (o.status === 'DELIVERED') earned.set(o.farmerId, (earned.get(o.farmerId) ?? 0) + o.total)
   }
   res.json({
-    sellers: db.sellers.map((s) => {
+    farmers: db.farmers.map((s) => {
       const products = db.products.filter(
-        (p) => p.sellerId === s.id,
+        (p) => p.farmerId === s.id,
       )
       return {
         ...s,
@@ -453,30 +453,30 @@ adminRouter.get('/sellers', (_req, res) => {
  * request what would otherwise be three - her record, her listings and her
  * orders.
  */
-adminRouter.get('/sellers/:id', (req, res) => {
+adminRouter.get('/farmers/:id', (req, res) => {
   const db = getDb()
-  const seller = db.sellers.find((s) => s.id === req.params.id)
-  if (!seller) {
-    res.status(404).json({ error: 'Seller not found', messageMr: 'ही विक्रेती सापडली नाही' })
+  const farmer = db.farmers.find((s) => s.id === req.params.id)
+  if (!farmer) {
+    res.status(404).json({ error: 'Farmer not found', messageMr: 'ही विक्रेती सापडली नाही' })
     return
   }
 
   // Counted exactly as the register counts them, so "3 products" means the
   // same number on both screens.
   const products = db.products.filter(
-    (p) => p.sellerId === seller.id,
+    (p) => p.farmerId === farmer.id,
   )
   const orders = db.orders
-    .filter((o) => o.sellerId === seller.id)
+    .filter((o) => o.farmerId === farmer.id)
     .sort((a, b) => b.placedAt.localeCompare(a.placedAt))
 
   const reviews = db.reviews
-    .filter((r) => r.sellerId === seller.id)
+    .filter((r) => r.farmerId === farmer.id)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 
   res.json({
-    seller: {
-      ...seller,
+    farmer: {
+      ...farmer,
       productCount: products.length,
     },
     products,
@@ -495,32 +495,32 @@ adminRouter.get('/sellers/:id', (req, res) => {
   })
 })
 
-adminRouter.post('/sellers/:id/block', (req, res) => {
+adminRouter.post('/farmers/:id/block', (req, res) => {
   const db = getDb()
-  const seller = db.sellers.find((s) => s.id === req.params.id)
-  if (!seller) {
-    res.status(404).json({ error: 'Seller not found', messageMr: 'ही विक्रेती सापडली नाही' })
+  const farmer = db.farmers.find((s) => s.id === req.params.id)
+  if (!farmer) {
+    res.status(404).json({ error: 'Farmer not found', messageMr: 'ही विक्रेती सापडली नाही' })
     return
   }
   const blocked = !!req.body?.blocked
   // Unblocking goes back to what the verification says: blocking and
   // unblocking an unverified farmer must not verify him.
-  seller.status = blocked ? 'BLOCKED' : seller.verifiedAt ? 'ACTIVE' : 'PENDING_VERIFICATION'
+  farmer.status = blocked ? 'BLOCKED' : farmer.verifiedAt ? 'ACTIVE' : 'PENDING_VERIFICATION'
 
   if (blocked) {
     // Stamped so her own screens can tell her she has been blocked, and why.
     // Being silently unable to sell is the worst version of this.
-    seller.blockedAt = new Date().toISOString()
-    seller.blockReason = String(req.body?.reason ?? '').trim() || undefined
-    notifySeller(seller, 'BLOCKED', { note: seller.blockReason })
+    farmer.blockedAt = new Date().toISOString()
+    farmer.blockReason = String(req.body?.reason ?? '').trim() || undefined
+    notifyFarmer(farmer, 'BLOCKED', { note: farmer.blockReason })
   } else {
-    seller.blockedAt = undefined
-    seller.blockReason = undefined
-    notifySeller(seller, 'UNBLOCKED')
+    farmer.blockedAt = undefined
+    farmer.blockReason = undefined
+    notifyFarmer(farmer, 'UNBLOCKED')
   }
 
   save()
-  res.json({ seller })
+  res.json({ farmer })
 })
 
 /**
@@ -535,13 +535,13 @@ adminRouter.get('/impact', (_req, res) => {
   )
 
   const byVillage = new Map<string, { village: string; women: number; earned: number }>()
-  for (const s of db.sellers) {
+  for (const s of db.farmers) {
     const row = byVillage.get(s.villageCode) ?? { village: s.village, women: 0, earned: 0 }
     row.women += 1
     byVillage.set(s.villageCode, row)
   }
   for (const o of delivered) {
-    const s = db.sellers.find((x) => x.id === o.sellerId)
+    const s = db.farmers.find((x) => x.id === o.farmerId)
     if (!s) continue
     const row = byVillage.get(s.villageCode)
     if (row) row.earned += o.total
@@ -550,16 +550,16 @@ adminRouter.get('/impact', (_req, res) => {
   res.json({
     generatedAt: new Date().toISOString(),
     totals: {
-      women: db.sellers.length,
-      activeWomen: db.sellers.filter((s) => s.status === 'ACTIVE').length,
-      womenWithEarnings: new Set(delivered.map((o) => o.sellerId)).size,
+      women: db.farmers.length,
+      activeWomen: db.farmers.filter((s) => s.status === 'ACTIVE').length,
+      womenWithEarnings: new Set(delivered.map((o) => o.farmerId)).size,
       earned: delivered.reduce((n, o) => n + o.total, 0),
       orders: delivered.length,
       villages: byVillage.size,
     },
     byVillage: [...byVillage.entries()].map(([code, row]) => ({ code, ...row })),
-    readiness: db.sellers.map((s) => ({
-      womenBizId: s.womenBizId,
+    readiness: db.farmers.map((s) => ({
+      farmerCode: s.farmerCode,
       village: s.village,
       score: s.readinessScore,
       band: s.readinessBand,

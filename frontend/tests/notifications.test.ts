@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import type { AdminNotice, Order, Seller } from '@shared/types.js'
+import type { AdminNotice, Order, Farmer } from '@shared/types.js'
 import {
   adminFeed, buildFeed, daysAgo, mergeFeeds, noticeLabelKey, splitFeed, visibleFeed,
   whenKey, type Notice,
@@ -25,18 +25,18 @@ test('the customer is told what happened to HER order', () => {
   )
 })
 
-/** The same event, the other way round: for the seller it is work to do. */
-test('the seller is told there is something to do', () => {
-  assert.equal(dictionaries.en[noticeLabelKey('PLACED', 'seller')], 'You have a new order')
+/** The same event, the other way round: for the farmer it is work to do. */
+test('the farmer is told there is something to do', () => {
+  assert.equal(dictionaries.en[noticeLabelKey('PLACED', 'farmer')], 'You have a new order')
   assert.notEqual(
-    noticeLabelKey('CANCELLED', 'seller'),
+    noticeLabelKey('CANCELLED', 'farmer'),
     noticeLabelKey('CANCELLED', 'customer'),
   )
 })
 
 /** A state nobody wrote a sentence for still reads as words, not as a key. */
 test('an unmapped state falls back to the plain status label', () => {
-  const key = noticeLabelKey('PACKED', 'seller')
+  const key = noticeLabelKey('PACKED', 'farmer')
   assert.equal(key, 'ord.status.PACKED')
   assert.ok(dictionaries.mr[key], 'the fallback has to exist in both dictionaries')
   assert.ok(dictionaries.en[key])
@@ -47,7 +47,7 @@ test('every line the feed can print exists in both languages', () => {
     'PLACED', 'ACCEPTED', 'PACKED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'REJECTED', 'CANCELLED',
   ] as const
   const missing: string[] = []
-  for (const role of ['seller', 'customer'] as const) {
+  for (const role of ['farmer', 'customer'] as const) {
     for (const s of states) {
       const key = noticeLabelKey(s, role)
       if (!dictionaries.mr[key] || !dictionaries.en[key]) missing.push(`${role}/${s}: ${key}`)
@@ -82,10 +82,10 @@ function order(events: Order['events'], status: Order['status'] = 'DELIVERED'): 
 
 const WALK: Order['events'] = [
   { to: 'PLACED', at: '2026-09-09T10:00:00.000Z', by: 'customer' },
-  { to: 'ACCEPTED', at: '2026-09-09T11:00:00.000Z', by: 'seller' },
-  { to: 'PACKED', at: '2026-09-09T12:00:00.000Z', by: 'seller' },
-  { to: 'OUT_FOR_DELIVERY', at: '2026-09-09T13:00:00.000Z', by: 'seller' },
-  { to: 'DELIVERED', at: '2026-09-09T14:00:00.000Z', by: 'seller' },
+  { to: 'ACCEPTED', at: '2026-09-09T11:00:00.000Z', by: 'farmer' },
+  { to: 'PACKED', at: '2026-09-09T12:00:00.000Z', by: 'farmer' },
+  { to: 'OUT_FOR_DELIVERY', at: '2026-09-09T13:00:00.000Z', by: 'farmer' },
+  { to: 'DELIVERED', at: '2026-09-09T14:00:00.000Z', by: 'farmer' },
 ]
 
 test('four events on one order are one row, not four', () => {
@@ -107,14 +107,14 @@ test('the row is timed by the latest event however they are ordered', () => {
 })
 
 /**
- * The seller's tag is the ORDER's state, not her buyer's last move.
+ * The farmer's tag is the ORDER's state, not her buyer's last move.
  *
  * A customer only ever causes PLACED and CANCELLED, so a tag drawn from the
- * other side's last event left every row on the seller's list reading "new
+ * other side's last event left every row on the farmer's list reading "new
  * order" for ever - including the ones she had packed and handed over herself.
  */
-test("the seller's row shows where the order actually is", () => {
-  const [row] = buildFeed([order(WALK, 'OUT_FOR_DELIVERY')], 'seller')
+test("the farmer's row shows where the order actually is", () => {
+  const [row] = buildFeed([order(WALK, 'OUT_FOR_DELIVERY')], 'farmer')
   assert.equal(row?.status, 'OUT_FOR_DELIVERY')
   assert.notEqual(row?.status, 'PLACED', 'not frozen at what the buyer did')
 })
@@ -123,10 +123,10 @@ test('the row is named after what is in the order, with the rest counted', () =>
   assert.equal(buildFeed([order(WALK)], 'customer')[0]?.title, 'आंब्याचे लोणचे +1')
 })
 
-/** Her own actions are not news to her - the seller placed nothing. */
+/** Her own actions are not news to her - the farmer placed nothing. */
 test('an order with nothing from the other side is not a row at all', () => {
-  const mineOnly = [{ to: 'ACCEPTED' as const, at: '2026-09-09T11:00:00.000Z', by: 'seller' as const }]
-  assert.deepEqual(buildFeed([order(mineOnly)], 'seller'), [])
+  const mineOnly = [{ to: 'ACCEPTED' as const, at: '2026-09-09T11:00:00.000Z', by: 'farmer' as const }]
+  assert.deepEqual(buildFeed([order(mineOnly)], 'farmer'), [])
 })
 
 /* ------------------------------------------------------------------ */
@@ -135,14 +135,14 @@ test('an order with nothing from the other side is not a row at all', () => {
 
 /**
  * An admin decision is told, not left to be noticed. These lines come off his
- * own seller record, written by the admin handler.
+ * own farmer record, written by the admin handler.
  */
-function seller(notices: AdminNotice[]): Seller {
-  return { id: 's1', notices } as Seller
+function farmer(notices: AdminNotice[]): Farmer {
+  return { id: 's1', notices } as Farmer
 }
 
 test('being verified is a sentence of its own', () => {
-  const [row] = adminFeed(seller([
+  const [row] = adminFeed(farmer([
     { id: 'a1', at: '2026-09-08T10:00:00.000Z', kind: 'VERIFIED' },
   ]))
 
@@ -152,7 +152,7 @@ test('being verified is a sentence of its own', () => {
 
 /** No order behind it, so nothing may render an order id or a rupee amount. */
 test('an admin line carries no order and no money', () => {
-  const [row] = adminFeed(seller([
+  const [row] = adminFeed(farmer([
     { id: 'a2', at: '2026-09-08T10:00:00.000Z', kind: 'UNBLOCKED' },
   ]))
 
@@ -161,7 +161,7 @@ test('an admin line carries no order and no money', () => {
 })
 
 test('a rejection carries its reason across', () => {
-  const [row] = adminFeed(seller([
+  const [row] = adminFeed(farmer([
     { id: 'a3', at: '2026-09-08T10:00:00.000Z', kind: 'PRODUCT_REJECTED', note: 'Photo unclear' },
   ]))
 
@@ -171,7 +171,7 @@ test('a rejection carries its reason across', () => {
 test('both halves of the list are one list, newest first', () => {
   const merged = mergeFeeds(
     [{ id: 'o1', at: '2026-09-01T00:00:00.000Z', labelKey: 'x', who: '' }],
-    adminFeed(seller([
+    adminFeed(farmer([
       { id: 'a4', at: '2026-09-08T00:00:00.000Z', kind: 'VERIFIED' },
     ])),
   )
@@ -182,7 +182,7 @@ test('both halves of the list are one list, newest first', () => {
 test('every admin line exists in both languages', () => {
   const kinds: AdminNotice['kind'][] = ['VERIFIED', 'BLOCKED', 'UNBLOCKED', 'PRODUCT_REJECTED']
   const missing = kinds
-    .map((k) => adminFeed(seller([{ id: k, at: '2026-09-08T00:00:00.000Z', kind: k }]))[0]!.labelKey)
+    .map((k) => adminFeed(farmer([{ id: k, at: '2026-09-08T00:00:00.000Z', kind: k }]))[0]!.labelKey)
     .filter((key) => !dictionaries.mr[key] || !dictionaries.en[key])
 
   assert.deepEqual(missing, [])
@@ -195,7 +195,7 @@ test('every admin line exists in both languages', () => {
 /**
  * THE FEED IS THE NEWS, NOT THE ARCHIVE.
  *
- * It kept every row for ever, so in the third week of September a seller
+ * It kept every row for ever, so in the third week of September a farmer
  * opened it and read about the 8th: orders she had packed, delivered and been
  * paid for, pushing today's news off the screen. A list where nothing leaves
  * teaches you that nothing in it is urgent.
@@ -208,7 +208,7 @@ const row = (over: Partial<Notice> = {}): Notice =>
   ({ id: 'n1', at: ago(1), labelKey: 'x', who: '', ...over })
 
 test('what she has read is kept a week, what she has not is kept a month', () => {
-  // The seller who was away at a wedding still finds what she missed; the
+  // The farmer who was away at a wedding still finds what she missed; the
   // delivered order from a fortnight ago is not news and does not come back.
   const seen = ago(0)
   const feed = [

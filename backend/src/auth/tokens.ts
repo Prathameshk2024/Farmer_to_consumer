@@ -6,7 +6,7 @@ import { hmac, timingEqual } from './crypto.js'
  * ================
  * `base64url({sid, role, iat}).base64url(HMAC(payload))`
  *
- * Note what is NOT in there any more: the user id, the seller id, the customer
+ * Note what is NOT in there any more: the user id, the farmer id, the customer
  * id. The token used to carry all three, which made it a self-contained claim
  * about who you are - and a claim is only as good as the checking around it.
  * Now it carries a POINTER to a session record, and identity is read from that
@@ -35,9 +35,9 @@ export interface TokenClaims {
  * How long a session survives with no activity.
  *
  * Different by role because the risk is different. An admin token verifies
- * farmers, blocks sellers and can read every buyer's home address, and it is
+ * farmers, blocks farmers and can read every buyer's home address, and it is
  * used at a desk where signing in again costs a few seconds - so it is short.
- * A seller's token is on a phone in a village, and re-issuing it costs an SMS
+ * A farmer's token is on a phone in a village, and re-issuing it costs an SMS
  * and a literacy hurdle, so fifteen days is the kinder trade: a woman who
  * sells at the weekly bazaar and opens the app every other week is not sent
  * back through OTP each time. Past fifteen days with no use at all, the
@@ -50,14 +50,14 @@ export interface TokenClaims {
  */
 export const SESSION_IDLE_MS: Record<Role, number> = {
   admin: 8 * 60 * 60 * 1000,
-  seller: 15 * 24 * 60 * 60 * 1000,
+  farmer: 15 * 24 * 60 * 60 * 1000,
   customer: 15 * 24 * 60 * 60 * 1000,
 }
 
 /** The hard ceiling, however active the session. A stolen token cannot live forever. */
 export const SESSION_ABSOLUTE_MS: Record<Role, number> = {
   admin: 7 * 24 * 60 * 60 * 1000,
-  seller: 90 * 24 * 60 * 60 * 1000,
+  farmer: 90 * 24 * 60 * 60 * 1000,
   customer: 90 * 24 * 60 * 60 * 1000,
 }
 

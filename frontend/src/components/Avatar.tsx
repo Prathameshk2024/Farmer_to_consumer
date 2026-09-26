@@ -3,8 +3,8 @@ import { initialsOf } from '../lib/initials.js'
 /**
  * A PERSON, SHOWN AS HER INITIALS
  * ===============================
- * Every seller used to appear as the same 👩. One emoji for every woman on the
- * platform tells you nothing - a list of five sellers looked like one seller
+ * Every farmer used to appear as the same 👩. One emoji for every woman on the
+ * platform tells you nothing - a list of five farmers looked like one farmer
  * repeated - and for a product whose whole point is that these are named,
  * individual businesswomen rather than anonymous supply, that was the wrong
  * picture. Her initial is at least hers.

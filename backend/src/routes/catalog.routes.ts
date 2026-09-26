@@ -1,12 +1,12 @@
 import { Router } from 'express'
-import type { Product, Seller } from '@shared/types.js'
+import type { Product, Farmer } from '@shared/types.js'
 import { getDb } from '../db/store.js'
 import { CATEGORIES } from '../db/seed.js'
 import {
-  NO_RATING, productReviewsFor, ratingsByProduct, ratingsBySeller, sellerRating,
+  NO_RATING, productReviewsFor, ratingsByProduct, ratingsByFarmer, farmerRating,
 } from '../db/reviews.js'
-import { publicSeller } from '../db/publicSeller.js'
-import { canSellNow } from '@shared/seller.js'
+import { publicFarmer } from '../db/publicFarmer.js'
+import { canSellNow } from '@shared/farmer.js'
 import { requireRole } from '../middleware/auth.js'
 
 /** Public, unauthenticated. This is what a shopper and a scanned QR both hit. */
@@ -17,21 +17,21 @@ export const catalogRouter: Router = Router()
  *
  * The list and the by-id lookup each decided this for themselves, and a
  * listing hidden from one but readable from the other is not hidden - it is
- * findable by anyone who tries the id. A draft and a paused one are all things a seller has chosen not to show, and a blocked or
+ * findable by anyone who tries the id. A draft and a paused one are all things a farmer has chosen not to show, and a blocked or
  * closed shop is a decision about the whole shop.
  *
- * Both conditions matter. A LIVE product under a BLOCKED seller is still off
+ * Both conditions matter. A LIVE product under a BLOCKED farmer is still off
  * the shelf, and a shop that has closed for the afternoon takes its whole
  * window with it.
  */
 export function publiclyVisible(
   product: Pick<Product, 'status'> | undefined,
-  seller: Pick<Seller, 'status' | 'isOpen'> | undefined,
+  farmer: Pick<Farmer, 'status' | 'isOpen'> | undefined,
 ): boolean {
-  if (!product || !seller) return false
+  if (!product || !farmer) return false
   // `canSellNow` is the verification: an unverified farmer's live listing
   // stays off the shelf until an admin has checked him once.
-  return product.status === 'LIVE' && canSellNow(seller) && !!seller.isOpen
+  return product.status === 'LIVE' && canSellNow(farmer) && !!farmer.isOpen
 }
 
 catalogRouter.get('/categories', (_req, res) => {
@@ -40,24 +40,24 @@ catalogRouter.get('/categories', (_req, res) => {
 
 catalogRouter.get('/products', (req, res) => {
   const db = getDb()
-  const { categoryId, q, pincode, sellerId } = req.query as Record<string, string | undefined>
+  const { categoryId, q, pincode, farmerId } = req.query as Record<string, string | undefined>
 
-  const sellerById = new Map(db.sellers.map((s) => [s.id, s]))
+  const farmerById = new Map(db.farmers.map((s) => [s.id, s]))
 
-  let list = db.products.filter((p) => publiclyVisible(p, sellerById.get(p.sellerId)))
+  let list = db.products.filter((p) => publiclyVisible(p, farmerById.get(p.farmerId)))
 
   if (categoryId) list = list.filter((p) => p.categoryId === categoryId)
 
   // One shop's window: the "more from this shop" strip and the shop page.
   // Filtered here rather than in the browser because a phone on rural 4G
   // should not download the whole catalogue to show three products.
-  if (sellerId) list = list.filter((p) => p.sellerId === sellerId)
+  if (farmerId) list = list.filter((p) => p.farmerId === farmerId)
 
   if (pincode) {
     const serviceable = new Set(
-      db.sellers.filter((s) => s.pincodes.includes(pincode)).map((s) => s.id),
+      db.farmers.filter((s) => s.pincodes.includes(pincode)).map((s) => s.id),
     )
-    list = list.filter((p) => serviceable.has(p.sellerId))
+    list = list.filter((p) => serviceable.has(p.farmerId))
   }
 
   if (q?.trim()) {
@@ -69,37 +69,37 @@ catalogRouter.get('/products', (req, res) => {
     )
   }
 
-  // Attach the seller card each listing needs, which the law requires to be
+  // Attach the farmer card each listing needs, which the law requires to be
   // displayed on every food listing. The cart and checkout run entirely off
-  // it. What is on it, and why, is in db/publicSeller.ts.
+  // it. What is on it, and why, is in db/publicFarmer.ts.
   //
   // Each product carries its OWN stars, from the ratings of buyers who
   // received it - worked out here on every request, never stored.
   // Her card carries HER rating: every product of hers, taken together.
   const ratings = ratingsByProduct(db)
-  const sellerRatings = ratingsBySeller(db)
-  const withSeller = list.map((p) => {
-    const s = sellerById.get(p.sellerId)
+  const farmerRatings = ratingsByFarmer(db)
+  const withFarmer = list.map((p) => {
+    const s = farmerById.get(p.farmerId)
     const r = ratings.get(p.id) ?? NO_RATING
     return {
       ...p,
       rating: r.average,
       ratingCount: r.count,
-      seller: s && publicSeller(s, sellerRatings.get(s.id) ?? NO_RATING),
+      farmer: s && publicFarmer(s, farmerRatings.get(s.id) ?? NO_RATING),
     }
   })
 
-  res.json({ products: withSeller })
+  res.json({ products: withFarmer })
 })
 
 catalogRouter.get('/products/:id', (req, res) => {
   const db = getDb()
   const product = db.products.find((p) => p.id === req.params.id)
-  const seller = product && db.sellers.find((s) => s.id === product.sellerId)
+  const farmer = product && db.farmers.find((s) => s.id === product.farmerId)
 
   // 404, not 403, and the same 404 whether the id is unknown or merely not
   // public: telling the difference confirms that a hidden listing exists.
-  if (!publiclyVisible(product, seller)) {
+  if (!publiclyVisible(product, farmer)) {
     res.status(404).json({ error: 'Product not found', messageMr: 'हे उत्पादन सापडले नाही' })
     return
   }
@@ -109,7 +109,7 @@ catalogRouter.get('/products/:id', (req, res) => {
   const { summary } = productReviewsFor(db, product!.id)
   res.json({
     product: { ...product!, rating: summary.average, ratingCount: summary.count },
-    seller: publicSeller(seller!, sellerRating(db, seller!.id)),
+    farmer: publicFarmer(farmer!, farmerRating(db, farmer!.id)),
   })
 })
 
@@ -121,8 +121,8 @@ catalogRouter.get('/products/:id', (req, res) => {
 catalogRouter.get('/products/:id/reviews', (req, res) => {
   const db = getDb()
   const product = db.products.find((p) => p.id === req.params.id)
-  const seller = product && db.sellers.find((s) => s.id === product.sellerId)
-  if (!publiclyVisible(product, seller)) {
+  const farmer = product && db.farmers.find((s) => s.id === product.farmerId)
+  if (!publiclyVisible(product, farmer)) {
     res.status(404).json({ error: 'Product not found', messageMr: 'हे उत्पादन सापडले नाही' })
     return
   }
@@ -140,49 +140,49 @@ catalogRouter.get('/products/:id/reviews', (req, res) => {
  */
 catalogRouter.post('/share/:slug/scan', (req, res) => {
   const db = getDb()
-  const seller = db.sellers.find((s) => s.shopSlug === req.params.slug)
-  if (!seller) {
+  const farmer = db.farmers.find((s) => s.shopSlug === req.params.slug)
+  if (!farmer) {
     res.status(404).json({ error: 'Shop not found' })
     return
   }
-  seller.qrScans += 1
-  res.json({ ok: true, shopSlug: seller.shopSlug })
+  farmer.qrScans += 1
+  res.json({ ok: true, shopSlug: farmer.shopSlug })
 })
 
 /**
  * Pincode serviceability.
  *
- * Derived from the sellers who actually cover the pincode, never a static
+ * Derived from the farmers who actually cover the pincode, never a static
  * list: a pincode is "serviceable" exactly when at least one ACTIVE, open
- * seller delivers there and has something live to sell. The customer app asks
+ * farmer delivers there and has something live to sell. The customer app asks
  * this once, stores the answer, and every later screen reuses it.
  */
 /**
  * HER NUMBER, TO ASK WHAT DELIVERY COSTS - AND NOT A DIGIT SOONER.
  *
- * Delivery is a hint rather than a price for most sellers: she writes one
+ * Delivery is a hint rather than a price for most farmers: she writes one
  * pincode at registration and works the rest out per order, so the cart says
- * "ask the seller" and the buyer had no way to ask until she had committed to
+ * "ask the farmer" and the buyer had no way to ask until she had committed to
  * an order. This is that way.
  *
- * It is NOT on the public seller card (`publicSeller` is an allow-list and
+ * It is NOT on the public farmer card (`publicFarmer` is an allow-list and
  * her phone is deliberately absent): the catalogue is readable by anyone at
  * all, and a village woman's phone number attached to her name and village is
  * not something to hand out with a product listing. Here it takes a signed-in
- * buyer asking for one seller, one at a time, which is the difference between
+ * buyer asking for one farmer, one at a time, which is the difference between
  * answering a customer and publishing a directory.
  *
  * Only for a shop that is actually open for orders - the same rule the
  * listings use.
  */
-catalogRouter.get('/sellers/:id/contact', requireRole('customer'), (req, res) => {
+catalogRouter.get('/farmers/:id/contact', requireRole('customer'), (req, res) => {
   const db = getDb()
-  const seller = db.sellers.find((s) => s.id === req.params.id)
-  if (!seller || !canSellNow(seller) || !seller.isOpen) {
-    res.status(404).json({ error: 'Seller not found', messageMr: 'ही विक्रेती सापडली नाही' })
+  const farmer = db.farmers.find((s) => s.id === req.params.id)
+  if (!farmer || !canSellNow(farmer) || !farmer.isOpen) {
+    res.status(404).json({ error: 'Farmer not found', messageMr: 'ही विक्रेती सापडली नाही' })
     return
   }
-  res.json({ phone: seller.phone, whatsapp: seller.whatsapp || seller.phone })
+  res.json({ phone: farmer.phone, whatsapp: farmer.whatsapp || farmer.phone })
 })
 
 catalogRouter.get('/serviceability', (req, res) => {
@@ -198,24 +198,24 @@ catalogRouter.get('/serviceability', (req, res) => {
   }
 
   const db = getDb()
-  const sellers = db.sellers.filter(
+  const farmers = db.farmers.filter(
     (s) => canSellNow(s) && s.isOpen && s.pincodes.includes(pincode),
   )
-  const sellerIds = new Set(sellers.map((s) => s.id))
+  const farmerIds = new Set(farmers.map((s) => s.id))
   const productCount = db.products.filter(
-    (p) => p.status === 'LIVE' && sellerIds.has(p.sellerId),
+    (p) => p.status === 'LIVE' && farmerIds.has(p.farmerId),
   ).length
 
   res.json({
     pincode,
-    serviceable: sellers.length > 0 && productCount > 0,
-    sellerCount: sellers.length,
+    serviceable: farmers.length > 0 && productCount > 0,
+    farmerCount: farmers.length,
     productCount,
     // Shown when nothing is available, so she knows where the platform HAS
     // reached rather than just being told "no".
     nearbyVillages: [
       ...new Set(
-        db.sellers
+        db.farmers
           .filter((s) => canSellNow(s) && s.isOpen)
           .flatMap((s) => s.pincodes.map((pc) => `${s.village} (${pc})`)),
       ),

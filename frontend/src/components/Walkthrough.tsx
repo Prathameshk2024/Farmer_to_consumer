@@ -221,7 +221,7 @@ export function PageTour({ id }: { id: TourId }) {
  * The Help & Training list: one row per bottom tab. Tapping one goes to the
  * REAL page and starts its walkthrough there, seen before or not.
  */
-export function TourMenu({ role }: { role: 'seller' | 'customer' }) {
+export function TourMenu({ role }: { role: 'farmer' | 'customer' }) {
   const t = useT()
   const nav = useNavigate()
   return (

@@ -26,7 +26,7 @@ const mr = dictionaries.mr
 function sharedAndBackendMarathi(): { where: string; value: string }[] {
   const files = [
     '../../shared/src/payment.ts',
-    '../../shared/src/seller.ts',
+    '../../shared/src/farmer.ts',
     '../../shared/src/orderCancel.ts',
     '../../shared/src/review.ts',
     '../../backend/src/routes/products.routes.ts',
@@ -120,10 +120,10 @@ test('no space before punctuation, and no doubled spaces', () => {
   assert.deepEqual(bad, [])
 })
 
-test('every seller is a woman, so she is विक्रेती', () => {
+test('every farmer is a woman, so she is विक्रेती', () => {
   /**
    * §4 again, and the one place the wrong word is not merely inconsistent:
-   * this market exists for women, and "विक्रेता" tells a seller reading her own
+   * this market exists for women, and "विक्रेता" tells a farmer reading her own
    * app that it was written for somebody else.
    */
   const bad = Object.entries(mr)
@@ -138,7 +138,7 @@ test('ऑर्डर is neuter, on both sides of the same order', () => {
    * which is the Hindi gender for this loanword, not the Marathi one. Native
    * speakers saw it immediately; nobody reading a diff of 740 strings did.
    *
-   * The seller's app and the buyer's app must not disagree about it either.
+   * The farmer's app and the buyer's app must not disagree about it either.
    * One order is one object, described to two people.
    */
   /**

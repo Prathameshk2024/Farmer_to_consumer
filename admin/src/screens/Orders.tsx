@@ -19,11 +19,11 @@ const STATUSES: OrderStatus[] = [
 
 /**
  * Order monitoring. Read-only, and deliberately so: advancing an order is the
- * seller's action, and an admin doing it for her would put the order into a
+ * farmer's action, and an admin doing it for her would put the order into a
  * state she never agreed to.
  *
  * THE BUYER IS MASKED IN THIS LIST. An admin chasing a late delivery needs to
- * know which order and which seller; she does not need a screenful of women's
+ * know which order and which farmer; she does not need a screenful of women's
  * names, phone numbers and home addresses while she scrolls. The full details
  * are one click away inside an order, where looking is a deliberate act.
  */
@@ -77,7 +77,7 @@ export function Orders() {
                   <thead>
                     <tr>
                       <th>#</th>
-                      <th>{t('or.seller')}</th>
+                      <th>{t('or.farmer')}</th>
                       <th>{t('or.customerHidden')}</th>
                       <th>{t('or.placed')}</th>
                       <th className="right">{t('or.total')}</th>
@@ -89,7 +89,7 @@ export function Orders() {
                     {rows.map((o) => (
                       <tr key={o.id}>
                         <td className="mono">{o.id}</td>
-                        <td>{o.seller ?? '-'}</td>
+                        <td>{o.farmer ?? '-'}</td>
                         {/* Masked. See maskCustomer() in lib/format.ts. */}
                         <td className="mono dim">{maskedLabel(o)}</td>
                         <td className="small dim">{when(o.placedAt)}</td>
@@ -169,8 +169,8 @@ function OrderDetail({ order, onClose }: { order: OrderRow; onClose: () => void 
 
       <div className="stack-sm" style={{ marginTop: 12 }}>
         <div>
-          <div className="small dim-2">{t('or.seller')}</div>
-          <div>{order.seller ?? '-'} <span className="mono small dim">{order.womenBizId}</span></div>
+          <div className="small dim-2">{t('or.farmer')}</div>
+          <div>{order.farmer ?? '-'} <span className="mono small dim">{order.farmerCode}</span></div>
         </div>
 
         <div>
@@ -210,10 +210,10 @@ function OrderDetail({ order, onClose }: { order: OrderRow; onClose: () => void 
         {ended && (
           <Notice tone="danger">
             <strong>
-              {t(ended.by === 'seller' ? 'or.endedBySeller' : 'or.endedByCustomer')}
+              {t(ended.by === 'farmer' ? 'or.endedByFarmer' : 'or.endedByCustomer')}
             </strong>
             {' · '}
-            {ended.reason && ended.reason !== 'other' && (ended.by === 'seller' || ended.by === 'customer')
+            {ended.reason && ended.reason !== 'other' && (ended.by === 'farmer' || ended.by === 'customer')
               ? t(cancelReasonKey(ended.by, ended.reason))
               : (ended.note ?? '-')}
           </Notice>

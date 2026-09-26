@@ -97,7 +97,7 @@ export function AppBar({
 
 /**
  * Reads the screen aloud in Marathi. The single biggest accessibility win for
- * a seller who reads slowly. Speech synthesis is the stand-in; ship
+ * a farmer who reads slowly. Speech synthesis is the stand-in; ship
  * pre-recorded clips, because synthesised Marathi is poor on most phones.
  */
 /* ================================================================== */

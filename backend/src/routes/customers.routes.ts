@@ -137,11 +137,11 @@ customersRouter.delete('/me/addresses/:id', (req, res) => {
 /**
  * Delete this buyer's account.
  *
- * No week to think it over, unlike a seller: what a buyer loses is a name and
+ * No week to think it over, unlike a farmer: what a buyer loses is a name and
  * a list of addresses, and her account is her phone number, so signing in
  * again gives her a new empty one rather than this one back.
  *
- * Refused while an order is on its way, because the seller on the other end
+ * Refused while an order is on its way, because the farmer on the other end
  * has cooked or packed for it and needs an address to deliver to.
  */
 customersRouter.post('/me/close', (req, res) => {

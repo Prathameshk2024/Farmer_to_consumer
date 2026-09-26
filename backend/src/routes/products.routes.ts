@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Product } from '@shared/types.js'
 import {
   canSellNow, initialListingStatus, fssaiProblem, normalizeFssai, sizeProblems,
-} from '@shared/seller.js'
+} from '@shared/farmer.js'
 import { getDb, newId, save } from '../db/store.js'
 import { requireRole } from '../middleware/auth.js'
 import { destroyImage } from './uploads.routes.js'
@@ -22,7 +22,7 @@ function listingProblems(b: Partial<Product>): Record<string, string> {
   if (!b.categoryId) fields.categoryId = 'प्रकार निवडा'
   if (!b.price || Number(b.price) <= 0) fields.price = 'किंमत टाका'
   // How much one of these IS. A price without it cannot be compared with the
-  // shop next door - see sizeProblems in shared/src/seller.ts.
+  // shop next door - see sizeProblems in shared/src/farmer.ts.
   Object.assign(fields, sizeProblems(b))
 
   if (b.isFood) {
@@ -39,20 +39,20 @@ function listingProblems(b: Partial<Product>): Record<string, string> {
 }
 
 /** Her own products, drafts included. */
-productsRouter.get('/mine', requireRole('seller'), (req, res) => {
-  const sellerId = req.auth!.sellerId!
-  res.json({ products: getDb().products.filter((p) => p.sellerId === sellerId) })
+productsRouter.get('/mine', requireRole('farmer'), (req, res) => {
+  const farmerId = req.auth!.farmerId!
+  res.json({ products: getDb().products.filter((p) => p.farmerId === farmerId) })
 })
 
 /** Why an unverified farmer's listing cannot go on sale yet. */
 const NOT_VERIFIED_MR = 'तुमची तपासणी झाल्यावर माल विक्रीसाठी जाईल'
 
-productsRouter.post('/', requireRole('seller'), (req, res) => {
+productsRouter.post('/', requireRole('farmer'), (req, res) => {
   const db = getDb()
-  const sellerId = req.auth!.sellerId!
-  const seller = db.sellers.find((s) => s.id === sellerId)
-  if (!seller) {
-    res.status(404).json({ error: 'Seller not found' })
+  const farmerId = req.auth!.farmerId!
+  const farmer = db.farmers.find((s) => s.id === farmerId)
+  if (!farmer) {
+    res.status(404).json({ error: 'Farmer not found' })
     return
   }
 
@@ -60,7 +60,7 @@ productsRouter.post('/', requireRole('seller'), (req, res) => {
   const asDraft = !!b.asDraft
 
   // Drafts are his to write before the check; putting one on sale waits for it.
-  if (!asDraft && !canSellNow(seller)) {
+  if (!asDraft && !canSellNow(farmer)) {
     res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
     return
   }
@@ -74,7 +74,7 @@ productsRouter.post('/', requireRole('seller'), (req, res) => {
 
   const product: Product = {
     id: newId('p'),
-    sellerId,
+    farmerId,
     emoji: b.emoji ?? '📦',
     imageUrl: b.imageUrl,
     imagePublicId: b.imagePublicId,
@@ -82,7 +82,7 @@ productsRouter.post('/', requireRole('seller'), (req, res) => {
     nameEn: b.nameEn,
     categoryId: b.categoryId ?? '',
     isFood: !!b.isFood,
-    // Stamped from her seller record - one source of truth.
+    // Stamped from her farmer record - one source of truth.
     ingredients: b.isFood ? b.ingredients : undefined,
     vegType: b.isFood ? b.vegType : undefined,
     fssai: b.isFood ? normalizeFssai(b.fssai) || undefined : undefined,
@@ -105,10 +105,10 @@ productsRouter.post('/', requireRole('seller'), (req, res) => {
   res.status(201).json({ product })
 })
 
-productsRouter.patch('/:id', requireRole('seller'), (req, res) => {
+productsRouter.patch('/:id', requireRole('farmer'), (req, res) => {
   const db = getDb()
   const i = db.products.findIndex(
-    (p) => p.id === req.params.id && p.sellerId === req.auth!.sellerId,
+    (p) => p.id === req.params.id && p.farmerId === req.auth!.farmerId,
   )
   if (i < 0) {
     res.status(404).json({ error: 'Product not found' })
@@ -149,7 +149,7 @@ productsRouter.patch('/:id', requireRole('seller'), (req, res) => {
 
   const current = db.products[i]!
 
-  // Pausing and un-pausing is the only status change a seller may make herself.
+  // Pausing and un-pausing is the only status change a farmer may make herself.
   if (req.body.status === 'PAUSED' || req.body.status === 'LIVE') {
     if (current.status === 'LIVE' || current.status === 'PAUSED') patch.status = req.body.status
   }
@@ -159,8 +159,8 @@ productsRouter.patch('/:id', requireRole('seller'), (req, res) => {
    * draft" is never a way round them.
    */
   if (req.body.status === 'LIVE' && current.status === 'DRAFT') {
-    const seller = db.sellers.find((s) => s.id === req.auth!.sellerId)!
-    if (!canSellNow(seller)) {
+    const farmer = db.farmers.find((s) => s.id === req.auth!.farmerId)!
+    if (!canSellNow(farmer)) {
       res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
       return
     }
@@ -182,10 +182,10 @@ productsRouter.patch('/:id', requireRole('seller'), (req, res) => {
  * A farmer removes any listing of his own - a sold-out crop is his to take
  * down. A real delete, not a tombstone.
  */
-productsRouter.delete('/:id', requireRole('seller'), (req, res) => {
+productsRouter.delete('/:id', requireRole('farmer'), (req, res) => {
   const db = getDb()
   const i = db.products.findIndex(
-    (p) => p.id === req.params.id && p.sellerId === req.auth!.sellerId,
+    (p) => p.id === req.params.id && p.farmerId === req.auth!.farmerId,
   )
   if (i < 0) {
     res.status(404).json({ error: 'Product not found' })
@@ -196,7 +196,7 @@ productsRouter.delete('/:id', requireRole('seller'), (req, res) => {
   save()
 
   // Best effort, and deliberately not awaited: the record is already gone, the
-  // seller is waiting on a phone, and an image left behind is a smaller
+  // farmer is waiting on a phone, and an image left behind is a smaller
   // problem than a delete that appears to hang. This is the only moment we
   // still know the public id, so it is now or never.
   void destroyImage(gone?.imagePublicId)

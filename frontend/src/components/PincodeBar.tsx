@@ -96,8 +96,8 @@ export default function PincodeBar() {
         </div>
       </button>
 
-      {/* Not a refusal any more: nobody has LISTED the seller's area, and an order
-          anywhere in Maharashtra still reaches a seller who decides. Saying
+      {/* Not a refusal any more: nobody has LISTED the farmer's area, and an order
+          anywhere in Maharashtra still reaches a farmer who decides. Saying
           "not available" here contradicted a checkout that goes through. */}
       {info && !info.serviceable && (
         <Notice tone="info" title={t('pin.noService')}>
@@ -112,7 +112,7 @@ export default function PincodeBar() {
 
       {info && info.serviceable && (
         <div className="tiny dim">
-          <IconCheck aria-hidden="true" /> {t('pin.serviceable', { sellers: info.sellerCount, products: info.productCount })}
+          <IconCheck aria-hidden="true" /> {t('pin.serviceable', { farmers: info.farmerCount, products: info.productCount })}
         </div>
       )}
     </div>

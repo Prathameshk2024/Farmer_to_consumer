@@ -15,7 +15,7 @@ import catTextiles from '../assets/categories/textiles.jpg'
  * new bytes in the bundle - the files are imported twice and emitted once.
  *
  * It is deliberately a photo of the CATEGORY, never of the product: a generic
- * jar of pickle above the seller's name is honest about being a category
+ * jar of pickle above the farmer's name is honest about being a category
  * picture, while a specific-looking photo of someone else's pickle is not.
  * Their own photo replaces it the moment they upload one.
  *

@@ -1,11 +1,11 @@
-import type { Product, ProductStatus, Seller, Unit } from './types.js'
+import type { Product, ProductStatus, Farmer, Unit } from './types.js'
 import { upiProblem } from './payment.js'
 
 /**
  * Selling is free. There are no packs, slots or edit limits: a farmer who can
  * sell may list, change and remove his produce as often as the day needs.
  */
-export function sellerMayDelete(_status: ProductStatus): boolean {
+export function farmerMayDelete(_status: ProductStatus): boolean {
   return true
 }
 
@@ -14,7 +14,7 @@ export function sellerMayDelete(_status: ProductStatus): boolean {
  *
  * `packSize` counts in the listing's own unit - 500 with `g`, 1 with `set` -
  * and a SET needs one more number: a set of four ladoos and a set of twenty
- * are the same word, and only the seller knows which she is selling.
+ * are the same word, and only the farmer knows which she is selling.
  *
  * Both sides read these two functions, so the wizard, the edit screen and the
  * server cannot drift apart on what counts as a complete listing.
@@ -64,7 +64,7 @@ export function fssaiProblem(raw: unknown): string | null {
 
 /**
  * A verified farmer's listing is on sale the moment he sends it. The person
- * check happens once, on the farmer (POST /admin/sellers/:id/verify), and
+ * check happens once, on the farmer (POST /admin/farmers/:id/verify), and
  * a listing that turns out wrong is reported and taken down.
  */
 export function initialListingStatus(asDraft: boolean): ProductStatus {
@@ -72,7 +72,7 @@ export function initialListingStatus(asDraft: boolean): ProductStatus {
 }
 
 /** May buyers see and order from this farmer right now? */
-export function canSellNow(s: Pick<Seller, 'status'>): boolean {
+export function canSellNow(s: Pick<Farmer, 'status'>): boolean {
   return s.status === 'ACTIVE'
 }
 
@@ -103,9 +103,9 @@ export function isValidPhone(value: string | undefined): boolean {
 /**
  * The ten digits of an Indian mobile number, and nothing else.
  *
- * The phone IS the account here - it is what login looks a seller up by - so
+ * The phone IS the account here - it is what login looks a farmer up by - so
  * "98765 43210", "+91 9876543210" and "9876543210" have to resolve to one
- * value. They did not, which is why sellers who had already registered were
+ * value. They did not, which is why farmers who had already registered were
  * being sent back through registration: the stored string and the typed one
  * never matched.
  */
@@ -169,12 +169,12 @@ export function isValidPincode(value: string | undefined): boolean {
  * IS THIS SOMEWHERE SHE COULD PLAUSIBLY DELIVER?
  *
  * Maharashtra pincodes start 40 through 44. Inside that, the decision is the
- * seller's: the order reaches them and they accept or rejects it, whatever
+ * farmer's: the order reaches them and they accept or rejects it, whatever
  * their listed delivery areas say - a woman in 413004 knows perfectly well
  * whether they can reach 413002, and the server guessing on their behalf
  * refused orders they wanted.
  *
- * Outside it, the order is refused before the seller ever sees it.
+ * Outside it, the order is refused before the farmer ever sees it.
  *
  * 403xxx is the exception: that band is Goa, not Maharashtra, and it sits
  * inside 40-44 by an accident of postal numbering.
@@ -236,7 +236,7 @@ export const EDUCATION_LEVELS: { value: string; mr: string; en: string }[] = [
 /**
  * WHAT SHE MAY CHANGE ABOUT HERSELF, AND WHAT IT HAS TO LOOK LIKE.
  *
- * The allow-list on `PATCH /sellers/me` decides WHICH fields can move - her
+ * The allow-list on `PATCH /farmers/me` decides WHICH fields can move - her
  * status and her SMB ID are not on it and never will be. This
  * decides whether the values she sent make sense, and it runs on both sides
  * for the usual two reasons: the form can say "18 to 90" the instant she types
@@ -247,8 +247,8 @@ export const EDUCATION_LEVELS: { value: string; mr: string; en: string }[] = [
  * an API error already has, so a server refusal drops straight into the same
  * red text under the same box.
  */
-export function validateSellerProfile(
-  p: Partial<Pick<Seller,
+export function validateFarmerProfile(
+  p: Partial<Pick<Farmer,
     | 'name' | 'shopName' | 'about' | 'whatsapp' | 'age' | 'yearsInBusiness'
     | 'monthlyCapacity' | 'deliveryFee' | 'freeDeliveryAbove' | 'minOrder'
     | 'upiId' | 'pincodes'

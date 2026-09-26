@@ -872,7 +872,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 }
 
 /**
- * A person, as her initials. One shape everywhere a seller or a buyer appears,
+ * A person, as her initials. One shape everywhere a farmer or a buyer appears,
  * so the same woman is recognisably the same woman on the profile, in a list
  * and in the cart.
  *
@@ -1117,7 +1117,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
  * grids above 520px. Everyone who uses this holds a phone, so those layouts
  * were only ever seen by us - and they were the layouts we were looking at
  * while deciding whether the page was right. Matching .app-shell means the
- * first screen a seller meets is the same shape as every screen after it, and
+ * first screen a farmer meets is the same shape as every screen after it, and
  * that what we check on a laptop is what she actually gets.
  */
 .landing {

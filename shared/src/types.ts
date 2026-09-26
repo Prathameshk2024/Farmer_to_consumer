@@ -11,7 +11,7 @@
 /* Roles & auth                                                        */
 /* ------------------------------------------------------------------ */
 
-export type Role = 'seller' | 'customer' | 'admin'
+export type Role = 'farmer' | 'customer' | 'admin'
 
 export interface Session {
   token: string
@@ -19,8 +19,8 @@ export interface Session {
   userId: string
   phone?: string
   name?: string
-  /** Present only for sellers. */
-  sellerId?: string
+  /** Present only for farmers. */
+  farmerId?: string
   /** Present only for customers. */
   customerId?: string
 }
@@ -51,7 +51,7 @@ export type PaymentStatus =
 export interface OrderEvent {
   to: OrderStatus
   at: string
-  by: 'customer' | 'seller' | 'admin' | 'system'
+  by: 'customer' | 'farmer' | 'admin' | 'system'
   note?: string
   /**
    * On a CANCELLED event, the code from `orderCancel.ts` - stored as a code so
@@ -72,7 +72,7 @@ export interface OrderItem {
 export interface Order {
   id: string
   groupId?: string
-  sellerId: string
+  farmerId: string
   customerId: string
   customerName: string
   customerPhone: string
@@ -94,7 +94,7 @@ export interface Order {
   deliveryOtp?: string
   placedAt: string
   /**
-   * The delivery pincode is not in the seller's listed areas - inside
+   * The delivery pincode is not in the farmer's listed areas - inside
    * Maharashtra, so the order reached their anyway and the decision is their.
    * Their order screen says so, because Accept means "yes, I can get there".
    */
@@ -102,14 +102,14 @@ export interface Order {
   events: OrderEvent[]
   sourceShareCode?: string
   /**
-   * How long the seller said the delivery would take, in her own words - "2
+   * How long the farmer said the delivery would take, in her own words - "2
    * दिवसांत", "उद्या संध्याकाळी". Asked at the moment she ACCEPTS, because
    * that is the first time she knows: she has just read the address, the
    * quantity and what is on her shelf. Free text rather than a date, because
    * the honest answer to "when?" in a village with one bus is a phrase, not a
    * timestamp - and a false precision is worse than none.
    *
-   * Optional: an order accepted before this existed, or by a seller who
+   * Optional: an order accepted before this existed, or by a farmer who
    * skipped the question, simply does not carry one.
    */
   deliveryEstimate?: string
@@ -123,7 +123,7 @@ export interface Order {
  * One buyer's word on ONE PRODUCT from one delivered order. The rules are in
  * `review.ts`.
  *
- * A product, not the seller: the public reads what a jar of pickle was like,
+ * A product, not the farmer: the public reads what a jar of pickle was like,
  * not a score for the woman who made it. And keyed to an order, so only
  * somebody who actually received the product may rate it - one order, one
  * voice per product in it.
@@ -135,7 +135,7 @@ export interface Review {
   /** The name on the order line, copied - a deleted listing keeps its reviews readable. */
   productName: string
   /** Whose product. For her own reviews list and the admin console; never public. */
-  sellerId: string
+  farmerId: string
   customerId: string
   /**
    * First name only, copied when written. Everyone can read a review, and a
@@ -180,10 +180,10 @@ export interface RatingSummary {
 }
 
 /* ------------------------------------------------------------------ */
-/* Seller                                                              */
+/* Farmer                                                              */
 /* ------------------------------------------------------------------ */
 
-export type SellerStatus =
+export type FarmerStatus =
   | 'PENDING_VERIFICATION'
   | 'ACTIVE'
   | 'BLOCKED'
@@ -240,10 +240,10 @@ export interface AdminNotice {
   note?: string
 }
 
-export interface Seller {
+export interface Farmer {
   id: string
-  /** Shanta Mahila Bazar ID, e.g. SMB-ANADUR-001. Printed on packaging and posters. */
-  womenBizId: string
+  /** Shanta Mahila Bazar ID, e.g. F2C-ANADUR-001. Printed on packaging and posters. */
+  farmerCode: string
 
   // personal
   name: string
@@ -302,10 +302,10 @@ export interface Seller {
   pincodes: string[]
 
   // platform
-  status: SellerStatus
+  status: FarmerStatus
   /**
    * When an admin blocked her, and why. Her own screens read these to tell
-   * her what happened - a blocked seller who is simply shown an empty shop
+   * her what happened - a blocked farmer who is simply shown an empty shop
    * has no idea whether the app is broken or she has been removed.
    */
   blockedAt?: string
@@ -332,7 +332,7 @@ export interface Seller {
   /**
    * Stored values are legacy and never read. On every public answer both are
    * replaced by her products' ratings taken together (`summarizeReviews` over
-   * every visible review of her products) - see `publicSeller`.
+   * every visible review of her products) - see `publicFarmer`.
    */
   rating: number
   ratingCount: number
@@ -342,18 +342,18 @@ export interface Seller {
 }
 
 /**
- * A seller as ANYONE may see her - the "sold by" card, the shop page, checkout.
+ * A farmer as ANYONE may see her - the "sold by" card, the shop page, checkout.
  *
  * An allow-list, on purpose. The version before this was a deny-list that
  * named seven private fields and let everything else through, so every field
- * added to Seller afterwards - admin notices, the reason she was blocked -
+ * added to Farmer afterwards - admin notices, the reason she was blocked -
  * went public the day it was added. Adding a field here is now a decision.
- * `backend/src/db/publicSeller.ts` builds it; `backend/tests/public-seller.test.ts`
+ * `backend/src/db/publicFarmer.ts` builds it; `backend/tests/public-farmer.test.ts`
  * holds the list.
  */
-export type PublicSeller = Pick<
-  Seller,
-  | 'id' | 'womenBizId' | 'name' | 'photo' | 'shopName' | 'shopSlug' | 'village'
+export type PublicFarmer = Pick<
+  Farmer,
+  | 'id' | 'farmerCode' | 'name' | 'photo' | 'shopName' | 'shopSlug' | 'village'
   | 'deliveryFee' | 'freeDeliveryAbove' | 'minOrder' | 'pincodes'
   | 'upiId' | 'upiQrReady' | 'upiQrUrl'
   | 'rating' | 'ratingCount'
@@ -371,7 +371,7 @@ export type Unit = 'kg' | 'g' | 'piece' | 'dozen' | 'litre' | 'ml' | 'set'
 
 export interface Product {
   id: string
-  sellerId: string
+  farmerId: string
   /** Fallback shown until a real photo exists, and if one fails to load. */
   emoji: string
   /** Cloudinary secure_url. Read through the LRU cache, never fetched directly. */
@@ -405,7 +405,7 @@ export interface Product {
    * HOW MUCH ONE OF THESE IS, counted in `unit`: 500 with unit `g`, 1 with
    * unit `set`. A price with no size is not a price - "₹80 for pickle" tells
    * a buyer nothing until she knows whether that is a 200g jar or a kilo, and
-   * she cannot compare two sellers without it.
+   * she cannot compare two farmers without it.
    *
    * Optional on the type because listings published before the question
    * existed do not carry one; required by `listingProblems` on anything
@@ -483,13 +483,13 @@ export interface Customer {
 
 export interface CartItem {
   productId: string
-  sellerId: string
+  farmerId: string
   /**
    * The shop's name, copied in when the item was added. The cart holds one
-   * seller's goods and has to be able to say whose without waiting on the
+   * farmer's goods and has to be able to say whose without waiting on the
    * catalogue to load - a refusal that names no shop explains nothing.
    */
-  sellerName?: string
+  farmerName?: string
   name: string
   emoji: string
   price: number
@@ -497,16 +497,16 @@ export interface CartItem {
   qty: number
 }
 
-/** A cart split into one bucket per seller. Each becomes its own order. */
-export interface SellerGroup {
-  sellerId: string
-  seller?: Seller
+/** A cart split into one bucket per farmer. Each becomes its own order. */
+export interface FarmerGroup {
+  farmerId: string
+  farmer?: Farmer
   items: CartItem[]
   itemsTotal: number
   deliveryFee: number
   /**
-   * No charge is set, so the buyer is told to ask the seller rather than told
-   * it is free. False when a seller's own free-delivery minimum is met - that
+   * No charge is set, so the buyer is told to ask the farmer rather than told
+   * it is free. False when a farmer's own free-delivery minimum is met - that
    * "free" is her promise.
    */
   deliveryToAsk: boolean
@@ -525,7 +525,7 @@ export interface WeekDay {
   v: number
 }
 
-export interface SellerWeek {
+export interface FarmerWeek {
   days: WeekDay[]
   lastWeekTotal: number
   ordersThisWeek: number
@@ -539,17 +539,17 @@ export interface AdminStats {
   gmvMonth: number
   ordersToday: number
   ordersWeek: number
-  /** Verified and not blocked - sellers anyone can buy from today. */
-  activeSellers: number
-  totalSellers: number
+  /** Verified and not blocked - farmers anyone can buy from today. */
+  activeFarmers: number
+  totalFarmers: number
   newRegistrations: number
   /** Registered and waiting for an admin to verify them once. */
   pendingVerification: number
   stuckOrders: number
   openDisputes: number
-  womenEarnedTotal: number
-  womenEarnedMonth: number
-  womenWithFirstEarning: number
+  farmersEarnedTotal: number
+  farmersEarnedMonth: number
+  farmersWithFirstEarning: number
   repurchaseRate: number
   /** Every document the server holds - and so reads from Firestore at each start. */
   databaseDocuments: number
@@ -565,7 +565,7 @@ export interface AdminStats {
 
 export interface ApiError {
   error: string
-  /** Marathi message, safe to show a seller directly. */
+  /** Marathi message, safe to show a farmer directly. */
   messageMr?: string
   fields?: Record<string, string>
 }
@@ -583,19 +583,19 @@ export interface Report {
   targetType: import('./report.js').ReportTarget
   targetId: string
   /** Whose listing or review, copied so the queue can be read without joins. */
-  sellerId?: string
+  farmerId?: string
   /** What the row is about, copied for the same reason: a name in the queue. */
   targetName?: string
   reason: import('./report.js').ReportReason
   /** Only 'other' carries words; every other reason is the code alone. */
   note?: string
   /**
-   * Who flagged it - a buyer, or the seller the review is about. She is the
+   * Who flagged it - a buyer, or the farmer the review is about. She is the
    * person an abusive review is aimed at, so she gets the same way out as
    * anyone reading it.
    */
   byUserId: string
-  byRole: 'customer' | 'seller'
+  byRole: 'customer' | 'farmer'
   at: string
   /** Closed by an admin who looked and left the listing up. */
   reviewedAt?: string
@@ -612,13 +612,13 @@ export interface Report {
  */
 export interface Complaint {
   id: string
-  byRole: 'seller' | 'customer'
+  byRole: 'farmer' | 'customer'
   byUserId: string
   /** Copied at the time, so the queue reads without joins. */
   name: string
   phone: string
-  /** Sellers only - the id a field coordinator recognises. */
-  womenBizId?: string
+  /** Farmers only - the id a field coordinator recognises. */
+  farmerCode?: string
   subject: import('./complaint.js').ComplaintSubject
   message: string
   at: string

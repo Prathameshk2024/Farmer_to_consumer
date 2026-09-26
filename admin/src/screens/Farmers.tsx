@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useT } from '../i18n/I18nProvider.js'
-import { IconGo, IconSellers } from '../components/icons.js'
-import { api, type SellerRow } from '../lib/api.js'
+import { IconGo, IconFarmers } from '../components/icons.js'
+import { api, type FarmerRow } from '../lib/api.js'
 import { TopBar } from '../components/Shell.js'
 import { SortSelect, useSort } from '../components/SortSelect.js'
-import { SELLER_SORTS, sortRows } from '../lib/sort.js'
-import { SellerActions, StatusPill } from '../components/SellerActions.js'
+import { FARMER_SORTS, sortRows } from '../lib/sort.js'
+import { FarmerActions, StatusPill } from '../components/FarmerActions.js'
 import {
   Button, Card, CopyValue, EmptyState, ErrorNote, Loading, useAsync,
 } from '../components/ui.js'
@@ -22,30 +22,30 @@ import {
  * is visible at all - so each one states its
  * consequence and waits for a second confirmation.
  */
-export function Sellers() {
+export function Farmers() {
   const t = useT()
   const [q, setQ] = useState('')
   /** Everyone, or only those waiting for their one verification. */
   const [waiting, setWaiting] = useState(false)
-  const [data, loading, error, reload] = useAsync(() => api.sellers(), [])
-  const [sort, setSort] = useSort('sellers', SELLER_SORTS)
+  const [data, loading, error, reload] = useAsync(() => api.farmers(), [])
+  const [sort, setSort] = useSort('farmers', FARMER_SORTS)
 
   const rows = useMemo(() => {
-    const all = (data?.sellers ?? []).filter((s) => !waiting || s.status === 'PENDING_VERIFICATION')
+    const all = (data?.farmers ?? []).filter((s) => !waiting || s.status === 'PENDING_VERIFICATION')
     const needle = q.trim().toLowerCase()
     const found = !needle
       ? all
       : all.filter((s) =>
-          [s.name, s.shopName, s.village, s.phone, s.womenBizId]
+          [s.name, s.shopName, s.village, s.phone, s.farmerCode]
             .filter(Boolean)
             .some((v) => String(v).toLowerCase().includes(needle)),
         )
-    return sortRows(found, SELLER_SORTS, sort)
+    return sortRows(found, FARMER_SORTS, sort)
   }, [data, q, sort, waiting])
 
   return (
     <>
-      <TopBar title={t('se.title')} sub={data ? `${data.sellers.length}` : undefined} />
+      <TopBar title={t('se.title')} sub={data ? `${data.farmers.length}` : undefined} />
       <div className="body stack">
         <div className="row wrap">
           <input
@@ -65,7 +65,7 @@ export function Sellers() {
             <option value="">{t('c.all')}</option>
             <option value="waiting">{t('se.waitingVerification')}</option>
           </select>
-          <SortSelect options={SELLER_SORTS} value={sort} onChange={setSort} />
+          <SortSelect options={FARMER_SORTS} value={sort} onChange={setSort} />
         </div>
 
         <ErrorNote error={error} />
@@ -73,10 +73,10 @@ export function Sellers() {
         {loading ? (
           <Loading />
         ) : rows.length === 0 ? (
-          <Card><EmptyState icon={IconSellers} title={t('se.empty')} body={t('se.emptySub')} /></Card>
+          <Card><EmptyState icon={IconFarmers} title={t('se.empty')} body={t('se.emptySub')} /></Card>
         ) : (
           <div className="stack-sm">
-            {rows.map((s) => <SellerCard key={s.id} seller={s} onDone={reload} />)}
+            {rows.map((s) => <FarmerCard key={s.id} farmer={s} onDone={reload} />)}
           </div>
         )}
       </div>
@@ -84,7 +84,7 @@ export function Sellers() {
   )
 }
 
-function SellerCard({ seller, onDone }: { seller: SellerRow; onDone: () => void }) {
+function FarmerCard({ farmer, onDone }: { farmer: FarmerRow; onDone: () => void }) {
   const t = useT()
 
   return (
@@ -93,38 +93,38 @@ function SellerCard({ seller, onDone }: { seller: SellerRow; onDone: () => void 
         <div className="grow min0">
           <div className="row wrap" style={{ gap: 8 }}>
             {/* Her name and shop name exactly as she entered them. */}
-            <span className="strong">{seller.name}</span>
-            <span className="dim">{seller.shopName}</span>
-            <StatusPill status={seller.status} />
+            <span className="strong">{farmer.name}</span>
+            <span className="dim">{farmer.shopName}</span>
+            <StatusPill status={farmer.status} />
           </div>
           <div className="small dim">
-            <span className="mono">{seller.womenBizId}</span>
-            {' · '}{t('se.village')}: {seller.village}
-            {' · '}<span className="mono">{seller.phone}</span>
+            <span className="mono">{farmer.farmerCode}</span>
+            {' · '}{t('se.village')}: {farmer.village}
+            {' · '}<span className="mono">{farmer.phone}</span>
           </div>
           <div className="small dim-2">
-            {t('se.products')}: <span className="num">{seller.productCount}</span>
-            {' · '}{t('se.readiness')}: <span className="num">{seller.readinessScore}</span>
+            {t('se.products')}: <span className="num">{farmer.productCount}</span>
+            {' · '}{t('se.readiness')}: <span className="num">{farmer.readinessScore}</span>
           </div>
 
           {/* Where her money goes. Read off this screen when a payout is made
               by hand, so it is copied rather than retyped. */}
-          {seller.upiId && (
+          {farmer.upiId && (
             <div className="small dim">
               {t('se.upi')}{' '}
-              <CopyValue value={seller.upiId} label={t('c.copy')} copiedText={t('c.upiCopied')} />
+              <CopyValue value={farmer.upiId} label={t('c.copy')} copiedText={t('c.upiCopied')} />
             </div>
           )}
-          {seller.blockReason && (
+          {farmer.blockReason && (
             <div className="small" style={{ color: 'var(--danger)' }}>
-              {t('c.reason')}: {seller.blockReason}
+              {t('c.reason')}: {farmer.blockReason}
             </div>
           )}
         </div>
 
         {/* Everything the row has no space for - her business, her shop
             settings, her listings, her orders - is one click away. */}
-        <Link to={`/sellers/${seller.id}`}>
+        <Link to={`/farmers/${farmer.id}`}>
           <Button variant="quiet" small>
             {t('sd.open')} <IconGo aria-hidden="true" />
           </Button>
@@ -134,7 +134,7 @@ function SellerCard({ seller, onDone }: { seller: SellerRow; onDone: () => void 
       {/* Below the row, not beside it: a confirmation has a sentence to say
           about what it is about to do, and it needs the width to say it. */}
       <div style={{ marginTop: 10 }}>
-        <SellerActions seller={seller} onDone={onDone} />
+        <FarmerActions farmer={farmer} onDone={onDone} />
       </div>
     </Card>
   )

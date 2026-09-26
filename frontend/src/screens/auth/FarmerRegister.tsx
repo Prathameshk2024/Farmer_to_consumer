@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
-import type { Seller } from '@shared/types.js'
-import { EDUCATION_LEVELS, FSSAI_DIGITS, fssaiProblem, isValidPincode, isValidUpi } from '@shared/seller.js'
+import type { Farmer } from '@shared/types.js'
+import { EDUCATION_LEVELS, FSSAI_DIGITS, fssaiProblem, isValidPincode, isValidUpi } from '@shared/farmer.js'
 import { upiProblem } from '@shared/payment.js'
-import { VILLAGES, makeWomenBizId, villageCode } from '@shared/womenbiz.js'
+import { VILLAGES, makeFarmerCode, villageCode } from '@shared/farmerCode.js'
 import {
   BAND_LABEL, computeReadiness, readinessBand, SELF_REPORTED_FACTORS,
 } from '@shared/readiness.js'
@@ -15,7 +15,7 @@ import { clearRegisterTicket, takeRegisterTicket } from './Auth.js'
 import { liveTicket } from '../../lib/registerTicket.js'
 import {
   clearDraft, EMPTY, readDraft, sessionStore, writeDraft, type Draft,
-} from './sellerDraft.js'
+} from './farmerDraft.js'
 import PhotoPicker from '../../components/PhotoPicker.js'
 import {
   AppBar, Button, Card, Choice, Dots, Field, Notice,
@@ -26,7 +26,7 @@ import {
 } from '../../components/icons.js'
 
 /**
- * SELLER REGISTRATION WIZARD
+ * FARMER REGISTRATION WIZARD
  * ==========================
  * Six steps, one topic per screen, with progress dots so she can see the end
  * coming. Everything she is asked here comes from the Shantai Mahila Bazar survey design:
@@ -47,7 +47,7 @@ import {
 const STEP_KEYS = ['reg.s1', 'reg.s2', 'reg.s3', 'reg.s4', 'reg.s5', 'reg.s6']
 
 
-export default function SellerRegister() {
+export default function FarmerRegister() {
   const t = useT()
   const { lang } = useI18n()
   const nav = useNavigate()
@@ -76,7 +76,7 @@ export default function SellerRegister() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [serverError, setServerError] = useState('')
-  const [created, setCreated] = useState<Seller | null>(null)
+  const [created, setCreated] = useState<Farmer | null>(null)
 
   /**
    * A woman who is already registered cannot register again.
@@ -87,7 +87,7 @@ export default function SellerRegister() {
    * the screen showing her new SMB ID out from under her.
    */
   const alreadyRegistered = useState(
-    () => session?.role === 'seller' && !liveTicket(),
+    () => session?.role === 'farmer' && !liveTicket(),
   )[0]
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
@@ -100,7 +100,7 @@ export default function SellerRegister() {
   // Preview her ID live, so the thing that goes on her packaging is not a
   // surprise at the end.
   const previewId = useMemo(
-    () => (village ? makeWomenBizId(village, []) : ''),
+    () => (village ? makeFarmerCode(village, []) : ''),
     [village],
   )
 
@@ -173,7 +173,7 @@ export default function SellerRegister() {
     setBusy(true)
     setServerError('')
     try {
-      const res = await api.registerSeller({
+      const res = await api.registerFarmer({
         // The server reads her phone number out of this and ignores anything
         // the body claims, so registration cannot be aimed at a number whose
         // OTP was never passed.
@@ -211,7 +211,7 @@ export default function SellerRegister() {
       clearDraft(store, phone)
       signIn(res.session)
       toast(t('ok.registered'))
-      setCreated(res.seller)
+      setCreated(res.farmer)
     } catch (err) {
       if (err instanceof ApiError) {
         setServerError(err.messageMr ?? err.message)
@@ -228,7 +228,7 @@ export default function SellerRegister() {
   /* Done - show her the ID and the score, then send her to pay    */
   /* ------------------------------------------------------------ */
   // Registered already, and not mid-wizard: her shop is where she belongs.
-  if (alreadyRegistered && !created) return <Navigate to="/seller" replace />
+  if (alreadyRegistered && !created) return <Navigate to="/farmer" replace />
 
   if (created) {
     return (
@@ -245,7 +245,7 @@ export default function SellerRegister() {
               className="num"
               style={{ fontSize: '1.6rem', fontWeight: 800, letterSpacing: '0.04em', margin: '4px 0' }}
             >
-              {created.womenBizId}
+              {created.farmerCode}
             </div>
             <p className="small muted" style={{ margin: 0 }}>{t('reg.idNote')}</p>
           </Card>
@@ -268,7 +268,7 @@ export default function SellerRegister() {
           </Card>
 
           <Notice tone="warn">{t('biz.pendingVerification')}</Notice>
-          <Button onClick={() => nav('/seller', { replace: true })}>
+          <Button onClick={() => nav('/farmer', { replace: true })}>
             {t('biz.title')}
           </Button>
         </div>

@@ -6,8 +6,8 @@ import {
   reviewProblem, summarizeReviews, toPublicReview,
 } from '@shared/review.js'
 import {
-  ordersToRate, productReviewsFor, ratingsByProduct, ratingsBySeller, sellerProductReviews,
-  sellerRating, splitOrderReviews,
+  ordersToRate, productReviewsFor, ratingsByProduct, ratingsByFarmer, farmerProductReviews,
+  farmerRating, splitOrderReviews,
   writeRatings,
 } from '../src/db/reviews.js'
 
@@ -16,7 +16,7 @@ import {
  *
  * Once an order is delivered, the buyer rates every product in it - stars
  * required, words optional - before the app lets them do anything else. The
- * ratings belong to the products; a seller's rating is her products' ratings
+ * ratings belong to the products; a farmer's rating is her products' ratings
  * taken together.
  */
 
@@ -26,7 +26,7 @@ const DELIVERED_AT = '2026-09-10T10:00:00.000Z'
 function order(status: OrderStatus = 'DELIVERED', id = 'SMB1234'): Order {
   return {
     id,
-    sellerId: 's1',
+    farmerId: 's1',
     customerId: 'c-9876543210',
     customerName: 'सविता भोसले',
     status,
@@ -37,7 +37,7 @@ function order(status: OrderStatus = 'DELIVERED', id = 'SMB1234'): Order {
     ],
     events: [
       { to: 'PLACED', at: '2026-09-08T10:00:00.000Z', by: 'customer' },
-      ...(status === 'DELIVERED' ? [{ to: 'DELIVERED' as const, at: DELIVERED_AT, by: 'seller' as const }] : []),
+      ...(status === 'DELIVERED' ? [{ to: 'DELIVERED' as const, at: DELIVERED_AT, by: 'farmer' as const }] : []),
     ],
   } as Order
 }
@@ -127,14 +127,14 @@ test('the orders still to rate, newest first, and none once they are rated', () 
   assert.deepEqual(ordersToRate(db, [a, b], now), [])
 })
 
-test('a review is shown under the first name only, with no buyer or seller id', () => {
+test('a review is shown under the first name only, with no buyer or farmer id', () => {
   const db = { reviews: [] as Review[] }
   const r = writeRatings(db, order(), both, soon)
   assert.ok(r.ok)
   assert.equal(r.reviews[0]!.customerName, 'सविता')
   assert.equal(publicName('ग्राहक'), '')
   const pub = toPublicReview({ ...r.reviews[0]!, hidden: true, hiddenReason: 'phone number' })
-  for (const secret of ['customerId', 'sellerId', 'hiddenReason']) assert.equal(secret in pub, false)
+  for (const secret of ['customerId', 'farmerId', 'hiddenReason']) assert.equal(secret in pub, false)
 })
 
 test('a product shows its own stars; hidden reviews leave both the list and the average', () => {
@@ -148,7 +148,7 @@ test('a product shows its own stars; hidden reviews leave both the list and the 
   assert.deepEqual(p1.summary, { average: 5, count: 1, byStars: [0, 0, 0, 0, 1] })
   assert.equal(ratingsByProduct(db).get('p2')?.count, 2)
   // Her own list: every visible review of her products, nothing hidden.
-  assert.equal(sellerProductReviews(db, 's1').length, 3)
+  assert.equal(farmerProductReviews(db, 's1').length, 3)
 })
 
 test('the average is rounded to one decimal place, and zero with nothing to average', () => {
@@ -162,7 +162,7 @@ test('the average is rounded to one decimal place, and zero with nothing to aver
  */
 test('an old whole-order review becomes one review per product, once', () => {
   const legacy = {
-    id: 'rv1', orderId: 'SMB1234', sellerId: 's1', customerId: 'c-1', customerName: 'सविता',
+    id: 'rv1', orderId: 'SMB1234', farmerId: 's1', customerId: 'c-1', customerName: 'सविता',
     rating: 4, comment: 'छान', createdAt: '2026-09-11T00:00:00.000Z',
     items: [{ productId: 'p1', name: 'आंबा लोणचे' }, { productId: 'p2', name: 'पापड' }],
   } as unknown as Review
@@ -177,18 +177,18 @@ test('an old whole-order review becomes one review per product, once', () => {
 })
 
 /**
- * A seller's rating is every visible review of her products, each counted
+ * A farmer's rating is every visible review of her products, each counted
  * once - a product rated often weighs more than one rated once.
  */
-test('a seller is rated by all her products\' reviews together, hidden ones left out', () => {
+test('a farmer is rated by all her products\' reviews together, hidden ones left out', () => {
   const db = { reviews: [] as Review[] }
   writeRatings(db, order('DELIVERED', 'A'), [{ productId: 'p1', rating: 5 }, { productId: 'p2', rating: 5 }], soon)
   writeRatings(db, order('DELIVERED', 'B'), [{ productId: 'p1', rating: 5 }, { productId: 'p2', rating: 2 }], soon)
   // Three reviews of five stars and one of two: (5+5+5+2)/4 = 4.25 -> 4.3.
-  assert.deepEqual(sellerRating(db, 's1'), { average: 4.3, count: 4, byStars: [0, 1, 0, 0, 3] })
-  assert.equal(ratingsBySeller(db).get('s1')?.count, 4)
+  assert.deepEqual(farmerRating(db, 's1'), { average: 4.3, count: 4, byStars: [0, 1, 0, 0, 3] })
+  assert.equal(ratingsByFarmer(db).get('s1')?.count, 4)
 
   db.reviews.find((r) => r.orderId === 'B' && r.productId === 'p2')!.hidden = true
-  assert.deepEqual(sellerRating(db, 's1'), { average: 5, count: 3, byStars: [0, 0, 0, 0, 3] })
-  assert.equal(sellerRating(db, 'nobody').count, 0)
+  assert.deepEqual(farmerRating(db, 's1'), { average: 5, count: 3, byStars: [0, 0, 0, 0, 3] })
+  assert.equal(farmerRating(db, 'nobody').count, 0)
 })

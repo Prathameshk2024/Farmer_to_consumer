@@ -2,16 +2,16 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { Order, OrderStatus } from '@shared/types.js'
 import {
-  CUSTOMER_CANCEL_REASONS, SELLER_CANCEL_REASONS, cancelProblem, customerCanCancel,
-  endingEvent, refundOwed, sellerCanCancel,
+  CUSTOMER_CANCEL_REASONS, FARMER_CANCEL_REASONS, cancelProblem, customerCanCancel,
+  endingEvent, refundOwed, farmerCanCancel,
 } from '@shared/orderCancel.js'
 import { cancelOrder } from '../src/db/orderCancel.js'
 
 /**
  * CALLING AN ORDER OFF.
  *
- * The buyer may back out while nothing has happened yet - before the seller
- * accepts, when no money has moved and nothing is cooking. The seller may call
+ * The buyer may back out while nothing has happened yet - before the farmer
+ * accepts, when no money has moved and nothing is cooking. The farmer may call
  * it off at any step after she accepts, up to the doorstep. Both have to say
  * why, and the why is kept on the order for the other side to read.
  */
@@ -30,7 +30,7 @@ const ALL: OrderStatus[] = [
   'PLACED', 'ACCEPTED', 'PACKED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'REJECTED', 'CANCELLED',
 ]
 
-test('the buyer can back out only before the seller has accepted', () => {
+test('the buyer can back out only before the farmer has accepted', () => {
   assert.deepEqual(ALL.filter(customerCanCancel), ['PLACED'])
 })
 
@@ -38,8 +38,8 @@ test('the buyer can back out only before the seller has accepted', () => {
  * Before acceptance she has Reject; after delivery the goods are in the
  * buyer's hand and a button does not take them back.
  */
-test('the seller can cancel at any step after accepting, up to the doorstep', () => {
-  assert.deepEqual(ALL.filter(sellerCanCancel), ['ACCEPTED', 'PACKED', 'OUT_FOR_DELIVERY'])
+test('the farmer can cancel at any step after accepting, up to the doorstep', () => {
+  assert.deepEqual(ALL.filter(farmerCanCancel), ['ACCEPTED', 'PACKED', 'OUT_FOR_DELIVERY'])
 })
 
 test('a buyer who picks a listed reason is cancelled, and the code is kept', () => {
@@ -53,17 +53,17 @@ test('a buyer who picks a listed reason is cancelled, and the code is kept', () 
 })
 
 /**
- * The code, not a sentence: the seller reads the buyer's reason in her own
+ * The code, not a sentence: the farmer reads the buyer's reason in her own
  * language, whatever language the buyer had switched on.
  */
 test('the reason is stored as a code so each side reads it in their own language', () => {
   const o = order('PACKED')
-  cancelOrder(o, 'seller', { reason: 'out_of_stock', note: 'ignored for a listed reason' })
+  cancelOrder(o, 'farmer', { reason: 'out_of_stock', note: 'ignored for a listed reason' })
   assert.equal(o.events.at(-1)?.reason, 'out_of_stock')
   assert.equal(o.events.at(-1)?.note, undefined)
 })
 
-test('a buyer cannot cancel once the seller has said yes, and is told to ring her', () => {
+test('a buyer cannot cancel once the farmer has said yes, and is told to ring her', () => {
   const o = order('ACCEPTED')
   const r = cancelOrder(o, 'customer', { reason: 'changed_mind' })
   assert.equal(r.ok, false)
@@ -73,7 +73,7 @@ test('a buyer cannot cancel once the seller has said yes, and is told to ring he
 })
 
 test('a delivered order cannot be cancelled by anyone', () => {
-  for (const by of ['customer', 'seller'] as const) {
+  for (const by of ['customer', 'farmer'] as const) {
     const o = order('DELIVERED')
     assert.equal(cancelOrder(o, by, { reason: 'other', note: 'too late now' }).ok, false)
     assert.equal(o.status, 'DELIVERED')
@@ -83,7 +83,7 @@ test('a delivered order cannot be cancelled by anyone', () => {
 test('no reason, or a reason from the other side\'s list, is refused', () => {
   assert.notEqual(cancelProblem('customer', undefined, undefined), null)
   assert.notEqual(cancelProblem('customer', 'out_of_stock', undefined), null)
-  assert.notEqual(cancelProblem('seller', 'changed_mind', undefined), null)
+  assert.notEqual(cancelProblem('farmer', 'changed_mind', undefined), null)
   const o = order('PLACED')
   assert.equal(cancelOrder(o, 'customer', {}).ok, false)
   assert.equal(o.status, 'PLACED')
@@ -91,19 +91,19 @@ test('no reason, or a reason from the other side\'s list, is refused', () => {
 
 /** "Other" is the escape hatch, and the only one that needs words. */
 test('"other" needs a few real words, trimmed', () => {
-  assert.notEqual(cancelProblem('seller', 'other', ''), null)
-  assert.notEqual(cancelProblem('seller', 'other', '   ab   '), null)
-  assert.notEqual(cancelProblem('seller', 'other', 'x'.repeat(201)), null)
-  assert.equal(cancelProblem('seller', 'other', 'Gas cylinder ran out'), null)
+  assert.notEqual(cancelProblem('farmer', 'other', ''), null)
+  assert.notEqual(cancelProblem('farmer', 'other', '   ab   '), null)
+  assert.notEqual(cancelProblem('farmer', 'other', 'x'.repeat(201)), null)
+  assert.equal(cancelProblem('farmer', 'other', 'Gas cylinder ran out'), null)
 
   const o = order('OUT_FOR_DELIVERY')
-  cancelOrder(o, 'seller', { reason: 'other', note: '  Scooter broke down  ' })
+  cancelOrder(o, 'farmer', { reason: 'other', note: '  Scooter broke down  ' })
   assert.equal(o.events.at(-1)?.note, 'Scooter broke down')
 })
 
 test('both lists end with "other"', () => {
   assert.equal(CUSTOMER_CANCEL_REASONS.at(-1), 'other')
-  assert.equal(SELLER_CANCEL_REASONS.at(-1), 'other')
+  assert.equal(FARMER_CANCEL_REASONS.at(-1), 'other')
 })
 
 test('the order screen can find who called it off and why', () => {
@@ -115,11 +115,11 @@ test('the order screen can find who called it off and why', () => {
 })
 
 /**
- * The app refunds nobody, so after a seller cancels, her screen has to say
+ * The app refunds nobody, so after a farmer cancels, her screen has to say
  * whether money is sitting in her account that belongs to the buyer. A UTR the
  * buyer typed is a claim, not money - she is told to check, not told it came.
  */
-test('what the seller owes back follows what was reported about the payment', () => {
+test('what the farmer owes back follows what was reported about the payment', () => {
   const o = order('PACKED')
   assert.equal(refundOwed(o), 'none')
   o.paymentStatus = 'UPI_SUBMITTED'
@@ -134,7 +134,7 @@ test('what the seller owes back follows what was reported about the payment', ()
 test('cancelling leaves the payment as it was, so the refund is still known afterwards', () => {
   const o = order('PACKED')
   o.paymentStatus = 'UPI_CONFIRMED'
-  cancelOrder(o, 'seller', { reason: 'out_of_stock' })
+  cancelOrder(o, 'farmer', { reason: 'out_of_stock' })
   assert.equal(o.status, 'CANCELLED')
   assert.equal(refundOwed(o), 'confirmed')
 })

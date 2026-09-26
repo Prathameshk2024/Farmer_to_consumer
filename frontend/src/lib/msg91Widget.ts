@@ -81,7 +81,7 @@ export const WIDGET_SESSION_LOST = 'msg91-widget-session-lost'
  * `initSendOTP` does not attach the three methods synchronously, so checking
  * for them the instant it returns reports them missing on a slow connection
  * and works fine on a fast one - the worst kind of bug to be handed by a
- * seller in a village.
+ * farmer in a village.
  *
  * Waiting is also what turns a silent nothing into a named failure: if they
  * never arrive, that is the widget refusing this origin, and saying so here
@@ -251,7 +251,7 @@ export async function verifyWidgetOtp(code: string): Promise<string> {
      *   "reqId is required."  the page reloaded and took the session with it
      *   "otp already verifed" this request was verified by an attempt whose
      *                         answer never reached us - the server was down,
-     *                         the network dropped, the seller pressed twice
+     *                         the network dropped, the farmer pressed twice
      * Either way MSG91 will not verify that request again, so those digits are
      * spent however right they were. Drop the session so the resend button
      * fetches a NEW code instead of retrying against a dead one.

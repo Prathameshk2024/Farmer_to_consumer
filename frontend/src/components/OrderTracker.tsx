@@ -13,8 +13,8 @@ import { IconAllClear, IconChevron, StatusIcon } from './icons.js'
  * is green top to bottom. An order that stopped early shows only the stages it
  * really passed, then a red line saying it was called off.
  *
- * The seller's screens keep all five states - see `Timeline` in
- * screens/seller/Orders.tsx. This is the buyer's view only.
+ * The farmer's screens keep all five states - see `Timeline` in
+ * screens/farmer/Orders.tsx. This is the buyer's view only.
  */
 
 /** "Sat, 23rd May '26" - the way a delivery app prints a day. Latin digits. */

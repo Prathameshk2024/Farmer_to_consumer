@@ -21,7 +21,7 @@ export function newId(prefix: string): string {
  * is already taken and we draw again. Two orders sharing an id is not a
  * cosmetic clash: every lookup in the API is a find-first, so the second buyer
  * would be handed somebody else's order, and a UTR would settle against the
- * wrong seller. Uniqueness is checked, never assumed.
+ * wrong farmer. Uniqueness is checked, never assumed.
  *
  * ponytail: 9,000 is the ceiling. Past a few thousand live orders the draws
  * start missing and the long form takes over; widen to five digits then.

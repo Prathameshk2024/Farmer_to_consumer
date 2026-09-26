@@ -5,8 +5,8 @@ import { hmac, randomId, timingEqual } from './crypto.js'
  * ===============================
  * This exists to close a hole rather than to add a feature.
  *
- * `POST /sellers/register` used to take a phone number out of the request body
- * and mint a seller session for it. No OTP, no session, no check of any kind -
+ * `POST /farmers/register` used to take a phone number out of the request body
+ * and mint a farmer session for it. No OTP, no session, no check of any kind -
  * so anyone who could reach the API could create an account against any
  * unregistered number and be signed in as her. The client walked through the
  * OTP screen first, which is not the same thing as the server requiring it.
@@ -23,7 +23,7 @@ import { hmac, randomId, timingEqual } from './crypto.js'
 
 const TTL_MS = 15 * 60 * 1000
 
-export type TicketPurpose = 'seller-register'
+export type TicketPurpose = 'farmer-register'
 
 interface TicketBody {
   purpose: TicketPurpose
@@ -93,7 +93,7 @@ export function consumeTicket(
 /**
  * Is this ticket valid, WITHOUT spending it?
  *
- * Uploads need this. During registration she has no session - the seller
+ * Uploads need this. During registration she has no session - the farmer
  * record does not exist yet - so the ticket is the only proof she can offer
  * when asking for a Cloudinary signature, and she may need several (a QR now,
  * a photo a moment later) before the one registration call spends it.

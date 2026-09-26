@@ -1,7 +1,7 @@
 import type {
   Address, Category, Customer, DigitalProfile, Order, Product,
-  ProductRatingInput, PublicReview, PublicSeller, RatingSummary, Review, Seller, SellerGroup,
-  SellerWeek, Session,
+  ProductRatingInput, PublicReview, PublicFarmer, RatingSummary, Review, Farmer, FarmerGroup,
+  FarmerWeek, Session,
 } from '@shared/types.js'
 import type { ReportReason, ReportTarget } from '@shared/report.js'
 import type { ComplaintSubject } from '@shared/complaint.js'
@@ -32,7 +32,7 @@ export function apiUrl(path: string, query: Record<string, string> = {}): string
  *
  * A phone with site data blocked - or simply full - made every write here a
  * no-op, and reading the token back out of storage on every request turned
- * that into: the seller's shop on screen, no token on the wire, and a 401 on
+ * that into: the farmer's shop on screen, no token on the wire, and a 401 on
  * the first thing they tapped. Memory is the source of truth, storage is the
  * backup.
  */
@@ -68,14 +68,14 @@ export function setToken(token: string | null): void {
  *  - the server slides the idle window by handing back a fresh token on
  *    `X-Session-Token`. That landed in `wb.token` only. On the next reload
  *    AuthContext wrote the ORIGINAL token back over it, so the window never
- *    actually slid and a seller was signed out exactly seven days after login
+ *    actually slid and a farmer was signed out exactly seven days after login
  *    however much she had used the app in between;
  *  - a 401 cleared `wb.token` and left `wb.session` sitting there, so the UI
  *    still believed she was signed in while every request failed.
  *
  * So the two events that change a session are published here, and AuthContext
  * is the one place that acts on them. Nothing else clears a session - not a
- * back press, not a reload, not opening /seller again.
+ * back press, not a reload, not opening /farmer again.
  */
 type TokenListener = (token: string) => void
 type ExpiryListener = () => void
@@ -200,18 +200,18 @@ export const api = {
    * `registered` and `session` are independent on purpose. A customer whose
    * OTP checked out is authenticated - she gets a session - but she is not
    * registered until she has given us a name, so both come back together and
-   * the caller decides where she lands. A seller with no record gets
+   * the caller decides where she lands. A farmer with no record gets
    * `registered: false` and no session, because there is nothing to sign in to
    * until the wizard has run.
    */
-  verifyOtp: (phone: string, code: string, role: 'seller' | 'customer') =>
+  verifyOtp: (phone: string, code: string, role: 'farmer' | 'customer') =>
     post<{
       registered: boolean
       session?: Session
       phone?: string
       /**
        * Single-use proof that this phone just passed an OTP. Present only for
-       * a seller with no record yet, and required by `registerSeller` - the
+       * a farmer with no record yet, and required by `registerFarmer` - the
        * server reads the phone out of it and ignores the one in the body.
        */
       ticket?: string
@@ -240,20 +240,20 @@ export const api = {
 
   endSession: (id: string) => del<{ ok: true }>(`/auth/sessions/${id}`),
 
-  /* ---------------- seller ---------------- */
+  /* ---------------- farmer ---------------- */
 
-  registerSeller: (body: SellerRegistration) =>
-    post<{ seller: Seller; session: Session }>('/sellers/register', body),
+  registerFarmer: (body: FarmerRegistration) =>
+    post<{ farmer: Farmer; session: Session }>('/farmers/register', body),
 
-  me: () => get<{ seller: Seller }>('/sellers/me'),
+  me: () => get<{ farmer: Farmer }>('/farmers/me'),
 
-  updateMe: (patchBody: Partial<Seller>) =>
-    patch<{ seller: Seller }>('/sellers/me', patchBody),
+  updateMe: (patchBody: Partial<Farmer>) =>
+    patch<{ farmer: Farmer }>('/farmers/me', patchBody),
 
   /** Her buyers, derived from her own orders. Never anybody else's. */
-  myBuyers: () => get<{ buyers: SellerBuyer[] }>('/sellers/me/buyers'),
+  myBuyers: () => get<{ buyers: FarmerBuyer[] }>('/farmers/me/buyers'),
 
-  sellerById: (id: string) => get<{ seller: PublicSeller }>(`/sellers/${id}`),
+  farmerById: (id: string) => get<{ farmer: PublicFarmer }>(`/farmers/${id}`),
 
   /* ---------------- products ---------------- */
 
@@ -273,7 +273,7 @@ export const api = {
 
   categories: () => get<{ categories: Category[] }>('/catalog/categories'),
 
-  catalog: (params: { categoryId?: string; q?: string; pincode?: string; sellerId?: string } = {}) => {
+  catalog: (params: { categoryId?: string; q?: string; pincode?: string; farmerId?: string } = {}) => {
     const qs = new URLSearchParams()
     for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v)
     const s = qs.toString()
@@ -282,19 +282,19 @@ export const api = {
     )
   },
 
-  /** `seller` is the public card only - never her phone. See db/publicSeller.ts. */
-  product: (id: string) => get<{ product: CatalogProduct; seller?: PublicSeller }>(`/catalog/products/${id}`),
+  /** `farmer` is the public card only - never her phone. See db/publicFarmer.ts. */
+  product: (id: string) => get<{ product: CatalogProduct; farmer?: PublicFarmer }>(`/catalog/products/${id}`),
 
   /** What buyers said about one product. Public, as far as the product is. */
   productReviews: (id: string) =>
     get<{ reviews: PublicReview[]; summary: RatingSummary }>(`/catalog/products/${id}/reviews`),
 
-  /** Is this pincode covered by any open seller? Derived, never a static list. */
+  /** Is this pincode covered by any open farmer? Derived, never a static list. */
   serviceability: (pincode: string) =>
     get<{
       pincode: string
       serviceable: boolean
-      sellerCount: number
+      farmerCount: number
       productCount: number
       nearbyVillages: string[]
     }>(`/catalog/serviceability?pincode=${encodeURIComponent(pincode)}`),
@@ -326,12 +326,12 @@ export const api = {
    * order is still in flight, which is a thing to finish rather than an error
    * to report - the sheet says so and names them.
    *
-   * The seller's is reversible for a week (`closingAt`); the buyer's is not.
+   * The farmer's is reversible for a week (`closingAt`); the buyer's is not.
    */
-  closeSellerAccount: (body: { reason: string; note?: string; confirm: string }) =>
-    post<{ ok: true; closingAt: string }>('/sellers/me/close', body),
+  closeFarmerAccount: (body: { reason: string; note?: string; confirm: string }) =>
+    post<{ ok: true; closingAt: string }>('/farmers/me/close', body),
 
-  restoreSellerAccount: () => post<{ seller: Seller }>('/sellers/me/restore'),
+  restoreFarmerAccount: () => post<{ farmer: Farmer }>('/farmers/me/restore'),
 
   closeCustomerAccount: (confirm: string) =>
     post<{ ok: true }>('/customers/me/close', { confirm }),
@@ -346,10 +346,10 @@ export const api = {
 
   /**
    * `reviews` is one per rated product: the buyer's own in full (so a hidden
-   * one can say so), the public copies for the seller, hidden ones left out.
+   * one can say so), the public copies for the farmer, hidden ones left out.
    */
   order: (id: string) =>
-    get<{ order: Order; seller?: Partial<Seller>; reviews: (Review | PublicReview)[] }>(`/orders/${id}`),
+    get<{ order: Order; farmer?: Partial<Farmer>; reviews: (Review | PublicReview)[] }>(`/orders/${id}`),
 
   /** Every product on a delivered order, rated at once - given, or given again. */
   reviewOrder: (id: string, ratings: ProductRatingInput[]) =>
@@ -359,11 +359,11 @@ export const api = {
    * Every visible review of her products, each naming the product, and the
    * rating buyers see on her card - her products' ratings taken together.
    */
-  myReviews: () => get<{ reviews: PublicReview[]; summary: RatingSummary }>('/sellers/me/reviews'),
+  myReviews: () => get<{ reviews: PublicReview[]; summary: RatingSummary }>('/farmers/me/reviews'),
 
   placeOrders: (body: {
     address: { line: string; landmark?: string; pincode: string }
-    groups: SellerGroup[]
+    groups: FarmerGroup[]
     paymentMode: 'COD' | 'UPI'
     customerName?: string
   }) => post<{ orders: Order[]; groupId: string }>('/orders', body),
@@ -387,8 +387,8 @@ export const api = {
    * an order. Fetched on the tap, never carried in the catalogue - see the
    * route's comment for why.
    */
-  sellerContact: (sellerId: string) =>
-    get<{ phone: string; whatsapp: string }>(`/catalog/sellers/${sellerId}/contact`),
+  farmerContact: (farmerId: string) =>
+    get<{ phone: string; whatsapp: string }>(`/catalog/farmers/${farmerId}/contact`),
 
   /**
    * A buyer flagging a listing or a review. One report per person per thing;
@@ -401,7 +401,7 @@ export const api = {
     note?: string
   }) => post<{ ok: true }>('/reports', body),
 
-  /** The buyer paying, after the seller has accepted. */
+  /** The buyer paying, after the farmer has accepted. */
   payOrder: (id: string, utr: string) =>
     post<{ order: Order }>(`/orders/${id}/pay`, { utr }),
 
@@ -413,19 +413,19 @@ export const api = {
 
   /* ---------------- analytics ---------------- */
 
-  sellerWeek: (id: string) => get<{ week: SellerWeek | null }>(`/analytics/seller/${id}/week`),
+  farmerWeek: (id: string) => get<{ week: FarmerWeek | null }>(`/analytics/farmer/${id}/week`),
 }
 
-/** A product as the catalogue sends it: its seller's public card and its own stars. */
+/** A product as the catalogue sends it: its farmer's public card and its own stars. */
 export type CatalogProduct = Product & {
-  seller?: PublicSeller
+  farmer?: PublicFarmer
   /** Worked out from reviews on every request; 0 with none. */
   rating?: number
   ratingCount?: number
 }
 
-/** One row of the seller's "My Buyers" screen. Derived server-side. */
-export interface SellerBuyer {
+/** One row of the farmer's "My Buyers" screen. Derived server-side. */
+export interface FarmerBuyer {
   customerId: string
   name: string
   phone: string
@@ -444,7 +444,7 @@ export interface AddressInput {
   isDefault?: boolean
 }
 
-export interface SellerRegistration {
+export interface FarmerRegistration {
   /**
    * From `verifyOtp`. The server takes the phone number from THIS and ignores
    * anything the body claims, so registration cannot be pointed at a number
@@ -461,7 +461,7 @@ export interface SellerRegistration {
   pincode: string
   shopName: string
   about?: string
-  businessType: Seller['businessType']
+  businessType: Farmer['businessType']
   shgName?: string
   yearsInBusiness?: number
   monthlyCapacity?: number
@@ -473,5 +473,5 @@ export interface SellerRegistration {
   digital: DigitalProfile
   deliveryFee?: number
   minOrder?: number
-  dispatch?: Seller['dispatch']
+  dispatch?: Farmer['dispatch']
 }

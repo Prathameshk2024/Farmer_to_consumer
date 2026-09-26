@@ -7,7 +7,7 @@ import { TopBar } from '../components/Shell.js'
 import { Card, ErrorNote, Loading, SectionTitle, useAsync } from '../components/ui.js'
 import {
   IconAllClear, IconGo, IconImpact, IconOrders, IconProducts,
-  IconSellers, IconToday,
+  IconFarmers, IconToday,
 } from '../components/icons.js'
 
 /**
@@ -32,7 +32,7 @@ export function Home() {
 
   const sections = [
     { to: '/products', icon: IconProducts, label: t('nav.products'), body: t('home.sectionProducts') },
-    { to: '/sellers', icon: IconSellers, label: t('nav.sellers'), body: t('home.sectionSellers'), badge: s?.pendingVerification },
+    { to: '/farmers', icon: IconFarmers, label: t('nav.farmers'), body: t('home.sectionFarmers'), badge: s?.pendingVerification },
     { to: '/orders', icon: IconOrders, label: t('nav.orders'), body: t('home.sectionOrders'), badge: s?.stuckOrders },
     { to: '/impact', icon: IconImpact, label: t('nav.impact'), body: t('home.sectionImpact') },
     { to: '/today', icon: IconToday, label: t('nav.today'), body: t('home.sectionToday') },
@@ -61,7 +61,7 @@ export function Home() {
             </Card>
           ) : (
             <div className="tiles">
-              <QueueTile n={s!.pendingVerification} label={t('se.waitingVerification')} onClick={() => nav('/sellers')} />
+              <QueueTile n={s!.pendingVerification} label={t('se.waitingVerification')} onClick={() => nav('/farmers')} />
               <QueueTile n={s!.stuckOrders} label={t('today.stuckOrders')} onClick={() => nav('/orders')} />
             </div>
           )}
@@ -71,10 +71,10 @@ export function Home() {
           <section>
             <SectionTitle>{t('today.health')}</SectionTitle>
             <div className="tiles">
-              <MiniStat n={s.activeSellers} label={t('today.activeSellers')} />
+              <MiniStat n={s.activeFarmers} label={t('today.activeFarmers')} />
               <MiniStat n={s.newRegistrations} label={t('today.newThisWeek')} />
               <MiniStat n={s.ordersWeek} label={t('today.ordersWeek')} />
-              <MiniStat n={rupees(s.womenEarnedMonth)} label={t('today.earnedMonth')} />
+              <MiniStat n={rupees(s.farmersEarnedMonth)} label={t('today.earnedMonth')} />
               {/* Firestore is on the free Spark plan and every server start
                   reads every document, so these two are the early warning
                   for a start that is refused and takes the API down until

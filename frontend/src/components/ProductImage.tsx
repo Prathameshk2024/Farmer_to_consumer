@@ -31,7 +31,7 @@ export default function ProductImage({
   src?: string
   /** Ignored. Products no longer show an emoji; kept so old call sites compile. */
   emoji?: string
-  /** The seller's category, so a listing with no photo borrows the category's. */
+  /** The farmer's category, so a listing with no photo borrows the category's. */
   categoryId?: string
   /** Square side in px. Omit to fill the parent (used by the 1:1 card top). */
   size?: number
@@ -52,7 +52,7 @@ export default function ProductImage({
     : { width: '100%', aspectRatio: '1', borderRadius: rounded }
 
   if (!wanted || failedUrl === wanted) {
-    // A photograph of the seller's category beats a bare icon, and it is a
+    // A photograph of the farmer's category beats a bare icon, and it is a
     // bundled asset, so it needs no request and cannot itself fail to load.
     const stockPhoto = categoryPhoto(categoryId)
     if (stockPhoto) {

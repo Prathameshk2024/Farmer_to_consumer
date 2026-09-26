@@ -53,25 +53,25 @@ export function shouldMarkSeen(shown: TourStep[]): boolean {
 }
 
 export type TourId =
-  | 'seller.business' | 'seller.upload' | 'seller.profile' | 'seller.help'
+  | 'farmer.business' | 'farmer.upload' | 'farmer.profile' | 'farmer.help'
   | 'shop.explore' | 'shop.categories' | 'shop.cart' | 'shop.profile'
 
 export const TOURS: Record<TourId, TourStep[]> = {
-  'seller.business': [
+  'farmer.business': [
     { sel: '[data-wt="biz-shop"]', title: 'biz.shopOpen', body: 'wt.biz1' },
     { sel: '[data-wt="biz-action"]', title: 'biz.needsAction', body: 'wt.biz3' },
     { sel: '[data-wt="biz-links"]', title: 'biz.myProducts', body: 'wt.biz4' },
   ],
-  'seller.upload': [
+  'farmer.upload': [
     { sel: '[data-wt="up-dots"]', title: 'prod.add', body: 'wt.up1' },
     { sel: '[data-wt="up-body"] .field', title: 'prod.photos', body: 'wt.up2' },
     { sel: '[data-wt="up-next"]', title: 'common.next', body: 'wt.up3' },
   ],
-  'seller.profile': [
+  'farmer.profile': [
     { sel: '[data-wt="prof-pay"]', title: 'prof.payment', body: 'wt.pr2' },
     { sel: '[data-wt="prof-lang"]', title: 'onb.chooseLang', body: 'wt.pr3' },
   ],
-  'seller.help': [
+  'farmer.help': [
     { sel: '[data-wt="help-tours"]', title: 'wt.title', body: 'wt.hp1' },
     { sel: '[data-wt="help-contact"]', title: 'help.contact', body: 'wt.hp2' },
   ],
@@ -106,12 +106,12 @@ export const TOURS: Record<TourId, TourStep[]> = {
 }
 
 /** The four bottom tabs, in the order they sit in the nav bar. */
-export const TOUR_MENU: Record<'seller' | 'customer', { id: TourId; to: string; label: string }[]> = {
-  seller: [
-    { id: 'seller.business', to: '/seller', label: 'nav.business' },
-    { id: 'seller.upload', to: '/seller/upload', label: 'nav.upload' },
-    { id: 'seller.profile', to: '/seller/profile', label: 'nav.profile' },
-    { id: 'seller.help', to: '/seller/help', label: 'nav.help' },
+export const TOUR_MENU: Record<'farmer' | 'customer', { id: TourId; to: string; label: string }[]> = {
+  farmer: [
+    { id: 'farmer.business', to: '/farmer', label: 'nav.business' },
+    { id: 'farmer.upload', to: '/farmer/upload', label: 'nav.upload' },
+    { id: 'farmer.profile', to: '/farmer/profile', label: 'nav.profile' },
+    { id: 'farmer.help', to: '/farmer/help', label: 'nav.help' },
   ],
   customer: [
     { id: 'shop.explore', to: '/shop', label: 'nav.explore' },

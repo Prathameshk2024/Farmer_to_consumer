@@ -1,11 +1,11 @@
 import type { Product, Unit } from '@shared/types.js'
-import { needsPieceCount } from '@shared/seller.js'
+import { needsPieceCount } from '@shared/farmer.js'
 
 /**
  * HOW MUCH IS ONE OF THESE, in words.
  *
  * "₹80" tells a buyer nothing until she knows whether that is a 200g jar or a
- * kilo, and she cannot compare two sellers without it. So every place that
+ * kilo, and she cannot compare two farmers without it. So every place that
  * prints a price prints this beside it: "500 ग्रॅम", "1 सेट (6 नग)".
  *
  * A listing from before the size was asked for has none, and then the unit on

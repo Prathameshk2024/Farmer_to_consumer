@@ -6,7 +6,7 @@ import { COLLECTIONS, isBulkDelete } from './firestore.js'
  * =============================
  * The live project is on the Spark plan, so there are no managed backups and
  * no point-in-time recovery - only the one hour of version history that
- * rescued six sellers on 10 September 2026. The backup is instead a copy into
+ * rescued six farmers on 10 September 2026. The backup is instead a copy into
  * separate free Firebase and Cloudinary accounts, and this file decides what
  * that copy does. scripts/backup.ts does the reading and writing.
  *
@@ -49,7 +49,7 @@ export function stableJson(value: unknown): string {
  * documents that differ, and the ones the live project no longer has.
  *
  * The backup MIRRORS deletions rather than keeping everything forever. A copy
- * that never deletes brings back every purged demo seller and every deleted
+ * that never deletes brings back every purged demo farmer and every deleted
  * draft on the day it is restored, and it only ever grows, so no shrink check
  * could be measured against it. What stops a wipe being mirrored is
  * `shrinkProblems`, the rotation between targets, and the dated local files.
@@ -71,7 +71,7 @@ export function planCollection(
  *
  * The same line the live app draws in `isBulkDelete`: no collection may lose
  * more than half its documents in one step. On 10 September the live project
- * held empty `sellers` and `products` for a few minutes; a backup taken in
+ * held empty `farmers` and `products` for a few minutes; a backup taken in
  * those minutes would have faithfully deleted its own copy of six women. So a
  * live project that has shrunk that far since the backup was taken is treated
  * as the problem, and the backup is left as the evidence.

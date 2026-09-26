@@ -8,8 +8,8 @@ import {
 /**
  * MONEY AFTER ACCEPTANCE, NOT BEFORE.
  *
- * A buyer used to pay by UPI at checkout, before the seller had seen the
- * order. If the seller then rejected it - too far, out of stock, a pincode she
+ * A buyer used to pay by UPI at checkout, before the farmer had seen the
+ * order. If the farmer then rejected it - too far, out of stock, a pincode she
  * cannot reach - the money was already in her account and this app has no
  * refund path. Since her delivery-area list stopped being a gate, rejection is
  * a normal outcome rather than a rare one, so prepaying became untenable.
@@ -37,7 +37,7 @@ test('a cash order is still pending collection', () => {
   assert.equal(initialPaymentStatus('COD'), 'COD_PENDING')
 })
 
-test('the buyer is asked for money only once the seller has accepted', () => {
+test('the buyer is asked for money only once the farmer has accepted', () => {
   assert.equal(awaitingCustomerPayment(order({ status: 'PLACED' })), false)
   assert.equal(awaitingCustomerPayment(order({ status: 'ACCEPTED' })), true)
 })

@@ -1,4 +1,4 @@
-import type { OrderRow, ProductRow, SellerRow } from './api.js'
+import type { OrderRow, ProductRow, FarmerRow } from './api.js'
 
 /**
  * HOW EACH LIST CAN BE ORDERED.
@@ -50,7 +50,7 @@ function lowest<T>(id: string, labelKey: string, n: (row: T) => number | undefin
   return { id, labelKey, compare: (a, b) => (n(a) ?? 0) - (n(b) ?? 0) }
 }
 
-export const SELLER_SORTS: SortOption<SellerRow>[] = [
+export const FARMER_SORTS: SortOption<FarmerRow>[] = [
   newestFirst((s) => s.createdAt),
   oldestFirst((s) => s.createdAt),
   nameAZ((s) => s.name),
@@ -75,8 +75,8 @@ export const ORDER_SORTS: SortOption<OrderRow>[] = [
   highest('amountHigh', 'sort.amountHigh', (o) => o.total),
   lowest('amountLow', 'sort.amountLow', (o) => o.total),
   // The buyer is masked in this list, so the name to sort by is the shop's.
-  nameAZ((o) => o.seller, 'sort.shopAZ'),
-  nameZA((o) => o.seller, 'sort.shopZA'),
+  nameAZ((o) => o.farmer, 'sort.shopAZ'),
+  nameZA((o) => o.farmer, 'sort.shopZA'),
 ]
 
 /**

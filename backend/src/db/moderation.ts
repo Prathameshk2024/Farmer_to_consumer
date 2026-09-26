@@ -5,7 +5,7 @@ import { destroyImage } from '../routes/uploads.routes.js'
  * ROWS STORED UNDER RULES THAT NO LONGER EXIST.
  *
  * Listings used to wait in a queue (PENDING), be refused (REJECTED) or be
- * archived instead of deleted (ARCHIVED); sellers used to pay before selling
+ * archived instead of deleted (ARCHIVED); farmers used to pay before selling
  * (REGISTERED, PAYMENT_SUBMITTED, PAYMENT_REJECTED). None of those are in the
  * types any more, so a row still carrying one would be read as something it
  * is not. Run once at boot, in place - `db.products` is the live array every
@@ -13,11 +13,11 @@ import { destroyImage } from '../routes/uploads.routes.js'
  *
  * A waiting listing goes on sale (its farmer still has to be verified before
  * anyone sees it); a refused or archived one is removed with its photo; an
- * unpaid seller waits for verification; one already ACTIVE is stamped as
+ * unpaid farmer waits for verification; one already ACTIVE is stamped as
  * verified.
  */
 export function normalizeLegacyRows(
-  db: Pick<Db, 'products' | 'sellers'>,
+  db: Pick<Db, 'products' | 'farmers'>,
   // A parameter only so a test can see what would be destroyed.
   destroy: (publicId: string | undefined) => unknown = destroyImage,
 ): number {
@@ -35,7 +35,7 @@ export function normalizeLegacyRows(
       changed++
     }
   }
-  for (const s of db.sellers) {
+  for (const s of db.farmers) {
     if (['REGISTERED', 'PAYMENT_SUBMITTED', 'PAYMENT_REJECTED'].includes(s.status as string)) {
       s.status = 'PENDING_VERIFICATION'
       changed++

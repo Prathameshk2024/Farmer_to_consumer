@@ -1,7 +1,7 @@
-import type { PublicSeller, RatingSummary, Seller } from '@shared/types.js'
+import type { PublicFarmer, RatingSummary, Farmer } from '@shared/types.js'
 
 /**
- * THE ONLY SHAPE OF A SELLER THAT LEAVES THE API UNAUTHENTICATED.
+ * THE ONLY SHAPE OF A FARMER THAT LEAVES THE API UNAUTHENTICATED.
  *
  * Built field by field rather than by deleting the private ones. The product
  * page used to return her whole record - phone, admin notices, block reason,
@@ -15,16 +15,16 @@ import type { PublicSeller, RatingSummary, Seller } from '@shared/types.js'
  *  - delivery terms and pincodes - checkout needs them to price and warn.
  *  - UPI ID, QR image and whether it is set up - the thing a buyer pays to.
  *  - rating: her products' ratings taken together, passed in by the caller
- *    from `ratingsBySeller` / `sellerRating`. Buyers rate products, never
- *    her directly; the stored `Seller.rating` fields are never used.
+ *    from `ratingsByFarmer` / `farmerRating`. Buyers rate products, never
+ *    her directly; the stored `Farmer.rating` fields are never used.
  *
  * Her phone number is NOT here. A buyer gets it on their own order, from the
  * moment the order exists (see GET /orders/:id), and nowhere else.
  */
-export function publicSeller(s: Seller, rating: RatingSummary): PublicSeller {
+export function publicFarmer(s: Farmer, rating: RatingSummary): PublicFarmer {
   return {
     id: s.id,
-    womenBizId: s.womenBizId,
+    farmerCode: s.farmerCode,
     name: s.name,
     photo: s.photo,
     shopName: s.shopName,

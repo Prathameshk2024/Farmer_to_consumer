@@ -7,7 +7,7 @@ import { useToast } from '../../store/ToastContext.js'
 import {
   AppBar, Button, Field, Notice, VoiceInput,
 } from '../../components/ui.js'
-import { sessionStore } from './sellerDraft.js'
+import { sessionStore } from './farmerDraft.js'
 import { clearName, readName, writeName } from './customerDraft.js'
 
 /**
@@ -15,11 +15,11 @@ import { clearName, readName, writeName } from './customerDraft.js'
  * ========================================
  * Her phone and OTP were already done by the shared login flow; this is the
  * third thing and the only one that is hers to type. One question on one
- * screen, the same rule the seller wizard follows.
+ * screen, the same rule the farmer wizard follows.
  *
- * The name is not decoration. It is what the seller reads on the order and
+ * The name is not decoration. It is what the farmer reads on the order and
  * what she is called when a woman in a village phones her about a delivery -
- * "ग्राहक" on every order tells that seller nothing. So it is persisted to her
+ * "ग्राहक" on every order tells that farmer nothing. So it is persisted to her
  * customer record through the existing PATCH /customers/me, which resolves her
  * from the id inside her own signed token and cannot touch anybody else's row.
  *

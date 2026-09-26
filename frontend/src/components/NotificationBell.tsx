@@ -29,16 +29,16 @@ export default function NotificationBell() {
     if (!session || session.role === 'admin') return
     let alive = true
 
-    // A seller's list also holds what an admin decided about her account, so
+    // A farmer's list also holds what an admin decided about her account, so
      // the badge has to count both or it disagrees with the screen it opens.
     Promise.all([
       api.myOrders(),
-      session.role === 'seller' ? api.me().catch(() => null) : Promise.resolve(null),
+      session.role === 'farmer' ? api.me().catch(() => null) : Promise.resolve(null),
     ])
       .then(([{ orders }, me]) => {
         if (!alive) return
         const feed = mergeFeeds(
-          buildFeed(orders, session.role), adminFeed(me?.seller),
+          buildFeed(orders, session.role), adminFeed(me?.farmer),
         )
         setUnread(unreadCount(feed, session.userId))
       })
@@ -52,7 +52,7 @@ export default function NotificationBell() {
 
   if (!session || session.role === 'admin') return null
 
-  const to = session.role === 'seller' ? '/seller/notifications' : '/shop/notifications'
+  const to = session.role === 'farmer' ? '/farmer/notifications' : '/shop/notifications'
 
   return (
     <button
@@ -62,7 +62,7 @@ export default function NotificationBell() {
     >
       <IconBell aria-hidden="true" />
       {unread > 0 && (
-        // Capped at 9+. A seller back after a week does not need the exact
+        // Capped at 9+. A farmer back after a week does not need the exact
         // number, only to know there is a pile.
         <span className="appbar__dot">{unread > 9 ? '9+' : unread}</span>
       )}

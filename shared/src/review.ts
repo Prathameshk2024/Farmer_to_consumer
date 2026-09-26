@@ -12,13 +12,13 @@ import type {
  *
  * THE BUYER CANNOT SKIP IT. While a delivered order is unrated, the customer
  * app shows the rating screen over everything else (`RateOrderGate`). That is
- * a product decision: a rural seller has nothing a stranger can check except
+ * a product decision: a rural farmer has nothing a stranger can check except
  * what her last buyers said, and a rating asked for "later" is a rating never
  * given.
  *
  * ONLY A BUYER WHO RECEIVED IT. A review belongs to one product on one
  * DELIVERED order, written by the customer on that order. No order, no
- * review: that stops a rival's one-stars and a seller's own five-stars.
+ * review: that stops a rival's one-stars and a farmer's own five-stars.
  *
  * ONE VOICE PER PRODUCT PER ORDER. Writing again replaces the earlier review
  * of that product on that order rather than adding one.
@@ -37,7 +37,7 @@ export const REVIEW_COMMENT_MAX = 500
 export const RATING_MIN = 1
 export const RATING_MAX = 5
 
-/** When the seller marked it delivered, or undefined if she has not. */
+/** When the farmer marked it delivered, or undefined if she has not. */
 export function deliveredAt(order: Pick<Order, 'status' | 'events'>): string | undefined {
   if (order.status !== 'DELIVERED') return undefined
   return [...(order.events ?? [])].reverse().find((e) => e.to === 'DELIVERED')?.at
@@ -118,7 +118,7 @@ export function ratingsProblem(order: Pick<Order, 'items'>, ratings: unknown): s
 /**
  * The name a review is shown under: the first word of the buyer's name.
  *
- * Reviews are public, and a full name next to the seller's village is enough
+ * Reviews are public, and a full name next to the farmer's village is enough
  * to find someone's house. Empty when there is no name, and each app prints
  * its own word for "a customer".
  */
@@ -143,7 +143,7 @@ export function summarizeReviews(reviews: Pick<Review, 'rating' | 'hidden'>[]): 
   return { average: count ? Math.round((sum / count) * 10) / 10 : 0, count, byStars }
 }
 
-/** Strip what the public must not see: the buyer's id, the seller's, and any moderation. */
+/** Strip what the public must not see: the buyer's id, the farmer's, and any moderation. */
 export function toPublicReview(r: Review): PublicReview {
   return {
     id: r.id,

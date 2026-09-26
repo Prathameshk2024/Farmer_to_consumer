@@ -6,7 +6,7 @@ import { dictionaries } from '../src/i18n/strings.js'
  * THE MECHANICAL HALF OF docs/MARATHI-STYLE.md, for the console.
  *
  * The same sheet governs all three modules - an admin reading "भरणा" here and
- * a seller reading "पेमेंट" in her own app are being shown two words for one
+ * a farmer reading "पेमेंट" in her own app are being shown two words for one
  * thing, and only one of them can look it up.
  *
  * Marathi ONLY. The English dictionary is an independent piece of writing, not
@@ -72,7 +72,7 @@ test('no space before punctuation, and no doubled spaces', () => {
   assert.deepEqual(bad, [])
 })
 
-test('every seller is a woman, so she is विक्रेती', () => {
+test('every farmer is a woman, so she is विक्रेती', () => {
   // Not merely inconsistent: this console exists to administer a market for
   // women, and the word it uses for them is the word that reaches their app.
   const bad = everything.filter((e) => /विक्रेता/.test(e.value)).map((e) => e.where)
@@ -85,7 +85,7 @@ test('ऑर्डर is neuter, on both sides of the same order', () => {
    * which is the Hindi gender for this loanword, not the Marathi one. Native
    * speakers saw it immediately; nobody reading a diff of 740 strings did.
    *
-   * The seller's app and the buyer's app must not disagree about it either.
+   * The farmer's app and the buyer's app must not disagree about it either.
    * One order is one object, described to two people.
    */
   /**

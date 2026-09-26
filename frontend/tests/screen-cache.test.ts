@@ -78,7 +78,7 @@ test('past 40 screens the one visited longest ago goes first', () => {
 
 /** On a field coordinator's phone the next woman must not see this one's shop. */
 test('ending a session forgets every screen', () => {
-  writeCache('seller:products', ['her pickle'])
+  writeCache('farmer:products', ['her pickle'])
   clearScreenCache()
-  assert.equal(readCache('seller:products'), undefined)
+  assert.equal(readCache('farmer:products'), undefined)
 })

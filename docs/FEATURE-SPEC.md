@@ -1,7 +1,7 @@
 # Shantai Mahila Bazar — Feature Specification
 
 Women entrepreneurs sell, customers buy, admin monitors. Delivery is manual and handled
-directly between seller and buyer. Sellers and customers use the **app** (mobile-first web,
+directly between farmer and buyer. Farmers and customers use the **app** (mobile-first web,
 wrappable into a native app). Admin uses the **web** console.
 
 Priority tags: **[P0]** build in the skeleton · **[P1]** needed before real launch · **[P2]** later.
@@ -14,15 +14,15 @@ These change the database shape, so they are cheaper to answer now than to migra
 
 | # | Question | Recommendation |
 |---|---|---|
-| 1 | Can one phone number be both seller and customer? | Yes — one account with `roles[]` and a role switcher. Avoids duplicate KYC. |
-| 2 | Cart with items from three sellers? | Split into three orders under one `order_group`. Delivery and payment are both per-seller, so it has to be. |
-| 3 | Is the ₹50 lifetime or does it expire? | **Decided September 2026: six months.** The shop stays open for 6 months from the admin's approval; then the whole shop pauses until a flat ₹50 renewal is approved, which puts back every pack and product as it was. Only `Seller.subscriptionEndsAt` is stored — see `shared/src/subscription.ts`. |
-| 4 | Do product **drafts** consume a slot? | No. Only products that are live, pending approval, or paused. One product holds one slot: the seller cannot delete a submitted product to free it. Only an admin rejecting or taking down a product frees its slot (changed September 2026 — seller-side archiving let one pack rotate through unlimited products). A woman with a bad listing asks an admin to take it down. |
-| 5 | Does the platform take a commission on orders? | Recommend **no** in v1. The money goes buyer → seller directly via her UPI; the platform never holds it. That avoids payment-aggregator licensing entirely. |
-| 6 | Who guarantees the delivery happened? | Nobody but the seller — which is exactly why you need a delivery OTP. |
+| 1 | Can one phone number be both farmer and customer? | Yes — one account with `roles[]` and a role switcher. Avoids duplicate KYC. |
+| 2 | Cart with items from three farmers? | Split into three orders under one `order_group`. Delivery and payment are both per-farmer, so it has to be. |
+| 3 | Is the ₹50 lifetime or does it expire? | **Decided September 2026: six months.** The shop stays open for 6 months from the admin's approval; then the whole shop pauses until a flat ₹50 renewal is approved, which puts back every pack and product as it was. Only `Farmer.subscriptionEndsAt` is stored — see `shared/src/subscription.ts`. |
+| 4 | Do product **drafts** consume a slot? | No. Only products that are live, pending approval, or paused. One product holds one slot: the farmer cannot delete a submitted product to free it. Only an admin rejecting or taking down a product frees its slot (changed September 2026 — farmer-side archiving let one pack rotate through unlimited products). A woman with a bad listing asks an admin to take it down. |
+| 5 | Does the platform take a commission on orders? | Recommend **no** in v1. The money goes buyer → farmer directly via her UPI; the platform never holds it. That avoids payment-aggregator licensing entirely. |
+| 6 | Who guarantees the delivery happened? | Nobody but the farmer — which is exactly why you need a delivery OTP. |
 | 7 | Languages | **Marathi (default) + English.** Hindi is easy to add later since the i18n layer is the same. |
 | 8 | Android only for v1? | The share-QR requirement points at the Play Store, so yes — Android first. iOS deferred deep linking is harder and can wait. |
-| 9 | How is a seller's service area defined? | A pincode list per seller. Simplest thing that works for manual delivery. |
+| 9 | How is a farmer's service area defined? | A pincode list per farmer. Simplest thing that works for manual delivery. |
 
 ---
 
@@ -45,35 +45,35 @@ have to walk the same six screens.
 | State | Who moves it | What gets captured |
 |---|---|---|
 | `PLACED` | Customer | items, address, payment mode, 4-digit delivery OTP generated |
-| `ACCEPTED` | Seller | must accept before a timer expires (say 2 h) or it auto-cancels |
-| `PACKED` | Seller | optional ready-by time |
-| `OUT_FOR_DELIVERY` | Seller | who is delivering (self / family / helper), expected time |
-| `DELIVERED` | Seller | **must enter the customer's delivery OTP** |
+| `ACCEPTED` | Farmer | must accept before a timer expires (say 2 h) or it auto-cancels |
+| `PACKED` | Farmer | optional ready-by time |
+| `OUT_FOR_DELIVERY` | Farmer | who is delivering (self / family / helper), expected time |
+| `DELIVERED` | Farmer | **must enter the customer's delivery OTP** |
 | `COMPLETED` | System | automatic, once the return window closes |
 
 ### Exceptions
 
 | State | Who | Notes |
 |---|---|---|
-| `REJECTED` | Seller | reason required: out of stock, can't deliver there, shop closed |
+| `REJECTED` | Farmer | reason required: out of stock, can't deliver there, shop closed |
 | `CANCELLED_BY_CUSTOMER` | Customer | only before dispatch, reason required |
-| `CANCELLED_BY_SELLER` | Seller | reason required, counts against her metrics |
-| `RETURN_REQUESTED` → `RETURN_APPROVED` → `REFUNDED` | Buyer / Seller / Admin | photo proof and reason. Food is non-returnable by default |
+| `CANCELLED_BY_FARMER` | Farmer | reason required, counts against her metrics |
+| `RETURN_REQUESTED` → `RETURN_APPROVED` → `REFUNDED` | Buyer / Farmer / Admin | photo proof and reason. Food is non-returnable by default |
 | `DISPUTED` | Either party | routed to the admin desk with the full timeline |
 
 ### Payment status is a separate axis
 
-Because money moves buyer → seller directly, payment does **not** belong in the order state machine.
+Because money moves buyer → farmer directly, payment does **not** belong in the order state machine.
 Track it in its own column:
 
-`COD_PENDING` → `COD_COLLECTED` · `UPI_SUBMITTED` → `UPI_CONFIRMED_BY_SELLER` · `REFUND_PENDING` → `REFUNDED`
+`COD_PENDING` → `COD_COLLECTED` · `UPI_SUBMITTED` → `UPI_CONFIRMED_BY_FARMER` · `REFUND_PENDING` → `REFUNDED`
 
 ### Rules that matter
 
 - Every transition writes a row to `order_status_events` — actor, timestamp, note, optional GPS. That table **is** what admin monitors.
-- The customer's phone stays **masked until the seller accepts**, and the seller's likewise.
-- **Stuck-order alarms:** accepted with no dispatch in X hours, or out for delivery with no delivery in Y hours → admin alert plus a nudge to the seller.
-- The buyer sees the OTP on the confirmation screen with one instruction, in Marathi: *give this number to the seller when your order arrives.*
+- The customer's phone stays **masked until the farmer accepts**, and the farmer's likewise.
+- **Stuck-order alarms:** accepted with no dispatch in X hours, or out for delivery with no delivery in Y hours → admin alert plus a nudge to the farmer.
+- The buyer sees the OTP on the confirmation screen with one instruction, in Marathi: *give this number to the farmer when your order arrives.*
 
 ---
 
@@ -86,7 +86,7 @@ There is no payment gateway; she pays the admin's bank/UPI account directly and 
 
 ```
 1. Phone + OTP                     → account created
-2. Fill profile + shop + her UPI   → seller_profile saved
+2. Fill profile + shop + her UPI   → farmer_profile saved
 3. PAYMENT SCREEN (blocking)       → admin's UPI QR + bank details + "₹50"
    she pays from her own UPI app
 4. She enters the UTR / reference number + uploads the payment screenshot
@@ -96,7 +96,7 @@ There is no payment gateway; she pays the admin's bank/UPI account directly and 
    Reject   → reason shown, she can resubmit without losing anything
 ```
 
-### Seller account states
+### Farmer account states
 
 | State | She can… |
 |---|---|
@@ -138,7 +138,7 @@ After that, the same status persists as a banner across the app, and the state r
 - `slots_total` = approved packs × 5 · `slots_used` = products pending, live or paused
 - **[P0]** A slot meter sits at the top of My Business and of My Products: `३ / ५ उत्पादने` with a filled bar. She must always know where she stands without doing arithmetic.
 - **[P0]** At 5 of 5, the Upload button shows a lock icon and opens the buy-more screen. Never a silent failure or a raw error.
-- **[P0]** A seller cannot delete a submitted product. Its slot frees only when an admin rejects it or takes it down, immediately, and her screen says the slot is free again. Drafts hold no slot and she may delete them.
+- **[P0]** A farmer cannot delete a submitted product. Its slot frees only when an admin rejects it or takes it down, immediately, and her screen says the slot is free again. Drafts hold no slot and she may delete them.
 - **[P1]** Warn at 4 of 5: "one slot left".
 - **[P1]** Admin can grant free slots manually (goodwill, a trainee batch, a demo account).
 - **[P2]** Bulk packs — ₹150 for 20 slots — once you know whether anyone buys a second pack.
@@ -149,7 +149,7 @@ After that, the same status persists as a banner across the app, and the state r
 - Store the payer's UPI handle and name from the screenshot for the admin to eyeball.
 - Rate-limit resubmissions; log every approve and reject with the admin's identity.
 
-> **Scale warning.** Manual verification works fine up to a few hundred sellers, then it becomes a daily chore. When it hurts, the upgrade path is UPI auto-reconciliation against a bank statement feed, or a real gateway — not more admin staff. Build the queue so a future automated verifier can write to the same table.
+> **Scale warning.** Manual verification works fine up to a few hundred farmers, then it becomes a daily chore. When it hurts, the upgrade path is UPI auto-reconciliation against a bank statement feed, or a real gateway — not more admin staff. Build the queue so a future automated verifier can write to the same table.
 
 ---
 
@@ -159,10 +159,10 @@ Two separate flows. Keeping them separate keeps the platform out of the payments
 
 | Flow | From | To | Verified by |
 |---|---|---|---|
-| Registration / slot packs | Seller | **Admin's** account | Admin, manually, against the bank statement |
-| Order payment | Customer | **The seller's own** UPI | The seller, in her app |
+| Registration / slot packs | Farmer | **Admin's** account | Admin, manually, against the bank statement |
+| Order payment | Customer | **The farmer's own** UPI | The farmer, in her app |
 
-### Seller's UPI, captured at registration **[P0]**
+### Farmer's UPI, captured at registration **[P0]**
 
 **Make her upload, not type.** Typing `sunita@ybl` correctly is a real barrier, and one wrong character sends every customer's money to a stranger. Instead:
 
@@ -188,15 +188,15 @@ An uploaded screenshot has no amount in it, so the customer has to type ₹340 b
 
 ### Customer payment at checkout **[P0]**
 
-Because the cart splits by seller, **each sub-order gets its own payment step** with that seller's QR:
+Because the cart splits by farmer, **each sub-order gets its own payment step** with that farmer's QR:
 
 1. Customer picks **UPI** or **Cash on delivery**.
-2. If UPI: a screen showing the seller's photo and shop name, the amount, her QR, and a **"पैसे द्या" (Pay now)** button that fires the UPI intent so GPay or PhonePe opens with everything pre-filled. The QR is for scanning from another device; the button is the fast path on the same phone.
+2. If UPI: a screen showing the farmer's photo and shop name, the amount, her QR, and a **"पैसे द्या" (Pay now)** button that fires the UPI intent so GPay or PhonePe opens with everything pre-filled. The QR is for scanning from another device; the button is the fast path on the same phone.
 3. Customer enters the UTR / reference number → `payment_status = UPI_SUBMITTED`.
-4. The seller sees "Payment received?" on the order with a **Yes, received** button → `UPI_CONFIRMED_BY_SELLER`. Only then does she pack.
+4. The farmer sees "Payment received?" on the order with a **Yes, received** button → `UPI_CONFIRMED_BY_FARMER`. Only then does she pack.
 5. If she doesn't confirm within N hours, the order surfaces in the admin's stuck list.
 
-> **Consequence to accept.** Since the platform never holds the money, the platform also cannot refund it. A refund is the seller sending money back, which admin can only chase, not enforce. Say this plainly in the return policy, and give the dispute desk the power to block a seller who won't refund. This is the price of not needing a payment aggregator licence, and for v1 it is the right trade.
+> **Consequence to accept.** Since the platform never holds the money, the platform also cannot refund it. A refund is the farmer sending money back, which admin can only chase, not enforce. Say this plainly in the return policy, and give the dispute desk the power to block a farmer who won't refund. This is the price of not needing a payment aggregator licence, and for v1 it is the right trade.
 
 ---
 
@@ -268,8 +268,8 @@ first app that isn't WhatsApp, and the phone is probably shared.**
 - **[P1] A 30-second how-to video** embedded at the top of each major screen, collapsible once she's watched it.
 - **[P1] Guided first product.** After approval, walk her through adding product #1 with coach marks. The first success is what determines whether she comes back.
 - **[P1] Offline tolerance.** A clear "इंटरनेट नाही" banner, a retry queue for order status updates, and cached product lists. Network in villages drops constantly and she must never lose typed work.
-- **[P1] WhatsApp support** as a first-class channel — she already lives there. A help button that opens WhatsApp with her seller ID pre-filled beats any in-app ticket form.
-- **[P2] Shared-phone safety.** A quick PIN lock on the seller section, since the phone may be the household's.
+- **[P1] WhatsApp support** as a first-class channel — she already lives there. A help button that opens WhatsApp with her farmer ID pre-filled beats any in-app ticket form.
+- **[P2] Shared-phone safety.** A quick PIN lock on the farmer section, since the phone may be the household's.
 
 ---
 
@@ -281,9 +281,9 @@ Built once, consumed by all three roles.
 - **[P0] i18n** — Marathi and English, every string in a resource file including categories, notifications, SMS text and error messages. Marathi default.
 - **[P0] Mobile shell** — bottom tab bar, four tabs per role, safe-area insets, back handling. Admin gets a desktop sidebar instead.
 - **[P0] Media** — client-side image compression, one to six photos per product, CDN storage, lazy loading, skeleton placeholders.
-- **[P0] Legal pages** — terms, privacy, return and refund policy, seller agreement, FSSAI disclosure, and a clear statement that payment is direct between buyer and seller.
+- **[P0] Legal pages** — terms, privacy, return and refund policy, farmer agreement, FSSAI disclosure, and a clear statement that payment is direct between buyer and farmer.
 - **[P1] Notifications** — push, SMS and WhatsApp, plus an in-app inbox. Templated per event: payment approved, new order, accepted, out for delivery, delivered, review request, low stock, FSSAI expiring, one slot left. SMS matters most — push gets missed.
-- **[P1] Order chat** — scoped to one order, buyer to seller, masked numbers.
+- **[P1] Order chat** — scoped to one order, buyer to farmer, masked numbers.
 - **[P1] Search** — server-side index, autosuggest, typo tolerance, and it must handle Marathi queries.
 - **[P1] Low-network handling** — cached catalog, retry queue, small payloads.
 
@@ -337,7 +337,7 @@ The daily driver. This is the screen she opens the app for.
 ### 8.2 Upload Product
 
 A guided wizard, camera-first, autosaving as a draft at every step. Never one long form —
-that's where first-time sellers give up.
+that's where first-time farmers give up.
 
 **Slot check happens before step 1.** If she's at 5 of 5, she sees the buy-more screen instead
 of the wizard, phrased as an opportunity, not an error.
@@ -361,7 +361,7 @@ of the wizard, phrased as an opportunity, not an error.
 |---|---|
 | **Material** | Free text with voice input, plus quick-pick chips for the common ones — cotton, silk, wool, clay, wood, brass, silver, paper, jute. |
 
-> **What was cut, and why it's safe.** Earlier drafts also asked for a certificate photo, allergens, net weight, shelf life, storage instructions, prep time, size, colour and care instructions. That's 12 fields where 4 will do, and every extra field is a place a first-time seller abandons the form. Admin can verify an FSSAI number directly on the FSSAI public licence portal without her uploading a photo of the certificate. The dropped fields move to **[P2] optional extras**, shown behind an "अधिक माहिती द्या (optional)" link for sellers who want a richer listing — never blocking the first publish.
+> **What was cut, and why it's safe.** Earlier drafts also asked for a certificate photo, allergens, net weight, shelf life, storage instructions, prep time, size, colour and care instructions. That's 12 fields where 4 will do, and every extra field is a place a first-time farmer abandons the form. Admin can verify an FSSAI number directly on the FSSAI public licence portal without her uploading a photo of the certificate. The dropped fields move to **[P2] optional extras**, shown behind an "अधिक माहिती द्या (optional)" link for farmers who want a richer listing — never blocking the first publish.
 
 - **[P0] Step 4 · Pricing** — MRP, selling price, auto-computed discount, unit (kg, g, piece, dozen, litre, ml, set), **variants** for size or weight or colour each with its own price and stock, minimum and maximum order quantity.
 - **[P0] Step 5 · Stock** — quantity, low-stock threshold, or made-to-order for unlimited, plus available days.
@@ -382,12 +382,12 @@ of the wizard, phrased as an opportunity, not an error.
 - **[P1] Group affiliation** — SHG or Shantai group name, village, taluka, district, coordinator contact
 - **[P1] Document locker** — FSSAI certificate, Udyam, ID proof, each with an expiry and a reminder
 - **[P1] My tickets** — support requests and disputes she raised
-- **[P2] Badges** — Verified Seller, Top Rated, 100 Orders. Cheap and genuinely motivating.
+- **[P2] Badges** — Verified Farmer, Top Rated, 100 Orders. Cheap and genuinely motivating.
 - **[P2] Refer another woman** — invite link with a reward
 
 ### 8.4 Help & Training
 
-What makes the platform work for a first-time seller. A real feature, not a FAQ dump.
+What makes the platform work for a first-time farmer. A real feature, not a FAQ dump.
 
 - **[P0] How-to videos** — short, vertical, **in Marathi**: how to pay the ₹50 and send the reference number, how to add a product, how to photograph with a phone, how to pack, how to mark out-for-delivery, how to take the OTP, **how to check money came into your UPI**. Downloadable for offline **[P1]**.
 - **[P0] Step-by-step guides** with screenshots, searchable
@@ -397,7 +397,7 @@ What makes the platform work for a first-time seller. A real feature, not a FAQ 
 - **[P1] Business courses** — modules → lessons → quiz → certificate. Pricing, packaging, talking to customers, **how to apply for FSSAI**, food hygiene, digital payments and fraud awareness, Udyam and GST basics, selling on WhatsApp.
 - **[P1] Progress tracking** — percentage complete, resume where she left off, certificate
 - **[P2] Live sessions** — webinar calendar, register, reminder, recording
-- **[P2] Community feed** — announcements, other sellers' success stories, tips
+- **[P2] Community feed** — announcements, other farmers' success stories, tips
 - **[P2] Downloadables** — label template, price tag, WhatsApp-status poster
 - **[P2] Government schemes** — MUDRA, PMEGP, Mahila Udyam Nidhi explainers
 
@@ -407,13 +407,13 @@ What makes the platform work for a first-time seller. A real feature, not a FAQ 
 
 ### 9.1 Explore Products
 
-- **[P0] Home** — pincode selector, search bar, banners, category strip, and rails: *New near you*, *Homemade & fresh*, *Top-rated women sellers*, *Festival specials*, *Recently viewed*
+- **[P0] Home** — pincode selector, search bar, banners, category strip, and rails: *New near you*, *Homemade & fresh*, *Top-rated women farmers*, *Festival specials*, *Recently viewed*
 - **[P0] Search** — autosuggest, recent searches; **[P1]** typo tolerance and Marathi queries
-- **[P0] Filters** — price range, rating, veg/non-veg, discount, in stock, **delivers to my pincode**, seller, distance
+- **[P0] Filters** — price range, rating, veg/non-veg, discount, in stock, **delivers to my pincode**, farmer, distance
 - **[P0] Sort** — relevance, price, rating, newest, nearest
-- **[P0] Product detail** — gallery, price with MRP and discount, variants, unit, stock, seller card (photo, shop, rating, verified badge, distance), **FSSAI number displayed for food (legally required)**, veg mark, ingredients, allergens, shelf life, delivery estimate and charge to my pincode, return policy, add to cart / buy now, wishlist, **share to WhatsApp**, reviews with photos, similar products, more from this seller
-- **[P0] Seller storefront** — her story, all her products, rating, policies. **This is the page her share-QR lands on, so it ships in the skeleton.**
-- **[P1] Wishlist · follow seller**
+- **[P0] Product detail** — gallery, price with MRP and discount, variants, unit, stock, farmer card (photo, shop, rating, verified badge, distance), **FSSAI number displayed for food (legally required)**, veg mark, ingredients, allergens, shelf life, delivery estimate and charge to my pincode, return policy, add to cart / buy now, wishlist, **share to WhatsApp**, reviews with photos, similar products, more from this farmer
+- **[P0] Farmer storefront** — her story, all her products, rating, policies. **This is the page her share-QR lands on, so it ships in the skeleton.**
+- **[P1] Wishlist · follow farmer**
 - **[P2]** Q&A on products, short-video feed
 
 ### 9.2 Categories
@@ -430,15 +430,15 @@ What makes the platform work for a first-time seller. A real feature, not a FAQ 
 
 ### 9.3 Cart & Checkout
 
-- **[P0] Cart grouped by seller** — each seller becomes a separate order with its own delivery charge, minimum order value **and its own payment**. Show this plainly or customers will be confused by several fees and several QRs.
+- **[P0] Cart grouped by farmer** — each farmer becomes a separate order with its own delivery charge, minimum order value **and its own payment**. Show this plainly or customers will be confused by several fees and several QRs.
 - **[P0]** Quantity stepper, remove, save for later, stock and price change warnings
-- **[P0] Bill breakup** — item total, discount, delivery fee per seller, grand total
-- **[P0] Address** — saved addresses, add new with map pin, landmark and pincode, home or work label, **serviceability check against each seller**
-- **[P0] Payment step per seller** — choose Cash on delivery or UPI. If UPI: **that seller's QR with the amount pre-filled**, a "Pay now" button firing the UPI intent, and a field for the reference number.
-- **[P0] Order confirmation** — order ID plus **the delivery OTP shown large**: give this to the seller when your order arrives
-- **[P0] Track order** — timeline, current status, payment status, call the seller, chat, cancel within the window, report an issue
+- **[P0] Bill breakup** — item total, discount, delivery fee per farmer, grand total
+- **[P0] Address** — saved addresses, add new with map pin, landmark and pincode, home or work label, **serviceability check against each farmer**
+- **[P0] Payment step per farmer** — choose Cash on delivery or UPI. If UPI: **that farmer's QR with the amount pre-filled**, a "Pay now" button firing the UPI intent, and a field for the reference number.
+- **[P0] Order confirmation** — order ID plus **the delivery OTP shown large**: give this to the farmer when your order arrives
+- **[P0] Track order** — timeline, current status, payment status, call the farmer, chat, cancel within the window, report an issue
 - **[P0] Order history** — reorder, invoice and receipt
-- **[P1]** Coupons; delivery time-slot preference and a note for the seller
+- **[P1]** Coupons; delivery time-slot preference and a note for the farmer
 - **[P1]** Rate and review after delivery; return or replacement request with a photo; refund status
 
 ### 9.4 My Profile
@@ -449,8 +449,8 @@ What makes the platform work for a first-time seller. A real feature, not a FAQ 
 - **[P0]** Notification preferences and **language**
 - **[P0]** Help and support, raise a ticket, order-level complaint
 - **[P0]** Terms, privacy, delete account, logout
-- **[P1]** Wishlist, followed sellers, my reviews, coupons and credits
-- **[P2]** "Become a seller" — upgrade this account. Refer and earn.
+- **[P1]** Wishlist, followed farmers, my reviews, coupons and credits
+- **[P2]** "Become a farmer" — upgrade this account. Refer and earn.
 
 ---
 
@@ -459,40 +459,40 @@ What makes the platform work for a first-time seller. A real feature, not a FAQ 
 The job statement: see the whole flow, and step in when something breaks.
 
 - **[P0] Auth and roles** — email and password with 2FA; Super Admin, Ops, Support, Content, Finance; a full audit log of every admin action
-- **[P0] Payment approvals queue** — *the new highest-traffic admin screen.* Seller name, phone, amount, UTR, payment screenshot, payer UPI handle, submitted time, **duplicate-UTR flag**, and Approve / Reject with reason. Approving grants 5 slots and notifies her by SMS and push.
-- **[P0] Admin payment accounts** — the bank details and UPI QR shown to sellers on the payment screen, editable here so you never redeploy to change an account number
+- **[P0] Payment approvals queue** — *the new highest-traffic admin screen.* Farmer name, phone, amount, UTR, payment screenshot, payer UPI handle, submitted time, **duplicate-UTR flag**, and Approve / Reject with reason. Approving grants 5 slots and notifies her by SMS and push.
+- **[P0] Admin payment accounts** — the bank details and UPI QR shown to farmers on the payment screen, editable here so you never redeploy to change an account number
 - **[P0] Plan management** — price and slot count per pack, so ₹50 / 5 can change without a code change
-- **[P0] Dashboard** — GMV, orders today and this week, active sellers, new registrations, **pending payment approvals**, **pending product approvals**, **stuck orders and SLA breaches**, cancellations, open disputes, cash pending collection
-- **[P0] Seller management** — list and search, slot usage per seller, **manual slot grant**, subscription and payment history, KYC queue, document viewer, **FSSAI verification and expiry monitor**, **UPI verification**, block and unblock, audited view-as-seller
+- **[P0] Dashboard** — GMV, orders today and this week, active farmers, new registrations, **pending payment approvals**, **pending product approvals**, **stuck orders and SLA breaches**, cancellations, open disputes, cash pending collection
+- **[P0] Farmer management** — list and search, slot usage per farmer, **manual slot grant**, subscription and payment history, KYC queue, document viewer, **FSSAI verification and expiry monitor**, **UPI verification**, block and unblock, audited view-as-farmer
 - **[P0] Product moderation** — approval queue, approve or reject with reason, **block food listings without a valid FSSAI**, banned-item flags, bulk actions, takedown, category re-mapping
-- **[P0] Order monitoring** — every order filtered by status, seller, date or pincode; full timeline and audit per order; **stuck-order alerts** including UPI payments the seller hasn't confirmed; force-cancel; nudge the seller
+- **[P0] Order monitoring** — every order filtered by status, farmer, date or pincode; full timeline and audit per order; **stuck-order alerts** including UPI payments the farmer hasn't confirmed; force-cancel; nudge the farmer
 - **[P0] Catalog config** — categories and subcategories, attributes, units, banners, homepage sections, featured placement
 - **[P0] Content** — upload training videos and courses, FAQs, announcements, policy pages, **and the Marathi/English strings**
 - **[P1] Share-QR analytics** — scans, installs and orders per shop code; bulk poster generation for a training batch
 - **[P1] Customer management** — list, order history, block fraudulent accounts
-- **[P1] Dispute desk** — ticket queue with an SLA, assignment, internal notes, resolution; power to block a seller who won't refund
+- **[P1] Dispute desk** — ticket queue with an SLA, assignment, internal notes, resolution; power to block a farmer who won't refund
 - **[P1] Finance** — subscription revenue report, reconciliation against the bank statement, CSV export
 - **[P1] Marketing** — coupons, campaigns, push composer with audience segments
-- **[P1] Reports** — sales by category, seller and region; seller leaderboard; funnel; retention; average delivery time; cancellation reasons; slot utilisation
+- **[P1] Reports** — sales by category, farmer and region; farmer leaderboard; funnel; retention; average delivery time; cancellation reasons; slot utilisation
 - **[P1] System** — staff and roles, app config, feature flags, maintenance mode, notification templates
 
 ---
 
 ## 11. Data model sketch
 
-New tables for the subscription, seller UPI and share-QR requirements are marked `←`.
+New tables for the subscription, farmer UPI and share-QR requirements are marked `←`.
 
 ```
 users(id, phone, name, email, roles[], language, status)
-seller_profiles(user_id, business_type, udyam_no, gstin, group_name, village, taluka,
+farmer_profiles(user_id, business_type, udyam_no, gstin, group_name, village, taluka,
                 kyc_status, account_status, upi_id, upi_qr_url, upi_verified)          ←
-shops(seller_id, name, slug, logo, cover, about, is_open, hours, min_order, delivery_fee,
+shops(farmer_id, name, slug, logo, cover, about, is_open, hours, min_order, delivery_fee,
       free_delivery_above, prep_time, pincodes[], return_policy,
       share_code, share_qr_url, poster_url)                                            ←
 
 plans(id, name, price, product_slots, validity_days)                                   ←
-subscriptions(id, seller_id, plan_id, slots_granted, status, activated_at, expires_at)  ←
-subscription_payments(id, seller_id, subscription_id, amount, method, utr_reference,
+subscriptions(id, farmer_id, plan_id, slots_granted, status, activated_at, expires_at)  ←
+subscription_payments(id, farmer_id, subscription_id, amount, method, utr_reference,
                       screenshot_url, payer_upi, payer_name, status, submitted_at,
                       verified_by, verified_at, reject_reason)                          ←
 admin_payment_accounts(id, label, bank_name, account_no, ifsc, upi_id, qr_url, is_active) ←
@@ -534,7 +534,7 @@ never drift out of sync with reality.
 - **Rural usability** — see §6. It is a requirement, not a preference.
 - **Performance** — first paint under about three seconds on 4G, compressed images, paginated lists, virtualised long lists. Budget for a ₹8,000 Android phone, not a flagship.
 - **Security** — OTP rate limiting, role checks on every endpoint, KYC documents and payment screenshots in a **private** bucket behind signed URLs, PII encrypted at rest, phone numbers masked between parties, a full admin audit trail on every approve and reject.
-- **Compliance** — FSSAI number on every food listing, expired licences auto-hidden, seller agreement accepted at registration, return and refund policy published, and an explicit disclosure that order payments go directly to the seller.
+- **Compliance** — FSSAI number on every food listing, expired licences auto-hidden, farmer agreement accepted at registration, return and refund policy published, and an explicit disclosure that order payments go directly to the farmer.
 - **Accessibility** — 44px minimum touch targets, readable contrast, scalable text, and audio help.
 
 ---
@@ -553,7 +553,7 @@ Two audiences that need opposite treatments. Hers exists to **motivate**; admin'
 
 Eight rules, and they matter more than the chart types:
 
-1. **Never compare her to other sellers.** Only to her own past. A leaderboard demotivates the majority who aren't near the top, and it leaks other women's earnings.
+1. **Never compare her to other farmers.** Only to her own past. A leaderboard demotivates the majority who aren't near the top, and it leaks other women's earnings.
 2. **The number comes first, the chart second.** Big number, arrow, word — the chart supports it.
 3. **Bars, not lines.** Bars are far more legible to someone who has never read a chart.
 4. **No axis, no gridlines, no legend.** Label every bar with its rupee value directly. She should never have to read a scale to know what a bar means.
@@ -591,8 +591,8 @@ Desktop, data-literate audience, so full dashboard treatment. Four boards.
 
 **A · Usage and adoption**
 - **Registration funnel** — registered → paid ₹50 → approved → first product published → first order received. **The single most important chart in the admin panel:** it shows exactly which step women fall out of, and every one of those steps is fixable.
-- New registrations over time · active sellers (listed or fulfilled in the last 30 days) versus total registered
-- DAU / WAU / MAU, split seller versus customer
+- New registrations over time · active farmers (listed or fulfilled in the last 30 days) versus total registered
+- DAU / WAU / MAU, split farmer versus customer
 - App installs attributed to share QRs · session and screen usage
 
 **B · Selling**
@@ -608,7 +608,7 @@ Desktop, data-literate audience, so full dashboard treatment. Four boards.
 - **Cumulative total earned by all women.** The headline number for the whole platform.
 - **Earnings distribution histogram** — how many women earned ₹0, under ₹1,000, ₹1,000–5,000, over ₹5,000. This is the honest chart: it distinguishes helping many women a little from helping a few women a lot, which a total alone hides completely.
 - **First-earning conversion** — the share of registered women who have earned at least ₹1. The most truthful single measure of whether the app works.
-- **Median** monthly earnings per active seller — median, not mean, because a few high earners will distort the mean badly at this scale
+- **Median** monthly earnings per active farmer — median, not mean, because a few high earners will distort the mean badly at this scale
 - Earnings by district · month-on-month growth
 - Top earners — internal only, never surfaced in the app
 
@@ -656,9 +656,9 @@ Most of it already exists in the schema. What has to be added now:
 | Phase | Contents |
 |---|---|
 | **0 — Skeleton** | Routing and role-based shells, every screen with real layout and mock data, the order state machine, **the subscription/slot state machine**, Marathi + English i18n scaffolding, and the design system built to §6's rules |
-| **1 — Seller core** | Auth, registration with the ₹50 payment step, product upload wizard with the FSSAI branch and slot gate, my products, order actions, delivery OTP |
-| **2 — Customer core** | Explore, categories, product detail, seller storefront, cart split by seller, per-seller UPI checkout, order tracking |
-| **3 — Admin** | Payment approvals, seller and product moderation, order monitoring, catalog config |
+| **1 — Farmer core** | Auth, registration with the ₹50 payment step, product upload wizard with the FSSAI branch and slot gate, my products, order actions, delivery OTP |
+| **2 — Customer core** | Explore, categories, product detail, farmer storefront, cart split by farmer, per-farmer UPI checkout, order tracking |
+| **3 — Admin** | Payment approvals, farmer and product moderation, order monitoring, catalog config |
 | **4 — Real backend** | Replace mocks; notifications, reviews, disputes, share-QR generation and tracking |
 | **5 — App wrapper** | React Native WebView APK (built), Android App Links, Play Install Referrer deep linking, Play Store listing |
 | **6 — Growth charts** | Her earnings and orders cards, top products, milestones, shareable monthly summary; the four admin boards and the impact export |

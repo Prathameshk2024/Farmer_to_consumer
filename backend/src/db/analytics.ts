@@ -1,12 +1,12 @@
-import type { Order, SellerWeek, WeekDay } from '@shared/types.js'
+import type { Order, FarmerWeek, WeekDay } from '@shared/types.js'
 import type { Db } from './seed.js'
 
 /**
  * HER GROWTH, COMPUTED FROM HER ORDERS
  * ====================================
- * This replaces a hard-coded table. `/api/analytics/seller/:id/week` used to
- * answer out of `SELLER_WEEK_SEED`, which held one invented week for the demo
- * seller `s1` and nothing for anybody else - so every real woman who signed
+ * This replaces a hard-coded table. `/api/analytics/farmer/:id/week` used to
+ * answer out of `FARMER_WEEK_SEED`, which held one invented week for the demo
+ * farmer `s1` and nothing for anybody else - so every real woman who signed
  * up, sold something and was paid still saw "not enough information yet". Her
  * earnings were on the record the whole time; the screen simply never looked.
  *
@@ -61,8 +61,8 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000
  * failure to somebody who has not started yet, and the screen shows an
  * encouraging empty state instead.
  */
-export function sellerWeek(db: Db, sellerId: string, now = Date.now()): SellerWeek | null {
-  const mine = db.orders.filter((o) => o.sellerId === sellerId)
+export function farmerWeek(db: Db, farmerId: string, now = Date.now()): FarmerWeek | null {
+  const mine = db.orders.filter((o) => o.farmerId === farmerId)
   const paid = mine.filter((o) => EARNED.has(o.status))
   if (paid.length === 0) return null
 
@@ -95,7 +95,7 @@ export function sellerWeek(db: Db, sellerId: string, now = Date.now()): SellerWe
    * that is honest for a lifetime count in a way "this week" would not be.
    */
   const views = db.products
-    .filter((p) => p.sellerId === sellerId)
+    .filter((p) => p.farmerId === farmerId)
     .reduce((n, p) => n + (p.views ?? 0), 0)
 
   // Buyers who came back. Counted over everything she has ever sold, because

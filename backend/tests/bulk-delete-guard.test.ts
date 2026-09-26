@@ -6,11 +6,11 @@ process.env.SESSION_SECRET = 'test-secret-for-unit-tests'
 const { isBulkDelete } = await import('../src/db/firestore.js')
 
 /**
- * THE DAY EVERY SELLER DISAPPEARED
+ * THE DAY EVERY FARMER DISAPPEARED
  * ================================
  * 10 September 2026: six registered women and thirteen product listings were
  * deleted from Firestore in a single batch. Something handed `persistDiff` an
- * in-memory database whose `sellers` and `products` arrays were empty, and the
+ * in-memory database whose `farmers` and `products` arrays were empty, and the
  * diff did precisely what it is written to do - anything present at boot and
  * absent from memory is a deletion.
  *
@@ -25,8 +25,8 @@ const { isBulkDelete } = await import('../src/db/firestore.js')
  * it does not need to understand the bug to stop it.
  */
 
-test('the exact write that wiped the sellers is refused', () => {
-  // 6 of 6 sellers, and 13 of 13 products. What actually happened.
+test('the exact write that wiped the farmers is refused', () => {
+  // 6 of 6 farmers, and 13 of 13 products. What actually happened.
   assert.equal(isBulkDelete(6, 6), true)
   assert.equal(isBulkDelete(13, 13), true)
 })
@@ -37,7 +37,7 @@ test('an emptied collection is refused however large', () => {
 })
 
 test('ordinary editing is untouched', () => {
-  // A seller archives one product of twenty-four.
+  // A farmer archives one product of twenty-four.
   assert.equal(isBulkDelete(1, 24), false)
   // A pruning job clears a third of the expired sessions.
   assert.equal(isBulkDelete(18, 56), false)
@@ -57,7 +57,7 @@ test('small collections stay clearable', () => {
   // Below six documents "half" is one or two, and clearing a handful of demo
   // rows is routine. Guarding there would only teach people to keep the
   // override switched on, which would cost more than it saved.
-  assert.equal(isBulkDelete(3, 3), false, 'three seeded sellers')
+  assert.equal(isBulkDelete(3, 3), false, 'three seeded farmers')
   assert.equal(isBulkDelete(5, 5), false)
   assert.equal(isBulkDelete(6, 6), true, 'six is where it starts biting')
 })
