@@ -82,6 +82,7 @@ type ExpiryListener = () => void
 
 const refreshListeners = new Set<TokenListener>()
 const expiryListeners = new Set<ExpiryListener>()
+const mustChangeListeners = new Set<ExpiryListener>()
 
 /** The server re-stamped the session. Returns an unsubscribe. */
 export function onTokenRefresh(fn: TokenListener): () => void {
@@ -93,6 +94,15 @@ export function onTokenRefresh(fn: TokenListener): () => void {
 export function onSessionExpired(fn: ExpiryListener): () => void {
   expiryListeners.add(fn)
   return () => expiryListeners.delete(fn)
+}
+
+/**
+ * The server says this session may only change its password (an admin reset
+ * it). AuthContext marks the session, and the router sends her to /password.
+ */
+export function onMustChangePassword(fn: ExpiryListener): () => void {
+  mustChangeListeners.add(fn)
+  return () => mustChangeListeners.delete(fn)
 }
 
 /** Thrown for any non-2xx. Carries the Marathi message and per-field errors. */
@@ -177,6 +187,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     for (const fn of expiryListeners) fn()
   }
 
+  if (res.status === 403 && body.code === 'MUST_CHANGE_PASSWORD') {
+    for (const fn of mustChangeListeners) fn()
+  }
+
   if (!res.ok) throw new ApiError(res.status, body)
   return body as T
 }
@@ -193,29 +207,19 @@ const del = <T,>(p: string) => request<T>(p, { method: 'DELETE' })
 /* ------------------------------------------------------------------ */
 
 export const api = {
-  sendOtp: (phone: string) =>
-    post<{ sent: boolean; demoCode?: string; cooldownMs?: number }>('/auth/otp/send', { phone }),
+  /** Phone and password. `mustChangePassword` after an admin reset. */
+  login: (phone: string, password: string, role: 'farmer' | 'customer') =>
+    post<{ session: Session; mustChangePassword: boolean }>('/auth/login', { phone, password, role }),
 
-  /**
-   * `registered` and `session` are independent on purpose. A customer whose
-   * OTP checked out is authenticated - she gets a session - but she is not
-   * registered until she has given us a name, so both come back together and
-   * the caller decides where she lands. A farmer with no record gets
-   * `registered: false` and no session, because there is nothing to sign in to
-   * until the wizard has run.
-   */
-  verifyOtp: (phone: string, code: string, role: 'farmer' | 'customer') =>
-    post<{
-      registered: boolean
-      session?: Session
-      phone?: string
-      /**
-       * Single-use proof that this phone just passed an OTP. Present only for
-       * a farmer with no record yet, and required by `registerFarmer` - the
-       * server reads the phone out of it and ignores the one in the body.
-       */
-      ticket?: string
-    }>('/auth/otp/verify', { phone, code, role }),
+  changePassword: (current: string, next: string) =>
+    post<{ ok: true }>('/auth/password', { current, next }),
+
+  registerCustomer: (body: { phone: string; name: string; password: string }) =>
+    post<{ session: Session }>('/customers/register', body),
+
+  /** Public. The same answer whether or not the number has an account. */
+  requestPasswordReset: (body: { role: 'farmer' | 'customer'; phone: string; name: string; village?: string }) =>
+    post<{ ok: true }>('/auth/password-requests', body),
 
   /**
    * End the session on the SERVER, not just in this browser.
@@ -371,7 +375,7 @@ export const api = {
   advanceOrder: (
     id: string,
     to: Order['status'],
-    extra?: { otp?: string; reason?: string; deliveryEstimate?: string },
+    extra?: { reason?: string; deliveryEstimate?: string },
   ) =>
     post<{ order: Order }>(`/orders/${id}/advance`, { to, ...extra }),
 
@@ -445,12 +449,8 @@ export interface AddressInput {
 }
 
 export interface FarmerRegistration {
-  /**
-   * From `verifyOtp`. The server takes the phone number from THIS and ignores
-   * anything the body claims, so registration cannot be pointed at a number
-   * whose OTP was never passed.
-   */
-  ticket: string
+  phone: string
+  password: string
   name: string
   age?: number
   education?: string
@@ -468,8 +468,6 @@ export interface FarmerRegistration {
   sellsFood: boolean
   fssai?: string
   upiId: string
-  upiQrUrl?: string
-  upiQrPublicId?: string
   digital: DigitalProfile
   deliveryFee?: number
   minOrder?: number

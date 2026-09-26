@@ -2,7 +2,7 @@ import type { ComponentType } from 'react'
 import {
   FiAlertTriangle, FiBarChart2, FiCheck, FiCheckCircle, FiChevronLeft,
   FiChevronRight, FiClipboard, FiCopy,
-  FiFileText, FiHelpCircle, FiHome, FiInbox, FiPackage, FiStar, FiUsers, FiX,
+  FiFileText, FiHelpCircle, FiHome, FiInbox, FiKey, FiPackage, FiShoppingBag, FiStar, FiUsers, FiX,
 } from 'react-icons/fi'
 import { MdCurrencyRupee } from 'react-icons/md'
 
@@ -35,6 +35,8 @@ export const IconOrders: IconType = FiFileText
 export const IconReviews: IconType = FiStar
 export const IconImpact: IconType = FiBarChart2
 export const IconComplaints: IconType = FiHelpCircle
+export const IconPasswords: IconType = FiKey
+export const IconBuyer: IconType = FiShoppingBag
 
 /* --- states -------------------------------------------------------- */
 export const IconAllClear: IconType = FiCheckCircle

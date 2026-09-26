@@ -10,7 +10,7 @@
  *
  * A fixed window, not a token bucket. Fixed windows allow a burst across a
  * boundary - up to double the limit at the seam - and for these numbers that
- * does not matter: the point is to make ten thousand OTP guesses impossible,
+ * does not matter: the point is to make ten thousand password guesses impossible,
  * not to smooth traffic. Simple enough to read in one sitting beats subtle.
  *
  * Every limit is keyed by BOTH a subject (a phone, an email) and an IP.
@@ -44,13 +44,14 @@ const windows = new Map<string, Window>()
  * than discovered one route at a time.
  */
 export const LIMITS = {
-  /** One SMS every 30s per number is the existing rule; these are the ceilings. */
-  otpSendPerPhone: { max: 3, windowMs: 24 * 60 * 60 * 1000 },
-  /** Stops somebody walking through numbers to burn the SMS budget. */
-  otpSendPerIp: { max: 20, windowMs: 60 * 60 * 1000 },
-  /** A 6-digit code is a million guesses; ten tries an hour makes that hopeless. */
-  otpVerifyPerPhone: { max: 10, windowMs: 15 * 60 * 1000 },
-  otpVerifyPerIp: { max: 50, windowMs: 60 * 60 * 1000 },
+  /** Wrong passwords for one phone: five, then fifteen minutes. */
+  loginPerPhone: { max: 5, windowMs: 15 * 60 * 1000 },
+  /** Wider per IP: a village shares its carrier's address. */
+  loginPerIp: { max: 50, windowMs: 60 * 60 * 1000 },
+  /** Forgot-password requests for one phone: three a day is plenty for a real person. */
+  resetRequestPerPhone: { max: 3, windowMs: 24 * 60 * 60 * 1000 },
+  /** Per IP, wider because a village shares its carrier's address; stops one script filling the queue. */
+  resetRequestPerIp: { max: 20, windowMs: 60 * 60 * 1000 },
   /** The account that releases money. Deliberately tight. */
   adminLoginPerEmail: { max: 5, windowMs: 15 * 60 * 1000 },
   adminLoginPerIp: { max: 20, windowMs: 60 * 60 * 1000 },
@@ -65,7 +66,7 @@ export const LIMITS = {
  *
  * Call it when the attempt is MADE, not when it fails: a limiter that only
  * counts failures can be walked around by making the attempt look successful,
- * and for OTP verification the whole point is to cap tries.
+ * and for a password check the whole point is to cap tries.
  */
 export function hit(key: string, limit: Limit, now = Date.now()): LimitResult {
   const existing = windows.get(key)

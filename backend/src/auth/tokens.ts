@@ -37,10 +37,10 @@ export interface TokenClaims {
  * Different by role because the risk is different. An admin token verifies
  * and blocks farmers and can read every buyer's home address, and it is
  * used at a desk where signing in again costs a few seconds - so it is short.
- * A farmer's token is on a phone in a village, and re-issuing it costs an SMS
- * and a literacy hurdle, so fifteen days is the kinder trade: a woman who
+ * A farmer's token is on a phone in a village, and signing in again means typing a
+ * password she rarely uses, so fifteen days is the kinder trade: a woman who
  * sells at the weekly bazaar and opens the app every other week is not sent
- * back through OTP each time. Past fifteen days with no use at all, the
+ * back through the login screen each time. Past fifteen days with no use at all, the
  * session ends - a phone put down and forgotten, or passed to someone else,
  * does not stay signed in to her shop indefinitely.
  *

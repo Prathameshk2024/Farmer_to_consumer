@@ -3,7 +3,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session } from '@shared/types.js'
-import { api, onSessionExpired, onTokenRefresh, setToken } from '../lib/api.js'
+import { api, onMustChangePassword, onSessionExpired, onTokenRefresh, setToken } from '../lib/api.js'
 import { clearScreenCache } from '../lib/screenCache.js'
 import { useToast } from './ToastContext.js'
 import { useI18n } from '../i18n/I18nProvider.js'
@@ -13,7 +13,7 @@ import { useI18n } from '../i18n/I18nProvider.js'
  * account carries a role rather than being two separate accounts - that avoids
  * asking the same woman for her details twice.
  *
- * The OTP is verified on the SERVER. This context only stores what came back.
+ * The password is checked on the SERVER. This context only stores what came back.
  *
  * WHAT ENDS A SESSION
  * ===================
@@ -136,9 +136,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession((s) => (s && s.token !== token ? { ...s, token } : s))
     })
     const stopExpiry = onSessionExpired(() => setSession(null))
+    // The router sends a session marked like this to /password and nowhere else.
+    const stopMustChange = onMustChangePassword(() => {
+      setSession((s) => (s && !s.mustChangePassword ? { ...s, mustChangePassword: true } : s))
+    })
     return () => {
       stopRefresh()
       stopExpiry()
+      stopMustChange()
     }
   }, [])
 

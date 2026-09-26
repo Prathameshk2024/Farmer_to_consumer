@@ -1,155 +1,55 @@
 import { useState } from 'react'
-import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { isValidPhone } from '@shared/farmer.js'
+import { MIN_PASSWORD } from '@shared/password.js'
 import { useT } from '../../i18n/I18nProvider.js'
 import { homeFor, useAuth } from '../../store/AuthContext.js'
 import { api, ApiError } from '../../lib/api.js'
-import {
-  clearRegisterTicket, liveTicket, stashRegisterTicket, takeRegisterTicket,
-} from '../../lib/registerTicket.js'
-
-// Re-exported so the screens that already import them here keep working.
-export { clearRegisterTicket, stashRegisterTicket, takeRegisterTicket }
-import {
-  AppBar, Button, Field, Notice, OtpInput, TextInput,
-} from '../../components/ui.js'
-import { IconNext } from '../../components/icons.js'
-import { useToast } from '../../store/ToastContext.js'
-import {
-  WIDGET_SESSION_LOST, forgetWidgetSession,
-  retryWidgetOtp, sendWidgetOtp, verifyWidgetOtp, widgetEnabled, widgetOtpLength,
-} from '../../lib/msg91Widget.js'
-
-/**
- * Six, matching OTP_DIGITS on the server.
- *
- * It was four, which is ten thousand guesses. Six is a million, and together
- * with the five-attempt cap on the server that is the difference between a
- * short script and no chance at all.
- */
-export const OTP_LENGTH = widgetEnabled ? widgetOtpLength : 6
+import { AppBar, Button, Field, Notice, TextInput } from '../../components/ui.js'
+import { IconCall } from '../../components/icons.js'
+import { SUPPORT_PHONE } from '../farmer/Misc.js'
 
 type RoleParam = 'farmer' | 'customer'
 
-function roleFrom(value: string | undefined): RoleParam {
+export function roleFrom(value: string | undefined): RoleParam {
   return value === 'farmer' ? 'farmer' : 'customer'
 }
 
+const digitsOnly = (v: string) => v.replace(/\D/g, '')
 
 /**
- * BOTH LANDING DOORS COME THROUGH HERE
- * ====================================
- * "मला विकायचं आहे" and "मला खरेदी करायची आहे" are two intents, not two
- * systems: each one enters this screen with its role in the path, and the role
- * is what survives all the way through OTP and registration to decide where
- * the farmer ends up. There is no second auth flow anywhere in the app.
- *
- * `mode` only changes what happens to a number with no record behind it:
- *   join  - a farmer is taken straight into the registration wizard
- *   login - the farmer is told plainly that registration comes first, and
- *           offered the way
- * Either way the intent picked on the landing page is preserved.
+ * SIGN IN: PHONE AND PASSWORD
+ * ===========================
+ * Both landing doors come through here with the role in the path. There is no
+ * SMS: a forgotten password goes to /forgot-password/:role, which asks a
+ * person to call back.
  *
  * Already signed in with this role? Then the login is already done, and the
- * only correct thing to do is let the farmer through. Asking a farmer to
- * verify an OTP already verified is how a back press starts to look like
- * being logged out - see AuthContext for the rest of that story.
+ * only correct thing is to let them through - asking again is how a back
+ * press starts to look like being logged out.
  */
-export function PhoneScreen({ mode }: { mode: 'join' | 'login' }) {
-  const { role: roleParam } = useParams()
-  const role = roleFrom(roleParam)
+export function LoginScreen() {
   const t = useT()
   const nav = useNavigate()
-  const { session } = useAuth()
-  const { toast } = useToast()
-
-  /**
-   * A registration the farmer has already passed the OTP for, still in date.
-   *
-<<<<<<< Updated upstream
-   * Read on mount. A farmer holding one must not be asked for another code -
-   * this screen offers to take the farmer back into the wizard instead, which
-   * is the difference between one SMS and two on every back press. Cleared by
-   * "use another number" (`switchNumber`).
-=======
-   * Read once on mount. A farmer holding one must not be asked for another
-   * code - this screen offers to take the farmer back into the wizard
-   * instead, which is the difference between one SMS and two on every back
-   * press.
->>>>>>> Stashed changes
-   */
-  const [pending, setPending] = useState(() => (role === 'farmer' ? liveTicket() : null))
-
-  const [phone, setPhone] = useState(pending?.phone ?? '')
-  const [err, setErr] = useState('')
+  const role = roleFrom(useParams().role)
+  const { signIn, session } = useAuth()
+  const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
+  const [show, setShow] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  if (session?.role === role) return <Navigate to={homeFor(role)} replace />
+  if (session?.role === role && !session.mustChangePassword) return <Navigate to={homeFor(role)} replace />
 
-  /**
-   * Back to an empty phone screen. Clearing `pending` swaps the resume buttons
-   * for the ordinary "send OTP" one, so the next code goes to whatever she
-   * types now - and only when she presses it.
-   */
-  function switchNumber() {
-    clearRegisterTicket()
-    setPending(null)
-    setPhone('')
-    setErr('')
-    // After the re-render, so the box she is meant to type in is the one focused.
-    setTimeout(() => document.getElementById('phone')?.focus(), 0)
-  }
-
-  async function send() {
-    if (!isValidPhone(phone)) {
-      setErr(t('onb.phoneInvalid'))
-      return
-    }
-    setErr('')
+  const submit = async () => {
     setBusy(true)
+    setError(null)
     try {
-      /**
-       * ASK THE SERVER FIRST, ON BOTH PATHS
-       * ===================================
-       * With the MSG91 widget the SMS goes out from the browser - that is the
-       * whole reason it needs no DLT registration - so this call delivers
-       * nothing. It is the quota: three codes per number per day, counted in
-       * the one place the browser cannot talk its way past.
-       *
-       * It used to be skipped whenever the widget was live, which made that
-       * rule a comment rather than a limit: anyone holding this page could ask
-       * MSG91 for codes all afternoon, and the SMS bill would say so.
-       *
-       * Order matters. The gate answers BEFORE the SMS, or it is a counter
-       * rather than a limit.
-       */
-      const res = await api.sendOtp(phone)
-
-      // The server rate-limits resends to one every 30s and answers 200 with {
-      // sent: false }. Navigating anyway would drop the farmer on an OTP
-      // screen for a message that was never sent.
-      if (!res.sent) {
-        setErr(t('onb.otpCooldown', { n: Math.ceil((res.cooldownMs ?? 30_000) / 1000) }))
-        return
-      }
-
-      if (widgetEnabled) {
-        // Now, and only now, does an SMS leave. The farmer is still nobody
-        // until the token the widget gives back has been checked by the server
-        // against the number they typed.
-        await sendWidgetOtp(phone)
-        toast(t('ok.otpSent'))
-        nav(`/otp/${role}?phone=${phone}&mode=${mode}`)
-        return
-      }
-
-      toast(t('ok.otpSent'))
-
-      // Demo mode returns the code so the skeleton works without SMS.
-      const demo = res.demoCode ? `&demo=${res.demoCode}` : ''
-      nav(`/otp/${role}?phone=${phone}&mode=${mode}${demo}`)
+      const r = await api.login(phone, password, role)
+      signIn(r.session)
+      nav(r.mustChangePassword ? '/password' : homeFor(role), { replace: true })
     } catch (e) {
-      setErr(e instanceof ApiError ? (e.messageMr ?? e.message) : t('onb.otpSendFailed'))
+      setError(e instanceof ApiError ? (e.messageMr ?? t('auth.failed')) : t('auth.failed'))
     } finally {
       setBusy(false)
     }
@@ -159,252 +59,112 @@ export function PhoneScreen({ mode }: { mode: 'join' | 'login' }) {
     <div className="app-shell">
       <AppBar
         brand
-        title={t('onb.phoneTitle')}
-        sub={role === 'farmer' ? t('lp.farmerDoor') : t('lp.customerDoor')}
+        title={t(role === 'farmer' ? 'auth.loginFarmer' : 'auth.loginBuyer')}
         backTo="/"
         bell={false}
       />
       <div className="screen screen--nonav stack">
-        <Field
-          label={t('onb.phoneLabel')}
-          hint={t('onb.phoneHint')}
-          error={err}
-          required
-          htmlFor="phone"
-        >
-          <div className="row" style={{ gap: 'var(--s2)' }}>
-            <span
-              className="input"
-              style={{
-                width: 72, display: 'grid', placeItems: 'center',
-                flex: '0 0 auto', fontWeight: 700,
-              }}
-            >
-              +91
-            </span>
-            <TextInput
-              id="phone"
-              inputMode="numeric"
-              maxLength={10}
-              value={phone}
-              error={!!err}
-              placeholder="9876543210"
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-            />
-          </div>
+        <Field label={t('auth.phone')} htmlFor="phone">
+          <TextInput
+            id="phone"
+            inputMode="numeric"
+            autoComplete="tel"
+            maxLength={10}
+            value={phone}
+            placeholder={t('auth.phonePh')}
+            onChange={(e) => setPhone(digitsOnly(e.target.value))}
+          />
         </Field>
-
-        {pending ? (
-          <>
-            <Notice tone="ok" title={t('onb.resumeTitle')}>{t('onb.resumeBody')}</Notice>
-            <Button onClick={() => nav(`/register/farmer?phone=${pending.phone}`)}>
-              {t('onb.resume')} <IconNext aria-hidden="true" />
-            </Button>
-            {/* For the woman who wants to register a different number. It drops
-                the ticket she was holding, empties the box and puts the cursor
-                in it - and sends NOTHING. It used to call send() straight
-                away, with the old number still in the box, so the "different"
-                number got a second OTP to the same phone. */}
-            <Button variant="quiet" onClick={switchNumber} disabled={busy}>
-              {t('onb.differentNumber')}
-            </Button>
-          </>
-        ) : (
-          <Button onClick={send} disabled={busy}>
-            {busy ? t('common.loading') : t('onb.sendOtp')}
-          </Button>
-        )}
+        <Field label={t('auth.password')} htmlFor="password">
+          <TextInput
+            id="password"
+            type={show ? 'text' : 'password'}
+            autoComplete="current-password"
+            value={password}
+            placeholder={t('auth.passwordPh')}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+        <Button variant="quiet" onClick={() => setShow(!show)}>{t(show ? 'auth.hide' : 'auth.show')}</Button>
+        {error && <Notice tone="danger">{error}</Notice>}
+        <Button onClick={submit} disabled={busy || !isValidPhone(phone) || password.length < MIN_PASSWORD}>
+          {busy ? t('common.loading') : t('auth.login')}
+        </Button>
+        <Button variant="ghost" onClick={() => nav(`/forgot-password/${role}`)}>{t('auth.forgot')}</Button>
+        <a className="btn btn--ghost" href={`tel:+91${SUPPORT_PHONE}`}><IconCall aria-hidden="true" /> {t('help.call')}</a>
+        <Button variant="quiet" onClick={() => nav(`/register/${role}`)}>{t('auth.newAccount')}</Button>
       </div>
     </div>
   )
 }
 
-export function OtpScreen() {
-  const { role: roleParam } = useParams()
-  const role = roleFrom(roleParam)
-  const [params] = useSearchParams()
-  const phone = params.get('phone') ?? ''
-  const mode = params.get('mode') === 'login' ? 'login' : 'join'
-  const demo = params.get('demo')
-
+/**
+ * FORGOT PASSWORD IS A REQUEST TO A PERSON
+ * ========================================
+ * Public. She leaves her number, name and (a farmer) village; an admin calls
+ * that number and reads out a temporary password. What she sees after sending
+ * is the same whatever the server knows about the number.
+ */
+export function ForgotPasswordScreen() {
   const t = useT()
   const nav = useNavigate()
-  const { session, signIn } = useAuth()
-  const { toast } = useToast()
-
-  const [code, setCode] = useState('')
-  const [err, setErr] = useState('')
+  const role = roleFrom(useParams().role)
+  const [phone, setPhone] = useState('')
+  const [name, setName] = useState('')
+  const [village, setVillage] = useState('')
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  /** Verified, but this number has no farmer record yet. */
-  const [needsRegistration, setNeedsRegistration] = useState(false)
 
-  // Read ONCE, on mount. Verifying a customer's OTP signs the customer in a
-  // moment before it navigates, and a live check here would see that new
-  // session and redirect to /shop out from under the flow.
-  const [arrivedSignedIn] = useState(() => session?.role === role)
-  if (arrivedSignedIn) return <Navigate to={homeFor(role)} replace />
-
-  async function verify() {
+  const ready = isValidPhone(phone) && name.trim() !== '' && (role !== 'farmer' || village.trim() !== '')
+  const submit = async () => {
     setBusy(true)
-    setErr('')
+    setError(null)
     try {
-      /**
-       * Two steps with the widget, and the second is the one that counts.
-       * MSG91 checks the digits and returns a JWT; the server then trades that
-       * JWT for the number it was issued for and refuses it if that is not the
-       * number the farmer typed. A token alone proves SOME phone passed an
-       * OTP, which is not the same as this one.
-       */
-      const credential = widgetEnabled ? await verifyWidgetOtp(code) : code
-      const res = await api.verifyOtp(phone, credential, role)
-
-      if (res.registered && res.session) {
-        signIn(res.session)
-        toast(t('ok.loggedIn'))
-        nav(homeFor(role), { replace: true })
-        return
-      }
-
-      // A customer IS authenticated here - only the name is missing - so the
-      // customer is signed in and taken to the one screen that asks for it,
-      // which writes with that same token. Stopping to say "you must
-      // register" would be an interstitial in front of a single question.
-      if (role === 'customer' && res.session) {
-        signIn(res.session)
-        nav('/register/customer', { replace: true })
-        return
-      }
-
-      // The farmer's proof that this number passed an OTP. The wizard cannot
-      // register without it, so it is kept before any navigation happens.
-      if (res.ticket) stashRegisterTicket(res.ticket)
-
-      // "join" on the farmer door already says the farmer is new, so the
-      // wizard is what was asked for and an interstitial would just be a tap.
-      if (role === 'farmer' && mode === 'join') {
-        nav(`/register/farmer?phone=${phone}`, { replace: true })
-        return
-      }
-
-      // A farmer who came through "log in" and has no record. Nothing to sign
-      // in to, so the farmer is told plainly and offered the way forward.
-      setNeedsRegistration(true)
+      await api.requestPasswordReset({ role, phone, name, village: role === 'farmer' ? village : undefined })
+      setSent(true)
     } catch (e) {
-      // A widget failure - origin refused, session lost, MSG91 unreachable -
-      // is not a wrong code, but the farmer is told it is, and on a phone
-      // no console to check. In dev the real message is shown instead; in
-      // production the farmer still gets the plain Marathi one.
-      if (import.meta.env.DEV) console.error('[otp] verify failed:', e)
-
-      // The widget's OTP session lives in page memory, so a reload between the
-      // phone screen and this one loses it. Calling the code wrong sends the
-      // farmer back to the keypad, where nothing typed there can work; the
-      // way out is the resend button directly below this message.
-      if (e instanceof Error && e.message === WIDGET_SESSION_LOST) {
-        setErr(t('onb.otpSessionLost'))
-        return
-      }
-
-      // On the widget path MSG91 has already checked the digits in the browser
-      // before our server hears about it, so a 401 from us is never "the
-      // farmer mistyped". It is an access token the exchange refused, and
-      // MSG91 verifies a request once - so those digits are spent however
-      // right they were. Calling those digits wrong sends the farmer off to
-      // retype a correct code for ever; only a new code can work.
-      if (widgetEnabled && e instanceof ApiError && e.status === 401) {
-        forgetWidgetSession()
-        setErr(t('onb.otpSessionLost'))
-        return
-      }
-
-      const generic = import.meta.env.DEV ? `${t('onb.otpWrong')} — ${String(e)}` : t('onb.otpWrong')
-      setErr(e instanceof ApiError ? (e.messageMr ?? e.message) : generic)
+      // A 429 carries the server's Marathi "try again in ..." line.
+      setError(e instanceof ApiError ? (e.messageMr ?? t('auth.failed')) : t('auth.failed'))
     } finally {
       setBusy(false)
     }
   }
 
-  /**
-   * Send it again. `retryOtp` rather than `sendOtp` on the widget path: MSG91
-   * treats a resend as a retry on the session it already opened, and starting
-   * a new one would invalidate the code the farmer may be reading off the
-   * screen.
-   */
-  async function resend() {
-    setCode('')
-    setErr('')
-    try {
-      // The same quota as the first send, for the same reason: a resend is
-      // another SMS. On the widget path this call only counts - see the send
-      // function on the phone screen.
-      const res = await api.sendOtp(phone)
-      if (!res.sent) {
-        setErr(t('onb.otpCooldown', { n: Math.ceil((res.cooldownMs ?? 30_000) / 1000) }))
-        return
-      }
-
-      if (widgetEnabled) await retryWidgetOtp(phone)
-      toast(t('ok.otpSent'))
-    } catch (e) {
-      setErr(e instanceof ApiError ? (e.messageMr ?? e.message) : t('onb.otpSendFailed'))
-    }
-  }
-
-  function goRegister() {
-    nav(`/register/farmer?phone=${phone}`, { replace: true })
-  }
-
   return (
     <div className="app-shell">
-      <AppBar
-        brand
-        title={t('onb.otpTitle')}
-        sub={`${t('onb.otpSentTo')} +91 ${phone}`}
-        bell={false}
-        onBack={() => nav(-1)}
-      />
+      <AppBar brand title={t('forgot.title')} backTo={`/login/${role}`} bell={false} />
       <div className="screen screen--nonav stack">
-        {needsRegistration ? (
-          /* Say what happened and what happens next, in that order. The farmer typed
-             the right OTP - that part worked - and the thing that is missing
-             is a record, not a mistake they made. */
+        {sent ? (
           <>
-            <Notice tone="warn" title={t('onb.needRegisterTitle')}>
-              {t('onb.needRegisterSell')}
-            </Notice>
-            <Button onClick={goRegister}>
-              {t('onb.registerNow')} <IconNext aria-hidden="true" />
-            </Button>
-            <Button variant="quiet" onClick={() => nav('/', { replace: true })}>
-              {t('common.cancel')}
-            </Button>
+            <Notice tone="ok">{t('forgot.sent')}</Notice>
+            <Button onClick={() => nav(`/login/${role}`, { replace: true })}>{t('forgot.backToLogin')}</Button>
           </>
         ) : (
           <>
-            <OtpInput value={code} onChange={(v) => { setCode(v); setErr('') }} length={OTP_LENGTH} />
-            {err && <div className="field__err center" role="alert">{err}</div>}
-
-            {/* In demo mode the server hands the real code back so the app is
-                walkable with no SMS account. It is a real code that is really
-                checked - typing anything else is refused. With the widget live
-                a real SMS went out, so there is nothing to show the farmer's here. */}
-            {!widgetEnabled && (
-              <Notice tone="info">
-                {demo ? `${t('onb.otpDemo')} · ${demo}` : t('onb.otpDemo')}
-              </Notice>
+            <p className="body" style={{ margin: 0 }}>{t('forgot.intro')}</p>
+            <Field label={t('auth.phone')} htmlFor="phone">
+              <TextInput
+                id="phone"
+                inputMode="numeric"
+                autoComplete="tel"
+                maxLength={10}
+                value={phone}
+                placeholder={t('auth.phonePh')}
+                onChange={(e) => setPhone(digitsOnly(e.target.value))}
+              />
+            </Field>
+            <Field label={t('forgot.name')} htmlFor="name">
+              <TextInput id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+            </Field>
+            {role === 'farmer' && (
+              <Field label={t('forgot.village')} htmlFor="village">
+                <TextInput id="village" value={village} onChange={(e) => setVillage(e.target.value)} />
+              </Field>
             )}
-
-            <Button onClick={verify} disabled={code.length < OTP_LENGTH || busy}>
-              {busy ? t('common.loading') : t('onb.otpVerify')}
-            </Button>
-            {/* "New here? Register" used to sit below this, and it was a third
-                offer on a screen with one question on it - a woman halfway
-                through typing six digits does not need a way out of doing so.
-                A number with no farmer record behind it reaches registration
-                by itself: the OTP is checked first, and the branch above is
-                what she lands on. */}
-            <Button variant="quiet" onClick={resend}>
-              {t('onb.otpResend')}
+            {error && <Notice tone="danger">{error}</Notice>}
+            <Button onClick={submit} disabled={busy || !ready}>
+              {busy ? t('common.loading') : t('forgot.send')}
             </Button>
           </>
         )}

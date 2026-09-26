@@ -15,7 +15,7 @@ import type { AuthEvent, AuthEventType } from './types.js'
  * not an acceptable answer to give anybody.
  *
  * WHAT IS DELIBERATELY NOT STORED
- * No plaintext phone numbers, no IP addresses, no user agents, no OTP codes.
+ * No plaintext phone numbers, no IP addresses, no user agents, no passwords.
  * `subject` arrives already masked and `ip` already hashed - see auth/crypto.ts
  * - because a log of who logged in from where is itself personal data, and a
  * breach of the audit trail should not be a second breach of the users.

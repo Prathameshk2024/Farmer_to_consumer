@@ -14,9 +14,9 @@ import { SESSION_SECRET } from '../config.js'
  *    first differing byte, and the time that takes is measurable over a
  *    network. Everything below goes through `timingEqual`.
  *  - Every signature is DOMAIN-SEPARATED by a purpose string. A session token
- *    and a phone-verification ticket are both HMACs under the same secret, and
- *    without the purpose baked in, one could be presented where the other was
- *    expected. That is not a theoretical attack; it is the usual way home-grown
+ *    and any other HMAC under the same secret (the hashed IPs in the audit
+ *    trail) would otherwise be interchangeable, and one could be presented
+ *    where the other was expected. That is not a theoretical attack; it is the usual way home-grown
  *    token schemes fall over.
  */
 
@@ -39,19 +39,18 @@ export function timingEqual(a: string, b: string): boolean {
 }
 
 /**
- * An OTP, from the CSPRNG.
+ * A numeric code, from the CSPRNG. The admin's temporary password is one.
  *
  * `Math.random()` is a fast non-cryptographic PRNG whose internal state can be
- * recovered from a handful of outputs, which for a login code means somebody
- * who requests a few OTPs on his own number can predict the next one issued to
- * anybody. `randomInt` draws from the same pool as key generation.
+ * recovered from a handful of outputs, which for a temporary password means
+ * somebody who sees a few could predict the next one issued to anybody. `randomInt` draws from the same pool as key generation.
  */
 export function randomCode(digits: number): string {
   const max = 10 ** digits
   return String(crypto.randomInt(0, max)).padStart(digits, '0')
 }
 
-/** An unguessable id for a session or a ticket. 144 bits, URL-safe. */
+/** An unguessable id for a session. 144 bits, URL-safe. */
 export function randomId(bytes = 18): string {
   return crypto.randomBytes(bytes).toString('base64url')
 }

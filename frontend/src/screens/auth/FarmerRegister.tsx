@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Farmer } from '@shared/types.js'
-import { EDUCATION_LEVELS, FSSAI_DIGITS, fssaiProblem, isValidPincode, isValidUpi } from '@shared/farmer.js'
+import {
+  EDUCATION_LEVELS, FSSAI_DIGITS, fssaiProblem, isValidPhone, isValidPincode, isValidUpi, normalizePhone,
+} from '@shared/farmer.js'
+import { passwordProblemMr } from '@shared/password.js'
 import { upiProblem } from '@shared/payment.js'
 import { VILLAGES, makeFarmerCode, villageCode } from '@shared/farmerCode.js'
 import {
@@ -11,12 +14,9 @@ import { useI18n, useT } from '../../i18n/I18nProvider.js'
 import { useAuth } from '../../store/AuthContext.js'
 import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
-import { clearRegisterTicket, takeRegisterTicket } from './Auth.js'
-import { liveTicket } from '../../lib/registerTicket.js'
 import {
   clearDraft, EMPTY, readDraft, sessionStore, writeDraft, type Draft,
 } from './farmerDraft.js'
-import PhotoPicker from '../../components/PhotoPicker.js'
 import {
   AppBar, Button, Card, Choice, Dots, Field, Notice,
   TextInput, VoiceInput, YesNo,
@@ -44,7 +44,7 @@ import {
  * "I have to do it all again" is where the form gets abandoned.
  */
 
-const STEP_KEYS = ['reg.s1', 'reg.s2', 'reg.s3', 'reg.s4', 'reg.s5', 'reg.s6']
+const STEP_KEYS = ['reg.s0', 'reg.s1', 'reg.s2', 'reg.s3', 'reg.s4', 'reg.s5', 'reg.s6']
 
 
 export default function FarmerRegister() {
@@ -53,8 +53,13 @@ export default function FarmerRegister() {
   const nav = useNavigate()
   const { signIn, session } = useAuth()
   const { toast } = useToast()
-  const [params] = useSearchParams()
-  const phone = params.get('phone') ?? ''
+  const [params, setParams] = useSearchParams()
+  // In the URL once step 1 is passed, so a reload finds her draft again.
+  const [phone, setPhone] = useState(() => normalizePhone(params.get('phone') ?? ''))
+  // Never in the draft: a password does not belong in browser storage. After a
+  // reload she types it again, and submit sends her back here if she has not.
+  const [password, setPassword] = useState('')
+  const [again, setAgain] = useState('')
 
   // Keyed by HER phone, so a field coordinator registering woman after woman
   // on one handset never shows the next one what the last one typed.
@@ -65,7 +70,7 @@ export default function FarmerRegister() {
   const [d, setD] = useState<Draft>(restored?.d ?? EMPTY)
 
   useEffect(() => {
-    writeDraft(store, phone, step, d)
+    if (isValidPhone(phone)) writeDraft(store, phone, step, d)
   }, [store, phone, step, d])
 
   /* One route, seven screens. A step change is not a navigation, so nothing
@@ -86,9 +91,7 @@ export default function FarmerRegister() {
    * this wizard does is sign her in, and re-reading it after that would pull
    * the screen showing her new farmer code out from under her.
    */
-  const alreadyRegistered = useState(
-    () => session?.role === 'farmer' && !liveTicket(),
-  )[0]
+  const alreadyRegistered = useState(() => session?.role === 'farmer')[0]
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
     setD((cur) => ({ ...cur, [k]: v }))
@@ -119,26 +122,32 @@ export default function FarmerRegister() {
   function validate(which: number): boolean {
     const e: Record<string, string> = {}
     if (which === 0) {
+      if (!isValidPhone(phone)) e.phone = t('onb.phoneInvalid')
+      const pw = passwordProblemMr(password)
+      if (pw) e.password = pw
+      else if (again !== password) e.again = t('auth.mismatch')
+    }
+    if (which === 1) {
       if (!d.name.trim()) e.name = t('common.required')
       if (d.age && (Number(d.age) < 18 || Number(d.age) > 90)) e.age = '18 - 90'
     }
-    if (which === 1) {
+    if (which === 2) {
       if (!village.trim()) e.villagePreset = t('common.required')
       if (!isValidPincode(d.pincode)) e.pincode = t('reg.pincodeHint')
     }
-    if (which === 2) {
+    if (which === 3) {
       if (!d.shopName.trim()) e.shopName = t('common.required')
       if (d.sellsFood === null) e.sellsFood = t('common.required')
       // Blank is fine. Wrong is not - see fssaiProblem.
       const fssai = d.sellsFood ? fssaiProblem(d.fssai) : null
       if (fssai) e.fssai = fssai
     }
-    if (which === 3 && answered < SELF_REPORTED_FACTORS.length) {
+    if (which === 4 && answered < SELF_REPORTED_FACTORS.length) {
       e.digital = t('common.required')
     }
     // The reason, not the example again. "उदा. sunita@ybl" under a box she
     // has already filled in tells her nothing about what she got wrong.
-    if (which === 4) {
+    if (which === 5) {
       const upiFault = upiProblem(d.upiId)
       if (upiFault) e.upiId = upiFault
     }
@@ -148,6 +157,7 @@ export default function FarmerRegister() {
 
   function next() {
     if (!validate(step)) return
+    if (step === 0) setParams({ phone }, { replace: true })
     setStep((s) => Math.min(STEP_KEYS.length - 1, s + 1))
   }
 
@@ -162,22 +172,20 @@ export default function FarmerRegister() {
   }
 
   function back() {
-    // Step 0 goes HOME, not to the phone screen. She is holding a live ticket
-    // that already proves this number; the phone screen's only button spends
-    // another OTP, which is precisely the waste back was causing.
+    // Step 0 goes home: there is nothing before it.
     if (step === 0) nav('/')
     else goToStep(step - 1)
   }
 
   async function submit() {
+    // After a reload the draft is back but the password is not.
+    if (!validate(0)) { setStep(0); return }
     setBusy(true)
     setServerError('')
     try {
       const res = await api.registerFarmer({
-        // The server reads her phone number out of this and ignores anything
-        // the body claims, so registration cannot be aimed at a number whose
-        // OTP was never passed.
-        ticket: takeRegisterTicket(),
+        phone,
+        password,
         name: d.name.trim(),
         age: d.age ? Number(d.age) : undefined,
         education: d.education || undefined,
@@ -195,8 +203,6 @@ export default function FarmerRegister() {
         sellsFood: !!d.sellsFood,
         fssai: d.sellsFood ? d.fssai || undefined : undefined,
         upiId: d.upiId.trim(),
-        upiQrUrl: d.upiQrUrl || undefined,
-        upiQrPublicId: d.upiQrPublicId || undefined,
         digital: {
           smartphone: !!d.digital.smartphone,
           internet: !!d.digital.internet,
@@ -206,8 +212,6 @@ export default function FarmerRegister() {
           digitalMarketing: !!d.digital.digitalMarketing,
         },
       })
-      // Spent, and single-use on the server anyway. Not worth leaving behind.
-      clearRegisterTicket()
       clearDraft(store, phone)
       signIn(res.session)
       toast(t('ok.registered'))
@@ -290,8 +294,46 @@ export default function FarmerRegister() {
       </div>
 
       <div className="screen stack">
-        {/* ---------- 1. about her ------------------------------- */}
+        {/* ---------- 0. the account ---------------------------- */}
         {step === 0 && (
+          <>
+            <Field label={t('auth.phone')} error={errors.phone} required htmlFor="phone">
+              <TextInput
+                id="phone"
+                inputMode="numeric"
+                autoComplete="tel"
+                maxLength={10}
+                value={phone}
+                error={!!errors.phone}
+                placeholder={t('auth.phonePh')}
+                onChange={(e) => { setPhone(e.target.value.replace(/\D/g, '')); setErrors((x) => ({ ...x, phone: '' })) }}
+              />
+            </Field>
+            <Field label={t('auth.password')} hint={t('auth.passwordPh')} error={errors.password} required htmlFor="pw">
+              <TextInput
+                id="pw"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                error={!!errors.password}
+                onChange={(e) => { setPassword(e.target.value); setErrors((x) => ({ ...x, password: '' })) }}
+              />
+            </Field>
+            <Field label={t('auth.passwordAgain')} error={errors.again} required htmlFor="pw2">
+              <TextInput
+                id="pw2"
+                type="password"
+                autoComplete="new-password"
+                value={again}
+                error={!!errors.again}
+                onChange={(e) => { setAgain(e.target.value); setErrors((x) => ({ ...x, again: '' })) }}
+              />
+            </Field>
+          </>
+        )}
+
+        {/* ---------- 1. about her ------------------------------- */}
+        {step === 1 && (
           <>
             <Field label={t('reg.name')} hint={t('reg.nameHint')} error={errors.name} required>
               {/* Voice input: she can say her name rather than type Devanagari. */}
@@ -343,7 +385,7 @@ export default function FarmerRegister() {
         )}
 
         {/* ---------- 2. village -> the farmer code --------------- */}
-        {step === 1 && (
+        {step === 2 && (
           <>
             <Field label={t('reg.village')} error={errors.villagePreset} required>
               <div className="stack-sm">
@@ -442,7 +484,7 @@ export default function FarmerRegister() {
         )}
 
         {/* ---------- 3. her business ----------------------------- */}
-        {step === 2 && (
+        {step === 3 && (
           <>
             <Field label={t('reg.shopName')} hint={t('reg.shopNameHint')} error={errors.shopName} required>
               <VoiceInput
@@ -522,7 +564,7 @@ export default function FarmerRegister() {
         )}
 
         {/* ---------- 4. digital readiness ------------------------ */}
-        {step === 3 && (
+        {step === 4 && (
           <>
             <div className="stack-sm">
               <h2 className="h2">{t('reg.digitalTitle')}</h2>
@@ -564,7 +606,7 @@ export default function FarmerRegister() {
         )}
 
         {/* ---------- 5. money in --------------------------------- */}
-        {step === 4 && (
+        {step === 5 && (
           <>
             <div className="stack-sm">
               <h2 className="h2">{t('reg.upiTitle')}</h2>
@@ -596,25 +638,11 @@ export default function FarmerRegister() {
               </Notice>
             )}
 
-            {/* Her bank's own QR, photographed. Optional: a working QR can be
-                drawn from the UPI id above, and making this a hard gate would
-                stop a woman whose phone will not open her bank app right now.
-                When she does upload one, the buyer scans HER code. */}
-            <Field label={t('reg.upiQr')} hint={t('reg.upiQrHint')}>
-              <PhotoPicker
-                imageUrl={d.upiQrUrl || undefined}
-                onUploaded={(img) => {
-                  set('upiQrUrl', img.url)
-                  set('upiQrPublicId', img.publicId)
-                }}
-                onCleared={() => { set('upiQrUrl', ''); set('upiQrPublicId', '') }}
-              />
-            </Field>
           </>
         )}
 
         {/* ---------- 6. review ----------------------------------- */}
-        {step === 5 && (
+        {step === 6 && (
           <>
             <h2 className="h2">{t('reg.reviewTitle')}</h2>
             <p className="small muted" style={{ margin: 0 }}>{t('reg.reviewHint')}</p>
@@ -631,18 +659,18 @@ export default function FarmerRegister() {
               <div className="stack-sm small">
                 {/* The step each answer belongs to, so "बदला" lands on the
                     screen that asked the question rather than at the start. */}
-                <Row label={t('reg.name')} value={d.name} onEdit={() => goToStep(0)} editLabel={t('common.edit')} />
-                <Row label={t('reg.age')} value={d.age} onEdit={() => goToStep(0)} editLabel={t('common.edit')} />
-                <Row label={t('reg.village')} value={village} onEdit={() => goToStep(1)} editLabel={t('common.edit')} />
-                <Row label={t('reg.pincode')} value={d.pincode} onEdit={() => goToStep(1)} editLabel={t('common.edit')} />
-                <Row label={t('reg.shopName')} value={d.shopName} onEdit={() => goToStep(2)} editLabel={t('common.edit')} />
-                <Row label={t('reg.businessType')} value={t(d.businessType === 'shg' ? 'reg.bizShg' : 'reg.bizIndividual')} onEdit={() => goToStep(2)} editLabel={t('common.edit')} />
-                {d.shgName && <Row label={t('reg.shgName')} value={d.shgName} onEdit={() => goToStep(2)} editLabel={t('common.edit')} />}
-                {d.yearsInBusiness && <Row label={t('reg.years')} value={`${d.yearsInBusiness} ${t('reg.yearsUnit')}`} onEdit={() => goToStep(2)} editLabel={t('common.edit')} />}
-                {d.monthlyCapacity && <Row label={t('reg.capacity')} value={d.monthlyCapacity} onEdit={() => goToStep(2)} editLabel={t('common.edit')} />}
-                <Row label={t('reg.sellsFood')} value={d.sellsFood ? t('common.yes') : t('common.no')} onEdit={() => goToStep(2)} editLabel={t('common.edit')} />
-                {d.sellsFood && d.fssai && <Row label={t('reg.fssai')} value={d.fssai} onEdit={() => goToStep(2)} editLabel={t('common.edit')} />}
-                <Row label={t('reg.upiLabel')} value={d.upiId} onEdit={() => goToStep(4)} editLabel={t('common.edit')} />
+                <Row label={t('reg.name')} value={d.name} onEdit={() => goToStep(1)} editLabel={t('common.edit')} />
+                <Row label={t('reg.age')} value={d.age} onEdit={() => goToStep(1)} editLabel={t('common.edit')} />
+                <Row label={t('reg.village')} value={village} onEdit={() => goToStep(2)} editLabel={t('common.edit')} />
+                <Row label={t('reg.pincode')} value={d.pincode} onEdit={() => goToStep(2)} editLabel={t('common.edit')} />
+                <Row label={t('reg.shopName')} value={d.shopName} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />
+                <Row label={t('reg.businessType')} value={t(d.businessType === 'shg' ? 'reg.bizShg' : 'reg.bizIndividual')} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />
+                {d.shgName && <Row label={t('reg.shgName')} value={d.shgName} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />}
+                {d.yearsInBusiness && <Row label={t('reg.years')} value={`${d.yearsInBusiness} ${t('reg.yearsUnit')}`} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />}
+                {d.monthlyCapacity && <Row label={t('reg.capacity')} value={d.monthlyCapacity} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />}
+                <Row label={t('reg.sellsFood')} value={d.sellsFood ? t('common.yes') : t('common.no')} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />
+                {d.sellsFood && d.fssai && <Row label={t('reg.fssai')} value={d.fssai} onEdit={() => goToStep(3)} editLabel={t('common.edit')} />}
+                <Row label={t('reg.upiLabel')} value={d.upiId} onEdit={() => goToStep(5)} editLabel={t('common.edit')} />
               </div>
             </Card>
 
@@ -651,7 +679,7 @@ export default function FarmerRegister() {
                 <Row
                   label={t('reg.readinessTitle')}
                   value={`${score} / 100 · ${lang === 'mr' ? BAND_LABEL[readinessBand(score)].mr : BAND_LABEL[readinessBand(score)].en}`}
-                  onEdit={() => goToStep(3)}
+                  onEdit={() => goToStep(4)}
                   editLabel={t('common.edit')}
                 />
               </div>

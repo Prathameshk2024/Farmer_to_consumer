@@ -20,6 +20,17 @@ export function when(iso: string): string {
 }
 
 /**
+ * How long something has waited, in the largest whole unit: minutes under an
+ * hour, hours under a day, then days. The screen turns it into words.
+ */
+export function waited(iso: string, now = Date.now()): { n: number; unit: 'min' | 'hour' | 'day' } {
+  const min = Math.max(0, Math.floor((now - Date.parse(iso)) / 60_000))
+  if (min < 60) return { n: min, unit: 'min' }
+  if (min < 24 * 60) return { n: Math.floor(min / 60), unit: 'hour' }
+  return { n: Math.floor(min / (24 * 60)), unit: 'day' }
+}
+
+/**
  * The customer's details, as the ORDERS LIST is allowed to see them.
  *
  * An admin chasing a stuck order needs to know which order and which farmer.

@@ -6,8 +6,7 @@ import {
 
 /**
  * The registration wizard keeps a half-filled form on the device, so that
- * leaving it does not throw six screens of answers away - and, more to the
- * point, does not force a second OTP on a number she verified two minutes ago.
+ * leaving it does not throw six screens of answers away.
  *
  * It is keyed by PHONE for the same reason the product draft is keyed by
  * farmer: on a field coordinator's handset one woman registers after another,
@@ -46,7 +45,7 @@ test('the same woman gets her answers back, on the step she left', () => {
 })
 
 test('the key is the phone, however it was spelled', () => {
-  // The number arrives from a ticket and from a query string; one of those
+  // The number arrives from what she typed and from a query string; one of those
   // could carry spaces or a +91 and must not open a second drawer.
   assert.equal(draftKey('+91 98220 11223'), draftKey('9822011223'))
 })

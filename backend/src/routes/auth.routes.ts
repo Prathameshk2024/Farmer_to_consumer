@@ -1,35 +1,35 @@
 import { Router, type Request, type Response } from 'express'
-import { isValidPhone, normalizePhone, samePhone } from '@shared/farmer.js'
+import { isValidPhone, normalizePhone } from '@shared/farmer.js'
+import { passwordProblemMr } from '@shared/password.js'
 import { getDb, save } from '../db/store.js'
-import { customerIdFor, findCustomer, isRegisteredCustomer } from '../db/customers.js'
+import { findCustomer } from '../db/customers.js'
 import { callerIp, requireRole } from '../middleware/auth.js'
 import { signToken } from '../auth/tokens.js'
 import {
-  createSession, describeClient, liveSessionsForUser, revokeSession,
+  createSession, describeClient, liveSessionsForUser, revokeAllForUser, revokeSession,
 } from '../auth/sessions.js'
 import { authenticateAdmin, bootstrapAdmin, normalizeEmail } from '../auth/admins.js'
-import { issueTicket } from '../auth/tickets.js'
+import { checkPassword, setCredential } from '../auth/credentials.js'
+import { submitPasswordRequest } from '../auth/passwordRequests.js'
 import { recordAuthEvent } from '../auth/events.js'
 import { hashIp, maskPhone } from '../auth/crypto.js'
 import { clear as clearLimit, hit, LIMITS, type Limit } from '../auth/rateLimit.js'
-import { sendOtp, verifyOtp } from '../services/otp.service.js'
 
 /**
  * AUTHENTICATION
  * ==============
- * Phone plus OTP for farmers and customers; email plus password for
- * administrators. Verification happens HERE, on the server, never on the
- * client - a client that decides for itself whether the code was right is not
- * authentication, it is a suggestion.
+ * Phone plus password for farmers and customers; email plus password for
+ * administrators. There is no SMS: a forgotten password is a request to a
+ * person (POST /password-requests below, answered from the admin queue).
  *
  * Three rules hold across every handler below:
  *
  *  - EVERY attempt is counted before it is answered. Rate limiting is not a
- *    nicety on a login endpoint: a six-digit code is a million guesses, and a
- *    password is far fewer, so without a cap the only question is how long a
- *    script needs.
- *  - Failures are indistinguishable to the caller. Wrong code, expired code,
- *    no code at all; unknown admin, wrong password, disabled account - one
+ *    nicety on a login endpoint: a six-digit password is a million guesses,
+ *    and a remembered one is far fewer, so without a cap the only question is
+ *    how long a script needs.
+ *  - Failures are indistinguishable to the caller. Unknown phone, wrong
+ *    password; unknown admin, wrong password, disabled account - one
  *    message each side. Anything more precise confirms facts about other
  *    people's accounts to whoever asks.
  *  - Everything that matters is written to the audit trail with the phone
@@ -39,15 +39,9 @@ import { sendOtp, verifyOtp } from '../services/otp.service.js'
 export const authRouter: Router = Router()
 
 /**
- * Count an attempt, and answer 429 if it is over the line.
- *
- * Returns true when the caller has been dealt with, so handlers read as
- * `if (over(...)) return`.
- */
-/**
  * "Try again in N" - in a unit a person uses.
  *
- * The daily send quota resets a whole day out, and the minutes version of that
+ * The daily forgot-password quota resets a whole day out, and the minutes version of that
  * read "1440 मिनिटांनी पुन्हा प्रयत्न करा", which is a number rather than an
  * answer. Nothing here is precise to the minute anyway.
  */
@@ -63,6 +57,12 @@ function retryInMr(sec: number): string {
   return say(Math.ceil(hours / 24), 'दिवसाने', 'दिवसांनी')
 }
 
+/**
+ * Count an attempt, and answer 429 if it is over the line.
+ *
+ * Returns true when the caller has been dealt with, so handlers read as
+ * `if (over(...)) return`.
+ */
 function over(res: Response, key: string, limit: Limit): boolean {
   const result = hit(key, limit)
   if (result.ok) return false
@@ -76,180 +76,112 @@ function over(res: Response, key: string, limit: Limit): boolean {
   return true
 }
 
-/** The generic "that did not work" for OTP. Never says which part was wrong. */
-function otpRejected(res: Response): void {
-  res.status(401).json({ error: 'Wrong or expired OTP', messageMr: 'OTP चुकीचा किंवा कालबाह्य आहे. पुन्हा पाठवा.' })
-}
-
 /* ------------------------------------------------------------------ */
-/* Send a code                                                         */
+/* Sign in                                                             */
 /* ------------------------------------------------------------------ */
 
-authRouter.post('/otp/send', async (req, res) => {
+authRouter.post('/login', (req, res) => {
   const phone = normalizePhone(String(req.body?.phone ?? ''))
-  const ip = hashIp(callerIp(req))
-
-  if (!isValidPhone(phone)) {
-    res.status(400).json({
-      error: 'Invalid phone',
-      messageMr: '10 अंकी मोबाईल नंबर टाका',
-      fields: { phone: 'invalid' },
-    })
-    return
-  }
-
-  // Both keys, always. Per-phone alone lets somebody walk through numbers to
-  // burn the SMS budget; per-IP alone punishes a whole village behind one
-  // carrier NAT, which here is a real shape of traffic rather than an edge case.
-  if (over(res, `otp:send:ip:${ip}`, LIMITS.otpSendPerIp)) {
-    recordAuthEvent(getDb(), { type: 'ratelimit', ip, detail: 'otp.send ip' })
-    save()
-    return
-  }
-  if (over(res, `otp:send:phone:${phone}`, LIMITS.otpSendPerPhone)) {
-    recordAuthEvent(getDb(), { type: 'otp.send.blocked', subject: maskPhone(phone), ip })
-    save()
-    return
-  }
-
-  const result = await sendOtp(phone)
-  recordAuthEvent(getDb(), {
-    type: result.sent ? 'otp.send' : 'otp.send.blocked',
-    subject: maskPhone(phone),
-    ip,
-    detail: result.sent ? undefined : 'cooldown or delivery failure',
-  })
-  save()
-
-  res.json(result)
-})
-
-/* ------------------------------------------------------------------ */
-/* Check a code, and start a session                                   */
-/* ------------------------------------------------------------------ */
-
-authRouter.post('/otp/verify', async (req, res) => {
-  const phone = normalizePhone(String(req.body?.phone ?? ''))
-  const code = String(req.body?.code ?? '')
+  const password = String(req.body?.password ?? '')
   const role = req.body?.role === 'farmer' ? 'farmer' : 'customer'
   const ip = hashIp(callerIp(req))
-
-  if (!isValidPhone(phone)) {
-    otpRejected(res)
-    return
-  }
-
-  if (over(res, `otp:verify:ip:${ip}`, LIMITS.otpVerifyPerIp)) return
-  if (over(res, `otp:verify:phone:${phone}`, LIMITS.otpVerifyPerPhone)) {
-    recordAuthEvent(getDb(), { type: 'ratelimit', subject: maskPhone(phone), ip, detail: 'otp.verify' })
-    save()
-    return
-  }
-
-  const check = await verifyOtp(phone, code)
-  if (!check.ok) {
-    recordAuthEvent(getDb(), {
-      type: 'otp.verify.fail', subject: maskPhone(phone), role, ip, detail: check.reason,
-    })
-    save()
-    otpRejected(res)
-    return
-  }
-
-  // A correct code clears the failure budget, so somebody who mistyped twice
-  // and then got it right is not still one slip from a lockout.
-  clearLimit(`otp:verify:phone:${phone}`)
-
   const db = getDb()
-  const client = describeClient(req.headers['user-agent'])
+  // One answer for an unknown phone and a wrong password: anything more says
+  // which numbers have accounts.
+  const deny = () => res.status(401).json({
+    error: 'Bad credentials', messageMr: 'मोबाईल नंबर किंवा पासवर्ड चुकीचा आहे',
+  })
 
-  if (role === 'farmer') {
-    // Normalised on both sides: records stored before this fix may hold
-    // '98765 43210' or '+91...', and she is not registering a second time.
-    const farmer = db.farmers.find((s) => samePhone(s.phone, phone))
-
-    if (!farmer) {
-      /**
-       * No farmer record yet. She is verified but has nothing to sign in to,
-       * so instead of a session she gets a TICKET - short-lived, single-use
-       * proof that this phone passed an OTP just now.
-       *
-       * /farmers/register demands it and reads the phone out of it. Before the
-       * ticket existed, registration took a phone number straight from the
-       * request body and issued a session for it, so anybody could create an
-       * account against any unregistered number.
-       */
-      recordAuthEvent(db, { type: 'otp.verify.ok', subject: maskPhone(phone), role, ip, detail: 'unregistered' })
-      save()
-      res.json({
-        registered: false,
-        phone,
-        ticket: issueTicket('farmer-register', phone),
-      })
-      return
-    }
-
-    const session = createSession(db, {
-      role: 'farmer', userId: farmer.id, phone, farmerId: farmer.id, client,
-    })
-    recordAuthEvent(db, {
-      type: 'session.start', subject: maskPhone(phone), role: 'farmer', ip, sessionId: session.id,
-    })
+  if (!isValidPhone(phone) || !password) { deny(); return }
+  if (over(res, `login:ip:${ip}`, LIMITS.loginPerIp)) return
+  if (over(res, `login:phone:${phone}`, LIMITS.loginPerPhone)) {
+    recordAuthEvent(db, { type: 'ratelimit', subject: maskPhone(phone), ip, detail: 'login' })
     save()
-
-    res.json({
-      registered: true,
-      session: {
-        token: signToken({ sid: session.id, role: 'farmer' }),
-        role: 'farmer',
-        userId: farmer.id,
-        phone,
-        name: farmer.name,
-        farmerId: farmer.id,
-      },
-    })
     return
   }
 
-  /**
-   * The phone is still the customer's account - the id is derived from it, not
-   * allocated - but a verified phone alone is not a registration. She also has
-   * to have given us a name, because that name is what the farmer reads on the
-   * order and what she is called when she is phoned about a delivery.
-   *
-   * The session is issued either way (she IS authenticated - the OTP is the
-   * proof, and the name step needs a token to write with), and `registered`
-   * tells the client whether to send her to /shop or to the one-field
-   * registration screen.
-   *
-   * The record is deliberately NOT created here. `ensureCustomer` would make
-   * an empty row that answers `registered: true` for ever after, and she would
-   * never be asked her name at all.
-   */
-  const customerId = customerIdFor(phone)
-  const registered = isRegisteredCustomer(db, customerId)
-  const name = registered ? findCustomer(db, customerId)?.name : undefined
+  const cred = checkPassword(db, role, phone, password)
+  const farmer = cred && role === 'farmer' ? db.farmers.find((f) => f.id === cred.userId) : undefined
+  const customer = cred && role === 'customer' ? findCustomer(db, cred.userId) : undefined
+  if (!cred || (!farmer && !customer)) {
+    recordAuthEvent(db, { type: 'login.fail', subject: maskPhone(phone), role, ip })
+    save()
+    deny()
+    return
+  }
+  // A right password clears the budget, so two typos and a success do not
+  // leave her one slip from a lockout.
+  clearLimit(`login:phone:${phone}`)
 
   const session = createSession(db, {
-    role: 'customer', userId: customerId, phone, customerId, client,
+    role, userId: cred.userId, phone,
+    farmerId: farmer?.id, customerId: customer?.id,
+    client: describeClient(req.headers['user-agent']),
   })
-  recordAuthEvent(db, {
-    type: 'session.start', subject: maskPhone(phone), role: 'customer', ip, sessionId: session.id,
-  })
+  recordAuthEvent(db, { type: 'session.start', subject: maskPhone(phone), role, ip, sessionId: session.id })
   save()
 
   res.json({
-    registered,
-    phone,
+    mustChangePassword: !!cred.mustChangePassword,
     session: {
-      token: signToken({ sid: session.id, role: 'customer' }),
-      role: 'customer',
-      userId: customerId,
-      phone,
-      customerId,
-      name,
+      token: signToken({ sid: session.id, role }),
+      role, userId: cred.userId, phone,
+      name: farmer?.name ?? customer?.name,
+      farmerId: farmer?.id, customerId: customer?.id,
+      mustChangePassword: !!cred.mustChangePassword,
     },
   })
+})
+
+/* ------------------------------------------------------------------ */
+/* Change her own password                                             */
+/* ------------------------------------------------------------------ */
+
+/** Also the way out of must-change: the middleware lets this route through. */
+authRouter.post('/password', requireRole('farmer', 'customer'), (req, res) => {
+  const auth = req.auth!
+  const db = getDb()
+  const role = auth.role as 'farmer' | 'customer'
+  const next = String(req.body?.next ?? '')
+  const problem = passwordProblemMr(next)
+  if (problem) {
+    res.status(400).json({ error: 'Weak password', messageMr: problem, fields: { next: problem } })
+    return
+  }
+
+  const cred = checkPassword(db, role, auth.phone ?? '', String(req.body?.current ?? ''))
+  if (!cred || cred.userId !== auth.userId) {
+    res.status(401).json({ error: 'Bad credentials', messageMr: 'जुना पासवर्ड चुकीचा आहे' })
+    return
+  }
+
+  setCredential(db, { role, userId: cred.userId, phone: cred.phone, password: next })
+  // Every other phone signed in as this person is signed out: a password
+  // is changed because someone else may know the old one.
+  revokeAllForUser(db, cred.userId, 'password-change', undefined, auth.sessionId)
+  save()
+  res.json({ ok: true })
+})
+
+/* ------------------------------------------------------------------ */
+/* Forgot password: a request to a person                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Public. The limits are counted before any account lookup, so a registered
+ * and an unregistered number run out at the same moment, and the answer is
+ * the same for both (see auth/passwordRequests.ts).
+ */
+authRouter.post('/password-requests', (req, res) => {
+  const ip = hashIp(callerIp(req))
+  const phone = normalizePhone(String(req.body?.phone ?? ''))
+  if (over(res, `reset:ip:${ip}`, LIMITS.resetRequestPerIp)) return
+  if (isValidPhone(phone) && over(res, `reset:phone:${phone}`, LIMITS.resetRequestPerPhone)) return
+
+  const db = getDb()
+  const reply = submitPasswordRequest(db, req.body)
+  if (reply.status === 200) save()
+  res.status(reply.status).json(reply.body)
 })
 
 /* ------------------------------------------------------------------ */

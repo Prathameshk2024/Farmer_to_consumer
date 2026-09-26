@@ -11,6 +11,7 @@ import { TopBar } from '../components/Shell.js'
 import {
   Button, Card, EmptyState, ErrorNote, Loading, Notice, Pill, useAsync,
 } from '../components/ui.js'
+import { ResetPassword } from '../components/ResetPassword.js'
 
 const STATUSES: OrderStatus[] = [
   'PLACED', 'ACCEPTED', 'PACKED', 'OUT_FOR_DELIVERY',
@@ -177,6 +178,9 @@ function OrderDetail({ order, onClose }: { order: OrderRow; onClose: () => void 
           <div className="small dim-2">{t('or.customer')}</div>
           <div>{order.customerName}</div>
           <div className="mono small dim">{order.customerPhone}</div>
+          <div style={{ marginTop: 6 }}>
+            <ResetPassword role="customer" userId={order.customerId} />
+          </div>
         </div>
 
         <div>

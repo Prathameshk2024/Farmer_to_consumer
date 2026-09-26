@@ -96,7 +96,7 @@ docker run -p 4000:4000 --env-file backend/.env shantai-api
 **Never with a `.env` holding the production Firebase key.** That container is
 a second process writing the live database, which is exactly what *Exactly
 one instance* forbids. And since the image sets `NODE_ENV=production`, it also
-needs `SESSION_SECRET` and MSG91 set, or it refuses to boot.
+needs `SESSION_SECRET` set, or it refuses to boot.
 
 Without Docker, `npm run build` then `npm run start` in `backend/` runs the
 same compiled output.

@@ -229,6 +229,22 @@ test('a closing buyer leaves no phone number on her sessions either', () => {
   assert.equal(db.sessions[0].phone ?? '', '')
 })
 
+test('her password and her forgot-password requests go with the account', async () => {
+  const { setCredential } = await import('../src/auth/credentials.js')
+  const { submitPasswordRequest } = await import('../src/auth/passwordRequests.js')
+  const s = farmer()
+  const db = dbWith(s)
+  setCredential(db, { role: 'farmer', userId: 's1', phone: '9822011223', password: '482913' })
+  submitPasswordRequest(db, { role: 'farmer', phone: '9822011223', name: 'सुनीता पाटील', village: 'आणदुर' })
+  setCredential(db, { role: 'customer', userId: 'c-9876543210', phone: '9876543210', password: '482913' })
+
+  scrubFarmer(db, s, Date.now(), () => true)
+  closeCustomer(db, 'c-9876543210', '9876543210')
+
+  assert.equal(db.credentials.length, 0)
+  assert.equal(db.passwordRequests.length, 0)
+})
+
 test('her phone number goes back into circulation', () => {
   const s = farmer()
   const db = dbWith(s)

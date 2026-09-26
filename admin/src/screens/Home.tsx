@@ -7,7 +7,7 @@ import { TopBar } from '../components/Shell.js'
 import { Card, ErrorNote, Loading, SectionTitle, useAsync } from '../components/ui.js'
 import {
   IconAllClear, IconGo, IconImpact, IconOrders, IconProducts,
-  IconFarmers, IconToday,
+  IconFarmers, IconPasswords, IconToday,
 } from '../components/icons.js'
 
 /**
@@ -28,7 +28,7 @@ export function Home() {
   const [data, loading, error] = useAsync(() => api.stats(), [])
 
   const s = data?.stats
-  const queue = s ? s.pendingVerification + s.stuckOrders : 0
+  const queue = s ? s.pendingVerification + s.stuckOrders + s.openPasswordRequests : 0
 
   const sections = [
     { to: '/products', icon: IconProducts, label: t('nav.products'), body: t('home.sectionProducts') },
@@ -36,6 +36,9 @@ export function Home() {
     { to: '/orders', icon: IconOrders, label: t('nav.orders'), body: t('home.sectionOrders'), badge: s?.stuckOrders },
     { to: '/impact', icon: IconImpact, label: t('nav.impact'), body: t('home.sectionImpact') },
     { to: '/today', icon: IconToday, label: t('nav.today'), body: t('home.sectionToday') },
+    ...(s && s.openPasswordRequests > 0
+      ? [{ to: '/password-requests', icon: IconPasswords, label: t('pwr.title'), body: t('pwr.callFirst'), badge: s.openPasswordRequests }]
+      : []),
   ]
 
   return (
@@ -63,6 +66,9 @@ export function Home() {
             <div className="tiles">
               <QueueTile n={s!.pendingVerification} label={t('se.waitingVerification')} onClick={() => nav('/farmers')} />
               <QueueTile n={s!.stuckOrders} label={t('today.stuckOrders')} onClick={() => nav('/orders')} />
+              {s!.openPasswordRequests > 0 && (
+                <QueueTile n={s!.openPasswordRequests} label={t('pwr.title')} onClick={() => nav('/password-requests')} />
+              )}
             </div>
           )}
         </section>

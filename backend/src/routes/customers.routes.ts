@@ -1,11 +1,17 @@
 import { Router } from 'express'
 import { confirmProblem } from '@shared/accountClose.js'
-import { requireRole } from '../middleware/auth.js'
+import { callerIp, requireRole } from '../middleware/auth.js'
 import { getDb, save } from '../db/store.js'
+import { createSession, describeClient } from '../auth/sessions.js'
+import { signToken } from '../auth/tokens.js'
+import { recordAuthEvent } from '../auth/events.js'
+import { hashIp, maskPhone } from '../auth/crypto.js'
+import { hit, LIMITS } from '../auth/rateLimit.js'
 import { closeCustomer, openOrdersForCustomer } from '../db/accountClose.js'
 import {
   addAddress,
   deleteAddress,
+  registerCustomer,
   ensureCustomer,
   updateAddress,
   type AddressInput,
@@ -25,6 +31,49 @@ import {
  * indistinguishable from one that does not exist.
  */
 export const customersRouter: Router = Router()
+
+/**
+ * A buyer's account: phone, name and password on one screen (see
+ * `registerCustomer`). Public, so it sits above the role gate below. The
+ * phone is not proven by an SMS; the 409 stops anyone taking over a number
+ * that already has a buyer password.
+ */
+customersRouter.post('/register', (req, res) => {
+  const ip = hashIp(callerIp(req))
+  const burst = hit(`register:ip:${ip}`, LIMITS.registerPerIp)
+  if (!burst.ok) {
+    res.setHeader('Retry-After', String(burst.retryAfterSec))
+    res.status(429).json({
+      error: 'Too many registrations',
+      messageMr: 'खूप वेळा प्रयत्न झाले. थोड्या वेळाने पुन्हा प्रयत्न करा.',
+    })
+    return
+  }
+
+  const db = getDb()
+  const result = registerCustomer(db, req.body)
+  if (result.status !== 201) {
+    res.status(result.status).json(result.body)
+    return
+  }
+  const { customer, phone } = result
+
+  const session = createSession(db, {
+    role: 'customer', userId: customer.id, phone, customerId: customer.id,
+    client: describeClient(req.headers['user-agent']),
+  })
+  recordAuthEvent(db, {
+    type: 'register.customer', subject: maskPhone(phone), role: 'customer', ip, sessionId: session.id,
+  })
+  save()
+
+  res.status(201).json({
+    session: {
+      token: signToken({ sid: session.id, role: 'customer' }),
+      role: 'customer', userId: customer.id, phone, customerId: customer.id, name: customer.name,
+    },
+  })
+})
 
 customersRouter.use(requireRole('customer'))
 

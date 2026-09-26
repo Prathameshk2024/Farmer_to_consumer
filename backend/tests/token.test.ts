@@ -78,14 +78,14 @@ test('rejects a signature of the right shape but the wrong key', () => {
 
 test('rejects a signature made with the right key but the wrong purpose', () => {
   // Domain separation. Every signature in the auth stack is HMAC over the same
-  // secret, so without a purpose baked in, a phone-verification ticket could
-  // be presented where a session token was expected.
+  // secret, so without a purpose baked in, a signature made for any other
+  // purpose could be presented where a session token was expected.
   const payload = Buffer.from(JSON.stringify(CLAIMS), 'utf8').toString('base64url')
-  const asTicket = createHmac('sha256', process.env.SESSION_SECRET!)
-    .update(`ticket:farmer-register ${payload}`)
+  const otherPurpose = createHmac('sha256', process.env.SESSION_SECRET!)
+    .update(`ip ${payload}`)
     .digest('base64url')
 
-  assert.equal(verifyToken(`${payload}.${asTicket}`), null)
+  assert.equal(verifyToken(`${payload}.${otherPurpose}`), null)
 })
 
 test('rejects a token with no session id', () => {

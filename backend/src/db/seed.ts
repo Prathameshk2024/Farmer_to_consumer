@@ -4,7 +4,7 @@ import type {
 import { computeReadiness, readinessBand } from '@shared/readiness.js'
 import type { DigitalProfile } from '@shared/types.js'
 import { deriveCustomersFromOrders } from './customers.js'
-import type { AdminUser, AuthEvent, SessionRecord } from '../auth/types.js'
+import type { AdminUser, AuthEvent, Credential, PasswordRequest, SessionRecord } from '../auth/types.js'
 
 export interface Db {
   farmers: Farmer[]
@@ -29,6 +29,10 @@ export interface Db {
   sessions: SessionRecord[]
   admins: AdminUser[]
   authEvents: AuthEvent[]
+  /** Farmer and buyer passwords, apart from their rows. See auth/credentials.ts. */
+  credentials: Credential[]
+  /** Forgot-password requests waiting for an admin's call. Never seeded. */
+  passwordRequests: PasswordRequest[]
 }
 
 /**
@@ -44,6 +48,7 @@ export function emptyDb(): Db {
   return {
     farmers: [], products: [], orders: [], customers: [], reviews: [],
     reports: [], complaints: [], sessions: [], admins: [], authEvents: [],
+    credentials: [], passwordRequests: [],
   }
 }
 
@@ -59,6 +64,8 @@ export function withDefaults(raw: Partial<Db>): Db {
     sessions: raw.sessions ?? [],
     admins: raw.admins ?? [],
     authEvents: raw.authEvents ?? [],
+    credentials: raw.credentials ?? [],
+    passwordRequests: raw.passwordRequests ?? [],
   }
 }
 
@@ -307,6 +314,8 @@ export function seed(): Db {
   return {
     farmers, products, orders, customers, reviews: [], reports: [], complaints: [],
     sessions: [], admins: [], authEvents: [],
+    // No passwords either: a demo farmer signs in after an admin reset.
+    credentials: [], passwordRequests: [],
   }
 }
 

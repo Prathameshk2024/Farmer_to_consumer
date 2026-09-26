@@ -74,8 +74,8 @@ export function openOrders(orders: Order[]): Order[] {
  * THE LAST STEP: the final four digits of her own number.
  *
  * Every other candidate was worse for this reader. Typing a whole word is a
- * literacy test. A second OTP is an SMS against a three-a-day ceiling, and it
- * proves possession of a phone she is already signed in on. Her own number she
+ * literacy test. Asking for her password again
+ * is one more thing to remember, and it proves only possession of a phone she is already signed in on. Her own number she
  * knows by heart, and four correct digits are not something a thumb produces
  * by accident in a kitchen.
  *

@@ -1,5 +1,4 @@
 import { getToken } from './api.js'
-import { takeRegisterTicket } from './registerTicket.js'
 import {
   COMPRESSION, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, fitWithin, qualitySteps, type UploadKind,
 } from './compress.js'
@@ -104,22 +103,13 @@ interface Signature {
 async function getSignature(kind: UploadKind): Promise<Signature> {
   const token = getToken()
 
-  /**
-   * During REGISTRATION there is no session yet - the farmer record is created
-   * at the very end - so her registration ticket is the proof she offers
-   * instead. The server accepts either. Without this the payment-QR upload on
-   * the last wizard screen answered 401, which the app could only report as
-   * "the photo could not be sent".
-   */
-  const ticket = token ? '' : takeRegisterTicket()
-
   const res = await fetch(`${BASE}/api/uploads/signature`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ kind, ticket }),
+    body: JSON.stringify({ kind }),
   })
   if (res.status === 503) {
     throw new UploadDisabledError('Cloudinary is not configured')

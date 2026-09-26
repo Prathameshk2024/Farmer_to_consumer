@@ -56,11 +56,46 @@ export interface AdminUser {
   disabledAt?: string
 }
 
+/**
+ * A phone number's password, for one role. Never on the Farmer or Customer
+ * row, because those rows travel whole to their owner's phone.
+ */
+export interface Credential {
+  id: string
+  role: 'farmer' | 'customer'
+  userId: string
+  phone: string
+  passwordHash: string
+  /** Set by an admin reset: the next sign-in must choose a new password. */
+  mustChangePassword?: boolean
+  updatedAt: string
+}
+
+/**
+ * "I forgot my password", waiting for an admin to call back. Anyone can
+ * create one for any number, so it never touches the account itself, and
+ * only the admin API returns it.
+ */
+export interface PasswordRequest {
+  id: string
+  role: 'farmer' | 'customer'
+  phone: string
+  name: string
+  /** Farmers only: two Rajesh Patils are told apart by their village. */
+  village?: string
+  /** The account this phone had when the request came in. Absent when none. */
+  matchedUserId?: string
+  /** When he last asked. Asking again while OPEN moves this; it adds no row. */
+  at: string
+  status: 'OPEN' | 'DONE' | 'DISMISSED'
+  closedAt?: string
+  closedBy?: string
+  closeReason?: string
+}
+
 export type AuthEventType =
-  | 'otp.send'
-  | 'otp.send.blocked'
-  | 'otp.verify.ok'
-  | 'otp.verify.fail'
+  | 'login.fail'
+  | 'password.reset'
   | 'session.start'
   | 'session.end'
   | 'session.revoked'

@@ -23,6 +23,8 @@ export interface Session {
   farmerId?: string
   /** Present only for customers. */
   customerId?: string
+  /** An admin reset the password: she must choose a new one before anything else. */
+  mustChangePassword?: boolean
 }
 
 /* ------------------------------------------------------------------ */
@@ -87,11 +89,6 @@ export interface Order {
   paymentStatus: PaymentStatus
   paymentUtr?: string
   status: OrderStatus
-  /**
-   * Legacy. Delivery no longer requires an OTP; kept optional so orders
-   * already stored with one still parse. Nothing reads it.
-   */
-  deliveryOtp?: string
   placedAt: string
   /**
    * The delivery pincode is not in the farmer's listed areas - inside
@@ -551,6 +548,8 @@ export interface AdminStats {
   farmersEarnedMonth: number
   farmersWithFirstEarning: number
   repurchaseRate: number
+  /** Forgot-password requests waiting for an admin's call. */
+  openPasswordRequests: number
   /** Every document the server holds - and so reads from Firestore at each start. */
   databaseDocuments: number
   /** How many starts a day the Spark plan's 50,000 free reads cover at that size. */

@@ -1,115 +1,120 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Navigate, useNavigate } from 'react-router-dom'
+import { isValidPhone } from '@shared/farmer.js'
+import { passwordProblemMr } from '@shared/password.js'
 import { useT } from '../../i18n/I18nProvider.js'
 import { useAuth } from '../../store/AuthContext.js'
 import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
-import {
-  AppBar, Button, Field, Notice, VoiceInput,
-} from '../../components/ui.js'
-import { sessionStore } from './farmerDraft.js'
-import { clearName, readName, writeName } from './customerDraft.js'
+import { AppBar, Button, Field, Notice, TextInput, VoiceInput } from '../../components/ui.js'
 
 /**
- * CUSTOMER REGISTRATION - phone, OTP, name
- * ========================================
- * Her phone and OTP were already done by the shared login flow; this is the
- * third thing and the only one that is hers to type. One question on one
- * screen, the same rule the farmer wizard follows.
- *
- * The name is not decoration. It is what the farmer reads on the order and
- * what she is called when a woman in a village phones her about a delivery -
- * "ग्राहक" on every order tells that farmer nothing. So it is persisted to her
- * customer record through the existing PATCH /customers/me, which resolves her
- * from the id inside her own signed token and cannot touch anybody else's row.
- *
- * She is already signed in when she gets here, which is why this screen sits
- * behind the customer guard: without a token there would be nothing to write
- * with. Registration here means "finish the record", not "get a session".
+ * CUSTOMER REGISTRATION - one screen
+ * ==================================
+ * Name, phone, password and the password again. The name is not decoration:
+ * it is what the farmer reads on the order and what she is called when
+ * someone phones her about a delivery - "ग्राहक" on every order tells that
+ * farmer nothing.
  */
 export default function CustomerRegister() {
   const t = useT()
   const nav = useNavigate()
-  const { session, patchSession } = useAuth()
+  const { session, signIn } = useAuth()
   const { toast } = useToast()
 
-  // What she typed before leaving, keyed by her own number. Back out of this
-  // screen and in again and the name is still in the box; the woman who picks
-  // up the same handset next gets an empty one.
-  const store = useState(sessionStore)[0]
-  const phone = session?.phone ?? ''
-
-  const [name, setName] = useState(() => session?.name ?? readName(store, phone))
-  const [err, setErr] = useState('')
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
+  const [again, setAgain] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [serverError, setServerError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    writeName(store, phone, name)
-  }, [store, phone, name])
-
-  // Snapshot on mount: someone who already has a name and came back to change
-  // it should not be told she is unregistered.
-  const [isNew] = useState(() => !session?.name?.trim())
+  if (session?.role === 'customer') return <Navigate to="/shop" replace />
 
   async function submit() {
-    if (!name.trim()) {
-      setErr(t('creg.nameRequired'))
-      return
-    }
-    setErr('')
+    const e: Record<string, string> = {}
+    if (!name.trim()) e.name = t('creg.nameRequired')
+    if (!isValidPhone(phone)) e.phone = t('onb.phoneInvalid')
+    const pw = passwordProblemMr(password)
+    if (pw) e.password = pw
+    else if (again !== password) e.again = t('auth.mismatch')
+    setErrors(e)
+    if (Object.keys(e).length) return
+
+    setServerError('')
     setBusy(true)
     try {
-      const res = await api.updateCustomerMe(name.trim())
-      // Kept on the session too, so her name shows on the very next screen
-      // without waiting for a fetch.
-      patchSession({ name: res.customer.name })
-      clearName(store, phone)
+      const res = await api.registerCustomer({ phone, name: name.trim(), password })
+      signIn(res.session)
       toast(t('ok.registered'))
       nav('/shop', { replace: true })
-    } catch (e) {
-      setErr(e instanceof ApiError ? (e.messageMr ?? e.message) : 'Network error')
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setServerError(err.messageMr ?? err.message)
+        if (err.fields) setErrors(err.fields)
+      } else {
+        setServerError(t('auth.failed'))
+      }
     } finally {
       setBusy(false)
     }
   }
 
+  const clear = (k: string) => setErrors((x) => ({ ...x, [k]: '' }))
+
   return (
     <div className="app-shell">
-      <AppBar
-        title={t('creg.title')}
-        sub={session?.phone ? `+91 ${session.phone}` : undefined}
-        backTo="/"
-        bell={false}
-      />
-
+      <AppBar brand title={t('creg.title')} backTo="/" bell={false} />
       <div className="screen screen--nonav stack">
-        {/* Say plainly that this is the step she cannot skip, before asking.
-            Her OTP was right - nothing went wrong - there is simply one more
-            thing the account needs. */}
-        {isNew && (
-          <Notice tone="warn" title={t('onb.needRegisterTitle')}>
-            {t('onb.needRegisterBuy')}
-          </Notice>
-        )}
         <Notice tone="info">{t('creg.lede')}</Notice>
 
-        <Field
-          label={t('cus.yourName')}
-          hint={t('creg.nameHint')}
-          error={err}
-          required
-        >
+        <Field label={t('cus.yourName')} hint={t('creg.nameHint')} error={errors.name} required>
           <VoiceInput
             value={name}
-            onChange={(v) => { setName(v); setErr('') }}
-            error={!!err}
+            onChange={(v) => { setName(v); clear('name') }}
+            error={!!errors.name}
             placeholder={t('ph.fullName')}
           />
         </Field>
+        <Field label={t('auth.phone')} error={errors.phone} required htmlFor="phone">
+          <TextInput
+            id="phone"
+            inputMode="numeric"
+            autoComplete="tel"
+            maxLength={10}
+            value={phone}
+            error={!!errors.phone}
+            placeholder={t('auth.phonePh')}
+            onChange={(e) => { setPhone(e.target.value.replace(/\D/g, '')); clear('phone') }}
+          />
+        </Field>
+        <Field label={t('auth.password')} hint={t('auth.passwordPh')} error={errors.password} required htmlFor="pw">
+          <TextInput
+            id="pw"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            error={!!errors.password}
+            onChange={(e) => { setPassword(e.target.value); clear('password') }}
+          />
+        </Field>
+        <Field label={t('auth.passwordAgain')} error={errors.again} required htmlFor="pw2">
+          <TextInput
+            id="pw2"
+            type="password"
+            autoComplete="new-password"
+            value={again}
+            error={!!errors.again}
+            onChange={(e) => { setAgain(e.target.value); clear('again') }}
+          />
+        </Field>
 
+        {serverError && <Notice tone="danger">{serverError}</Notice>}
         <Button onClick={submit} disabled={busy}>
           {busy ? t('common.loading') : t('creg.submit')}
         </Button>
+        <Button variant="quiet" onClick={() => nav('/login/customer')}>{t('auth.haveAccount')}</Button>
       </div>
     </div>
   )

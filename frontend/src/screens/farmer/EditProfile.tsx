@@ -25,7 +25,7 @@ import { IconBack } from '../../components/icons.js'
  * the form only offers what that list already accepts. Missing on purpose:
  *
  *  - her PHONE, because it is her account. Changing it is changing who you
- *    are signed in as, and that needs an OTP on the new number, not a text box;
+ *    are signed in as, and that is an admin's job after a call, not a text box;
  *  - her VILLAGE and her farmer code, because the ID is printed on her packaging
  *    and her poster. Re-issuing it silently would leave the number on a jar in
  *    somebody's kitchen pointing at nothing;

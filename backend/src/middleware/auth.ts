@@ -22,7 +22,7 @@ import { shouldRefresh, signToken, verifyToken } from '../auth/tokens.js'
  * kills every token pointing at it.
  *
  * To go live on Firebase Auth instead: mint a Firebase custom token after the
- * OTP check and have the client sign in with it; this middleware then becomes
+ * password check and have the client sign in with it; this middleware then becomes
  * `getAuth().verifyIdToken(bearer)` plus the same session lookup. Admin is
  * gated by a custom claim, and the same rule is repeated in Firestore security
  * rules - never in the UI alone.
@@ -36,6 +36,8 @@ export interface AuthContext {
   customerId?: string
   /** The session this request is authenticated by. */
   sessionId: string
+  /** An admin reset her password: nothing but choosing a new one until she does. */
+  mustChangePassword?: boolean
 }
 
 declare global {
@@ -94,6 +96,7 @@ export function attachAuth(req: Request, res: Response, next: NextFunction): voi
     farmerId: session.farmerId,
     customerId: session.customerId,
     sessionId: session.id,
+    mustChangePassword: !!db.credentials.find((c) => c.userId === session.userId)?.mustChangePassword,
   }
 
   if (touchSession(session)) save()
@@ -117,6 +120,17 @@ export function requireRole(...roles: Role[]) {
       // door is not hers. Conflating them signs people out for touching the
       // wrong URL.
       res.status(403).json({ error: 'Not allowed', messageMr: 'तुम्हाला परवानगी नाही' })
+      return
+    }
+    // A temporary password was read out over the phone, so it is known to two
+    // people. Until she replaces it, it opens only the door that replaces it.
+    if ((req.auth.role === 'farmer' || req.auth.role === 'customer')
+        && req.auth.mustChangePassword
+        && !['/api/auth/password', '/api/auth/logout'].includes(req.originalUrl.split('?')[0]!)) {
+      res.status(403).json({
+        error: 'Password change required', code: 'MUST_CHANGE_PASSWORD',
+        messageMr: 'आधी नवा पासवर्ड ठेवा',
+      })
       return
     }
     next()

@@ -8,6 +8,7 @@ import { isStuck, maskedLabel, rupees, when } from '../lib/format.js'
 import { TopBar } from '../components/Shell.js'
 import { FarmerActions, StatusPill } from '../components/FarmerActions.js'
 import { Confirm, useConfirm } from '../components/Confirm.js'
+import { ResetPassword } from '../components/ResetPassword.js'
 import { ProductCard } from './Products.js'
 import { ReviewTable, SummaryText } from './Reviews.js'
 import { IconNo, IconProducts, IconYes } from '../components/icons.js'
@@ -182,6 +183,9 @@ function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
 
       <div style={{ marginTop: 12 }}>
         <FarmerActions farmer={farmer} onDone={onDone} />
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <ResetPassword role="farmer" userId={farmer.id} />
       </div>
     </Card>
   )

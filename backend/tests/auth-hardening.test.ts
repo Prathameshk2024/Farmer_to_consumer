@@ -5,7 +5,6 @@ process.env.SESSION_SECRET = 'test-secret-for-unit-tests'
 delete process.env.NODE_ENV
 
 const { emptyDb } = await import('../src/db/seed.js')
-const { consumeTicket, issueTicket, resetSpentTickets } = await import('../src/auth/tickets.js')
 const {
   authenticateAdmin, createAdmin, findAdminByEmail, MIN_ADMIN_PASSWORD, passwordProblem,
 } = await import('../src/auth/admins.js')
@@ -13,59 +12,8 @@ const { hashPassword, maskPhone, randomCode, timingEqual, verifyPassword } =
   await import('../src/auth/crypto.js')
 const { hit, LIMITS, resetAllLimits, sweep } = await import('../src/auth/rateLimit.js')
 
-/* ================================================================== */
-/* The verified-phone ticket                                           */
-/* ================================================================== */
-
-/**
- * `POST /farmers/register` used to read a phone number out of the request body
- * and mint a farmer session for it. No OTP, no session, no check of any kind -
- * so anybody who could reach the API could create an account against any
- * unregistered number and be signed in as her. The client walked through the
- * OTP screen first, which is not the same thing as the server requiring it.
- */
-
 beforeEach(() => {
-  resetSpentTickets()
   resetAllLimits()
-})
-
-test('a ticket hands back the phone it was issued for', () => {
-  assert.equal(consumeTicket('farmer-register', issueTicket('farmer-register', '9822011223')), '9822011223')
-})
-
-test('a ticket is single use', () => {
-  // Otherwise one OTP could register any number of accounts.
-  const ticket = issueTicket('farmer-register', '9822011223')
-
-  assert.equal(consumeTicket('farmer-register', ticket), '9822011223')
-  assert.equal(consumeTicket('farmer-register', ticket), null)
-})
-
-test('a ticket expires', () => {
-  const now = Date.now()
-  const ticket = issueTicket('farmer-register', '9822011223', now)
-
-  assert.equal(consumeTicket('farmer-register', ticket, now + 20 * 60_000), null)
-})
-
-test('the phone inside a ticket cannot be rewritten', () => {
-  // The attack the signature exists to stop: pass the OTP on your own number,
-  // then swap in hers before registering.
-  const ticket = issueTicket('farmer-register', '9822011223')
-  const [, sig] = ticket.split('.')
-  const forged = Buffer.from(
-    JSON.stringify({ purpose: 'farmer-register', phone: '9764455661', exp: Date.now() + 60_000, jti: 'x' }),
-    'utf8',
-  ).toString('base64url')
-
-  assert.equal(consumeTicket('farmer-register', `${forged}.${sig}`), null)
-})
-
-test('garbage is refused without throwing', () => {
-  for (const bad of ['', '.', 'a.b', 'not base64!.nope']) {
-    assert.equal(consumeTicket('farmer-register', bad), null)
-  }
 })
 
 /* ================================================================== */
@@ -143,20 +91,20 @@ test('short passwords are refused before they are ever hashed', () => {
 /* Rate limiting                                                       */
 /* ================================================================== */
 
-test('an OTP guessing run is cut off well before the code space is', () => {
-  // Ten attempts per fifteen minutes against a million-wide code. The point is
-  // to make the arithmetic hopeless rather than merely slow.
-  const limit = LIMITS.otpVerifyPerPhone
+test('a password guessing run is cut off well before the space is', () => {
+  // Five attempts per fifteen minutes against a six-digit password. The point
+  // is to make the arithmetic hopeless rather than merely slow.
+  const limit = LIMITS.loginPerPhone
   for (let i = 0; i < limit.max; i++) {
-    assert.equal(hit('otp:verify:phone:9822011223', limit).ok, true, `attempt ${i + 1}`)
+    assert.equal(hit('login:phone:9822011223', limit).ok, true, `attempt ${i + 1}`)
   }
-  const blocked = hit('otp:verify:phone:9822011223', limit)
+  const blocked = hit('login:phone:9822011223', limit)
 
   assert.equal(blocked.ok, false)
   assert.ok(blocked.retryAfterSec > 0, 'the client is told when to come back')
 })
 
-test('the window reopens, so a mistyped code is not a permanent lockout', () => {
+test('the window reopens, so a mistyped password is not a permanent lockout', () => {
   const limit = LIMITS.adminLoginPerEmail
   const now = Date.now()
 
@@ -169,48 +117,33 @@ test('one subject being blocked does not block anybody else', () => {
   // Per-phone and per-IP keys are separate on purpose: a whole village behind
   // one carrier NAT must not be locked out by one bad actor, and one attacker
   // must not be able to lock a specific woman out of her own account.
-  const limit = LIMITS.otpVerifyPerPhone
-  for (let i = 0; i <= limit.max; i++) hit('otp:verify:phone:9822011223', limit)
+  const limit = LIMITS.loginPerPhone
+  for (let i = 0; i <= limit.max; i++) hit('login:phone:9822011223', limit)
 
-  assert.equal(hit('otp:verify:phone:9764455661', limit).ok, true)
+  assert.equal(hit('login:phone:9764455661', limit).ok, true)
 })
 
-test('a number gets three codes a day, and the fourth is refused', () => {
-  /**
-   * Three per number per twenty-four hours, and every SMS counts against it -
-   * the first send and every "send again" alike, because each one is a message
-   * somebody pays for.
-   *
-   * This limit is only real if the widget path goes through /auth/otp/send as
-   * well. It does not deliver anything there - the browser already sent the
-   * SMS - so it was skipped for a while, and while it was skipped this rule
-   * existed only as a sentence in a comment. Auth.tsx now calls it BEFORE
-   * asking the widget to send, which is the difference between a limit and a
-   * counter.
-   */
-  const limit = LIMITS.otpSendPerPhone
+test('a number gets three forgot-password requests a day, and the fourth is refused', () => {
+  const limit = LIMITS.resetRequestPerPhone
   const now = Date.now()
 
-  assert.equal(limit.max, 3)
-  assert.equal(limit.windowMs, 24 * 60 * 60 * 1000)
-
   for (let i = 0; i < limit.max; i++) {
-    assert.equal(hit('otp:send:phone:9764455662', limit, now).ok, true, `code ${i + 1}`)
+    assert.equal(hit('reset:phone:9764455662', limit, now).ok, true, `request ${i + 1}`)
   }
 
-  const fourth = hit('otp:send:phone:9764455662', limit, now)
+  const fourth = hit('reset:phone:9764455662', limit, now)
   assert.equal(fourth.ok, false)
   assert.ok(fourth.retryAfterSec > 20 * 60 * 60, 'she is told to come back tomorrow, not in a minute')
 
   // And tomorrow she can, because a quota is not a ban.
-  assert.equal(hit('otp:send:phone:9764455662', limit, now + limit.windowMs + 1).ok, true)
+  assert.equal(hit('reset:phone:9764455662', limit, now + limit.windowMs + 1).ok, true)
 })
 
 test('expired windows are swept, so the limiter is not a log of everyone who tried', () => {
   const now = Date.now()
-  hit('otp:send:phone:9822011223', LIMITS.otpSendPerPhone, now)
+  hit('reset:phone:9822011223', LIMITS.resetRequestPerPhone, now)
 
-  assert.equal(sweep(now + LIMITS.otpSendPerPhone.windowMs + 1000), 1)
+  assert.equal(sweep(now + LIMITS.resetRequestPerPhone.windowMs + 1000), 1)
 })
 
 /* ================================================================== */
@@ -224,7 +157,7 @@ test('a masked phone is recognisable but not dialable', () => {
   assert.equal(maskPhone(''), '****')
 })
 
-test('codes are drawn across the whole range, including leading zeros', () => {
+test('temporary passwords are drawn across the whole range, including leading zeros', () => {
   const seen = new Set<string>()
   for (let i = 0; i < 500; i++) seen.add(randomCode(6))
 

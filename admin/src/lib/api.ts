@@ -205,6 +205,22 @@ export interface ImpactReport {
   readiness: { farmerCode: string; village: string; score: number; band: ReadinessBand }[]
 }
 
+/**
+ * "I forgot my password", waiting for a call back. The server's record plus the
+ * matched account's name; the server type itself stays backend-only.
+ */
+export interface PasswordRequestRow {
+  id: string
+  role: 'farmer' | 'customer'
+  phone: string
+  name: string
+  village?: string
+  matchedUserId?: string
+  matchedName?: string
+  at: string
+  status: 'OPEN' | 'DONE' | 'DISMISSED'
+}
+
 export const api = {
   signIn: (email: string, password: string) =>
     post<{ session: AdminSession }>('/auth/admin/login', { email, password }),
@@ -281,4 +297,14 @@ export const api = {
   /** Take a review down (reason required, and kept) or put it back. */
   hideReview: (id: string, hidden: boolean, reason?: string) =>
     post<{ review: Review }>(`/admin/reviews/${id}/hide`, { hidden, reason }),
+
+  /** A six-digit temporary password, returned once and never again. */
+  resetPassword: (body: { role: 'farmer' | 'customer'; userId: string; requestId?: string }) =>
+    post<{ tempPassword: string }>('/admin/users/reset-password', body),
+
+  passwordRequests: (status = 'OPEN') =>
+    get<{ requests: PasswordRequestRow[] }>(`/admin/password-requests?status=${encodeURIComponent(status)}`),
+
+  closePasswordRequest: (id: string, reason?: string) =>
+    post<{ request: PasswordRequestRow }>(`/admin/password-requests/${id}/close`, { reason }),
 }

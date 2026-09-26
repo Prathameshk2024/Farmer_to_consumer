@@ -7,6 +7,9 @@ import { getDb, save } from '../db/store.js'
 import { documentCount, startsWithinFreeReads } from '../db/firestore.js'
 import { appendNotice as notifyFarmer } from '../db/notices.js'
 import { requireRole } from '../middleware/auth.js'
+import { findCustomer } from '../db/customers.js'
+import { closePasswordRequest, resetUserPassword } from '../auth/passwordRequests.js'
+import type { PasswordRequest } from '../auth/types.js'
 import { destroyImage } from './uploads.routes.js'
 
 /**
@@ -42,6 +45,55 @@ function verifierName(db: ReturnType<typeof getDb>, req: Request): string {
   const admin = db.admins.find((a) => a.id === req.auth?.userId)
   return admin ? `${admin.name} <${admin.email}>` : (req.auth?.userId ?? 'unknown')
 }
+
+/* ------------------------------------------------------------------ */
+/* Passwords: the reset, and the forgot-password queue                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A six-digit temporary password, returned once. The admin reads it out on a
+ * call to the account's own number; nothing stores it in the clear.
+ */
+adminRouter.post('/users/reset-password', (req, res) => {
+  const db = getDb()
+  const result = resetUserPassword(db, {
+    role: req.body?.role === 'farmer' ? 'farmer' : 'customer',
+    userId: String(req.body?.userId ?? ''),
+    requestId: req.body?.requestId ? String(req.body.requestId) : undefined,
+    by: verifierName(db, req),
+  })
+  if (!result) {
+    res.status(404).json({ error: 'Not found', messageMr: 'खाते सापडले नाही' })
+    return
+  }
+  save()
+  res.json(result)
+})
+
+adminRouter.get('/password-requests', (req, res) => {
+  const db = getDb()
+  const status = ['OPEN', 'DONE', 'DISMISSED'].includes(String(req.query.status)) ? String(req.query.status) : 'OPEN'
+  const nameOf = (r: PasswordRequest) => !r.matchedUserId ? undefined
+    : r.role === 'farmer' ? db.farmers.find((f) => f.id === r.matchedUserId)?.name
+    : findCustomer(db, r.matchedUserId)?.name
+  const requests = db.passwordRequests
+    .filter((r) => r.status === status)
+    .sort((a, b) => a.at.localeCompare(b.at)) // longest wait first
+    .map((r) => ({ ...r, matchedName: nameOf(r) }))
+  res.json({ requests })
+})
+
+adminRouter.post('/password-requests/:id/close', (req, res) => {
+  const db = getDb()
+  const reason = req.body?.reason ? String(req.body.reason) : undefined
+  const request = closePasswordRequest(db, req.params.id, 'DISMISSED', verifierName(db, req), reason)
+  if (!request) {
+    res.status(404).json({ error: 'Not open', messageMr: 'ही विनंती सापडली नाही किंवा आधीच बंद झाली आहे' })
+    return
+  }
+  save()
+  res.json({ request })
+})
 
 /* ------------------------------------------------------------------ */
 /* Dashboard                                                           */
@@ -120,6 +172,7 @@ adminRouter.get('/stats', (_req, res) => {
     // The most truthful single measure of whether the platform works.
     farmersWithFirstEarning: farmersWithEarnings.size,
     repurchaseRate: ordersByPhone.size ? repeatBuyers / ordersByPhone.size : 0,
+    openPasswordRequests: db.passwordRequests.filter((r) => r.status === 'OPEN').length,
     // On the dashboard because the boot log is the one place nobody reads.
     // docs/CAPACITY.md §4: on Spark, this size decides how many starts a day
     // the free reads cover before a start is refused and the API goes down.

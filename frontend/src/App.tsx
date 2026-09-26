@@ -7,7 +7,6 @@ import { I18nProvider } from './i18n/I18nProvider.js'
 import { AuthProvider, homeFor, useAuth } from './store/AuthContext.js'
 import { ToastProvider } from './store/ToastContext.js'
 import { CartProvider } from './store/CartContext.js'
-import { liveTicket } from './lib/registerTicket.js'
 import { PincodeProvider } from './store/PincodeContext.js'
 import {
   RESTORE_TICK_MS, RESTORE_WINDOW_MS, makeRestorer, recallScroll, rememberScroll,
@@ -16,7 +15,8 @@ import { CustomerLayout, FarmerLayout } from './components/layouts.js'
 import OfflineScreen from './components/OfflineScreen.js'
 
 import Landing from './screens/landing/Landing.js'
-import { OtpScreen, PhoneScreen } from './screens/auth/Auth.js'
+import { ForgotPasswordScreen, LoginScreen } from './screens/auth/Auth.js'
+import ChangePassword from './screens/auth/ChangePassword.js'
 import FarmerRegister from './screens/auth/FarmerRegister.js'
 import CustomerRegister from './screens/auth/CustomerRegister.js'
 import Notifications from './screens/Notifications.js'
@@ -56,25 +56,17 @@ function Require({ role, children }: { role: Role; children: ReactNode }) {
   const { session } = useAuth()
   if (!session) return <Navigate to="/" replace />
   if (session.role !== role) return <Navigate to={homeFor(session.role)} replace />
+  // An admin reset: the server answers 403 to everything else until she
+  // chooses a new password, so the app goes straight there.
+  if (session.mustChangePassword) return <Navigate to="/password" replace />
   return <>{children}</>
 }
 
-/**
- * The wizard needs a verified number, not a session.
- *
- * `/farmers/register` takes her phone out of a single-use ticket and ignores
- * the one in the body, so without a ticket the six screens end in a refusal
- * she cannot act on. Send her to the OTP screen up front instead - which, if
- * she does still hold a live ticket, offers to carry on rather than spending
- * another SMS.
- *
- * A farmer session passes too: the last thing the wizard does is spend the
- * ticket and sign her in, and it is still on screen showing her new ID.
- */
-function RequireTicket({ children }: { children: ReactNode }) {
+/** /password: any farmer or buyer session, including a must-change one. */
+function RequireSignedIn({ children }: { children: ReactNode }) {
   const { session } = useAuth()
-  if (!liveTicket() && session?.role !== 'farmer') {
-    return <Navigate to="/login/farmer" replace />
+  if (!session || (session.role !== 'farmer' && session.role !== 'customer')) {
+    return <Navigate to="/" replace />
   }
   return <>{children}</>
 }
@@ -203,22 +195,12 @@ export default function App() {
                   "carry on to your shop" decision had nowhere to live. */}
               <Route path="/" element={<Landing />} />
 
-              {/* Two doors from the landing page, one per role. Both go
-                  through login; `join` is only the farmer's "I am new" path. */}
-              <Route path="/join/:role" element={<PhoneScreen mode="join" />} />
-              <Route path="/login/:role" element={<PhoneScreen mode="login" />} />
-              <Route path="/otp/:role" element={<OtpScreen />} />
-              <Route
-                path="/register/farmer"
-                element={<RequireTicket><FarmerRegister /></RequireTicket>}
-              />
-
-              {/* She is signed in by the time she reaches this one - all that
-                  is missing is the name, and writing it needs her token. */}
-              <Route
-                path="/register/customer"
-                element={<Require role="customer"><CustomerRegister /></Require>}
-              />
+              {/* Each landing door is a register or a login, per role. */}
+              <Route path="/login/:role" element={<LoginScreen />} />
+              <Route path="/forgot-password/:role" element={<ForgotPasswordScreen />} />
+              <Route path="/register/farmer" element={<FarmerRegister />} />
+              <Route path="/register/customer" element={<CustomerRegister />} />
+              <Route path="/password" element={<RequireSignedIn><ChangePassword /></RequireSignedIn>} />
 
               {/* ---- farmer app ------------------------------------ */}
               <Route path="/farmer" element={<Require role="farmer"><FarmerLayout /></Require>}>

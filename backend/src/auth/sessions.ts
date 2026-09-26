@@ -26,7 +26,7 @@ import { SESSION_ABSOLUTE_MS, SESSION_IDLE_MS } from './tokens.js'
 /**
  * How many devices one account may be signed in on.
  *
- * A limit is needed because logging in is unauthenticated up to the OTP, so
+ * A limit is needed because logging in is unauthenticated up to the password check, so
  * without one the collection is a place anybody can write to indefinitely.
  * Ten is generous for a woman with a phone and a shared family tablet, and the
  * oldest is evicted rather than the newest refused - being unable to sign in
@@ -119,16 +119,20 @@ export function revokeSession(
   return true
 }
 
-/** Sign one account out everywhere. What "my phone was stolen" needs. */
+/**
+ * Sign one account out everywhere. What "my phone was stolen" needs.
+ * `exceptId` keeps one session: the phone that just changed the password.
+ */
 export function revokeAllForUser(
   db: Db,
   userId: string,
   reason: SessionRecord['revokedReason'],
   now = Date.now(),
+  exceptId?: string,
 ): number {
   let n = 0
   for (const s of db.sessions) {
-    if (s.userId === userId && !s.revokedAt) {
+    if (s.userId === userId && !s.revokedAt && s.id !== exceptId) {
       s.revokedAt = new Date(now).toISOString()
       s.revokedReason = reason
       n++

@@ -2,15 +2,6 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string
-  /**
-   * MSG91 OTP widget. Both are public by design - the browser cannot run the
-   * widget without them. The account AUTH KEY is a different value and must
-   * never appear here: everything named VITE_* is inlined into the bundle.
-   */
-  readonly VITE_MSG91_WIDGET_ID?: string
-  readonly VITE_MSG91_TOKEN_AUTH?: string
-  /** Digits the widget sends, from its dashboard setting. Defaults to 6. */
-  readonly VITE_MSG91_OTP_LENGTH?: string
 }
 interface ImportMeta {
   readonly env: ImportMetaEnv

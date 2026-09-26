@@ -5,6 +5,7 @@ import {
   normalizePhone, samePhone, validateFarmerProfile, canSellNow,
 } from '@shared/farmer.js'
 import { upiProblem } from '@shared/payment.js'
+import { passwordProblemMr } from '@shared/password.js'
 import { closeReasonProblem, confirmProblem } from '@shared/accountClose.js'
 import { openOrdersForFarmer, requestFarmerClose, restoreFarmer } from '../db/accountClose.js'
 import { makeShopSlug, makeFarmerCode, villageCode } from '@shared/farmerCode.js'
@@ -16,7 +17,7 @@ import { publicFarmer } from '../db/publicFarmer.js'
 import { callerIp, requireRole } from '../middleware/auth.js'
 import { signToken } from '../auth/tokens.js'
 import { createSession, describeClient } from '../auth/sessions.js'
-import { consumeTicket } from '../auth/tickets.js'
+import { setCredential } from '../auth/credentials.js'
 import { recordAuthEvent } from '../auth/events.js'
 import { hashIp, maskPhone } from '../auth/crypto.js'
 import { hit, LIMITS } from '../auth/rateLimit.js'
@@ -28,13 +29,9 @@ export const farmersRouter: Router = Router()
 /* ------------------------------------------------------------------ */
 
 interface RegisterBody {
-  /**
-   * Single-use proof from /auth/otp/verify that this phone was verified. The
-   * phone is read out of THIS, never out of the body - see the handler.
-   */
-  ticket: string
-  /** Ignored. Kept only so an older client's payload still parses. */
-  phone?: string
+  phone: string
+  /** Checked by passwordProblemMr; stored only as a hash, in `credentials`. */
+  password: string
   name: string
   age?: number
   education?: string
@@ -76,7 +73,7 @@ farmersRouter.post('/register', (req, res) => {
   const ip = hashIp(callerIp(req))
 
   // Registration writes a record and issues a session, so it is worth money
-  // and worth rate limiting even though it is otherwise gated by the ticket.
+  // and worth rate limiting and nothing else stands between a script and a pile of accounts.
   const burst = hit(`register:ip:${ip}`, LIMITS.registerPerIp)
   if (!burst.ok) {
     res.setHeader('Retry-After', String(burst.retryAfterSec))
@@ -87,32 +84,15 @@ farmersRouter.post('/register', (req, res) => {
     return
   }
 
-  /**
-   * PROOF THAT THIS PHONE PASSED AN OTP, JUST NOW.
-   *
-   * This is the gate that was missing. The handler used to read `b.phone`
-   * straight out of the request body and mint a farmer session for it, with no
-   * check of any kind - so anybody who could reach the API could create an
-   * account against any unregistered number and be signed in as her. The
-   * client walked through the OTP screen first, which is not the same thing as
-   * the server requiring it.
-   *
-   * The phone now comes OUT of the single-use ticket and the body's copy is
-   * ignored entirely, so there is no longer any path by which a caller names
-   * the number he is registering.
-   */
-  const phone = consumeTicket('farmer-register', String((b as { ticket?: string }).ticket ?? ''))
-  if (!phone) {
-    recordAuthEvent(getDb(), { type: 'otp.verify.fail', ip, detail: 'register without a valid ticket' })
-    save()
-    res.status(401).json({
-      error: 'Phone not verified',
-      messageMr: 'आधी मोबाईल नंबर तपासा. पुन्हा OTP मागवा.',
-    })
-    return
-  }
+  // No SMS proves the number is his. The admin's one-time verification is
+  // that check (see "Verification, once" in CLAUDE.md), and a farmer stays
+  // PENDING_VERIFICATION, invisible to buyers, until it happens.
+  const phone = normalizePhone(String(b.phone ?? ''))
+  const password = String(b.password ?? '')
 
   if (!isValidPhone(phone)) fields.phone = '10 अंकी मोबाईल नंबर टाका'
+  const pwFault = passwordProblemMr(password)
+  if (pwFault) fields.password = pwFault
   if (!b.name?.trim()) fields.name = 'नाव आवश्यक आहे'
   if (!b.village?.trim()) fields.village = 'गाव आवश्यक आहे'
   if (!b.shopName?.trim()) fields.shopName = 'दुकानाचे नाव आवश्यक आहे'
@@ -209,6 +189,7 @@ farmersRouter.post('/register', (req, res) => {
   }
 
   db.farmers.push(farmer)
+  setCredential(db, { role: 'farmer', userId: farmer.id, phone, password })
   save()
 
   // She is signed in from here, on a session that can later be revoked like
@@ -403,7 +384,7 @@ farmersRouter.post('/me/close', requireRole('farmer'), (req, res) => {
  * She changed her mind inside the week.
  *
  * Reached by signing in again, which is the whole point: the person who can
- * stop it is the person who can still pass an OTP on that number.
+ * stop it is the person who still knows the password.
  */
 farmersRouter.post('/me/restore', requireRole('farmer'), (req, res) => {
   const db = getDb()

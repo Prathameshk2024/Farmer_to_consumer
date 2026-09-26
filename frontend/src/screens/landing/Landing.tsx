@@ -7,14 +7,12 @@ import { Card, ConfirmSheet } from '../../components/ui.js'
 import {
   IconBuy, IconCash, IconCheck, IconDelivery, IconFarmer, IconGrowth, IconQr, IconSell, IconSend,
 } from '../../components/icons.js'
-import { clearRegisterTicket, liveTicket } from '../../lib/registerTicket.js'
-import { clearDraft, sessionStore } from '../auth/farmerDraft.js'
 import { SUPPORT_PHONE } from '../farmer/Misc.js'
 import CollegeCard from './CollegeCard.js'
 import HeroArt from './HeroArt.js'
 import logo from '../../assets/logo.png'
 
-type Mode = 'join' | 'login'
+type Mode = 'register' | 'login'
 
 /**
  * The public landing page, laid out like the project poster: who it is for,
@@ -35,9 +33,9 @@ export default function Landing() {
   const [switchTo, setSwitchTo] = useState<{ role: Role; mode: Mode } | null>(null)
 
   /**
-   * EVERY BUTTON GOES THROUGH THE PHONE SCREEN. What differs is how much is left:
+   * What a button does depends on who is signed in:
    *
-   *  - no session          -> /join/<role> or /login/<role>;
+   *  - no session          -> /register/<role> or /login/<role>;
    *  - a session, same role -> straight in, rather than the app forgetting them;
    *  - a session, the OTHER role -> one account is in one section at a time,
    *    so this needs the current session closed, and says so first.
@@ -48,17 +46,8 @@ export default function Landing() {
       else setSwitchTo({ role, mode })
       return
     }
-    // A half-finished farmer registration holds a verified ticket and several
-    // screens of answers; a buyer button would silently abandon both.
-    if (role === 'customer' && liveTicket()) {
-      setSwitchTo({ role, mode })
-      return
-    }
     nav(`/${mode}/${role}`)
   }
-
-  /** The confirmation is about a pending registration, not a live session. */
-  const abandoning = switchTo !== null && !session
 
   const workflow = [
     [IconFarmer, t('lp.wf1')],
@@ -106,7 +95,7 @@ export default function Landing() {
 
           <h2 className="lhero__who"><IconFarmer aria-hidden="true" /> {t('lp.farmers')}</h2>
           <div className="doors doors--pair">
-            <button className="door door--primary" onClick={() => go('farmer', 'join')}>
+            <button className="door door--primary" onClick={() => go('farmer', 'register')}>
               <span className="door__icon" aria-hidden="true"><IconSell /></span>
               <span className="door__t">{t('lp.register')}</span>
             </button>
@@ -118,7 +107,7 @@ export default function Landing() {
 
           <h2 className="lhero__who"><IconBuy aria-hidden="true" /> {t('lp.buyers')}</h2>
           <div className="doors doors--pair">
-            <button className="door" onClick={() => go('customer', 'join')}>
+            <button className="door" onClick={() => go('customer', 'register')}>
               <span className="door__icon" aria-hidden="true"><IconBuy /></span>
               <span className="door__t">{t('lp.register')}</span>
             </button>
@@ -205,27 +194,15 @@ export default function Landing() {
 
       <ConfirmSheet
         open={switchTo !== null}
-        title={abandoning ? t('lp.abandonTitle') : t('lp.switchTitle')}
-        body={
-          abandoning
-            ? t('lp.abandonBody')
-            : switchTo?.role === 'customer' ? t('lp.switchBuyBody') : t('lp.switchBody')
-        }
-        confirmLabel={abandoning ? t('lp.abandonConfirm') : t('lp.switchConfirm')}
+        title={t('lp.switchTitle')}
+        body={switchTo?.role === 'customer' ? t('lp.switchBuyBody') : t('lp.switchBody')}
+        confirmLabel={t('lp.switchConfirm')}
         tone="danger"
         onCancel={() => setSwitchTo(null)}
         onConfirm={() => {
           const target = switchTo
           setSwitchTo(null)
-          if (abandoning) {
-            // The ticket AND the answers, together; a draft left behind would
-            // keep a name and village on the handset that nothing can submit.
-            const pending = liveTicket()
-            if (pending) clearDraft(sessionStore(), pending.phone)
-            clearRegisterTicket()
-          } else {
-            signOut()
-          }
+          signOut()
           if (target) nav(`/${target.mode}/${target.role}`)
         }}
       />

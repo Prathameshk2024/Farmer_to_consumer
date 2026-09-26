@@ -3,6 +3,8 @@ import { openOrders, scrubDueAt } from '@shared/accountClose.js'
 import type { Db } from './seed.js'
 import { destroyImage } from '../routes/uploads.routes.js'
 import { revokeAllForUser } from '../auth/sessions.js'
+import { removeCredential } from '../auth/credentials.js'
+import { removePasswordRequests } from '../auth/passwordRequests.js'
 import { PLACEHOLDER_NAME } from './customers.js'
 
 /**
@@ -102,6 +104,9 @@ export function scrubFarmer(
   // like every other image this app destroys: the record is what matters.
   void destroy(farmer.upiQrPublicId)
 
+  // Read before the scrub blanks it: her forgot-password requests are found by it.
+  forgetAuth(db, farmer.id, farmer.phone)
+
   farmer.name = CLOSED_SHOP_NAME
   farmer.shopName = CLOSED_SHOP_NAME
   farmer.phone = ''
@@ -172,7 +177,17 @@ export function closeCustomer(db: Db, customerId: string, phone: string, now = D
   const i = db.customers.findIndex((c) => c.id === customerId)
   if (i >= 0) db.customers.splice(i, 1)
 
+  forgetAuth(db, customerId, phone)
   forgetSessions(db, customerId, now)
+}
+
+/**
+ * Her password and her forgot-password requests. The hash would otherwise let
+ * her old number sign in to a closed account, and the requests carry her name.
+ */
+function forgetAuth(db: Db, userId: string, phone: string): void {
+  removeCredential(db, userId)
+  removePasswordRequests(db, userId, phone)
 }
 
 /**

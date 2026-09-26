@@ -17,10 +17,9 @@ import type { Order, OrderStatus, PaymentMode, PaymentStatus } from './types.js'
  * because a cash order and a UPI order have to walk the same six screens.
  * Inserting a payment state into the middle is the change that would break it.
  *
- * There is no delivery OTP. The farmer marks DELIVERED herself and that is
+ * There is no delivery code. The farmer marks DELIVERED herself and that is
  * accepted at face value; the trail in `events` is what admin reviews if a
- * customer disputes it. (The login OTP is a different thing entirely and is
- * still required - see backend/src/services/otp.service.ts.)
+ * customer disputes it.
  *
  * The backend validates transitions against this table; the frontend draws its
  * buttons from it. Neither hard-codes a status string.

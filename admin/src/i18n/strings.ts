@@ -329,6 +329,24 @@ const mr: Record<string, string> = {
   'err.alreadySettled': 'यावर आधीच निर्णय झाला आहे',
   'err.notAllowed': 'तुम्हाला परवानगी नाही',
   'err.signedOut': 'पुन्हा प्रवेश करा',
+  /* ---- passwords ------------------------------------------------- */
+  'pwr.title': 'पासवर्ड विनंत्या',
+  'pwr.reset': 'नवा पासवर्ड द्या',
+  'pwr.resetConsequence': 'यांचा सध्याचा पासवर्ड चालणार नाही, आणि ते ज्या ज्या फोनवर लॉगिन आहेत तिथून बाहेर पडतील.',
+  'pwr.readOut': 'हा पासवर्ड त्यांना फोनवर वाचून दाखवा. लॉगिन केल्यावर त्यांना नवा पासवर्ड ठेवावा लागेल.',
+  'pwr.copy': 'कॉपी करा',
+  'pwr.copied': 'पासवर्ड कॉपी झाला',
+  'pwr.noAccount': 'या नंबरवर खाते नाही',
+  'pwr.close': 'बंद करा',
+  'pwr.closeConsequence': 'ही विनंती रांगेतून निघेल. पासवर्ड बदलणार नाही.',
+  'pwr.reason': 'कारण (हवे असल्यास)',
+  'pwr.callFirst': 'आधी याच नंबरवर फोन करा आणि नाव व गाव खात्री करा. पासवर्ड फक्त त्याच फोनवर सांगा.',
+  'pwr.empty': 'कोणतीही विनंती बाकी नाही',
+  'pwr.roleFarmer': 'शेतकरी',
+  'pwr.roleBuyer': 'ग्राहक',
+  'pwr.wait.min': '{n} मिनिटांपासून',
+  'pwr.wait.hour': '{n} तासांपासून',
+  'pwr.wait.day': '{n} दिवसांपासून',
 }
 
 const en: Record<string, string> = {
@@ -638,6 +656,24 @@ const en: Record<string, string> = {
   'err.alreadySettled': 'This has already been decided',
   'err.notAllowed': 'You do not have permission',
   'err.signedOut': 'Please sign in again',
+  /* ---- passwords ------------------------------------------------- */
+  'pwr.title': 'Password requests',
+  'pwr.reset': 'Reset password',
+  'pwr.resetConsequence': 'Their current password stops working and every phone they are signed in on is signed out.',
+  'pwr.readOut': 'Read this to them. They must choose a new one when they sign in.',
+  'pwr.copy': 'Copy',
+  'pwr.copied': 'Password copied',
+  'pwr.noAccount': 'No account with this number',
+  'pwr.close': 'Close',
+  'pwr.closeConsequence': 'The request leaves the queue. The password is not changed.',
+  'pwr.reason': 'Reason (optional)',
+  'pwr.callFirst': 'Call this number first and confirm the name and village. Give the password only on that call.',
+  'pwr.empty': 'No requests waiting',
+  'pwr.roleFarmer': 'Farmer',
+  'pwr.roleBuyer': 'Buyer',
+  'pwr.wait.min': 'waiting {n} min',
+  'pwr.wait.hour': 'waiting {n} h',
+  'pwr.wait.day': 'waiting {n} days',
 }
 
 export const dictionaries: Record<LangCode, Record<string, string>> = { mr, en }

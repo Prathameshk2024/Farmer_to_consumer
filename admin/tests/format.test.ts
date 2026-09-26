@@ -91,3 +91,15 @@ test('money uses Indian digit grouping', () => {
 test('an unparseable date renders as a dash rather than Invalid Date', () => {
   assert.equal(when('not a date'), '-')
 })
+
+/* ---------------- how long a request has waited ---------------- */
+
+test('a wait is told in the largest whole unit', async () => {
+  const { waited } = await import('../src/lib/format.js')
+  const at = Date.parse('2026-09-26T06:00:00Z')
+  const iso = new Date(at).toISOString()
+  assert.deepEqual(waited(iso, at + 5 * 60_000), { n: 5, unit: 'min' })
+  assert.deepEqual(waited(iso, at + 3 * 3_600_000 + 59 * 60_000), { n: 3, unit: 'hour' })
+  assert.deepEqual(waited(iso, at + 50 * 3_600_000), { n: 2, unit: 'day' })
+  assert.deepEqual(waited(iso, at - 1000), { n: 0, unit: 'min' }, 'a clock slightly ahead is not a negative wait')
+})

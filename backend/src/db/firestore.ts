@@ -41,6 +41,9 @@ export const COLLECTIONS = [
   // matters more for these three than for anything else in the list: `admins`
   // holds password hashes and `sessions` holds live credentials.
   'sessions', 'admins', 'authEvents',
+  // Password hashes, kept off the farmer and customer rows; and the
+  // forgot-password queue, which only the admin API reads.
+  'credentials', 'passwordRequests',
 ] as const
 type CollectionName = (typeof COLLECTIONS)[number]
 

@@ -22,9 +22,9 @@ import { Button, Choice, Field, Notice, TextInput, VoiceInput } from './ui.js'
  *   1. What it costs: her listings and her shop.
  *   2. Why she is leaving - a reason from a list, as everywhere else.
  *   3. The last four digits of her own number, typed. Not a word to copy
- *      (that is a literacy test) and not a second OTP (an SMS against a
- *      three-a-day ceiling, proving possession of a phone she is already
- *      signed in on). Four digits she knows by heart, which a thumb does not
+ *      (that is a literacy test) and not her password again (one more
+ *      thing to remember, proving only possession of a phone she is
+ *      already signed in on). Four digits she knows by heart, which a thumb does not
  *      produce by accident.
  *   4. What happens next, which for a farmer is the week she has to change
  *      her mind.

@@ -10,11 +10,6 @@
  * should be able to clone this repo and run it without any accounts at all.
  */
 
-import {
-  demoProvider, msg91Provider, msg91WidgetProvider,
-  type Msg91Config, type Msg91WidgetConfig, type OtpProvider,
-} from './services/otp.providers.js'
-
 function firstOf(...names: string[]): string | undefined {
   for (const n of names) {
     const v = process.env[n]
@@ -247,88 +242,6 @@ export const PORT = Number(process.env.PORT ?? 4000)
 export const IS_PROD = process.env.NODE_ENV === 'production'
 
 /* ------------------------------------------------------------------ */
-/* OTP delivery                                                        */
-/* ------------------------------------------------------------------ */
-
-/**
- * Which channel carries the code.
- *
- * Demo mode returns the code in the HTTP response so the app is walkable with
- * no SMS account. That is fine on a laptop and unacceptable on the internet -
- * a code in a response body is a code anyone can read - so production refuses
- * it outright rather than warning about it. This used to be a warning, and the
- * warning was ignored for as long as the project has existed.
- *
- * Two MSG91 shapes, and which one you have depends on DLT:
- *
- *  - WIDGET (MSG91_WIDGET_ID): no DLT registration needed, because the
- *    template and sender are MSG91's. The browser runs their widget and this
- *    server exchanges the resulting token for the verified number.
- *  - PLAIN SENDER (MSG91_TEMPLATE_ID): needs your own DLT-approved template.
- *    We generate the code and keep expiry, attempt cap and single use.
- *
- * The widget wins when both are set, because it is the one that works without
- * a DLT registration. See services/otp.providers.ts.
- */
-export interface OtpSettings {
-  demo: boolean
-  msg91: Msg91Config | null
-  widget: Msg91WidgetConfig | null
-}
-
-function readOtp(): OtpSettings {
-  const authKey = firstOf('MSG91_AUTH_KEY')
-  const templateId = firstOf('MSG91_TEMPLATE_ID')
-  const widgetId = firstOf('MSG91_WIDGET_ID')
-
-  if (authKey && widgetId) {
-    return { demo: false, msg91: null, widget: { authKey, widgetId } }
-  }
-
-  if (authKey && templateId) {
-    return {
-      demo: false,
-      msg91: { authKey, templateId, sender: firstOf('MSG91_SENDER') ?? 'WMNBIZ' },
-      widget: null,
-    }
-  }
-
-  if (widgetId && !authKey) {
-    console.warn('[config] MSG91_WIDGET_ID needs MSG91_AUTH_KEY too - falling back')
-  } else if (authKey || templateId) {
-    console.warn('[config] MSG91 needs BOTH MSG91_AUTH_KEY and MSG91_TEMPLATE_ID - falling back')
-  }
-
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error(
-      'No SMS provider is configured, and demo OTP cannot run in production - it returns\n' +
-        '  the login code in the HTTP response, so anyone could sign in as anyone.\n' +
-        '  Set MSG91_AUTH_KEY and MSG91_WIDGET_ID (the widget - no DLT registration\n' +
-        '  needed), or MSG91_AUTH_KEY and MSG91_TEMPLATE_ID for your own DLT template.\n' +
-        '  Or run with NODE_ENV unset.',
-    )
-  }
-
-  return { demo: true, msg91: null, widget: null }
-}
-
-export const OTP = readOtp()
-
-/** Built once, on first use, so importing config does not open a connection. */
-let provider: OtpProvider | null = null
-
-export function otpProvider(): OtpProvider {
-  if (!provider) {
-    provider = OTP.widget
-      ? msg91WidgetProvider(OTP.widget)
-      : OTP.msg91
-        ? msg91Provider(OTP.msg91)
-        : demoProvider()
-  }
-  return provider
-}
-
-/* ------------------------------------------------------------------ */
 /* The first administrator                                             */
 /* ------------------------------------------------------------------ */
 
@@ -404,7 +317,6 @@ export function describeConfig(): string {
         : 'JSON file (backend/data/db.json)'
     }`,
     `  Images         ${usingCloudinary ? `Cloudinary (${cloudinary!.cloudName})` : 'off - emoji only'}`,
-    `  OTP            ${otpProvider().name}`,
     `  CORS           ${CORS_ORIGIN === true ? 'any origin' : CORS_ORIGIN.join(', ')}`,
   ]
   if (IS_PROD && CORS_ORIGIN === true) {

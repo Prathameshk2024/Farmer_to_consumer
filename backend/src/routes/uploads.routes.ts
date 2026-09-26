@@ -1,9 +1,7 @@
 import crypto from 'node:crypto'
 import { Router } from 'express'
 import { cloudinary, usingCloudinary } from '../config.js'
-import type { NextFunction, Request, Response } from 'express'
 import { requireRole } from '../middleware/auth.js'
-import { peekTicket } from '../auth/tickets.js'
 
 /**
  * CLOUDINARY — SIGNED DIRECT UPLOAD
@@ -36,30 +34,11 @@ export function sign(params: Record<string, string | number>, secret: string): s
 }
 
 /**
- * A signature needs a signed-in caller OR a live registration ticket.
- *
- * The ticket case is not a loophole, it is the registration case: she is asked
- * for her payment QR on the last screen of the wizard, and at that moment the
- * farmer record does not exist, so there is no session to authenticate with.
- * Requiring one made that upload fail with a 401 that the app could only
- * report as "the photo could not be sent".
- *
- * The ticket is still proof: it is HMAC-signed, expires in fifteen minutes and
- * is issued only to a phone number that has just passed an OTP.
+ * A signature needs a signed-in caller. The registration wizard creates the
+ * account before it asks for the payment QR, so a new farmer already has a
+ * session by the time she uploads anything.
  */
-function requireUploader(req: Request, res: Response, next: NextFunction): void {
-  if (req.auth) {
-    next()
-    return
-  }
-  if (peekTicket('farmer-register', String(req.body?.ticket ?? ''))) {
-    next()
-    return
-  }
-  res.status(401).json({ error: 'Not signed in', messageMr: 'कृपया पुन्हा लॉगिन करा' })
-}
-
-uploadsRouter.post('/signature', requireUploader, (req, res) => {
+uploadsRouter.post('/signature', requireRole('farmer', 'customer', 'admin'), (req, res) => {
   if (!usingCloudinary || !cloudinary) {
     res.status(503).json({
       error: 'Image uploads are not configured',

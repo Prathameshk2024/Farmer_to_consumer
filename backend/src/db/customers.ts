@@ -2,6 +2,9 @@ import crypto from 'node:crypto'
 import type { Address, Customer, Order } from '@shared/types.js'
 import type { Db } from './seed.js'
 import { newId } from './ids.js'
+import { isValidPhone, normalizePhone } from '@shared/farmer.js'
+import { passwordProblemMr } from '@shared/password.js'
+import { findCredential, setCredential } from '../auth/credentials.js'
 
 /**
  * CUSTOMER RECORDS
@@ -70,21 +73,40 @@ function isRealName(name: string): boolean {
 }
 
 /**
- * Is this customer REGISTERED, as opposed to merely authenticated?
+ * A buyer's account: phone, name and password, on one screen.
  *
- * A verified phone proves who she is; it does not finish an account. The name
- * does, because the name is what the farmer reads on the order and what she is
- * called when a woman in a village phones her about a delivery. So a record
- * that exists but carries no name - or carries the ग्राहक placeholder a
- * checkout left behind - is not registered, and login sends her to the one
- * screen that asks for it.
+ * A row may already exist - a checkout, or the order backfill, makes one from
+ * her phone - and that row becomes hers, keeping its addresses. What makes a
+ * number taken is a CUSTOMER CREDENTIAL, not a row: a phone that only ever
+ * ordered has no password yet, and a farmer's password on the same number is
+ * a different account.
  *
- * This lives here rather than in the route so the login check and the customer
- * record cannot drift apart about what "registered" means.
+ * The route adds the session; this is the part that can be tested without one.
  */
-export function isRegisteredCustomer(db: Db, customerId: string): boolean {
-  const name = findCustomer(db, customerId)?.name
-  return name ? isRealName(name) : false
+export type CustomerRegistration =
+  | { status: 201; customer: Customer; phone: string }
+  | { status: 400 | 409; body: { error: string; messageMr: string; fields?: Record<string, string> } }
+
+export function registerCustomer(db: Db, body: Record<string, unknown> | undefined): CustomerRegistration {
+  const phone = normalizePhone(String(body?.phone ?? ''))
+  const name = String(body?.name ?? '').trim().slice(0, 80)
+  const password = String(body?.password ?? '')
+  const fields: Record<string, string> = {}
+  if (!isValidPhone(phone)) fields.phone = '10 अंकी मोबाईल नंबर टाका'
+  if (!isRealName(name)) fields.name = 'नाव आवश्यक आहे'
+  const pw = passwordProblemMr(password)
+  if (pw) fields.password = pw
+  if (Object.keys(fields).length) {
+    return { status: 400, body: { error: 'Validation failed', messageMr: 'माहिती तपासा', fields } }
+  }
+
+  if (findCredential(db, 'customer', phone)) {
+    return { status: 409, body: { error: 'Already registered', messageMr: 'हा नंबर आधीच नोंदणीकृत आहे. लॉगिन करा.' } }
+  }
+
+  const customer = ensureCustomer(db, customerIdFor(phone), phone, name)
+  setCredential(db, { role: 'customer', userId: customer.id, phone, password })
+  return { status: 201, customer, phone }
 }
 
 export interface AddressInput {

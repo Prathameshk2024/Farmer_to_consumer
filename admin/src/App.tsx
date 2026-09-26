@@ -13,6 +13,7 @@ import { Orders } from './screens/Orders.js'
 import { Reviews } from './screens/Reviews.js'
 import { Complaints } from './screens/Complaints.js'
 import { Impact } from './screens/Impact.js'
+import { PasswordRequests } from './screens/PasswordRequests.js'
 
 /**
  * The admin console.
@@ -55,6 +56,7 @@ function Gate() {
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/complaints" element={<Complaints />} />
         <Route path="/impact" element={<Impact />} />
+        <Route path="/password-requests" element={<PasswordRequests />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -55,7 +55,7 @@ export function AppBar({
   backTo?: string
   /**
    * शांताबाई's portrait beside the title. On the screens she arrives at - the
-   * four tabs and the phone/OTP doors - and nowhere deeper, because a detail
+   * four tabs and the login doors - and nowhere deeper, because a detail
    * screen already told her where she is and the header space belongs to the
    * back button and the title. The mark carries its own gold ring; never add
    * a border or a background here or it prints a second one.
@@ -66,7 +66,7 @@ export function AppBar({
    *
    * In the bar rather than floated over it, so it takes its own space beside
    * the audio-help button instead of covering it. Off on the screens that have
-   * no session behind them - the OTP screens - where it would render nothing
+   * no session behind them - the login screens - where it would render nothing
    * anyway but would still cost a render.
    */
   bell?: boolean
@@ -470,7 +470,7 @@ export function Stepper({
 }
 
 /* ================================================================== */
-/* Dots / OTP / money                                                  */
+/* Dots / money                                                        */
 /* ================================================================== */
 
 export function Dots({ step, total }: { step: number; total: number }) {
@@ -480,42 +480,6 @@ export function Dots({ step, total }: { step: number; total: number }) {
         <div
           key={i}
           className={`dots__d ${i === step ? 'dots__d--on' : ''} ${i < step ? 'dots__d--done' : ''}`}
-        />
-      ))}
-    </div>
-  )
-}
-
-export function OtpInput({
-  value, onChange, length = 4,
-}: {
-  value: string
-  onChange: (v: string) => void
-  length?: number
-}) {
-  const refs = useRef<(HTMLInputElement | null)[]>([])
-
-  function setAt(i: number, ch: string) {
-    const digits = value.padEnd(length, ' ').split('')
-    digits[i] = ch
-    onChange(digits.join('').replace(/\s/g, ''))
-    if (ch && i < length - 1) refs.current[i + 1]?.focus()
-  }
-
-  return (
-    <div className="otp">
-      {Array.from({ length }).map((_, i) => (
-        <input
-          key={i}
-          ref={(el) => { refs.current[i] = el }}
-          inputMode="numeric"
-          maxLength={1}
-          value={value[i] ?? ''}
-          onChange={(e) => setAt(i, e.target.value.replace(/\D/g, ''))}
-          onKeyDown={(e) => {
-            if (e.key === 'Backspace' && !value[i] && i > 0) refs.current[i - 1]?.focus()
-          }}
-          aria-label={`OTP digit ${i + 1}`}
         />
       ))}
     </div>
