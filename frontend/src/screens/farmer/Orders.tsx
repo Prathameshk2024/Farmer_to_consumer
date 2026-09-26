@@ -244,10 +244,12 @@ export function FarmerOrderDetail() {
               </div>
             ))}
             <hr className="divider" style={{ margin: 'var(--s2) 0' }} />
-            <div className="row-between small">
-              <span className="dim">{t('cus.deliveryFee')}</span>
-              <Rupees value={order.deliveryFee} />
-            </div>
+            {order.fulfilment !== 'pickup' && (
+              <div className="row-between small">
+                <span className="dim">{t('cus.deliveryFee')}</span>
+                <Rupees value={order.deliveryFee} />
+              </div>
+            )}
             <div className="row-between">
               <strong>{t('ord.total')}</strong>
               <strong><Rupees value={order.total} /></strong>

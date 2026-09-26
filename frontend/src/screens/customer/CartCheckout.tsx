@@ -385,6 +385,9 @@ export function Checkout() {
   const pickup = fulfilment === 'pickup' && !!pickupAt?.place
   const grand = groups.reduce((n, g) => n + (pickup ? g.itemsTotal : g.total), 0)
   const noDeliveryTotal = pickup || groups.some((g) => g.deliveryToAsk)
+  // A legacy two-farmer cart cannot be picked up, so a farmer in it who does
+  // not deliver is a refusal waiting at the server. Say so before the tap.
+  const cannotFulfil = !pickup && !canDeliver
 
   /**
    * Not in the customer's listed areas is a WARNING now, not a wall.
@@ -501,6 +504,7 @@ export function Checkout() {
         </div>
         )}
 
+        {cannotFulfil && <Notice tone="danger">{t('chk.noDelivery')}</Notice>}
         {outsideState && <Notice tone="danger">{t('cus.outsideState')}</Notice>}
 
         {!outsideState && outsideArea.length > 0 && (
@@ -552,7 +556,7 @@ export function Checkout() {
       <div className="actionbar">
         <Button
           onClick={() => void place()}
-          disabled={busy || (!pickup && !address) || outsideState}
+          disabled={busy || (!pickup && !address) || outsideState || cannotFulfil}
         >
           {busy ? t('common.loading') : t('cus.placeOrder')}
         </Button>
