@@ -1,67 +1,72 @@
 /*
  * The farmer app's palette, applied to a desk instead of a phone.
  *
- * Tokens are copied verbatim from frontend/src/styles/theme.css so the two
+ * The two palette blocks are copied verbatim from frontend/src/styles/theme.css
+ * (a test holds it), and data-palette on <html> picks one, so the two
  * products look like one product. What changes is density and layout: the farmer is
  * standing in a village with one thumb, the admin is sitting down with a mouse
  * and wants twenty rows on screen at once.
  */
 
 :root {
-  /* --- brand (frontend/src/styles/theme.css) ----------------
-     Leaf green for actions, maroon for names and headings. */
-  --leaf: #2e7d32;
-  --leaf-dark: #1b5e20;
-  --leaf-mid: #43a047;
-  --leaf-soft: #e8f5e9;
-
-  --primary: var(--leaf);
-  --primary-dark: var(--leaf-dark);
-  --primary-soft: var(--leaf-soft);
-
-  --maroon: #7b1e2e;
-  --maroon-dark: #5c1522;
-  --maroon-mid: #98304a;
-  --maroon-soft: #f8e9e8;
-
-  --gold: #b6851b;
-  --gold-deep: #8a6310;
-  --gold-soft: #faefd3;
-
-  --green: #26663f;
-  --green-dark: #1b4d2e;
-  --green-soft: #e5f0e8;
-
-  /* --- neutrals (warm) -------------------------------------- */
-  --ink: #3b2b23;
-  --ink-2: #6b584c;
-  --ink-3: #97867a;
-  --bg: #f7f5ec;
-  --bg-2: #f1e7d4;
-  --surface: #ffffff;
-  --surface-2: #faf5ea;
-  --line: #e7dcc8;
-  --line-2: #d6c8ae;
-  /* Example text inside an empty field. Deliberately faint: it is a hint,
-     and at the browser default it read as a value already typed in. */
-  --placeholder: #bfb2a5;
-
-  /* --- semantic --------------------------------------------- */
-  --ok: var(--leaf-dark);
-  --ok-soft: var(--leaf-soft);
-  --warn: #9a6b0c;
-  --warn-soft: var(--gold-soft);
-  --danger: #b3341f;
-  --danger-soft: #fbe8e3;
-  --info: #4a5f52;
-  --info-soft: #ecf0ea;
-
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Noto Sans Devanagari', 'Nirmala UI', 'Mangal', sans-serif;
   --mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', monospace;
 
   --r: 4px;
   --side-w: 208px;
+}
+
+:root, :root[data-palette="soil"] {
+  /* A · Soil & Turmeric (माती आणि हळद) - the default */
+  --soil: #5a3a1f; --soil-dark: #3f2814; --soil-soft: #f3e8d8;
+  --leaf: #3c781f; --leaf-dark: #2f5d17; --leaf-mid: #5a9a33; --leaf-soft: #e3efd6;
+  --primary: var(--leaf); --primary-dark: var(--leaf-dark); --primary-soft: var(--leaf-soft);
+  --maroon: var(--soil); --maroon-dark: var(--soil-dark); --maroon-mid: #7a5230; --maroon-soft: var(--soil-soft);
+  --gold: #e0a526; --gold-deep: #8a6310; --gold-soft: #faefd3; --gold-band: #f3d27a;
+  --green: var(--leaf); --green-dark: var(--leaf-dark); --green-soft: var(--leaf-soft);
+  --ink: #2e2116; --ink-2: #5e4a3a; --ink-3: #75614f;
+  --bg: #fbf6ea; --bg-2: #f3e9d6; --surface: #ffffff; --surface-2: #fdf9f0;
+  --line: #e6d6b8; --line-2: #d4bf98; --placeholder: #a8957f;
+  --ok: var(--leaf-dark); --ok-soft: var(--leaf-soft);
+  --warn: #8a5a00; --warn-soft: #fbe7c2;
+  --danger: #b3341f; --danger-soft: #fbe8e3;
+  --info: #4a5f52; --info-soft: #ecf0ea;
+  --on-dark: #ffffff; --ok-on-dark: #7fe0a4; --danger-on-dark: #ff5b47;
+  --scrim: rgba(46, 33, 22, 0.55);
+  --cult-natural: #2f5d17; --cult-natural-soft: #e3efd6;
+  --cult-organic: #1f6b4a; --cult-organic-soft: #dcefe4;
+  --cult-chemical: #8a4b0f; --cult-chemical-soft: #fbe3c4;
+  --series1: #3c781f; --series2: #5a3a1f; --series3: #8a6310; --series4: #3d5ac4;
+  --shadow-sm: 0 1px 2px rgba(90, 58, 31, 0.08);
+  --shadow: 0 2px 12px rgba(90, 58, 31, 0.09);
+  --shadow-up: 0 -2px 14px rgba(90, 58, 31, 0.11);
+}
+
+:root[data-palette="field"] {
+  /* B · Field & Monsoon (हिरवे शेत) - switch with data-palette="field" in index.html */
+  --soil: #1f5f3a; --soil-dark: #164a2c; --soil-soft: #e1efd9;
+  --leaf: #1f5f3a; --leaf-dark: #164a2c; --leaf-mid: #3d8a4f; --leaf-soft: #e1efd0;
+  --primary: var(--leaf); --primary-dark: var(--leaf-dark); --primary-soft: var(--leaf-soft);
+  --maroon: #b4492a; --maroon-dark: #8c3720; --maroon-mid: #c9603f; --maroon-soft: #f8e4dc;
+  --gold: #8bbf3f; --gold-deep: #4f7a16; --gold-soft: #eef6de; --gold-band: #cfe6a8;
+  --green: var(--leaf); --green-dark: var(--leaf-dark); --green-soft: var(--leaf-soft);
+  --ink: #1d2a1f; --ink-2: #45554a; --ink-3: #5f6d62;
+  --bg: #f4f7ef; --bg-2: #e8efdf; --surface: #ffffff; --surface-2: #f9fbf5;
+  --line: #d9e4cc; --line-2: #bfd0aa; --placeholder: #8a988c;
+  --ok: var(--leaf-dark); --ok-soft: var(--leaf-soft);
+  --warn: #8a5a00; --warn-soft: #fbe7c2;
+  --danger: #b3341f; --danger-soft: #fbe8e3;
+  --info: #4a5f52; --info-soft: #ecf0ea;
+  --on-dark: #ffffff; --ok-on-dark: #7fe0a4; --danger-on-dark: #ff5b47;
+  --scrim: rgba(29, 42, 31, 0.55);
+  --cult-natural: #2f5d17; --cult-natural-soft: #e3efd6;
+  --cult-organic: #1f6b4a; --cult-organic-soft: #dcefe4;
+  --cult-chemical: #8a4b0f; --cult-chemical-soft: #fbe3c4;
+  --series1: #1f5f3a; --series2: #b4492a; --series3: #4f7a16; --series4: #3d5ac4;
+  --shadow-sm: 0 1px 2px rgba(31, 95, 58, 0.08);
+  --shadow: 0 2px 12px rgba(31, 95, 58, 0.09);
+  --shadow-up: 0 -2px 14px rgba(31, 95, 58, 0.11);
 }
 
 * { box-sizing: border-box; }
@@ -178,7 +183,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .side__foot { border-top: 1px solid var(--line); padding: 10px; display: grid; gap: 8px; }
 
-/* Sidebar links and Sign out in plain black, icons included. Scoped to the
+/* Sidebar links and Sign out in plain ink, icons included. Scoped to the
    sidebar and one extra class deep, so they outrank .navlink and .btn--quiet
    here without changing those rules anywhere else they are used. */
 .side .navlink,
@@ -186,9 +191,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .side .navlink--on,
 .side .navlink__icon,
 .side .navlink:hover .navlink__icon,
-.side .navlink--on .navlink__icon { color: #000; }
+.side .navlink--on .navlink__icon { color: var(--ink); }
 .side__foot .side__signout,
-.side__foot .side__signout:hover { color: #000; }
+.side__foot .side__signout:hover { color: var(--ink); }
 
 .langtoggle { display: flex; border: 1px solid var(--line-2); border-radius: var(--r); overflow: hidden; }
 .langtoggle button {
@@ -200,7 +205,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   cursor: pointer;
   font-size: 13px;
 }
-.langtoggle button[aria-pressed='true'] { background: var(--primary); color: #fff; font-weight: 600; }
+.langtoggle button[aria-pressed='true'] { background: var(--primary); color: var(--on-dark); font-weight: 600; }
 
 /* ================= content ================= */
 
@@ -307,7 +312,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-radius: var(--r);
   border: 1px solid var(--primary);
   background: var(--primary);
-  color: #fff;
+  color: var(--on-dark);
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
@@ -605,7 +610,7 @@ table.t tr:last-child td { border-bottom: 0; }
   padding: 10px 12px;
   border-radius: var(--r);
   background: var(--ink);
-  color: #fff;
+  color: var(--on-dark);
   font-size: 13.5px;
   line-height: 1.45;
   box-shadow: 0 6px 20px rgba(59, 43, 35, 0.25);
@@ -613,14 +618,14 @@ table.t tr:last-child td { border-bottom: 0; }
   animation: toast-in 160ms ease-out;
 }
 .toast__i { flex: none; font-size: 16px; display: grid; place-items: center; }
-.toast--ok .toast__i { color: #7fe0a4; }
+.toast--ok .toast__i { color: var(--ok-on-dark); }
 .toast--warn { background: var(--gold-deep); }
 .toast--danger { background: var(--danger); }
 .toast__go {
   flex: none;
   border: 1px solid rgba(255, 255, 255, 0.5);
   background: transparent;
-  color: #fff;
+  color: var(--on-dark);
   border-radius: var(--r);
   padding: 3px 9px;
   font-size: 12.5px;

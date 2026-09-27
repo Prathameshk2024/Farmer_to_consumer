@@ -95,7 +95,7 @@ function Swatch({ colour }: { colour: string }) {
   return (
     <span aria-hidden="true" style={{
       display: 'inline-block', width: 14, height: 14, borderRadius: '50%',
-      background: colour, border: '2px solid #fff', boxShadow: '0 0 0 1px var(--line-2)',
+      background: colour, border: '2px solid var(--surface)', boxShadow: '0 0 0 1px var(--line-2)',
     }} />
   )
 }

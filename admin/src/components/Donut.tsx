@@ -34,11 +34,11 @@ export interface Slice {
  *
  * Two hues because the console shows two different ordered measures side by
  * side, and one shared ramp would suggest the bands mean the same thing.
- * Both are the brand maroon and green extended into steps; nothing here is a
- * new colour, only a lighter and darker version of one already in the palette.
+ * Both are four steps of a hue the palette already names (accent and leaf),
+ * read as tokens so switching palettes recolours the rings with everything else.
  */
-export const RAMP_MAROON = ['#f2d4d8', '#dfa5ad', '#c0697a', '#98304a', '#6d1626']
-export const RAMP_GREEN = ['#dfeee4', '#b0d2bd', '#7cb195', '#4c8a68', '#26663f']
+export const RAMP_MAROON = ['var(--maroon-soft)', 'var(--maroon-mid)', 'var(--maroon)', 'var(--maroon-dark)']
+export const RAMP_GREEN = ['var(--leaf-soft)', 'var(--leaf-mid)', 'var(--leaf)', 'var(--leaf-dark)']
 
 const SIZE = 148
 const R = 56

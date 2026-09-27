@@ -3,7 +3,7 @@ import { CROPS } from '@shared/crops.js'
 import { CULTIVATIONS, UNITS, harvestAgeDays } from '@shared/produce.js'
 import { useI18n, useT } from '../i18n/I18nProvider.js'
 import { CULTIVATION_ICON } from './icons.js'
-import { Choice, Pill, Rupees } from './ui.js'
+import { Choice, Rupees } from './ui.js'
 
 /**
  * The three facts every produce listing shows wherever it appears - the card,
@@ -27,7 +27,12 @@ export function CultivationPill({ cultivation }: { cultivation: Cultivation }) {
   const t = useT()
   const Icon = CULTIVATION_ICON[cultivation]
   if (!Icon) return null
-  return <Pill tone={cultivation === 'chemical' ? 'neutral' : 'ok'} icon={<Icon />}>{t(`cult.${cultivation}`)}</Pill>
+  return (
+    <span className={`pill pill--${cultivation}`}>
+      <span aria-hidden="true"><Icon /></span>
+      {t(`cult.${cultivation}`)}
+    </span>
+  )
 }
 
 /** "Harvested 3 days ago" - freshness in the buyer's words, not a date to work out. */

@@ -2,77 +2,28 @@
    शेतकऱ्यापासून थेट ग्राहकापर्यंत · Farmers to Consumer — design system
    ------------------------------------------------------------
    >>> THEME SWAP POINT <<<
-   Every colour, size and radius comes from the :root block
-   below. Change these tokens and the whole app follows; no
+   Sizes, radii and spacing live in the :root block below. Every
+   colour lives in one of the two palette blocks after it, and no
    component carries a hard-coded colour.
 
-   The palette is deliberately small: leaf green for actions
-   (buttons, app bar, active tab, focus, selected choice), maroon
-   for the accent (prices, names, headings, inline links), soft
-   gold for stars, warm cream for ground. Nothing else. Colour is spent on meaning -
-   what to tap, what changed, what went wrong - never on
-   decoration, and never as the ONLY signal: every status also
-   carries an icon and a word.
+   A · Soil & Turmeric is the default: soil brown for the app bar,
+   headings and prices, crop green for the one main action, turmeric
+   for highlights and stars, cream for ground.
+   B · Field & Monsoon is written out beside it with the same token
+   names. Switching is one word: data-palette="field" on <html> in
+   frontend/index.html and admin/index.html. Both blocks are copied
+   byte for byte into admin/src/styles/admin.css; a test holds that,
+   holds AA contrast in both, and refuses a colour outside them.
+
+   Colour is spent on meaning - what to tap, what changed, what went
+   wrong - never on decoration, and never as the ONLY signal: every
+   status also carries an icon and a word.
 
    MOBILE FIRST. Base styles target a 360px phone. Every
    media query below adds width, never takes it away.
    ============================================================ */
 
 :root {
-  /* --- brand ------------------------------------------------ */
-  --leaf: #2e7d32;            /* primary action, header, active tab - white text 5.1:1 */
-  --leaf-dark: #1b5e20;       /* pressed */
-  --leaf-mid: #43a047;
-  --leaf-soft: #e8f5e9;       /* tinted surface */
-
-  --primary: var(--leaf);
-  --primary-dark: var(--leaf-dark);
-  --primary-soft: var(--leaf-soft);
-
-  --maroon: #7b1e2e;          /* accent: price, names, headings, inline links */
-  --maroon-dark: #5c1522;     /* pressed */
-  --maroon-mid: #98304a;
-  --maroon-soft: #f8e9e8;     /* tinted surface */
-
-  --gold: #b6851b;            /* highlights, stars */
-  --gold-deep: #8a6310;
-  --gold-soft: #faefd3;
-  --gold-band: #f3e3ba;       /* the striped shop banner */
-
-  --green: #26663f;           /* confirmed, verified, WhatsApp */
-  --green-dark: #1b4d2e;
-  --green-soft: #e5f0e8;
-
-  /* --- neutrals (warm) -------------------------------------- */
-  --ink: #3b2b23;
-  --ink-2: #6b584c;
-  --ink-3: #97867a;
-  --bg: #f7f5ec;              /* warm cream page ground */
-  --bg-2: #f1e7d4;
-  --surface: #ffffff;
-  --surface-2: #faf5ea;
-  --line: #e7dcc8;
-  --line-2: #d6c8ae;
-  /* Example text inside an empty field. Deliberately faint: it is a hint,
-     and at the browser default it read as a value already typed in. */
-  --placeholder: #bfb2a5;
-
-  /* --- semantic --------------------------------------------- */
-  --ok: var(--leaf-dark);
-  --ok-soft: var(--leaf-soft);
-  --warn: #9a6b0c;
-  --warn-soft: var(--gold-soft);
-  --danger: #b3341f;          /* deliberately warmer than maroon */
-  --danger-soft: #fbe8e3;
-  --info: #4a5f52;
-  --info-soft: #ecf0ea;
-
-  /* --- chart series (validated for colour-blind separation) -- */
-  --series1: #2e7d32;
-  --series2: #7b1e2e;
-  --series3: #b6851b;
-  --series4: #3d5ac4;
-
   /* --- type ------------------------------------------------- */
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Noto Sans Devanagari', 'Nirmala UI', 'Mangal', sans-serif;
@@ -106,14 +57,62 @@
   --nav-h: 66px;
   --bar-h: 56px;
 
-  --shadow-sm: 0 1px 2px rgba(59, 43, 35, 0.06);
-  --shadow: 0 2px 12px rgba(59, 43, 35, 0.07);
-  --shadow-up: 0 -2px 14px rgba(59, 43, 35, 0.09);
-
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
 
   --shell: 100%;
+}
+
+:root, :root[data-palette="soil"] {
+  /* A · Soil & Turmeric (माती आणि हळद) - the default */
+  --soil: #5a3a1f; --soil-dark: #3f2814; --soil-soft: #f3e8d8;
+  --leaf: #3c781f; --leaf-dark: #2f5d17; --leaf-mid: #5a9a33; --leaf-soft: #e3efd6;
+  --primary: var(--leaf); --primary-dark: var(--leaf-dark); --primary-soft: var(--leaf-soft);
+  --maroon: var(--soil); --maroon-dark: var(--soil-dark); --maroon-mid: #7a5230; --maroon-soft: var(--soil-soft);
+  --gold: #e0a526; --gold-deep: #8a6310; --gold-soft: #faefd3; --gold-band: #f3d27a;
+  --green: var(--leaf); --green-dark: var(--leaf-dark); --green-soft: var(--leaf-soft);
+  --ink: #2e2116; --ink-2: #5e4a3a; --ink-3: #75614f;
+  --bg: #fbf6ea; --bg-2: #f3e9d6; --surface: #ffffff; --surface-2: #fdf9f0;
+  --line: #e6d6b8; --line-2: #d4bf98; --placeholder: #a8957f;
+  --ok: var(--leaf-dark); --ok-soft: var(--leaf-soft);
+  --warn: #8a5a00; --warn-soft: #fbe7c2;
+  --danger: #b3341f; --danger-soft: #fbe8e3;
+  --info: #4a5f52; --info-soft: #ecf0ea;
+  --on-dark: #ffffff; --ok-on-dark: #7fe0a4; --danger-on-dark: #ff5b47;
+  --scrim: rgba(46, 33, 22, 0.55);
+  --cult-natural: #2f5d17; --cult-natural-soft: #e3efd6;
+  --cult-organic: #1f6b4a; --cult-organic-soft: #dcefe4;
+  --cult-chemical: #8a4b0f; --cult-chemical-soft: #fbe3c4;
+  --series1: #3c781f; --series2: #5a3a1f; --series3: #8a6310; --series4: #3d5ac4;
+  --shadow-sm: 0 1px 2px rgba(90, 58, 31, 0.08);
+  --shadow: 0 2px 12px rgba(90, 58, 31, 0.09);
+  --shadow-up: 0 -2px 14px rgba(90, 58, 31, 0.11);
+}
+
+:root[data-palette="field"] {
+  /* B · Field & Monsoon (हिरवे शेत) - switch with data-palette="field" in index.html */
+  --soil: #1f5f3a; --soil-dark: #164a2c; --soil-soft: #e1efd9;
+  --leaf: #1f5f3a; --leaf-dark: #164a2c; --leaf-mid: #3d8a4f; --leaf-soft: #e1efd0;
+  --primary: var(--leaf); --primary-dark: var(--leaf-dark); --primary-soft: var(--leaf-soft);
+  --maroon: #b4492a; --maroon-dark: #8c3720; --maroon-mid: #c9603f; --maroon-soft: #f8e4dc;
+  --gold: #8bbf3f; --gold-deep: #4f7a16; --gold-soft: #eef6de; --gold-band: #cfe6a8;
+  --green: var(--leaf); --green-dark: var(--leaf-dark); --green-soft: var(--leaf-soft);
+  --ink: #1d2a1f; --ink-2: #45554a; --ink-3: #5f6d62;
+  --bg: #f4f7ef; --bg-2: #e8efdf; --surface: #ffffff; --surface-2: #f9fbf5;
+  --line: #d9e4cc; --line-2: #bfd0aa; --placeholder: #8a988c;
+  --ok: var(--leaf-dark); --ok-soft: var(--leaf-soft);
+  --warn: #8a5a00; --warn-soft: #fbe7c2;
+  --danger: #b3341f; --danger-soft: #fbe8e3;
+  --info: #4a5f52; --info-soft: #ecf0ea;
+  --on-dark: #ffffff; --ok-on-dark: #7fe0a4; --danger-on-dark: #ff5b47;
+  --scrim: rgba(29, 42, 31, 0.55);
+  --cult-natural: #2f5d17; --cult-natural-soft: #e3efd6;
+  --cult-organic: #1f6b4a; --cult-organic-soft: #dcefe4;
+  --cult-chemical: #8a4b0f; --cult-chemical-soft: #fbe3c4;
+  --series1: #1f5f3a; --series2: #b4492a; --series3: #4f7a16; --series4: #3d5ac4;
+  --shadow-sm: 0 1px 2px rgba(31, 95, 58, 0.08);
+  --shadow: 0 2px 12px rgba(31, 95, 58, 0.09);
+  --shadow-up: 0 -2px 14px rgba(31, 95, 58, 0.11);
 }
 
 /* ============================================================
@@ -240,7 +239,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   min-height: var(--bar-h);
   padding: calc(var(--safe-t) + var(--s3)) var(--s3) var(--s3);
   background: var(--primary);
-  color: #fff;
+  color: var(--on-dark);
   display: flex;
   align-items: center;
   gap: var(--s2);
@@ -252,7 +251,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   flex: 1;
   min-width: 0;
   margin: 0;
-  color: #fff;
+  color: var(--on-dark);
 }
 .appbar__sub {
   display: block;
@@ -266,7 +265,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   flex: 0 0 auto;
   border: 0;
   background: transparent;
-  color: #fff;
+  color: var(--on-dark);
   border-radius: var(--r-sm);
   font-size: 1.3rem;
   cursor: pointer;
@@ -336,7 +335,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   top: -4px;
   right: 4px;
   background: var(--danger);
-  color: #fff;
+  color: var(--on-dark);
   border-radius: var(--r-full);
   font-size: 11px;
   font-weight: 700;
@@ -412,7 +411,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   border-radius: var(--r-sm);
   border: 2px solid transparent;
   background: var(--primary);
-  color: #fff;
+  color: var(--on-dark);
   font-size: var(--t-base);
   font-weight: 700;
   cursor: pointer;
@@ -507,7 +506,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   display: grid;
   place-items: center;
 }
-.mic--on { background: var(--danger); border-color: var(--danger); color: #fff; animation: pulse 1.2s ease-in-out infinite; }
+.mic--on { background: var(--danger); border-color: var(--danger); color: var(--on-dark); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.62; } }
 .mic:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -534,7 +533,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   border-radius: 50%;
   border: 2px solid var(--line-2);
   display: grid; place-items: center;
-  font-size: 0.85rem; color: #fff;
+  font-size: 0.85rem; color: var(--on-dark);
 }
 .choice--on .choice__mark { background: var(--primary); border-color: var(--primary); }
 .choice__body { flex: 1; min-width: 0; }
@@ -552,7 +551,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   white-space: nowrap;
   color: var(--ink);
 }
-.chip--on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.chip--on { background: var(--primary); border-color: var(--primary); color: var(--on-dark); }
 
 .yesno { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
 
@@ -576,6 +575,10 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .pill--warn { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
 .pill--ok { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
 .pill--danger { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+/* How it was grown, one colour each - always beside its own icon and word. */
+.pill--natural { background: var(--cult-natural-soft); color: var(--cult-natural); border-color: var(--cult-natural); }
+.pill--organic { background: var(--cult-organic-soft); color: var(--cult-organic); border-color: var(--cult-organic); }
+.pill--chemical { background: var(--cult-chemical-soft); color: var(--cult-chemical); border-color: var(--cult-chemical); }
 
 /* The dashed farmer-code badge from the storefront. */
 .idpill {
@@ -885,7 +888,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   width: 66px; height: 66px; flex: 0 0 auto;
   border-radius: 50%;
   background: var(--maroon);
-  color: #fff;
+  color: var(--on-dark);
   display: grid; place-items: center;
   font-size: 1.6rem; font-weight: 700;
   border: 3px solid var(--surface);
@@ -977,8 +980,8 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .tl::before { content: ''; position: absolute; left: 13px; top: 26px; bottom: 0; width: 2px; background: var(--line); }
 .tl:last-child::before { display: none; }
 .tl__dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); border: 2px solid var(--line); font-size: 0.8rem; z-index: 1; }
-.tl--done .tl__dot { background: var(--green); border-color: var(--green); color: #fff; }
-.tl--now .tl__dot { background: var(--gold); border-color: var(--gold); color: #fff; }
+.tl--done .tl__dot { background: var(--green); border-color: var(--green); color: var(--on-dark); }
+.tl--now .tl__dot { background: var(--gold); border-color: var(--gold); color: var(--on-dark); }
 .tl--done::before { background: var(--green); }
 .tl__label { font-weight: 700; font-size: var(--t-base); line-height: 1.3; }
 .tl__time { font-size: var(--t-xs); color: var(--ink-3); }
@@ -1038,7 +1041,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(59, 43, 35, 0.5);
+  background: var(--scrim);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -1086,12 +1089,12 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .tour-open, .tour-open body { overflow: hidden; scroll-behavior: auto; }
 /* Stops a swipe on the overlay scrolling the page behind it on Android. */
 .tour__block { position: absolute; inset: 0; touch-action: none; }
-.tour__dim { position: absolute; inset: 0; background: rgba(59, 43, 35, 0.55); }
+.tour__dim { position: absolute; inset: 0; background: var(--scrim); }
 .tour__ring {
   position: absolute;
   border-radius: var(--r);
   border: 3px solid var(--gold);
-  box-shadow: 0 0 0 9999px rgba(59, 43, 35, 0.55);
+  box-shadow: 0 0 0 9999px var(--scrim);
   pointer-events: none;
   transition: top 0.2s, left 0.2s, width 0.2s, height 0.2s;
 }
@@ -1150,7 +1153,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .lnav {
   position: sticky; top: 0; z-index: 40;
   background: var(--primary);
-  color: #fff;
+  color: var(--on-dark);
   padding-top: var(--safe-t);
 }
 .lnav__in { display: flex; align-items: center; gap: var(--s2); min-height: 60px; }
@@ -1162,16 +1165,16 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   border-radius: 50%;
   display: block; object-fit: contain;
 }
-.brand__name { font-weight: 800; font-size: var(--t-base); line-height: 1.15; color: #fff; letter-spacing: 0.01em; display: block; }
+.brand__name { font-weight: 800; font-size: var(--t-base); line-height: 1.15; color: var(--on-dark); letter-spacing: 0.01em; display: block; }
 .brand__sub { display: block; font-size: 0.7rem; font-weight: 500; color: rgba(255,255,255,0.95); }
 
 .langswitch { display: flex; background: transparent; border: 1px solid rgba(255,255,255,0.6); border-radius: var(--r-full); padding: 3px; gap: 2px; flex: 0 0 auto; }
 .langswitch button {
-  border: 0; background: transparent; color: #fff;
+  border: 0; background: transparent; color: var(--on-dark);
   font-size: 0.8rem; font-weight: 700; padding: 6px 11px;
   border-radius: var(--r-full); cursor: pointer; min-height: 34px; white-space: nowrap;
 }
-.langswitch button[aria-pressed='true'] { background: #fff; color: var(--primary); }
+.langswitch button[aria-pressed='true'] { background: var(--surface); color: var(--primary); }
 
 /* The two entry doors: side by side, icon left, words right.
    Sized to the content rather than to the column - these are two choices, not
@@ -1186,7 +1189,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   flex: 1 1 0; min-width: 0;
   font: inherit; color: inherit; text-decoration: none;
 }
-.door--primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.door--primary { background: var(--primary); border-color: var(--primary); color: var(--on-dark); }
 .door--primary .door__s { color: rgba(255,255,255,0.95); }
 .door:active { transform: translateY(1px); }
 .door__icon {
@@ -1311,7 +1314,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
    Shared voice button + live dictation banner
    ============================================================ */
 .appbar__btn--rec {
-  background: #fff;
+  background: var(--surface);
   color: var(--primary);
   animation: pulse 1.2s ease-in-out infinite;
 }
@@ -1326,7 +1329,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
   align-items: center;
   gap: var(--s2);
   background: var(--ink);
-  color: #fff;
+  color: var(--on-dark);
   border-radius: var(--r-full);
   padding: var(--s2) var(--s4);
   font-size: var(--t-sm);
@@ -1336,7 +1339,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
 .voicebar__dot {
   width: 9px; height: 9px; flex: 0 0 auto;
   border-radius: 50%;
-  background: #ff5b47;
+  background: var(--danger-on-dark);
   animation: pulse 1s ease-in-out infinite;
 }
 
@@ -1500,7 +1503,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
   padding: var(--s3) var(--s3);
   border-radius: var(--r);
   background: var(--ink);
-  color: #fff;
+  color: var(--on-dark);
   font-size: var(--t-sm);
   line-height: 1.4;
   box-shadow: var(--shadow);
@@ -1508,7 +1511,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
   animation: toast-in 180ms ease-out;
 }
 .toast__i { flex: 0 0 auto; font-size: 1.1rem; display: grid; place-items: center; }
-.toast--ok .toast__i { color: #7fe0a4; }
+.toast--ok .toast__i { color: var(--ok-on-dark); }
 .toast--warn .toast__i { color: var(--gold-band); }
 .toast--danger { background: var(--danger); }
 .toast__x {
@@ -1538,7 +1541,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
   padding: 0 4px;
   border-radius: var(--r-full);
   background: var(--gold);
-  color: #fff;
+  color: var(--on-dark);
   font-size: 10px;
   font-weight: 800;
   line-height: 17px;
@@ -1754,7 +1757,7 @@ textarea::placeholder {
    Product QR - a dialog on screen, one clean page on paper
    ============================================================ */
 dialog.qr-dialog { border: 0; margin: auto auto 0; color: inherit; }
-dialog.qr-dialog::backdrop { background: rgba(59, 43, 35, 0.5); }
+dialog.qr-dialog::backdrop { background: var(--scrim); }
 @media (min-width: 600px) { dialog.qr-dialog { margin: auto; } }
 .qr-print { text-align: center; }
 .qr-print img { max-width: 100%; height: auto; }

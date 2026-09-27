@@ -40,11 +40,11 @@ export default function MapView({ pins, height = 320, onSelect, center = [17.99,
     g.clearLayers()
     const css = getComputedStyle(document.documentElement)
     const colour = {
-      primary: css.getPropertyValue('--primary').trim() || '#2e7d32',
-      accent: css.getPropertyValue('--maroon').trim() || '#7b1e2e',
+      primary: css.getPropertyValue('--primary').trim() || 'currentColor',
+      accent: css.getPropertyValue('--maroon').trim() || 'currentColor',
     }
     for (const p of pins) {
-      L.circleMarker([p.lat, p.lng], { radius: 10, weight: 2, color: '#fff', fillOpacity: 0.9, fillColor: colour[p.tone ?? 'primary'] })
+      L.circleMarker([p.lat, p.lng], { radius: 10, weight: 2, color: css.getPropertyValue('--surface').trim() || 'currentColor', fillOpacity: 0.9, fillColor: colour[p.tone ?? 'primary'] })
         .bindTooltip(p.label)
         .on('click', () => onSelect?.(p.id))
         .addTo(g)
