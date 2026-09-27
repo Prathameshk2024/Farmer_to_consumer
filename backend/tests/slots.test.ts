@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { ProductStatus } from '@shared/types.js'
-import { slotInfo } from '@shared/farmer.js'
+import { farmerMayDelete, slotInfo } from '@shared/farmer.js'
 
 /**
  * ONE LISTING, ONE SLOT - AND ONLY AN ADMIN GIVES ONE BACK.
@@ -49,4 +49,13 @@ test('no packs means no room, not unlimited room', () => {
   assert.equal(none.total, 0)
   assert.equal(none.isFull, true)
   assert.equal(slotInfo({ packsApproved: undefined }, []).isFull, true, 'a row from before the field existed')
+})
+
+test('a farmer may delete a draft and nothing they have sent in', () => {
+  // A draft holds no slot and nobody else has seen it. Anything past that
+  // would free a slot, and freeing slots is the admin's decision.
+  assert.equal(farmerMayDelete('DRAFT'), true)
+  for (const s of ['PENDING', 'LIVE', 'PAUSED'] as const) {
+    assert.equal(farmerMayDelete(s), false, `${s} must not be deletable by the farmer`)
+  }
 })

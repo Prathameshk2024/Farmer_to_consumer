@@ -4,15 +4,6 @@ import { cropById } from './crops.js'
 import { SUBSCRIPTION_MONTHS } from './subscription.js'
 
 /**
- * Selling is free. There are no packs, slots or edit limits: a farmer who can
- * sell may list, change and remove their produce as often as the day needs.
- */
-export function farmerMayDelete(_status: ProductStatus): boolean {
-  return true
-}
-
-
-/**
  * SUBSCRIPTION + LISTING SLOTS. ₹50 buys one PACK = 5 slots; the shop stays
  * open SUBSCRIPTION_MONTHS from approval (shared/src/subscription.ts). No
  * gateway: the farmer pays the programme's UPI and an admin approves by hand.
@@ -47,12 +38,54 @@ export function slotInfo(f: Pick<Farmer, 'packsApproved'>, products: Pick<Produc
 }
 
 /**
- * A verified farmer's listing is on sale the moment they send it. The person
- * check happens once, on the farmer (POST /admin/farmers/:id/verify), and
- * a listing that turns out wrong is reported and taken down.
+ * WHERE A LISTING LANDS WHEN THE FARMER PRESSES "SEND FOR CHECKING". Never
+ * LIVE: a photograph, a price and a cultivation claim reach a person before
+ * they reach a buyer. POST /admin/products/:id/moderate is the only path to
+ * LIVE. A draft is not a submission, so it lands where it was left.
  */
 export function initialListingStatus(asDraft: boolean): ProductStatus {
-  return asDraft ? 'DRAFT' : 'LIVE'
+  return asDraft ? 'DRAFT' : 'PENDING'
+}
+
+/** The only listing a farmer may delete: a draft. It holds no slot and nobody else has seen it. */
+export function farmerMayDelete(status: ProductStatus): boolean {
+  return status === 'DRAFT'
+}
+
+/**
+ * EDITING A PUBLISHED LISTING IS LIMITED. A slot is one listing live at a
+ * time, so editing never wins a second listing - but without a limit one paid
+ * slot becomes a different crop every season. Two edits is the line between
+ * fixing a listing and replacing it. The numbers a farmer keeps current -
+ * price, stock, minimum, harvest date - and the description are never counted:
+ * a farmer who cannot correct a price stops keeping it honest.
+ */
+export const MAX_EDITS = 2
+
+export const EDIT_COUNTED_FIELDS = ['cropId', 'name', 'imageUrl', 'categoryId', 'unit', 'cultivation'] as const
+
+/** Compares VALUES, not keys: the edit form posts the whole product on every save. */
+export function countsAsEdit(before: Partial<Product>, after: Partial<Product>): boolean {
+  return EDIT_COUNTED_FIELDS.some((f) => (f in after) && !sameValue(before[f], after[f]))
+}
+
+/** Blank is blank however it is spelled, and whitespace round a name is not a change to the name. */
+function sameValue(a: unknown, b: unknown): boolean {
+  const blank = (v: unknown) => v === undefined || v === null || v === '' || v === 0 || v === false
+  if (blank(a) || blank(b)) return blank(a) && blank(b)
+  if (typeof a === 'string' && typeof b === 'string') return a.trim() === b.trim()
+  if (typeof a === 'number' || typeof b === 'number') return Number(a) === Number(b)
+  return a === b
+}
+
+/** Edits still available. Listings that predate this rule start with all of them. */
+export function editsLeft(product: Pick<Product, 'editCount'>): number {
+  return Math.max(0, MAX_EDITS - (product.editCount ?? 0))
+}
+
+/** Only a listing the public can see is rationed. A draft or a waiting listing is still being written. */
+export function editsAreLimited(status: ProductStatus): boolean {
+  return status === 'LIVE' || status === 'PAUSED'
 }
 
 /** A listing's state, drawn as a line icon the app names - never an emoji. */

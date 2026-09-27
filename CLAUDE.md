@@ -21,7 +21,7 @@ npm run dev            # API :4000 + farmer/buyer site :5173
 npm run dev:all        # the above + admin console :5174
 npm run dev:api | dev:web | dev:admin
 
-npm test               # backend (396) + frontend (136) + admin (38) tests
+npm test               # backend (407) + frontend (136) + admin (38) tests
 npm run typecheck      # all three workspaces
 npm run build          # backend tsc + both Vite builds
 
@@ -31,6 +31,8 @@ npm run admin -- pending                          # ₹50 payments waiting for a
 npm run admin -- approve <id|phone|farmer-code> --verified   # after checking UTR, time and bank statement
 npm run admin -- reject <id> [reason]             # reject a payment; the farmer reads the reason
 npm run admin -- grant <phone|farmer-code> [packs]           # slots with no payment; never extends a term
+npm run admin -- products                         # listings waiting to be checked
+npm run admin -- approve-product <id>             # publish a waiting listing
 npm run admin -- set-password <phone> <password>  # demo password for a (seeded) farmer; API stopped
 npm run admin:users -- create you@example.com "Your Name"   # admin accounts (list / passwd / disable / hash)
 npm run backfill:customers -- --help
@@ -95,9 +97,28 @@ A new farmer is `PENDING_VERIFICATION` and invisible to buyers. An admin checks 
 
 Verification is one of **two** gates. `canSellNow()` in `shared/src/subscription.ts` is `status === 'ACTIVE'` **and** an open term; a verified farmer who has never paid is not on sale. Paying never changes status. **The term never runs while the farmer is unverified**: a payment approved before the visit grants slots only, and `startTermOnVerify` (called by the verify route) starts the six months at verification when the farmer holds packs and no term — so nobody pays for the wait, and two ₹50s approved before the visit are still one first term.
 
-### Listings
+### Nothing goes live until an admin publishes it
 
-See *Nothing goes live until an admin publishes it* (Task 2).
+`initialListingStatus()` in `shared/src/farmer.ts` is the rule, and it returns `DRAFT` or `PENDING`, never `LIVE`. `POST /products` and a draft sent in (`PATCH` with `status: 'LIVE'` from `DRAFT`, behind the same verification, term and slot gates as a new listing) both land on `PENDING`; `POST /admin/products/:id/moderate { approve: true }` is the only path to `LIVE`, and only from `PENDING` (409 otherwise), writing a `PRODUCT_APPROVED` notice. A listing carries a photograph, a price, a harvest date and a claim about how the crop was grown, and it goes out under the programme's name — so a person looks before a buyer does.
+
+- **Reject and take-down are one act**: `approve: false` with a required reason deletes the row, its photo and its reports at once and writes `PRODUCT_REJECTED` with the reason. Deleting the row is what gives the slot back (`SLOT_CONSUMING` is `PENDING`, `LIVE`, `PAUSED`; a draft holds none).
+- **A farmer deletes drafts only** (`farmerMayDelete()`; `DELETE /products/:id` answers 403 otherwise). Anything sent in holds a slot, and freeing a slot is the admin's decision — which is also what keeps the edit limit below from being dodged by delete-and-relist.
+- A `PENDING` listing stays editable and unrationed while it waits; a `LIVE` listing that is edited stays `LIVE` rather than going back into the queue. `LIVE ↔ PAUSED` is the farmer's own toggle and costs nothing.
+- The farmer's side says **"send for checking"** (`prod.publish`), on the button and under it (`prod.reviewNote`), and the row reads तपासणी सुरू: a screen that said "published" about a listing nobody has approved has told them nothing.
+- The admin's **Products** opens on the waiting listings (`GET /admin/products` defaults to `PENDING`), with Publish and Reject on each; `npm run admin -- products` / `approve-product <id>` do the same from the CLI.
+- Every public path (`publiclyVisible`, the map, trace, serviceability, price hint, demand) tests `status === 'LIVE'`, so a waiting listing is invisible to buyers. `normalizeLegacyRows` leaves `PENDING` alone.
+
+### Editing a published listing
+
+`PATCH /products/:id` is the only way a listing changes after it exists, and **a live listing may change what it *is* twice**. `MAX_EDITS`, `EDIT_COUNTED_FIELDS`, `countsAsEdit()`, `editsLeft()` and `editsAreLimited()` in `shared/src/farmer.ts` are the rule; the server enforces it (409 `{ editsLeft: 0 }`), `EditProduct` reads the same functions and disables what has run out.
+
+A slot is one listing live at a time, so editing never wins a second listing — but without a limit one paid slot becomes a different crop every season. Two edits is the line between fixing a listing and replacing it.
+
+- **Counted:** `cropId`, `name`, `imageUrl`, `categoryId`, `unit`, `cultivation`. **Free for ever:** `price`, `stock`, `minOrder`, `harvestDate`, `description`, and pause/resume — a farmer who cannot correct a price stops keeping it honest.
+- `countsAsEdit()` compares **values**, not keys: the edit form posts the whole product on every save, and a save that changed nothing (or only whitespace) costs nothing.
+- `editsAreLimited()` is `LIVE` / `PAUSED` only; a draft or a waiting listing is still being written.
+- `editCount` is optional and absent reads as 0, so nothing published before the rule loses an edit.
+- `EditProduct` shows how many edits are left, warns when the change on screen would spend the last one, and at zero shows the crop, name, photo, unit and cultivation without offering to change them (`PhotoPicker locked`, pickers `disabled`); price, stock, minimum and harvest date stay live.
 
 ### Produce rules
 
@@ -106,7 +127,7 @@ See *Nothing goes live until an admin publishes it* (Task 2).
 - A listing names a **crop** from `CROPS`; its category is derived from the crop (`categoryFor()`), so onions cannot be filed under fruit. Only crop `other` lets the farmer pick a category, and the server refuses a `categoryId` not in `CATEGORIES` (`backend/src/db/seed.ts`).
 - **Unit** is kg, quintal, dozen, piece or litre; price is rupees per one unit. **Stock** and **minimum order** are whole units; stock 0 is "sold out for now". Orders do **not** decrement stock — the farmer keeps it current. `orderQtyProblem()` checks lines on the server; `cartStep()` steps the cart between minimum and stock.
 - **Harvest date** is required, never in the future, and for vegetables, leafy greens and fruit no older than `FRESH_MAX_DAYS` (60), counted in IST. **Cultivation** is organic, natural or chemical. Description ≤ 500.
-- The upload wizard asks one question per screen; `EditProduct` puts every field on one page, because a farmer who came to fix a price should not walk four screens.
+- The upload wizard asks one question per screen; `EditProduct` puts every field on one page, because a farmer who came to fix a price should not walk four screens — and a live listing may change what it *is* twice (see *Editing a published listing*).
 
 ### Farmer profile, FDRI and codes
 

@@ -466,8 +466,9 @@ export default function UploadProduct() {
           </div>
         ) : (
           <>
+            <div className="small dim" style={{ textAlign: 'center' }}>{t('prod.reviewNote')}</div>
             <Button onClick={() => void publish(false)} disabled={busy}>
-              {busy ? t('common.loading') : t('upl.publish')}
+              {busy ? t('common.loading') : t('prod.publish')}
             </Button>
             <div className="btn-row">
               <Button variant="quiet" onClick={back}>

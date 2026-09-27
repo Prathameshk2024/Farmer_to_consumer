@@ -284,14 +284,18 @@ export const api = {
   revokeSlots: (id: string, packs: number) =>
     post<{ farmer: Farmer }>(`/admin/farmers/${id}/revoke-slots`, { packs }),
 
-  /** status: ALL (default) | LIVE | PAUSED | DRAFT | REPORTED */
-  products: (status = 'ALL') =>
+  /** status: PENDING (default) | LIVE | PAUSED | DRAFT | REPORTED */
+  products: (status = 'PENDING') =>
     get<{ products: ProductRow[]; reportedCount: number }>(
       `/admin/products?status=${encodeURIComponent(status)}`,
     ),
 
   /** Looked at, and the listing stays up. The reports close; the row does not. */
   clearReports: (id: string) => post<{ ok: true }>(`/admin/products/${id}/clear-reports`, {}),
+
+  /** Publish a waiting listing: PENDING -> LIVE, the only way a listing reaches buyers. 409 if it is not waiting. */
+  approveProduct: (id: string) =>
+    post<{ product: Product }>(`/admin/products/${id}/moderate`, { approve: true }),
 
   /** Take a listing down: deletes it, and the farmer is told the reason. */
   takeDownProduct: (id: string, reason: string) =>

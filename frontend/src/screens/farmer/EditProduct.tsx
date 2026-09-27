@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Category, Cultivation, Product, Unit } from '@shared/types.js'
 import { categoryFor, listingProblems } from '@shared/produce.js'
+import { countsAsEdit, editsAreLimited, editsLeft } from '@shared/farmer.js'
 import { useT } from '../../i18n/I18nProvider.js'
 import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
@@ -23,7 +24,9 @@ import { PriceHint } from '../../components/PriceHint.js'
  * first time, when the job is teaching them what a listing needs; it is wrong
  * for changing a price, where it would put eight taps between them and the one
  * number they came to fix. Every field is on one page, Save is at the bottom,
- * and every field may change - there is no edit limit.
+ * and every field may change - twice, for what the produce is; the numbers
+ * are free. Once a live listing's two edits are spent, the crop, name, photo,
+ * unit and cultivation are shown but no longer offered (shared/src/farmer.ts).
  */
 export default function EditProduct() {
   const { productId } = useParams()
@@ -115,6 +118,15 @@ export default function EditProduct() {
     cultivation: (form.cultivation || undefined) as Cultivation | undefined,
   }
 
+  const limited = editsAreLimited(p.status)
+  const left = editsLeft(p)
+  const locked = limited && left <= 0
+  /** Does what is on screen right now spend one? Price-only saves do not. */
+  const spends = limited && countsAsEdit(p, {
+    cropId: form.cropId, name: form.name.trim(), imageUrl: form.imageUrl || undefined,
+    categoryId: listing.categoryId, unit: form.unit, cultivation: listing.cultivation,
+  })
+
   /**
    * A listing on sale is held to the full rules on every save - the server
    * refuses the same things, so this only says it sooner. A draft saved
@@ -169,9 +181,17 @@ export default function EditProduct() {
       <div className="screen stack">
         {serverError && <Notice tone="danger">{serverError}</Notice>}
 
+        {limited && (
+          <Notice tone={locked ? 'danger' : left === 1 ? 'warn' : 'info'}>
+            {locked ? t('prod.editsNone') : t('prod.editsLeft', { n: left })} {t('prod.editsPriceFree')}
+          </Notice>
+        )}
+        {spends && left === 1 && <Notice tone="warn">{t('prod.editsLastWarn')}</Notice>}
+
         <Field label={t('prod.photos')} hint={t('prod.photosHint')}>
           <PhotoPicker
             imageUrl={form.imageUrl || undefined}
+            locked={locked}
             onUploaded={(img) =>
               setD((cur) => (cur ? { ...cur, imageUrl: img.url, imagePublicId: img.publicId } : cur))
             }
@@ -182,12 +202,12 @@ export default function EditProduct() {
         </Field>
 
         <Field label={t('prod.crop')} error={errors.cropId} required>
-          <CropPicker value={form.cropId} onPick={(id) => set('cropId', id)} categories={categories} />
+          <CropPicker value={form.cropId} onPick={(id) => set('cropId', id)} categories={categories} disabled={locked} />
         </Field>
 
         {form.cropId === 'other' && (
           <Field label={t('prod.otherCategory')} error={errors.categoryId} required>
-            <CategoryPicker value={form.categoryId} onPick={(id) => set('categoryId', id)} categories={categories} />
+            <CategoryPicker value={form.categoryId} onPick={(id) => set('categoryId', id)} categories={categories} disabled={locked} />
           </Field>
         )}
 
@@ -195,13 +215,14 @@ export default function EditProduct() {
           <VoiceInput
             value={form.name}
             onChange={(v) => set('name', v)}
+            disabled={locked}
             error={!!errors.name}
             placeholder={t('prod.namePlaceholder')}
           />
         </Field>
 
         <Field label={t('prod.unit')} error={errors.unit} required>
-          <UnitPicker value={form.unit} onPick={(u) => set('unit', u)} />
+          <UnitPicker value={form.unit} onPick={(u) => set('unit', u)} disabled={locked} />
         </Field>
 
         <Field label={t('prod.price')} hint={t('prod.priceHint')} error={errors.price} required htmlFor="price">
@@ -238,7 +259,7 @@ export default function EditProduct() {
         </Field>
 
         <Field label={t('prod.cultivation')} error={errors.cultivation} required>
-          <CultivationPicker value={form.cultivation} onPick={(c) => set('cultivation', c)} />
+          <CultivationPicker value={form.cultivation} onPick={(c) => set('cultivation', c)} disabled={locked} />
         </Field>
 
         <Button onClick={() => void save(false)} disabled={busy}>
@@ -247,7 +268,7 @@ export default function EditProduct() {
 
         {p.status === 'DRAFT' && (
           <Button variant="ghost" onClick={() => void save(true)} disabled={busy}>
-            {t('upl.publish')}
+            {t('prod.publish')}
           </Button>
         )}
       </div>

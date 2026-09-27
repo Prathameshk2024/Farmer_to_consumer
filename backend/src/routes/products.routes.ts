@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import type { Product } from '@shared/types.js'
-import { initialListingStatus, slotInfo } from '@shared/farmer.js'
+import {
+  MAX_EDITS, countsAsEdit, editsAreLimited, editsLeft, farmerMayDelete, initialListingStatus, slotInfo,
+} from '@shared/farmer.js'
 import { subscriptionView, termOpen } from '@shared/subscription.js'
 import { categoryFor, descriptionProblem, listingProblems } from '@shared/produce.js'
 import { getDb, newId, save } from '../db/store.js'
@@ -141,7 +143,7 @@ productsRouter.post('/', requireRole('farmer'), (req, res) => {
     harvestDate: String(b.harvestDate ?? ''),
     cultivation: b.cultivation!,
     description: String(b.description ?? '').trim() || undefined,
-    // LIVE at once for a verified farmer - see initialListingStatus.
+    // PENDING, never LIVE - an admin publishes it.
     status: initialListingStatus(asDraft),
     views: 0,
     createdAt: new Date().toISOString(),
@@ -168,7 +170,7 @@ productsRouter.patch('/:id', requireRole('farmer'), (req, res) => {
     return
   }
 
-  // Every field of the listing may change, as often as the farmer likes.
+  // Every field may change; what the produce IS, only MAX_EDITS times once live.
   const allowed = [
     'cropId', 'name', 'categoryId', 'emoji', 'unit', 'price', 'stock', 'minOrder',
     'harvestDate', 'cultivation', 'description', 'imageUrl', 'imagePublicId',
@@ -227,14 +229,28 @@ productsRouter.patch('/:id', requireRole('farmer'), (req, res) => {
     }
   }
 
+  // THE EDIT LIMIT. Two changes to what the listing IS, then no more; the
+  // client disables the fields at zero, this is the rule.
+  const spends = editsAreLimited(current.status) && countsAsEdit(current, merged)
+  if (spends && editsLeft(current) <= 0) {
+    res.status(409).json({
+      error: 'No edits left',
+      messageMr: `या उत्पादनात ${MAX_EDITS} वेळा बदल करून झाले आहेत. किंमत, साठा, किमान ऑर्डर आणि काढणीची तारीख मात्र कधीही बदलता येतात.`,
+      editsLeft: 0,
+    })
+    return
+  }
+  if (spends) merged.editCount = (current.editCount ?? 0) + 1
+
   db.products[i] = merged
   save()
   res.json({ product: merged })
 })
 
 /**
- * A farmer removes any listing of their own - a sold-out crop is theirs to take
- * down. A real delete, not a tombstone.
+ * A farmer deletes their own drafts only. Anything sent in holds a slot, and
+ * freeing a slot is the admin's decision (reject or take-down). A real
+ * delete, not a tombstone.
  */
 productsRouter.delete('/:id', requireRole('farmer'), (req, res) => {
   const db = getDb()
@@ -243,6 +259,14 @@ productsRouter.delete('/:id', requireRole('farmer'), (req, res) => {
   )
   if (i < 0) {
     res.status(404).json({ error: 'Product not found' })
+    return
+  }
+
+  if (!farmerMayDelete(db.products[i]!.status)) {
+    res.status(403).json({
+      error: 'Only a draft can be deleted by the farmer',
+      messageMr: 'पाठवलेले उत्पादन काढता येत नाही. ते काढायचे असल्यास प्रशासकाशी संपर्क करा.',
+    })
     return
   }
 
