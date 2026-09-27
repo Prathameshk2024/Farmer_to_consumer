@@ -11,7 +11,10 @@
    for highlights and stars, cream for ground.
    B · Field & Monsoon is written out beside it with the same token
    names. Switching is one word: data-palette="field" on <html> in
-   frontend/index.html and admin/index.html. Both blocks are copied
+   frontend/index.html and admin/index.html - plus, in
+   frontend/index.html, <meta name="theme-color">, which paints the
+   phone's status bar before any CSS loads and cannot read a token:
+   #5a3a1f for A, #1f5f3a for B. Both blocks are copied
    byte for byte into admin/src/styles/admin.css; a test holds that,
    holds AA contrast in both, and refuses a colour outside them.
 
@@ -79,6 +82,7 @@
   --danger: #b3341f; --danger-soft: #fbe8e3;
   --info: #4a5f52; --info-soft: #ecf0ea;
   --on-dark: #ffffff; --ok-on-dark: #7fe0a4; --danger-on-dark: #ff5b47;
+  --on-dark-line: rgba(255, 255, 255, 0.7);
   --scrim: rgba(46, 33, 22, 0.55);
   --cult-natural: #2f5d17; --cult-natural-soft: #e3efd6;
   --cult-organic: #1f6b4a; --cult-organic-soft: #dcefe4;
@@ -107,6 +111,7 @@
   --danger: #b3341f; --danger-soft: #fbe8e3;
   --info: #4a5f52; --info-soft: #ecf0ea;
   --on-dark: #ffffff; --ok-on-dark: #7fe0a4; --danger-on-dark: #ff5b47;
+  --on-dark-line: rgba(255, 255, 255, 0.7);
   --scrim: rgba(29, 42, 31, 0.55);
   --cult-natural: #2f5d17; --cult-natural-soft: #e3efd6;
   --cult-organic: #1f6b4a; --cult-organic-soft: #dcefe4;
@@ -284,9 +289,9 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   align-items: center;
   gap: var(--s1);
   padding: 0 var(--s3);
-  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  border: 1.5px solid var(--on-dark-line);
   border-radius: var(--r-full);
-  font-size: var(--t-sm);
+  font-size: var(--t-base);
   font-weight: 700;
   /* One line: the title beside it is the part that wraps. A word stacked
      letter by letter under its icon is not a word. */
@@ -868,7 +873,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .pcard__name { font-weight: 800; font-size: var(--t-base); line-height: 1.3; }
 .pcard__price { font-weight: 800; font-size: var(--t-md); color: var(--maroon); }
 .pcard__body .pill { align-self: flex-start; }
-.pcard__who { font-size: var(--t-sm); color: var(--ink-3); line-height: 1.3; overflow-wrap: anywhere; }
+.pcard__who { font-size: var(--t-base); color: var(--ink-3); line-height: 1.3; overflow-wrap: anywhere; }
 
 /* Product page: the photo leads, full width, never taller than half the screen. */
 .pdp__img { max-height: 50vh; }
@@ -1012,7 +1017,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .tl:last-child::before { display: none; }
 .tl__dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); border: 2px solid var(--line); font-size: 0.8rem; z-index: 1; }
 .tl--done .tl__dot { background: var(--green); border-color: var(--green); color: var(--on-dark); }
-.tl--now .tl__dot { background: var(--gold); border-color: var(--gold); color: var(--on-dark); }
+.tl--now .tl__dot { background: var(--gold); border-color: var(--gold); color: var(--ink); }
 .tl--done::before { background: var(--green); }
 .tl__label { font-weight: 700; font-size: var(--t-base); line-height: 1.3; }
 .tl__time { font-size: var(--t-xs); color: var(--ink-3); }
@@ -1260,7 +1265,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   padding: var(--s3) var(--s1); text-align: center;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
-  font-size: var(--t-sm); line-height: 1.3; color: var(--ink-2); overflow-wrap: anywhere;
+  font-size: var(--t-base); line-height: 1.3; color: var(--ink-2); overflow-wrap: anywhere;
 }
 .ltrust strong { font-size: var(--t-md); color: var(--soil); }
 @media (max-width: 339px) { .ltrust { grid-template-columns: 1fr; } }
@@ -1276,7 +1281,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 }
 .lstep__img { width: 96px; height: 72px; flex: 0 0 auto; object-fit: cover; border-radius: var(--r-sm); background: var(--soil-soft); }
 .lstep__t { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
-.lstep__t span { font-size: var(--t-sm); color: var(--ink-2); }
+.lstep__t span { font-size: var(--t-base); color: var(--ink-2); }
 @media (max-width: 339px) { .lstep__img { width: 72px; height: 54px; } }
 
 .llist { margin: 0; padding-left: var(--s5); display: flex; flex-direction: column; gap: var(--s2); font-size: var(--t-base); }
@@ -1286,7 +1291,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .lflow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2); }
 .lflow li {
   display: flex; align-items: center; gap: var(--s2); min-width: 0;
-  padding: var(--s2); border: 1px solid var(--line); border-radius: var(--r); font-size: var(--t-sm);
+  padding: var(--s2); border: 1px solid var(--line); border-radius: var(--r); font-size: var(--t-base); overflow-wrap: anywhere;
 }
 .lflow__i {
   width: 32px; height: 32px; flex: 0 0 auto; border-radius: 50%;
@@ -1299,9 +1304,14 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .lchips li {
   display: inline-flex; align-items: flex-start; gap: var(--s1); max-width: 100%;
   padding: var(--s1) var(--s3); border-radius: var(--r); line-height: 1.4;
-  background: var(--gold-soft); border: 1px solid var(--gold-band); font-size: var(--t-sm); font-weight: 600;
+  background: var(--gold-soft); border: 1px solid var(--gold-band); font-size: var(--t-base); font-weight: 600;
 }
 .lchips svg { flex: 0 0 auto; margin-top: 3px; color: var(--gold-deep); }
+/* 16px text on a 320px phone: the padding and gaps give way, never the size. */
+@media (max-width: 339px) {
+  .lflow li { padding: var(--s1); gap: var(--s1); }
+  .lchips li { padding: var(--s1) var(--s2); }
+}
 
 .lneed { display: grid; grid-template-columns: 1fr; gap: var(--s3); }
 @media (min-width: 520px) { .lneed { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -1613,7 +1623,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
   padding: 0 4px;
   border-radius: var(--r-full);
   background: var(--gold);
-  color: var(--on-dark);
+  color: var(--ink);
   font-size: 10px;
   font-weight: 800;
   line-height: 17px;

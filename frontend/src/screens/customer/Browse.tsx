@@ -207,7 +207,7 @@ export function Explore() {
             <div className="stack-sm">
               {/* A market stall rather than a bare icon: an empty list on
                   day one should still look like a market. */}
-              <img className="emptyphoto" src={marketStrip} alt="" loading="lazy" />
+              <img className="emptyphoto" src={marketStrip} alt="" />
               <EmptyState icon={IconSearch} title={t('prod.noProducts')} />
             </div>
           ) : (
@@ -352,6 +352,7 @@ export function ProductDetail() {
           className="pdp__img"
           rounded="var(--r-lg)"
           ratio="4 / 3"
+          eager
         />
 
         <div className="stack-sm">

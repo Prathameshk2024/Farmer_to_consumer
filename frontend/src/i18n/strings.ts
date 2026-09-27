@@ -30,9 +30,6 @@ const mr: Record<string, string> = {
   'lp.goal4': 'स्थानिक आणि सेंद्रिय उत्पादनांना प्रोत्साहन देणे.',
   'lp.goal5': 'शेतकऱ्यांचे उत्पन्न वाढवणे आणि ग्राहकांना गुणवत्तापूर्ण उत्पादने उपलब्ध करणे.',
   'lp.footerMotto': 'शाश्वत शेती | न्याय्य व्यापार | समृद्ध भारत',
-  'lp.farmers': 'शेतकरी',
-  'lp.buyers': 'ग्राहक',
-  'lp.register': 'नोंदणी करा',
   'lp.needTitle': 'प्रकल्पाची गरज',
   'lp.need1': 'शेतकऱ्यांना त्यांच्या उत्पादनाला योग्य बाजारभाव मिळत नाही.',
   'lp.need2': 'मध्यस्थांमुळे शेतकऱ्यांचा नफा कमी होतो.',
@@ -73,6 +70,9 @@ const mr: Record<string, string> = {
   'lp.farmerCta': 'मी शेतकरी आहे · नोंदणी करा',
   'lp.buyerCta': 'मला ताजा माल घ्यायचा आहे',
   'lp.haveAccount': 'आधीच खाते आहे?',
+  'lp.trust1': 'मोफत',
+  'lp.trust2': 'UPI',
+  'lp.trust3': 'QR',
   'lp.trust1Sub': 'कमिशन नाही',
   'lp.trust2Sub': 'पैसे थेट खात्यात',
   'lp.trust3Sub': 'शेताची ओळख',
@@ -180,7 +180,6 @@ const mr: Record<string, string> = {
   // ---- landing: the entry doors, also the sign-in screen's sub-line ---
   'lp.farmerDoor': 'मला विकायचं आहे',
   'lp.customerDoor': 'मला खरेदी करायची आहे',
-  'lp.login': 'लॉगिन करा',
 
   // ---- landing: the college behind the project -------------------------
   'lp.collegeTitle': 'प्रकल्पामागील संस्था',
@@ -838,9 +837,6 @@ const en: Record<string, string> = {
   'lp.goal4': 'Encourage local and organic produce.',
   'lp.goal5': 'Raise farm incomes and bring good food to buyers.',
   'lp.footerMotto': 'Sustainable farming | Fair trade | A prosperous India',
-  'lp.farmers': 'Farmers',
-  'lp.buyers': 'Buyers',
-  'lp.register': 'Sign up',
   'lp.needTitle': 'Why this is needed',
   'lp.need1': 'Farmers do not get a fair market price for what they grow.',
   'lp.need2': 'Middlemen eat into what farmers earn.',
@@ -881,6 +877,9 @@ const en: Record<string, string> = {
   'lp.farmerCta': 'I farm · Register',
   'lp.buyerCta': 'I want fresh produce',
   'lp.haveAccount': 'Already have an account?',
+  'lp.trust1': 'Free',
+  'lp.trust2': 'UPI',
+  'lp.trust3': 'QR',
   'lp.trust1Sub': 'No commission',
   'lp.trust2Sub': 'Paid straight to you',
   'lp.trust3Sub': 'Farm identity',
@@ -980,7 +979,6 @@ const en: Record<string, string> = {
 
   'lp.farmerDoor': 'I want to sell',
   'lp.customerDoor': 'I want to buy',
-  'lp.login': 'Log in',
 
   // ---- landing: the college behind the project -------------------------
   'lp.collegeTitle': 'The institution behind the project',

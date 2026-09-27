@@ -100,3 +100,19 @@ test('index.html of both apps picks a palette by one attribute', () => {
     assert.match(html, /<html[^>]*data-palette="(soil|field)"/)
   }
 })
+
+test('no rule puts light text on turmeric: white on --gold is 2:1 in sunlight', () => {
+  // The pair ['on-dark', 'gold'] must FAIL AA in palette A, which is why it
+  // is not in READ_PAIRS - text on --gold is --ink, and this holds that.
+  assert.ok(ratio(resolve(block(theme, SOIL), 'var(--on-dark)'), block(theme, SOIL).gold!) < 4.5)
+  const offenders: string[] = []
+  for (const [file, css] of [['theme.css', theme], ['admin.css', admin]] as const) {
+    for (const m of css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const body = m[2]!
+      if (/background(-color)?:\s*var\(--gold\)/.test(body) && /(^|[;\s])color:\s*var\(--(on-dark|surface)\)/.test(body)) {
+        offenders.push(`${file}: ${m[1]!.trim()}`)
+      }
+    }
+  }
+  assert.deepEqual(offenders, [])
+})

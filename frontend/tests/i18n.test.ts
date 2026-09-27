@@ -56,6 +56,7 @@ test('the English dictionary is English', () => {
 /** The mirror of the above: proper nouns and UPI are Latin in both. */
 const MARATHI_MAY_BE_LATIN = new Set([
   'app.nameShort', 'lp.collegeEn', 'onb.chooseLangSub', 'ord.paymentUpi',
+  'lp.trust2', 'lp.trust3', // UPI and QR are printed in Latin letters on every sticker and app
 ])
 
 test('the Marathi dictionary is Marathi', () => {

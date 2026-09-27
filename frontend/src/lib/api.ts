@@ -15,7 +15,7 @@ import type { ComplaintSubject } from '@shared/complaint.js'
  * loads - has no dev server to proxy through, so VITE_API_URL points at the API.
  */
 
-const BASE = import.meta.env.VITE_API_URL ?? ''
+const BASE = import.meta.env?.VITE_API_URL ?? '' // ?. so node:test can import this file
 const TOKEN_KEY = 'wb.token'
 
 /**

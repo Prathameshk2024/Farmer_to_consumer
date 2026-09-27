@@ -94,7 +94,7 @@ export default function Landing() {
         <picture>
           <source media="(min-width: 700px)" srcSet={heroWide} />
           <img
-            className="lphoto__img" src={heroTall} alt="" fetchPriority="high"
+            className="lphoto__img" src={heroTall} alt="" {...{ fetchpriority: 'high' }}
             onError={(e) => { e.currentTarget.style.visibility = 'hidden' }}
           />
         </picture>
@@ -126,9 +126,9 @@ export default function Landing() {
         {/* 3. Three claims, each true in the code: no fee or commission is
             charged anywhere, UPI pays the farmer's own ID, every lot has a QR. */}
         <ul className="ltrust">
-          <li><strong>{t('cart.free')}</strong><span>{t('lp.trust1Sub')}</span></li>
-          <li><strong>UPI</strong><span>{t('lp.trust2Sub')}</span></li>
-          <li><strong>QR</strong><span>{t('lp.trust3Sub')}</span></li>
+          <li><strong>{t('lp.trust1')}</strong><span>{t('lp.trust1Sub')}</span></li>
+          <li><strong>{t('lp.trust2')}</strong><span>{t('lp.trust2Sub')}</span></li>
+          <li><strong>{t('lp.trust3')}</strong><span>{t('lp.trust3Sub')}</span></li>
         </ul>
 
         {/* 4. How it works: three steps a farmer can picture, then the poster's

@@ -21,7 +21,7 @@ import {
 // screens keep importing them from here, as before.
 export { COMPRESSION, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, type UploadKind }
 
-const BASE = import.meta.env.VITE_API_URL ?? ''
+const BASE = import.meta.env?.VITE_API_URL ?? '' // ?. so node:test can import this file
 
 /** Thrown before anything is read, so the message can name the real limit. */
 export class FileTooLargeError extends Error {
@@ -177,11 +177,14 @@ export async function uploadImage(
  * Ask Cloudinary for exactly the size we render, in whatever format the
  * browser prefers. Serving a 1200px master into a 150px card wastes most of
  * the bytes; `f_auto,q_auto` typically halves them again with WebP/AVIF.
+ * `aspect` is width over height of the box it fills (4 / 3 where the photo
+ * leads): a square crop squeezed into a 4:3 box throws away the top and
+ * bottom the buyer was meant to see, and pays for the bytes anyway.
  */
-export function cloudinaryThumb(url: string, width: number): string {
+export function cloudinaryThumb(url: string, width: number, aspect = 1): string {
   if (!url.includes('/image/upload/')) return url
   return url.replace(
     '/image/upload/',
-    `/image/upload/f_auto,q_auto,c_fill,w_${width},h_${width}/`,
+    `/image/upload/f_auto,q_auto,c_fill,w_${width},h_${Math.round(width / aspect)}/`,
   )
 }

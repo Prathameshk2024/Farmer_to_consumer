@@ -21,7 +21,7 @@ npm run dev            # API :4000 + farmer/buyer site :5173
 npm run dev:all        # the above + admin console :5174
 npm run dev:api | dev:web | dev:admin
 
-npm test               # backend (360) + frontend (121) + admin (36) tests
+npm test               # backend (360) + frontend (133) + admin (36) tests
 npm run typecheck      # all three workspaces
 npm run build          # backend tsc + both Vite builds
 

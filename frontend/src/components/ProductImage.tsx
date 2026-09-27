@@ -28,7 +28,10 @@ export default function ProductImage({
   rounded = 'var(--r-sm)',
   ratio = '1',
   className,
+  eager,
 }: {
+  /** The one photo a screen opens on: load it now rather than when scrolled to. */
+  eager?: boolean
   src?: string
   /** Ignored. Products no longer show an emoji; kept so old call sites compile. */
   emoji?: string
@@ -43,7 +46,10 @@ export default function ProductImage({
 }) {
   // Ask Cloudinary for the exact rendered size rather than the 1200px master.
   // A 150px card pulling a 1200px file wastes ~95% of the bytes.
-  const wanted = src ? cloudinaryThumb(src, (size ?? 400) * 2) : undefined
+  const [w, h = '1'] = ratio.split('/')
+  const aspect = size ? 1 : Number(w) / Number(h) || 1
+  const wanted = src ? cloudinaryThumb(src, (size ?? 400) * 2, aspect) : undefined
+  const loading = eager ? 'eager' : 'lazy'
 
   // Which URL failed, not whether one did: the same component is handed the
   // next product's photo when the screen changes, and one broken photo must
@@ -64,7 +70,7 @@ export default function ProductImage({
           className={className}
           src={stockPhoto}
           alt=""
-          loading="lazy"
+          loading={loading}
           decoding="async"
           style={{ ...box, objectFit: 'cover' }}
         />
@@ -95,7 +101,7 @@ export default function ProductImage({
       className={className}
       src={wanted}
       alt=""
-      loading="lazy"
+      loading={loading}
       decoding="async"
       style={{ ...box, objectFit: 'cover' }}
       onError={() => setFailedUrl(wanted)}
