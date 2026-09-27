@@ -1166,7 +1166,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 /* --- header ------------------------------------------------ */
 .lnav {
   position: sticky; top: 0; z-index: 40;
-  background: var(--primary);
+  background: var(--soil);
   color: var(--on-dark);
   padding-top: var(--safe-t);
 }
@@ -1188,36 +1188,7 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
   font-size: 0.8rem; font-weight: 700; padding: 6px 11px;
   border-radius: var(--r-full); cursor: pointer; min-height: 34px; white-space: nowrap;
 }
-.langswitch button[aria-pressed='true'] { background: var(--surface); color: var(--primary); }
-
-/* The two entry doors: side by side, icon left, words right.
-   Sized to the content rather than to the column - these are two choices, not
-   a hero, and half a 520px column is 244px, which an icon and a label fit in
-   comfortably once neither is oversized. */
-.doors { display: flex; flex-direction: row; gap: var(--s3); }
-.door {
-  display: flex; flex-direction: row; align-items: center; gap: var(--s3);
-  padding: var(--s3); border-radius: var(--r-lg);
-  border: 2px solid var(--line-2); background: var(--surface);
-  cursor: pointer; text-align: left;
-  flex: 1 1 0; min-width: 0;
-  font: inherit; color: inherit; text-decoration: none;
-}
-.door--primary { background: var(--primary); border-color: var(--primary); color: var(--on-dark); }
-.door--primary .door__s { color: rgba(255,255,255,0.95); }
-.door:active { transform: translateY(1px); }
-.door__icon {
-  font-size: 1.15rem; flex: 0 0 auto;
-  width: 40px; height: 40px; border-radius: 50%;
-  display: grid; place-items: center;
-  background: var(--gold-soft);
-}
-.door--primary .door__icon { background: rgba(255,255,255,0.16); }
-.door__t { font-weight: 800; font-size: var(--t-base); line-height: 1.25; display: block; }
-.door__s { font-size: var(--t-sm); color: var(--ink-3); display: block; }
-/* Half a 360px phone leaves ~80px for words. The title carries the meaning;
-   the second line is the first thing that should go. */
-@media (max-width: 400px) { .door__s { display: none; } }
+.langswitch button[aria-pressed='true'] { background: var(--surface); color: var(--soil); }
 
 /* A whole list row that is itself the tap target. Reset to look like the
    markup it replaced, so nothing about the card reads as a form control. */
@@ -1230,49 +1201,116 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .tile-tap:active { opacity: 0.7; }
 .tile-tap__go { color: var(--ink-3, var(--ink-2)); flex: 0 0 auto; padding-top: 4px; }
 
-/* --- the poster page: one column of cards ------------------ */
-.lstack { display: flex; flex-direction: column; gap: var(--s4); padding-top: var(--s4); padding-bottom: var(--s5); }
-.lhero { text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--s2); }
-.lhero__logo { width: 88px; height: 88px; border-radius: 50%; display: block; }
-.lhero__name { margin: 0; font-size: clamp(1.4rem, 6vw, 1.9rem); line-height: 1.25; color: var(--maroon); text-wrap: balance; }
-.lhero__short { margin: 0; font-size: var(--t-base); font-weight: 700; color: var(--ink-2); }
-.lhero__tag { margin: 0; font-size: var(--t-base); font-weight: 600; color: var(--maroon); }
-.lhero__band { margin: 0; font-size: var(--t-base); font-weight: 600; color: var(--ink-2); text-wrap: balance; }
-.lhero__intro { margin: 0; font-size: var(--t-base); color: var(--ink-2); text-align: left; text-wrap: pretty; }
-.lhero__mission { margin: 0; font-size: var(--t-base); color: var(--ink); text-wrap: pretty; }
-.lhero__who {
-  align-self: stretch; display: flex; align-items: center; gap: var(--s2);
-  margin: var(--s3) 0 0; font-size: var(--t-md); color: var(--maroon); text-align: left;
+/* --- photo hero ---------------------------------------------
+   The one bold thing on the page. Soil sits under the photo, so a slow
+   or blocked image still leaves white words on dark ground; the gradient
+   darkens only the lower third, where the words are, and leaves the
+   farmer and the bullocks in the middle of the frame alone. */
+.lphoto {
+  position: relative; overflow: hidden;
+  background: var(--soil-dark);
+  min-height: 58vh; max-height: 520px; height: 460px;
+  display: flex; align-items: flex-end;
 }
-.doors--pair { align-self: stretch; }
+.lphoto__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.lphoto::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 38%, var(--soil-dark) 100%);
+  opacity: 0.92;
+}
+.lphoto__text { position: relative; z-index: 1; padding-top: var(--s5); padding-bottom: var(--s5); color: var(--on-dark); }
+.lphoto__title {
+  margin: 0; color: var(--on-dark);
+  font-size: clamp(1.6rem, 7vw, 2.4rem); line-height: 1.2; font-weight: 800;
+  text-wrap: balance; overflow-wrap: anywhere;
+}
+.lphoto__sub { margin: var(--s2) 0 0; font-size: var(--t-md); font-weight: 600; color: var(--on-dark); }
+
+/* --- the page below the photo: one column ------------------ */
+.lstack { display: flex; flex-direction: column; gap: var(--s6); padding-top: var(--s4); padding-bottom: var(--s6); }
+.lstack > section { min-width: 0; }
+
+.ldoors { display: flex; flex-direction: column; gap: var(--s3); }
+.ldoors .btn { font-size: var(--t-md); }
+.ldoors .btn:first-child { min-height: 60px; }
+.ldoors__login { margin: var(--s1) 0 0; display: flex; flex-direction: column; align-items: center; text-align: center; color: var(--ink-2); }
+.ldoors__links { display: flex; flex-wrap: wrap; justify-content: center; column-gap: var(--s5); }
+.ldoors__login .linkbtn { color: var(--soil); margin: 0; }
+
+.ltrust { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+.ltrust li {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: var(--s3) var(--s1); text-align: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  font-size: var(--t-sm); line-height: 1.3; color: var(--ink-2); overflow-wrap: anywhere;
+}
+.ltrust strong { font-size: var(--t-md); color: var(--soil); }
+@media (max-width: 339px) { .ltrust { grid-template-columns: 1fr; } }
+
+.lsteps { list-style: none; margin: 0 0 var(--s3); padding: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.lstep {
+  display: flex; align-items: center; gap: var(--s3); min-width: 0;
+  padding: var(--s2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+}
+.lstep__n {
+  width: 32px; height: 32px; flex: 0 0 auto; border-radius: 50%;
+  display: grid; place-items: center; background: var(--gold); color: var(--ink); font-weight: 800;
+}
+.lstep__img { width: 96px; height: 72px; flex: 0 0 auto; object-fit: cover; border-radius: var(--r-sm); background: var(--soil-soft); }
+.lstep__t { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
+.lstep__t span { font-size: var(--t-sm); color: var(--ink-2); }
+@media (max-width: 339px) { .lstep__img { width: 72px; height: 54px; } }
+
 .llist { margin: 0; padding-left: var(--s5); display: flex; flex-direction: column; gap: var(--s2); font-size: var(--t-base); }
 .llist--tick { list-style: none; padding-left: 0; }
 .llist--tick li { display: flex; gap: var(--s2); align-items: flex-start; }
 .llist--tick svg { flex: 0 0 auto; color: var(--primary); margin-top: 4px; }
-.lflow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+.lflow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2); }
 .lflow li {
   display: flex; align-items: center; gap: var(--s2); min-width: 0;
-  padding: var(--s2); border: 1px solid var(--line); border-radius: var(--r); font-size: var(--t-base);
+  padding: var(--s2); border: 1px solid var(--line); border-radius: var(--r); font-size: var(--t-sm);
 }
 .lflow__i {
-  width: 36px; height: 36px; flex: 0 0 auto; border-radius: 50%;
+  width: 32px; height: 32px; flex: 0 0 auto; border-radius: 50%;
   display: grid; place-items: center; background: var(--primary-soft); color: var(--primary-dark);
 }
-/* A field under a morning sun, from the tokens alone (HeroArt.tsx). */
-.fieldart {
-  align-self: stretch; aspect-ratio: 16 / 6; border-radius: var(--r-lg); margin: var(--s2) 0;
-  background:
-    radial-gradient(circle at 80% 32%, var(--gold) 0 8%, transparent 8.5%),
-    linear-gradient(to bottom, var(--leaf-soft) 0 50%, transparent 50%),
-    repeating-linear-gradient(100deg, var(--leaf) 0 14px, var(--leaf-mid) 14px 28px);
-}
-.college__line { margin: 0; font-size: var(--t-base); color: var(--ink-2); }
-.lfoot__quote { color: var(--maroon); font-size: var(--t-base); }
-.lfoot__motto { color: var(--ink-2); font-size: var(--t-base); font-weight: 600; }
 
-/* Footer */
-.lfoot { border-top: 1px solid var(--line); padding: var(--s5) 0; color: var(--ink-3); font-size: var(--t-sm); background: var(--surface); }
+/* Features read like chips but are not buttons, so they wrap their words
+   instead of running off a 320px screen. */
+.lchips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s2); }
+.lchips li {
+  display: inline-flex; align-items: flex-start; gap: var(--s1); max-width: 100%;
+  padding: var(--s1) var(--s3); border-radius: var(--r); line-height: 1.4;
+  background: var(--gold-soft); border: 1px solid var(--gold-band); font-size: var(--t-sm); font-weight: 600;
+}
+.lchips svg { flex: 0 0 auto; margin-top: 3px; color: var(--gold-deep); }
+
+.lneed { display: grid; grid-template-columns: 1fr; gap: var(--s3); }
+@media (min-width: 520px) { .lneed { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lneed__col { border-radius: var(--r); padding: var(--s4); min-width: 0; }
+.lneed__col--need { background: var(--danger-soft); }
+.lneed__col--ben { background: var(--ok-soft); }
+.lneed__t { margin: 0 0 var(--s3); font-size: var(--t-base); }
+.lneed__col--need .lneed__t { color: var(--danger); }
+.lneed__col--ben .lneed__t { color: var(--ok); }
+.lneed__col--ben .llist--tick svg { color: var(--ok); }
+
+.lmission { display: flex; flex-direction: column; gap: var(--s2); background: var(--soil-soft); border-color: var(--soil-soft); }
+.lmission p { margin: 0; text-wrap: pretty; }
+.lmission__band { font-weight: 700; color: var(--soil); }
+.lmission__tag { font-weight: 600; color: var(--gold-deep); }
+.lmission__text { color: var(--ink); }
+.lmission__intro { color: var(--ink-2); }
+
+.college__line { margin: 0; font-size: var(--t-base); color: var(--ink-2); }
+
+/* Footer: soil, like the band at the top, so the page is bracketed. */
+.lfoot { padding: var(--s5) 0 calc(var(--s5) + var(--safe-b)); color: var(--on-dark); font-size: var(--t-sm); background: var(--soil); }
 .lfoot__in { display: flex; flex-direction: column; gap: var(--s2); }
+.lfoot__quote { color: var(--on-dark); font-size: var(--t-base); }
+.lfoot__motto { color: var(--gold-band); font-size: var(--t-base); font-weight: 600; }
+.lfoot a { color: var(--on-dark); }
+.lfoot .linkbtn { margin: 0; padding: var(--s2) 0; align-self: flex-start; }
 
 /* ============================================================
    Utility
@@ -1394,7 +1432,7 @@ pre, code { overflow-x: auto; max-width: 100%; }
    ============================================================ */
 .btn svg, .pill svg, .lane__t svg, .verified svg, .tile svg, .field__err svg,
 .appbar__btn svg, .bottomnav__icon svg, .mic svg, .choice__mark svg,
-.door__icon svg, .empty__icon svg, .stepper button svg {
+.empty__icon svg, .stepper button svg {
   flex: 0 0 auto;
 }
 .field__err { display: flex; gap: 5px; align-items: center; }
