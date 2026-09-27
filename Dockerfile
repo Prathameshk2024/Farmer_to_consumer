@@ -1,70 +1,76 @@
 # ─────────────────────────────────────────────────────────────────────
-# Jawahar Shetkari Bazar — backend API
+# Jawahar Shetkari Bazar — backend API  (production Docker image)
 #
-# Multi-stage build.  Context MUST be the REPOSITORY ROOT because
-# the backend TypeScript compilation includes ../shared/src/.
+# Build context MUST be the REPOSITORY ROOT because the backend's
+# tsconfig.json sets rootDir: ".." and compiles ../shared/src/.
 #
 # Build:  docker build -t f2c-api .
-# Run:    docker run -p 4000:4000 --env-file backend/.env f2c-api
-#         Never with a .env that holds the PRODUCTION Firebase key: that
-#         container is a second process writing the live database
-#         (docs/DEPLOY.md, "Exactly one instance").
+# Run:    docker run --env-file backend/.env -p 4000:4000 f2c-api
+#
+# Cloud Run sets PORT automatically; the app reads process.env.PORT
+# and defaults to 4000 if unset.
 # ─────────────────────────────────────────────────────────────────────
 
-# ── Stage 1: install dependencies + compile TypeScript ──────────────
-FROM node:22-slim AS build
+
+# ── Stage 1: install ALL deps + compile TypeScript ──────────────────
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
-# Copy every workspace package.json so the lockfile resolves correctly.
-# npm ci rejects the lockfile if any workspace listed in the root
-# package.json is missing, so frontend/ and admin/ manifests are
-# included even though their source is never copied.
+# 1) Copy every workspace package.json so the lockfile resolves.
+#    npm ci rejects the lockfile if any workspace listed in the root
+#    package.json is missing, so frontend/ and admin/ manifests are
+#    included even though their source is never copied.
 COPY package.json package-lock.json ./
-COPY shared/package.json shared/
+COPY shared/package.json  shared/
 COPY backend/package.json backend/
 COPY frontend/package.json frontend/
-COPY admin/package.json admin/
+COPY admin/package.json    admin/
 
 RUN npm ci
 
-# Copy only the source the backend compilation needs.
-COPY shared/src/ shared/src/
-COPY backend/src/ backend/src/
+# 2) Copy only the source the backend build needs.
+COPY shared/src/           shared/src/
+COPY backend/src/          backend/src/
 COPY backend/tsconfig.json backend/
-COPY backend/scripts/ backend/scripts/
+COPY backend/scripts/      backend/scripts/
 
-# tsc compiles both backend/ and shared/ into backend/dist/.
-# fix-shared-imports.js rewrites the @shared/* bare specifiers to
-# relative paths so plain `node` can resolve them at runtime.
+# 3) tsc compiles backend/ + shared/ into backend/dist/.
+#    fix-shared-imports.js rewrites @shared/* bare specifiers to
+#    relative paths so plain `node` can resolve them at runtime.
 RUN npm --workspace=@f2c/backend run build
 
 
-# ── Stage 2: production image (no TypeScript, no devDeps) ───────────
-FROM node:22-slim
+# ── Stage 2: production image (no TS, no devDeps, Alpine) ───────────
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Re-copy manifests and install production dependencies only.
-# --omit=dev drops typescript, tsx, vite, @types/*, concurrently, etc.
+# Re-copy manifests and install production deps only.
+# --omit=dev drops typescript, tsx, @types/*, concurrently, etc.
 COPY package.json package-lock.json ./
-COPY shared/package.json shared/
+COPY shared/package.json  shared/
 COPY backend/package.json backend/
 COPY frontend/package.json frontend/
-COPY admin/package.json admin/
+COPY admin/package.json    admin/
 
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Compiled backend + shared code (import paths already rewritten).
+# Compiled JS (import paths already rewritten by fix-shared-imports).
 COPY --from=build /app/backend/dist backend/dist
 
-# Environment variables are injected at runtime by Docker / Cloud Run.
+# Non-root user for security.
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+# Environment variables are injected at runtime by Cloud Run / docker run.
 # No .env file is baked into the image.
 ENV NODE_ENV=production
 
+# Cloud Run provides PORT; the backend defaults to 4000 if unset.
 EXPOSE 4000
 
-# Start the API directly with plain node.
+# Start the compiled backend directly.
 # --env-file-if-exists is omitted because there is no .env inside the
-# container; all configuration arrives via runtime environment variables.
+# container; all config arrives via runtime environment variables.
 CMD ["node", "backend/dist/backend/src/index.js"]
