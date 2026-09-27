@@ -183,7 +183,7 @@ export default function EditProduct() {
 
         {limited && (
           <Notice tone={locked ? 'danger' : left === 1 ? 'warn' : 'info'}>
-            {locked ? t('prod.editsNone') : t('prod.editsLeft', { n: left })} {t('prod.editsPriceFree')}
+            {locked ? t('prod.editsNone') : left === 1 ? t('prod.editsLeftOne') : t('prod.editsLeft', { n: left })} {t('prod.editsPriceFree')}
           </Notice>
         )}
         {spends && left === 1 && <Notice tone="warn">{t('prod.editsLastWarn')}</Notice>}

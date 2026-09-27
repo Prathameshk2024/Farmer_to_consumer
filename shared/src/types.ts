@@ -488,7 +488,8 @@ export interface SubscriptionPayment {
   paidAt?: string
   submittedAt: string
   status: PaymentApprovalStatus
-  /** Set when the same reference number was already used by someone else. */
+  /** Set when any earlier payment not rejected - another farmer's or this
+      farmer's own - already carries the same reference number. */
   duplicateUtr: boolean
   verifiedAt?: string
   verifiedBy?: string

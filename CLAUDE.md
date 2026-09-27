@@ -21,7 +21,7 @@ npm run dev            # API :4000 + farmer/buyer site :5173
 npm run dev:all        # the above + admin console :5174
 npm run dev:api | dev:web | dev:admin
 
-npm test               # backend (413) + frontend (140) + admin (40) tests
+npm test               # backend (420) + frontend (140) + admin (40) tests
 npm run typecheck      # all three workspaces
 npm run build          # backend tsc + both Vite builds
 
@@ -206,7 +206,7 @@ The order reaches the farmer unpaid; they accept if they can fulfil it, and only
 
 - **A screenshot of the UPI app's success screen — required.** A `PhotoPicker` upload (`kind: 'payment'`) into its own signed Cloudinary folder. `screenshotProblem()` in `backend/src/db/payments.ts` accepts only a URL in *this* account's `…/payment/` folder, so a pasted link or a product photo cannot stand in for it. With Cloudinary off there is no way to attach one, so nothing is required, and `/farmers/me/subscription` says so as `screenshotRequired`.
 - **When the farmer paid** — `paidAt`, a `datetime-local` pre-filled with now. `paidAtProblem()` in `shared/src/payment.ts` refuses a time in the future (10 minutes' slack for phone clocks) or older than 7 days.
-- **The UTR**, as everywhere (`utrProblem`). Another farmer's payment with the same UTR sets `duplicateUtr`, and the console flags it.
+- **The UTR**, as everywhere (`utrProblem`). Any earlier payment with the same UTR that was not rejected — another farmer's or the farmer's own — sets `duplicateUtr` (`isDuplicateUtr()`), and the console flags it.
 
 The admin queue (`/payments`) shows the screenshot inline and opens it large beside the UTR, the stated time and the amount. **Approve stays disabled until three checks are ticked** — the UTR matches, the date and time match, the money is on the bank statement — and `POST /admin/payments/:id/approve` refuses any request whose `checks` lack one of `PAYMENT_CHECKS`, so the checklist is the rule and not decoration. The CLI takes `approve <id> --verified` and offers no `approve all`. Rejecting needs no checklist: refusing an unproven payment is always safe. `backend/tests/payment-proof.test.ts` holds all of it.
 

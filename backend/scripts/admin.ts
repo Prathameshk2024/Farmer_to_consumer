@@ -247,36 +247,26 @@ async function products(): Promise<void> {
     '/api/admin/products?status=PENDING',
   )
   if (!r.products.length) {
-    console.log(c.dim('
-  No products waiting to be checked.
-'))
+    console.log(c.dim('\n  No products waiting to be checked.\n'))
     return
   }
-  console.log(c.bold(`
-  ${r.products.length} product(s) waiting
-`))
+  console.log(c.bold(`\n  ${r.products.length} product(s) waiting\n`))
   for (const p of r.products) {
     console.log(`  ${c.bold(p.id.padEnd(16))} ${p.name}  ${c.dim(p.cropId)}  ${p.farmer?.farmerCode ?? ''}`)
   }
-  console.log(c.dim('
-  Publish with:  npm run admin -- approve-product <id>
-'))
+  console.log(c.dim('\n  Publish with:  npm run admin -- approve-product <id>\n'))
 }
 
 async function approveProduct(id: string | undefined): Promise<void> {
   if (!id) {
-    console.error(c.red('
-  Usage: npm run admin -- approve-product <id>
-'))
+    console.error(c.red('\n  Usage: npm run admin -- approve-product <id>\n'))
     process.exit(1)
   }
   await call(`/api/admin/products/${id}/moderate`, {
     method: 'POST',
     body: JSON.stringify({ approve: true }),
   })
-  console.log(c.green(`
-  ✓ Product ${id} is live.
-`))
+  console.log(c.green(`\n  ✓ Product ${id} is live.\n`))
 }
 
 /** A password for one farmer, by phone, straight into `credentials`. */
