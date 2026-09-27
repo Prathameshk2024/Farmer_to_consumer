@@ -25,3 +25,5 @@ google-services.json
 *serviceAccount*.json
 *firebase-adminsdk*.json
 current-changes.patch
+# brainstorming mockups
+.superpowers/
