@@ -18,6 +18,7 @@ import { useToast } from '../../store/ToastContext.js'
 import {
   clearDraft, EMPTY, readDraft, sessionStore, writeDraft, type Draft,
 } from './farmerDraft.js'
+import { AuthPhoto } from './Auth.js'
 import {
   AppBar, Button, Card, Choice, Dots, FdriPill, Field, LocationButton, Notice,
   TextInput, VoiceInput, YesNo,
@@ -299,6 +300,8 @@ export default function FarmerRegister() {
         onBack={back}
         bell={false}
       />
+      {/* On the first step only: after that, every pixel belongs to the question. */}
+      {step === S.account && <AuthPhoto role="farmer" />}
 
       <div style={{ padding: '0 var(--s4)' }}>
         <Dots step={step} total={STEP_KEYS.length} />

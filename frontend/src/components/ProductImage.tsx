@@ -26,6 +26,7 @@ export default function ProductImage({
   categoryId,
   size,
   rounded = 'var(--r-sm)',
+  ratio = '1',
   className,
 }: {
   src?: string
@@ -36,6 +37,8 @@ export default function ProductImage({
   /** Square side in px. Omit to fill the parent (used by the 1:1 card top). */
   size?: number
   rounded?: string
+  /** Width to height when filling the parent: square on small tiles, 4 / 3 where the photo leads. */
+  ratio?: string
   className?: string
 }) {
   // Ask Cloudinary for the exact rendered size rather than the 1200px master.
@@ -49,7 +52,7 @@ export default function ProductImage({
 
   const box: React.CSSProperties = size
     ? { width: size, height: size, borderRadius: rounded }
-    : { width: '100%', aspectRatio: '1', borderRadius: rounded }
+    : { width: '100%', aspectRatio: ratio, borderRadius: rounded }
 
   if (!wanted || failedUrl === wanted) {
     // A photograph of the farmer's category beats a bare icon, and it is a

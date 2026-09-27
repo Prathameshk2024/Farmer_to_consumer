@@ -863,10 +863,28 @@ p, h1, h2, h3, li, span, div { overflow-wrap: anywhere; }
 .qtybar__btn:active { background: var(--primary-soft); }
 .qtybar__btn:disabled { opacity: 0.35; cursor: default; }
 .qtybar__n { font-weight: 800; color: var(--primary); font-size: var(--t-base); }
-.pcard__img { aspect-ratio: 1; background: var(--gold-soft); display: grid; place-items: center; font-size: 2.4rem; }
-.pcard__body { padding: var(--s3); display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
-.pcard__name { font-weight: 700; font-size: var(--t-sm); line-height: 1.35; }
-.pcard__price { font-weight: 800; font-size: var(--t-base); color: var(--maroon); margin-top: auto; }
+.pcard__img { background: var(--gold-soft); display: grid; place-items: center; font-size: 2.4rem; }
+.pcard__body { padding: var(--s3); display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.pcard__name { font-weight: 800; font-size: var(--t-base); line-height: 1.3; }
+.pcard__price { font-weight: 800; font-size: var(--t-md); color: var(--maroon); }
+.pcard__body .pill { align-self: flex-start; }
+.pcard__who { font-size: var(--t-sm); color: var(--ink-3); line-height: 1.3; overflow-wrap: anywhere; }
+
+/* Product page: the photo leads, full width, never taller than half the screen. */
+.pdp__img { max-height: 50vh; }
+.pdp__price { color: var(--maroon); }
+.pdp__facts { display: flex; flex-wrap: wrap; column-gap: var(--s3); color: var(--ink-2); }
+.pdp__facts > span + span::before { content: '·'; margin-right: var(--s3); color: var(--ink-3); }
+.farmercard { background: var(--soil-soft); border-color: var(--soil-soft); cursor: default; }
+.farmercard .verified { color: var(--ok); }
+
+/* Sign-in and sign-up: a photo band above the unchanged form. Soil beneath
+   it, so a photo that fails is still a clean band. */
+.authband { height: 140px; background: var(--soil); overflow: hidden; }
+.authband img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Empty catalogue: a small market photo above the words. */
+.emptyphoto { display: block; width: 100%; max-width: 320px; aspect-ratio: 16 / 9; object-fit: cover; margin: var(--s4) auto 0; border-radius: var(--r-lg); background: var(--soil-soft); }
 
 .hscroll {
   display: flex;

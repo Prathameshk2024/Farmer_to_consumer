@@ -9,11 +9,31 @@ import { AppBar, Button, Field, Notice, TextInput } from '../../components/ui.js
 import { IconCall } from '../../components/icons.js'
 import { SUPPORT_PHONE } from '../farmer/Misc.js'
 import { PHONE_INPUT_MAX } from '../../lib/phone.js'
+import authFarmer from '../../assets/photos/auth-farmer.jpg'
+import marketStrip from '../../assets/photos/market-strip.jpg'
 
 type RoleParam = 'farmer' | 'customer'
 
 export function roleFrom(value: string | undefined): RoleParam {
   return value === 'farmer' ? 'farmer' : 'customer'
+}
+
+/**
+ * The photo band above every sign-in and sign-up form: hands and a harvest
+ * for a farmer, a market stall for a buyer. Decorative, above the fold (so
+ * not lazy), and soil underneath, so a photo that fails leaves a clean band
+ * rather than a broken-image icon.
+ */
+export function AuthPhoto({ role }: { role: RoleParam }) {
+  return (
+    <div className="authband" aria-hidden="true">
+      <img
+        src={role === 'farmer' ? authFarmer : marketStrip}
+        alt=""
+        onError={(e) => { e.currentTarget.style.visibility = 'hidden' }}
+      />
+    </div>
+  )
 }
 
 
@@ -67,6 +87,7 @@ export function LoginScreen() {
         backTo="/"
         bell={false}
       />
+      <AuthPhoto role={role} />
       <div className="screen screen--nonav stack">
         <Field label={t('auth.phone')} htmlFor="phone">
           <TextInput
@@ -138,6 +159,7 @@ export function ForgotPasswordScreen() {
   return (
     <div className="app-shell">
       <AppBar brand title={t('forgot.title')} backTo={`/login/${role}`} bell={false} />
+      <AuthPhoto role={role} />
       <div className="screen screen--nonav stack">
         {sent ? (
           <>

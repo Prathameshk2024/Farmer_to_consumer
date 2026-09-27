@@ -13,8 +13,9 @@ import {
   AppBar, Button, Card, EmptyState, Loading, Notice, Pill,
   Rupees, SectionTitle, VoiceInput, useAsync,
 } from '../../components/ui.js'
+import marketStrip from '../../assets/photos/market-strip.jpg'
 import {
-  IconCart, IconCheck, IconMap, IconMinus, IconNext, IconPlus, IconProduct, IconSearch,
+  IconAllClear, IconCart, IconCheck, IconMap, IconMinus, IconNext, IconPlus, IconProduct, IconSearch,
 } from '../../components/icons.js'
 import { PageTour } from '../../components/Walkthrough.js'
 import { RatingLine, RatingSummaryCard, ReviewList } from '../../components/Reviews.js'
@@ -60,6 +61,7 @@ export function ProductCard({ product, onOpen }: { product: CardProduct; onOpen:
           categoryId={product.categoryId}
           className="pcard__img"
           rounded="0"
+          ratio="4 / 3"
         />
         <div className="pcard__body">
           <div className="pcard__name">{product.name}</div>
@@ -70,6 +72,11 @@ export function ProductCard({ product, onOpen }: { product: CardProduct; onOpen:
             <div className="pcard__size">{t('prod.minOrderShort', { n: product.minOrder, unit: t(`unit.${product.unit}`) })}</div>
           )}
           <CultivationPill cultivation={product.cultivation} />
+          {product.farmer?.name && (
+            <div className="pcard__who">
+              {product.farmer.name}{product.farmer.village ? ` · ${product.farmer.village}` : ''}
+            </div>
+          )}
           {/* Its own stars, from buyers who received it. Nothing at all on a
               product nobody has rated - "no reviews" down a grid is noise. */}
           <RatingLine average={product.rating} count={product.ratingCount} hideEmpty />
@@ -197,7 +204,12 @@ export function Explore() {
           {loading ? (
             <Loading />
           ) : list.length === 0 ? (
-            <EmptyState icon={IconSearch} title={t('prod.noProducts')} />
+            <div className="stack-sm">
+              {/* A market stall rather than a bare icon: an empty list on
+                  day one should still look like a market. */}
+              <img className="emptyphoto" src={marketStrip} alt="" loading="lazy" />
+              <EmptyState icon={IconSearch} title={t('prod.noProducts')} />
+            </div>
           ) : (
             <div className="pgrid">
               {list.map((p) => (
@@ -333,28 +345,32 @@ export function ProductDetail() {
     <>
       <AppBar title={product.name} onBack={() => nav(-1)} />
       <div className="screen stack">
-        <div style={{ maxWidth: 420, margin: '0 auto', width: '100%' }}>
-          <ProductImage
-            src={product.imageUrl}
-              categoryId={product.categoryId}
-            rounded="var(--r-lg)"
-          />
-        </div>
+        {/* The photo leads, edge to edge: it is what a buyer decides on. */}
+        <ProductImage
+          src={product.imageUrl}
+          categoryId={product.categoryId}
+          className="pdp__img"
+          rounded="var(--r-lg)"
+          ratio="4 / 3"
+        />
 
         <div className="stack-sm">
           <h1 className="h2">{product.name}</h1>
-          <PricePerUnit price={product.price} unit={product.unit} big />
+          <span className="pdp__price"><PricePerUnit price={product.price} unit={product.unit} big /></span>
           <div className="wrap-row">
             <CultivationPill cultivation={product.cultivation} />
             <Pill tone={outOfStock ? 'danger' : 'ok'}>
               {outOfStock ? t('prod.outOfStock') : t('prod.inStock')}
             </Pill>
           </div>
-          <div className="small dim">{harvested(product.harvestDate)}</div>
-          {/* Said before the button, because the first tap adds this many. */}
-          {product.minOrder > 1 && (
-            <div className="small">{t('prod.minOrderShort', { n: product.minOrder, unit: t(`unit.${product.unit}`) })}</div>
-          )}
+          {/* Harvest and minimum on one line. The minimum is said before the
+              button, because the first tap adds this many. */}
+          <div className="small pdp__facts">
+            <span>{harvested(product.harvestDate)}</span>
+            {product.minOrder > 1 && (
+              <span>{t('prod.minOrderShort', { n: product.minOrder, unit: t(`unit.${product.unit}`) })}</span>
+            )}
+          </div>
         </div>
 
         {farmer && <FarmerCard farmer={farmer} />}
@@ -522,11 +538,14 @@ export function FarmerShop() {
 function FarmerCard({ farmer }: { farmer: Partial<Farmer> }) {
   const t = useT()
   return (
-    <div className="tile">
+    <div className="tile farmercard">
       <Avatar name={farmer.name} size={62} />
       <div className="tile__body">
         <div className="tile__meta">{t('cus.soldBy')}</div>
         <div className="tile__title">{farmer.shopName}</div>
+        {/* Only an ACTIVE farmer's listings are public, and ACTIVE is what
+            the admin's check sets - so every farmer shown here is verified. */}
+        <div className="verified"><IconAllClear aria-hidden="true" /> {t('cus.verifiedFarmer')}</div>
         {/* Their rating is what buyers gave their products, all of them together. */}
         <div className="tile__meta">
           <RatingLine average={farmer.rating} count={farmer.ratingCount} />

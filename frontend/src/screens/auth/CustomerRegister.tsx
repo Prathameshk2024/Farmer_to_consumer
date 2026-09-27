@@ -8,6 +8,7 @@ import { api, ApiError } from '../../lib/api.js'
 import { useToast } from '../../store/ToastContext.js'
 import { PHONE_INPUT_MAX } from '../../lib/phone.js'
 import { AppBar, Button, Field, Notice, TextInput, VoiceInput } from '../../components/ui.js'
+import { AuthPhoto } from './Auth.js'
 
 /**
  * CUSTOMER REGISTRATION - one screen
@@ -71,6 +72,7 @@ export default function CustomerRegister() {
   return (
     <div className="app-shell">
       <AppBar brand title={t('creg.title')} backTo="/" bell={false} />
+      <AuthPhoto role="customer" />
       <div className="screen screen--nonav stack">
         <Notice tone="info">{t('creg.lede')}</Notice>
 
