@@ -132,8 +132,9 @@ export default function MyBusiness() {
               <strong>{farmer.isOpen ? t('biz.shopOpen') : t('biz.shopClosed')}</strong>
               <span className="small dim">{t('biz.shopOpenHint')}</span>
             </div>
-            <Button variant={farmer.isOpen ? 'quiet' : 'primary'} size="sm" onClick={toggleShop}>
+            <Button variant={farmer.isOpen ? 'quiet' : 'primary'} size="sm" onClick={toggleShop} style={{ flex: '0 0 auto', whiteSpace: 'nowrap' }}>
               {farmer.isOpen ? <IconPause aria-hidden="true" /> : <IconPlay aria-hidden="true" />}
+              <span>{farmer.isOpen ? t('biz.closeShop') : t('biz.openShop')}</span>
             </Button>
           </div>
         </Card>

@@ -1361,14 +1361,15 @@ pre, code { overflow-x: auto; max-width: 100%; }
    App bar at 360px
    ------------------------------------------------------------
    The bar can now hold back + audio-help + the shared mic. That
-   is 132px of controls before the title gets a pixel, so on the
-   smallest phones the buttons tighten and the title is allowed
-   to ellipsize rather than wrap the bar to two lines.
+   is 132px of controls before the title gets a pixel. The buttons
+   keep the 44px touch floor - a thumb is no smaller on a small
+   phone - so the gaps and padding tighten instead, and the title
+   ellipsizes rather than wrap the bar to two lines. Fits at 320px.
    ============================================================ */
 @media (max-width: 400px) {
   .appbar { gap: 2px; padding-left: var(--s2); padding-right: var(--s2); }
-  .appbar__btn { width: 40px; height: 40px; font-size: 1.15rem; }
-  .appbar__btn--word { width: auto; font-size: var(--t-sm); }
+  .appbar__btn { font-size: 1.15rem; }
+  .appbar__btn--word { padding: 0 var(--s2); }
   .appbar__title { font-size: var(--t-base); }
   .appbar__title,
   .appbar__sub {

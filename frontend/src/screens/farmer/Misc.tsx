@@ -77,7 +77,7 @@ export function FarmerProfile() {
           <SectionTitle>{t('prof.payment')}</SectionTitle>
           <div className="stack-sm">
             <Notice tone="warn">{t('reg.upiHint')}</Notice>
-            <div className="row-between">
+            <div className="row-between" style={{ flexWrap: 'wrap' }}>
               <div>
                 <div className="small dim">{t('pay.upiId')}</div>
                 {/* Read out over the phone, typed into a bank app, sent on

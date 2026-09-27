@@ -119,7 +119,7 @@ export default function Trace() {
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="row" style={{ justifyContent: 'space-between', gap: 'var(--s3)' }}>
-      <span className="small dim">{label}</span>
+      <span className="small dim" style={{ flex: '0 0 auto' }}>{label}</span>
       <strong style={{ textAlign: 'end' }}>{children}</strong>
     </div>
   )
