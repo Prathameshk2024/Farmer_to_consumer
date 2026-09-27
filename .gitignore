@@ -27,3 +27,6 @@ google-services.json
 current-changes.patch
 # brainstorming mockups
 .superpowers/
+# Claude Code local state (agent worktrees, local settings)
+.claude/worktrees/
+.claude/settings.local.json
