@@ -5,7 +5,7 @@ import {
   normalizePhone, slotInfo, validateFarmerProfile,
 } from '@shared/farmer.js'
 import {
-  type PaymentKind, canSellNow, payableKinds, paymentKindProblem, subscriptionView,
+  type PaymentKind, addProductBlock, canSellNow, payableKinds, paymentKindProblem, subscriptionView,
 } from '@shared/subscription.js'
 import { cleanFdri, fdriBand, fdriScore } from '@shared/fdri.js'
 import { isValidLatLng } from '@shared/geo.js'
@@ -250,7 +250,14 @@ farmersRouter.get('/me', requireRole('farmer'), (req, res) => {
   // Slots and the term are decided here, on the server's clock and the
   // server's products, so no screen recomputes them on the phone.
   const products = db.products.filter((p) => p.farmerId === farmer.id)
-  res.json({ farmer, slots: slotInfo(farmer, products), subscription: subscriptionView(farmer) })
+  const paymentWaiting = db.payments.some((p) => p.farmerId === farmer.id && p.status === 'PENDING')
+  res.json({
+    farmer,
+    slots: slotInfo(farmer, products),
+    subscription: subscriptionView(farmer),
+    // Why "new product" shows the ₹50 instead of the wizard; POST /products holds the rule.
+    addBlock: addProductBlock(farmer, paymentWaiting),
+  })
 })
 
 /**

@@ -209,3 +209,35 @@ export function endsAtAfterApproval(
   if (kind === 'RENEWAL') return addMonths(s.subscriptionEndsAt, SUBSCRIPTION_MONTHS)
   return s.subscriptionEndsAt
 }
+
+/* ------------------------------------------------------------------ */
+/* Adding a product                                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Why this farmer may not add a product at all - draft or not - or null.
+ *
+ * Adding waits for the ₹50 to be paid AND approved. Drafts used to be free,
+ * and a farmer who filled nine screens and then met "pay first" read the
+ * wizard as a trap; the owner wants the ₹50 asked for before the work, not
+ * after it.
+ *
+ * "Approved" is an open term, or approved packs whose term has not started
+ * because the farmer is not verified yet (`startTermOnVerify` starts it) -
+ * that farmer has paid, and waiting for the visit is not theirs to fix.
+ * Otherwise the three reasons name the one thing the farmer can do next:
+ * pay, wait for the admin, or renew. A payment waiting in the queue wins over
+ * "expired", because a renewal already sent is not a renewal still owed.
+ */
+export type AddBlock = 'unpaid' | 'awaitingApproval' | 'expired'
+
+export function addProductBlock(
+  f: Pick<Farmer, 'subscriptionEndsAt' | 'packsApproved'>,
+  paymentWaiting: boolean,
+  now = Date.now(),
+): AddBlock | null {
+  if (termOpen(f, now)) return null
+  if (!f.subscriptionEndsAt && (f.packsApproved ?? 0) > 0) return null
+  if (paymentWaiting) return 'awaitingApproval'
+  return f.subscriptionEndsAt ? 'expired' : 'unpaid'
+}

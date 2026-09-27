@@ -20,7 +20,7 @@ import {
   AppBar, Button, Card, Dots, EmptyState, Field,
   Loading, Notice, TextInput, VoiceInput, useAsync,
 } from '../../components/ui.js'
-import { IconBack, IconNext } from '../../components/icons.js'
+import { IconBack, IconLock, IconNext, IconWaiting } from '../../components/icons.js'
 import { sendBlock } from './sendGate.js'
 import { PageTour } from '../../components/Walkthrough.js'
 import { PriceHint } from '../../components/PriceHint.js'
@@ -119,8 +119,33 @@ export default function UploadProduct() {
     )
   }
 
-  /* Drafts are free; SENDING waits for verification, a term and a slot, in
-     the server's order. The wizard stays open and the last step offers only
+  /* Nothing is added, not even a draft, until the ₹50 is approved - said
+     here, before nine screens of work, rather than on the last one. Every
+     "new product" button lands on this route, so this one screen is the
+     gate for all of them; POST /products holds the rule. */
+  if (me.addBlock) {
+    const b = me.addBlock
+    const Icon = b === 'awaitingApproval' ? IconWaiting : IconLock
+    return (
+      <>
+        <AppBar title={t('prod.add')} />
+        <div className="screen stack">
+          <Notice
+            tone={b === 'awaitingApproval' ? 'info' : 'warn'}
+            title={<><Icon aria-hidden="true" /> {t(`prod.addBlock.${b}.title`)}</>}
+          >
+            {t(`prod.addBlock.${b}.body`)}
+          </Notice>
+          <Button onClick={() => nav('/farmer/subscription')}>
+            {t(b === 'unpaid' ? 'reg.payNow' : b === 'expired' ? 'sub.renewButton' : 'prod.addBlock.seePayment')}
+          </Button>
+        </div>
+      </>
+    )
+  }
+
+  /* Past the ₹50, drafts are free; SENDING waits for verification, a term
+     and a slot, in the server's order. The wizard stays open and the last step offers only
      "save as draft" while `blocked` names what sending waits for. */
   const blocked = sendBlock(farmer.status, me.subscription.state, me.slots.isFull)
 

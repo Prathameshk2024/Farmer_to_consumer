@@ -4,9 +4,10 @@ import type { SubscriptionState } from '@shared/subscription.js'
 /**
  * Why a listing can be written but not SENT right now, or null when it can.
  *
- * Drafts are free: the server takes a draft from any farmer who is not
- * blocked, whatever their verification, term or slots. So the wizard never
- * shuts - it offers "save as draft" and says what sending waits for. The
+ * Once the ₹50 is approved (`addProductBlock`, checked before the wizard
+ * opens) drafts are free: the server takes one whatever the farmer's
+ * verification or slots. So the wizard offers "save as draft" and says what
+ * sending waits for. The
  * order is the server's (products.routes.ts): verification, term, slot, so
  * the sentence names the first thing the farmer can do about it.
  */

@@ -4,7 +4,7 @@ import type {
   FarmerWeek, Session, AdminPaymentAccount, SubscriptionPayment,
 } from '@shared/types.js'
 import type { SlotInfo } from '@shared/farmer.js'
-import type { PaymentKind, SubscriptionView } from '@shared/subscription.js'
+import type { AddBlock, PaymentKind, SubscriptionView } from '@shared/subscription.js'
 import type { ReportReason, ReportTarget } from '@shared/report.js'
 import type { FdriAnswers } from '@shared/fdri.js'
 import type { ComplaintSubject } from '@shared/complaint.js'
@@ -253,7 +253,7 @@ export const api = {
     post<{ farmer: Farmer; session: Session }>('/farmers/register', body),
 
   /** `slots` and `subscription` are decided on the server - never work them out on the phone. */
-  me: () => get<{ farmer: Farmer; slots: SlotInfo; subscription: SubscriptionView }>('/farmers/me'),
+  me: () => get<{ farmer: Farmer; slots: SlotInfo; subscription: SubscriptionView; addBlock: AddBlock | null }>('/farmers/me'),
 
   /** `pickup: null` turns pickup off. */
   updateMe: (patchBody: Partial<Omit<Farmer, 'pickup'>> & { pickup?: Farmer['pickup'] | null }) =>

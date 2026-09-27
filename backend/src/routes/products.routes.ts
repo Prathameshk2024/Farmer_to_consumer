@@ -1,9 +1,9 @@
 import { Router } from 'express'
-import type { Product } from '@shared/types.js'
+import type { Farmer, Product, SubscriptionPayment } from '@shared/types.js'
 import {
   MAX_EDITS, countsAsEdit, editsAreLimited, editsLeft, farmerMayDelete, initialListingStatus, slotInfo,
 } from '@shared/farmer.js'
-import { subscriptionView, termOpen } from '@shared/subscription.js'
+import { type AddBlock, addProductBlock, subscriptionView, termOpen } from '@shared/subscription.js'
 import { categoryFor, descriptionProblem, listingProblems } from '@shared/produce.js'
 import { getDb, newId, save } from '../db/store.js'
 import { CATEGORIES, isCategoryId } from '../db/seed.js'
@@ -90,6 +90,36 @@ const NOT_VERIFIED_MR = 'तुमची तपासणी झाल्या�
 const NO_TERM_MR = 'तुमची वर्गणी सुरू नाही. ₹50 भरून मंजुरी मिळाल्यावर उत्पादने पाठवता येतील.'
 const SLOTS_FULL_MR = 'सर्व जागा भरल्या आहेत. आणखी 5 जागांसाठी ₹50 भरा.'
 
+const ADD_REFUSAL: Record<AddBlock, { error: string; messageMr: string }> = {
+  unpaid: {
+    error: 'SUBSCRIPTION_UNPAID',
+    messageMr: 'उत्पादन टाकण्यासाठी आधी ₹50 वर्गणी भरा. भरणा मंजूर झाल्यावर उत्पादने टाकता येतील.',
+  },
+  awaitingApproval: {
+    error: 'SUBSCRIPTION_AWAITING_APPROVAL',
+    messageMr: 'तुमचा ₹50 चा भरणा तपासणीसाठी पाठवला आहे. तो मंजूर झाल्यावर उत्पादने टाकता येतील.',
+  },
+  expired: {
+    error: 'SUBSCRIPTION_EXPIRED',
+    messageMr: 'तुमची वर्गणी संपली आहे. ₹50 भरून नूतनीकरण करा. ते मंजूर झाल्यावर उत्पादने टाकता येतील.',
+  },
+}
+
+/**
+ * The 403 for a farmer who may not add a product yet, drafts included, or
+ * null. `addProductBlock()` is the rule; this only reads the payment queue it
+ * needs and words the answer.
+ */
+export function addRefusal(
+  farmer: Farmer,
+  payments: Pick<SubscriptionPayment, 'farmerId' | 'status'>[],
+  now = Date.now(),
+): { error: string; messageMr: string } | null {
+  const waiting = payments.some((p) => p.farmerId === farmer.id && p.status === 'PENDING')
+  const block = addProductBlock(farmer, waiting, now)
+  return block ? ADD_REFUSAL[block] : null
+}
+
 productsRouter.post('/', requireRole('farmer'), (req, res) => {
   const db = getDb()
   const farmerId = req.auth!.farmerId!
@@ -99,12 +129,19 @@ productsRouter.post('/', requireRole('farmer'), (req, res) => {
     return
   }
 
+  // Nothing is added, not even a draft, until the ₹50 is approved.
+  const unpaid = addRefusal(farmer, db.payments)
+  if (unpaid) {
+    res.status(403).json(unpaid)
+    return
+  }
+
   const b = req.body as Partial<Product> & { asDraft?: boolean }
   const asDraft = !!b.asDraft
 
-  // Drafts are the farmer's to write before the check, before paying and
-  // with no slot free; sending one in waits for all three, in that order, so
-  // the message names the first thing the farmer can do about it.
+  // Drafts are the farmer's to write before the check and with no slot free;
+  // sending one in waits for both and the term, in that order, so the
+  // message names the first thing the farmer can do about it.
   if (!asDraft && farmer.status !== 'ACTIVE') {
     res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
     return
