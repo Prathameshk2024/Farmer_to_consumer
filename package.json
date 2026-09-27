@@ -2,7 +2,7 @@
   "name": "farmers-to-consumer",
   "version": "0.1.0",
   "private": true,
-  "description": "Farmers to Consumer - a direct market from farmers to buyers. Frontend (farmer + buyer app), admin console, backend API, shared domain types.",
+  "description": "Jawahar Shetkari Bazar - a direct market from farmers to buyers. Frontend (farmer + buyer app), admin console, backend API, shared domain types.",
   "workspaces": [
     "shared",
     "backend",

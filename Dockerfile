@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────
-# Farmers to Consumer — backend API
+# Jawahar Shetkari Bazar — backend API
 #
 # Multi-stage build.  Context MUST be the REPOSITORY ROOT because
 # the backend TypeScript compilation includes ../shared/src/.

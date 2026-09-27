@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-शेतकऱ्यापासून थेट ग्राहकापर्यंत / Farmers to Consumer — a website where farmers in Maharashtra sell produce straight to buyers. Farmers register, an admin verifies each one once, their listings go on sale, buyers order for delivery or pickup and pay by UPI or cash. The admin console also holds field-survey entry and the research paper's Tables 1–9.
+जवाहर शेतकरी बाजार / Jawahar Shetkari Bazar — a website where farmers in Maharashtra sell produce straight to buyers. Farmers register, an admin verifies each one once, their listings go on sale, buyers order for delivery or pickup and pay by UPI or cash. The admin console also holds field-survey entry and the research paper's Tables 1–9.
 
 - **frontend/** — farmer + buyer website (React/Vite)
 - **admin/** — admin console (React/Vite, deployed separately)

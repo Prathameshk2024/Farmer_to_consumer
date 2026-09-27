@@ -15,14 +15,14 @@ export type LangCode = (typeof LANGS)[number]['code']
 const mr: Record<string, string> = {
   // The product name is a brand and reads Marathi first in both languages;
   // app.nameShort is its English line, printed smaller under it.
-  'app.name': 'शेतकऱ्यापासून थेट ग्राहकापर्यंत',
-  'app.nameShort': 'Farmers to Consumer',
+  'app.name': 'जवाहर शेतकरी बाजार',
+  'app.nameShort': 'Jawahar Shetkari Bazar',
   'app.tagline': 'शेतकरी समृद्ध | ग्राहक सुरक्षित | शेती टिकाऊ',
 
   // ---- landing: the poster, section by section -------------------------
   'lp.mission': 'शेतकऱ्यांच्या मेहनतीचे योग्य मूल्य आणि ग्राहकांना शुद्ध, सुरक्षित व ताजे अन्नधान्य — हेच आमचे ध्येय!',
   'lp.band': 'डिजिटल तंत्रज्ञानावर आधारित शाश्वत कृषी विपणन मंच',
-  'lp.intro': '\'Farmers to Consumer\' हा प्रकल्प शेतकरी आणि ग्राहक यांच्यातील अंतर कमी करून, थेट डिजिटल माध्यमातून विश्वासार्ह, पारदर्शक आणि सुसंगत कृषी विपणन व्यवस्था निर्माण करण्याचा प्रयत्न आहे.',
+  'lp.intro': '\'Jawahar Shetkari Bazar\' हा प्रकल्प शेतकरी आणि ग्राहक यांच्यातील अंतर कमी करून, थेट डिजिटल माध्यमातून विश्वासार्ह, पारदर्शक आणि सुसंगत कृषी विपणन व्यवस्था निर्माण करण्याचा प्रयत्न आहे.',
   'lp.goalsTitle': 'उद्दिष्टे',
   'lp.goal1': 'शेतकरी आणि ग्राहक यांच्यात थेट संपर्क प्रस्थापित करणे.',
   'lp.goal2': 'मागणी-पुरवठ्याचे विश्लेषण करणे.',
@@ -823,13 +823,13 @@ const mr: Record<string, string> = {
 }
 
 const en: Record<string, string> = {
-  'app.name': 'शेतकऱ्यापासून थेट ग्राहकापर्यंत',
-  'app.nameShort': 'Farmers to Consumer',
+  'app.name': 'जवाहर शेतकरी बाजार',
+  'app.nameShort': 'Jawahar Shetkari Bazar',
   'app.tagline': 'Prosperous farmers · Safe buyers · Sustainable farming',
 
   'lp.mission': 'A fair return on the farmer\'s work, and clean, safe, fresh food for every buyer. That is what this is for.',
   'lp.band': 'A sustainable farm market, built on digital technology',
-  'lp.intro': 'Farmers to Consumer brings farmers and buyers closer, with a direct online market that people can trust and see into.',
+  'lp.intro': 'Jawahar Shetkari Bazar brings farmers and buyers closer, with a direct online market that people can trust and see into.',
   'lp.goalsTitle': 'Our aims',
   'lp.goal1': 'Put farmers and buyers in direct touch.',
   'lp.goal2': 'Keep track of what is wanted and what is on offer.',

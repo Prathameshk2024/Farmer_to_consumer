@@ -1,4 +1,4 @@
-# शेतकऱ्यापासून थेट ग्राहकापर्यंत · Farmers to Consumer — Feature Specification
+# जवाहर शेतकरी बाजार · Jawahar Shetkari Bazar — Feature Specification
 
 Farmers list produce, buyers order it, an admin verifies farmers and handles
 complaints. Money goes from buyer to farmer directly; the platform never holds

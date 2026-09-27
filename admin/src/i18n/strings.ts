@@ -21,8 +21,8 @@ export type LangCode = (typeof LANGS)[number]['code']
 
 const mr: Record<string, string> = {
   /* ---- chrome ---------------------------------------------------- */
-  'app.name': 'शेतकऱ्यापासून थेट ग्राहकापर्यंत',
-  'app.nameShort': 'Farmers to Consumer',
+  'app.name': 'जवाहर शेतकरी बाजार',
+  'app.nameShort': 'Jawahar Shetkari Bazar',
   'app.admin': 'प्रशासन',
   'app.signOut': 'बाहेर पडा',
   'app.signOutConfirmTitle': 'बाहेर पडायचे का?',
@@ -417,8 +417,8 @@ const mr: Record<string, string> = {
 
 const en: Record<string, string> = {
   /* ---- chrome ---------------------------------------------------- */
-  'app.name': 'शेतकऱ्यापासून थेट ग्राहकापर्यंत',
-  'app.nameShort': 'Farmers to Consumer',
+  'app.name': 'जवाहर शेतकरी बाजार',
+  'app.nameShort': 'Jawahar Shetkari Bazar',
   'app.admin': 'Admin',
   'app.signOut': 'Sign out',
   'app.signOutConfirmTitle': 'Sign out?',

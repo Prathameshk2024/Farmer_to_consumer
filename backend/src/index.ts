@@ -211,7 +211,7 @@ async function main() {
   startHousekeeping()
 
   app.listen(PORT, () => {
-    console.log(`\n  Farmers to Consumer API   http://localhost:${PORT}/api/health`)
+    console.log(`\n  Jawahar Shetkari Bazar API   http://localhost:${PORT}/api/health`)
     console.log(`  Admin API      http://localhost:${PORT}/api/admin/*  (backend only)`)
     console.log(describeConfig())
     const admins = describeAdminState(getDb())

@@ -56,7 +56,7 @@ export function AppBar({
   right?: ReactNode
   backTo?: string
   /**
-   * The Farmers to Consumer logo beside the title. On the screens they arrive at - the
+   * The Jawahar Shetkari Bazar logo beside the title. On the screens they arrive at - the
    * four tabs and the login doors - and nowhere deeper, because a detail
    * screen already told them where they are and the header space belongs to the
    * back button and the title. The mark carries its own gold ring; never add

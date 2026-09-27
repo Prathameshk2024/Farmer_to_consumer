@@ -1,4 +1,4 @@
-# Manual test plan — शेतकऱ्यापासून थेट ग्राहकापर्यंत · Farmers to Consumer
+# Manual test plan — जवाहर शेतकरी बाजार · Jawahar Shetkari Bazar
 
 An end-to-end manual pass over the farmer/buyer website, the admin console and
 the API. Run by one person on a laptop with three browser profiles, roughly in
@@ -63,7 +63,7 @@ Admin: `npm run admin:users -- create you@example.com "Your Name"` (API stopped)
 
 | ID | What to do | What must happen |
 |---|---|---|
-| ☐ A1 | Load `/` | Marathi by default; name "शेतकऱ्यापासून थेट ग्राहकापर्यंत" first, "Farmers to Consumer" second; logo with no extra border or background |
+| ☐ A1 | Load `/` | Marathi by default; name "जवाहर शेतकरी बाजार" first, "Jawahar Shetkari Bazar" second; logo with no extra border or background |
 | ☐ A2 | Switch to English, reload | Every string changes, placeholders included; the choice survives reload |
 | ☐ A3 | Visit `/farmer` or `/shop/cart` signed out | Redirected, no farmer screen flashes |
 | ☐ A4 | Measure in devtools | Text ≥16px, main buttons ≥56px, targets ≥44px |

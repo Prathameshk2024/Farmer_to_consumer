@@ -1,4 +1,4 @@
-# शेतकऱ्यापासून थेट ग्राहकापर्यंत · Farmers to Consumer
+# जवाहर शेतकरी बाजार · Jawahar Shetkari Bazar
 
 A website that lets farmers in Maharashtra sell straight to buyers: farmers
 list their produce, buyers order it, and an admin verifies each farmer once.
