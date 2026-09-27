@@ -1,592 +1,271 @@
 # CLAUDE.md
 
-# Workflow
-
-Never do the work yourself.
-Always dispatch a sub-agent.
-Don't always use Fable. Use Opus 5.5 for easier tasks.
-
-# Model routing
-
-- Fable 5.1: architecture, hard bugs, code review, anything
-  where being wrong is expensive
-- Opus 5.5: edits, tests, docs, refactors, the bulk of the work
-- Haiku 4.5: lookups, file searches, summaries, one-line answers
-- Pass `model` on every Agent call. No default routing.
-
-# Delegation
-
-- One sub-agent per task. Plan first, then dispatch.
-- Run independent sub-agents in parallel, not one after another.
-- Read the report, never the files. If a sub-agent did the work,
-  trust its summary instead of re-reading everything it touched.
-- Sub-agents return findings, not raw dumps.
-
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What this is
 
-शांताई महिला बाजार / Shantai Mahila Bazar — a digital marketplace for rural women entrepreneurs in Maharashtra. Three user-facing surfaces, one API:
+शेतकऱ्यापासून थेट ग्राहकापर्यंत / Farmers to Consumer — a website where farmers in Maharashtra sell produce straight to buyers. Farmers register, an admin verifies each one once, their listings go on sale, buyers order for delivery or pickup and pay by UPI or cash. The admin console also holds field-survey entry and the research paper's Tables 1–9.
 
-- **frontend/** — the farmer + customer app (React/Vite)
-- **admin/** — the admin console (React/Vite, deployed separately)
-- **backend/** — Express API serving all three, including `/api/admin/*`
-- **shared/** — domain types and rules imported by all of the above
+- **frontend/** — farmer + buyer website (React/Vite)
+- **admin/** — admin console (React/Vite, deployed separately)
+- **backend/** — Express API for both, including `/api/admin/*`
+- **shared/** — domain types and rules imported by all three
 
-Product spec: `docs/FEATURE-SPEC.md`. Deployment: `docs/DEPLOY.md`.
-Marathi style: `docs/MARATHI-STYLE.md` — read it before writing any Marathi string.
-
-`README.md` is deliberately short — layout, run, demo logins, links. Rules and architecture live here and in `docs/`, not there; the long README it replaced repeated them and had drifted from the code in more than a dozen places.
+Design spec: `docs/superpowers/specs/2026-09-26-farmer-to-consumer-design.md`. Deployment: `docs/DEPLOY.md`. Read `docs/MARATHI-STYLE.md` before writing any Marathi string. `README.md` stays short (layout, run, demo logins); rules and architecture live here and in `docs/`.
 
 ## Commands
 
 ```bash
-npm install            # installs all four workspaces
-npm run dev            # API :4000 + farmer app :5173
+npm install            # all four workspaces
+npm run dev            # API :4000 + farmer/buyer site :5173
 npm run dev:all        # the above + admin console :5174
-npm run dev:api        # API only
-npm run dev:web        # farmer app only
-npm run dev:admin      # admin console only
+npm run dev:api | dev:web | dev:admin
 
-npm test               # backend (350) + frontend (136) + admin (37) tests
+npm test               # backend (360) + frontend (121) + admin (36) tests
 npm run typecheck      # all three workspaces
 npm run build          # backend tsc + both Vite builds
 
-npm run admin          # interactive admin CLI (backend/scripts/admin.ts)
-npm run admin:users -- list          # administrator accounts (create / passwd / disable)
-npm run admin:users -- hash          # a password hash for ADMIN_BOOTSTRAP_PASSWORD_HASH
+npm run admin -- farmers                          # every farmer with status
+npm run admin -- verify <id|phone|farmer-code>    # verify a farmer from the CLI
+npm run admin -- set-password <phone> <password>  # demo password for a (seeded) farmer; API stopped
+npm run admin:users -- create you@example.com "Your Name"   # admin accounts (list / passwd / disable / hash)
 npm run backfill:customers -- --help
 npm run purge:demo -- --help
-npm run backup -- --dry-run      # live Firestore + photos to the backup accounts (BACKUP_* in backend/.env.example)
+npm run backup -- --dry-run      # see BACKUP_* in backend/.env.example and docs/BACKUP.md
 ```
 
-Run a single test file — `node:test` via tsx, no framework:
+Single test file (`node:test` via tsx, no framework):
 
 ```bash
-cd backend && node --import tsx --test tests/session.test.ts
+cd backend && node --import tsx --test tests/password-auth.test.ts
 cd admin   && node --import tsx --test tests/i18n.test.ts
 ```
 
-Vite proxies `/api` to `localhost:4000`, so nothing needs configuring in development. A fresh clone starts with an **empty** database; demo data needs `SEED_DEMO_DATA=true` in `backend/.env`. Reseed by stopping the API and deleting `backend/data/db.json`, or with `POST /api/dev/reset`, which 404s unless `ALLOW_DEV_RESET` is set outside production.
+Vite proxies `/api` to `localhost:4000`. A fresh clone starts with an **empty** database; demo data needs `SEED_DEMO_DATA=true` in `backend/.env`. Reseed by stopping the API and deleting `backend/data/db.json`, or `POST /api/dev/reset` (404 unless `ALLOW_DEV_RESET` is set outside production). Seeding never invents passwords: give a seeded farmer one with `npm run admin -- set-password 9822011223 123456`, then sign in at `/login/farmer`. There is no default admin; create one with `admin:users`, or on a host with no shell set `ADMIN_BOOTSTRAP_EMAIL` + `ADMIN_BOOTSTRAP_PASSWORD_HASH`, sign in once, and remove both. The API holds the database in memory, so run the CLIs with it stopped.
 
-Demo logins: register a farmer at `/register/farmer` or a buyer at `/register/customer` (phone + a password of 6 or more characters). Seeded farmers such as `9822011223` (राजेश पाटील, F2C-ANADUR-001) have no password - seeding never invents credentials - so give one a temporary password with *Reset password* on their page in the admin console, or, with the API stopped, `npm run admin -- set-password <phone> <password>`.
+## Import convention — read before writing any import
 
-There is no default admin password any more. Make an account with `npm run admin:users -- create you@example.com "Your Name"`, or set `ADMIN_BOOTSTRAP_EMAIL` + `ADMIN_BOOTSTRAP_PASSWORD_HASH` on a host with no shell.
-
-## Import convention — read this before writing any import
-
-Cross-workspace imports use the `@shared/*` alias **with a `.js` extension on a `.ts` file**:
+Cross-workspace imports use `@shared/*` **with a `.js` extension on a `.ts` file**:
 
 ```ts
 import type { Order } from '@shared/types.js'   // resolves to shared/src/types.ts
 ```
 
-The backend is `module: NodeNext`, which requires the `.js` extension at runtime. The two Vite configs rewrite `@shared/<x>.js` → `shared/src/<x>.ts` with a regex alias. Dropping the `.js`, or writing `.ts`, breaks one side or the other. Local relative imports inside `frontend/` and `admin/` follow the same `.js` convention.
+The backend is `module: NodeNext`, which needs `.js` at runtime; both Vite configs rewrite `@shared/<x>.js` → `shared/src/<x>.ts`. Dropping the `.js` or writing `.ts` breaks one side. Relative imports inside `frontend/` and `admin/` use `.js` too. `shared/` is not built — it is consumed as TypeScript source, so a change there is a compile error wherever the other side has not caught up. The backend build is `tsc` **plus** `scripts/fix-shared-imports.js`, which rewrites `@shared/…` specifiers in the output; without it the container dies on its first import.
 
-`shared/` is not built — it is consumed as TypeScript source. A change there is a compile error on whichever side has not caught up, which is the point.
-
-`frontend/` and `admin/` still list `"@f2c/shared": "*"` in `dependencies`, although no import names that package. The line is for Vercel, not for the code: it skips deploying a monorepo project whose commit touched nothing it depends on, and it learns the dependencies from `package.json` alone. Without it, a commit that changes only `orderFlow.ts` or `payment.ts` would redeploy neither app, and the live site would keep enforcing the old rule. Do not remove it as unused.
+`frontend/` and `admin/` list `"@f2c/shared": "*"` in `dependencies` although nothing imports that name. It is for Vercel, which decides whether a commit touches a project from `package.json` alone; without it a change only to `shared/` redeploys neither app. Do not remove it as unused.
 
 ## Architecture
 
-### Persistence: one synchronous interface, two drivers
+### Persistence: one synchronous interface, one process
 
-`backend/src/db/store.ts` exposes a **synchronous** `getDb()` backed by either Firestore or a JSON file, chosen by whether `FIREBASE_*` credentials are present. The entire dataset is loaded into memory at boot; `save()` schedules a diffed, batched write coalesced over 400ms.
+`backend/src/db/store.ts` exposes a **synchronous** `getDb()` backed by Firestore or a JSON file, chosen by whether `FIREBASE_*` credentials are present. The whole dataset is loaded at boot; `save()` schedules a diffed, batched write coalesced over 400ms.
 
-Consequences that matter when changing anything in `backend/src/`:
+- **`initStore()` finishes before the first request** — `index.ts` awaits it.
+- **Writes are diffed.** Only changed documents are sent; never add a path that rewrites a whole collection.
+- **No persist may delete more than half a collection.** `isBulkDelete()` in `firestore.ts` refuses it, keeps the documents and logs loudly; `ALLOW_BULK_DELETE=true`, set inline on the one command that means it, is the override. The lesson behind it: a process whose in-memory arrays were empty once persisted that emptiness over real farmers and products. A refusal means memory and the server disagree — find out why before trusting that process.
+- **Correct for exactly ONE server process.** Two instances hold two snapshots and overwrite each other silently. Cloud Run is pinned to `--max-instances=1`; a deploy briefly runs two revisions, so deploy when nobody is ordering. Outgrowing this means async per-document reads in every handler — real work, not a config change.
+- **Boot failure:** in production, a Firestore load failure refuses to start ("Refusing to start on an empty database" — often the Spark plan's daily reads, `docs/CAPACITY.md` §4); down is honest, empty loses data. In development it falls back to the JSON file and says so. Reads and writes share one `firestoreLive` flag.
+- An empty database stays empty unless `SEED_DEMO_DATA` is set. Never seed automatically.
+- `normalizeLegacyRows()` (`db/moderation.ts`) runs at boot and turns rows stored under removed rules (PENDING/REJECTED/ARCHIVED listings, unpaid farmer statuses) into current ones; a no-op on clean data.
 
-- **`initStore()` must finish before the first request.** `index.ts` awaits it.
-- **Writes are diffed, not blanket.** Only changed documents are sent. Do not introduce a code path that rewrites whole collections.
-- **No single persist may delete more than half a collection.** `isBulkDelete()` in `firestore.ts` refuses it, keeps the documents, and logs loudly; `ALLOW_BULK_DELETE=true` on the one command that means it is the override. This exists because on 10 September 2026 a persist whose in-memory `farmers` and `products` were empty deleted six real farmers and thirteen products, recovered only from Firestore's one-hour version history. A refusal means memory and the server disagree — find out why before trusting that process.
-- **This is correct for exactly ONE server process.** Two instances each hold their own snapshot and silently overwrite each other. Cloud Run is pinned to `--max-instances=1`, and a deploy is the one moment that ceiling does not hold: the new revision starts before the old one has drained, so for a few seconds there are two. Deploy when nobody is placing orders. Outgrowing this means converting route handlers to async per-document reads — real work, not a config change.
-- A Firestore connection failure at boot **falls back to the JSON file** and says so loudly. Reads and writes track the same `firestoreLive` flag so they can never disagree.
-- An empty database stays empty unless `SEED_DEMO_DATA` is set. Never make seeding automatic — it would put invented farmers in front of real customers.
+Firebase is **server-side only** (`firebase-admin`, service account). No Firebase Web SDK anywhere: `firestore.rules` denies all client access because every business rule lives in the API.
 
-Firebase is **server-side only**, via `firebase-admin` with a service account. There is no Firebase Web SDK anywhere, and adding one would be an architectural change, not a convenience: `firestore.rules` denies all client-SDK access because every business rule (legal order transitions, who may edit what) lives in the API.
+### Sessions and password sign-in
 
-### Sessions
+`backend/src/auth/` is the stack; `middleware/auth.ts` composes it. There is **no SMS and no OTP** anywhere.
 
-`backend/src/auth/` is the whole stack; `middleware/auth.ts` composes it. The token is `base64url({sid, role, iat}).base64url(HMAC(payload))` signed with `SESSION_SECRET`.
+- **Farmers and buyers sign in with phone + password; admins with email + password.** Passwords live in the `credentials` collection (`auth/credentials.ts`), never on a Farmer or Customer row. `shared/src/password.ts` is the rule on both sides: at least 6 characters, digits alone allowed, no leading/trailing space — a composition rule would only get the password written on the phone's back cover. Hashes are scrypt; an unknown phone still pays for a hash so timing does not reveal which numbers have accounts.
+- **Phone is the account**, so `normalizePhone()` (`shared/src/farmer.ts`) reduces "+91 98765 43210", "098765…" and "9876543210" to one value everywhere it is stored or compared.
+- **One answer for every failure** — unknown phone and wrong password read the same, and every attempt is counted before it is answered.
+- **Forgotten password is a request to a person** (`auth/passwordRequests.ts`). The public `/forgot-password/:role` page posts `POST /auth/password-requests`; the reply is identical whether or not the number is registered, and the match is kept for the admin only. The admin's **Password requests** queue (`admin/src/screens/PasswordRequests.tsx`) resets from the request: `POST /admin/users/reset-password` returns a **six-digit temporary password once**, read out on a call to the account's own number, revokes every session, and marks the credential `mustChangePassword`. Until it is changed, the middleware lets that session reach only `/api/auth/password` and `/api/auth/logout` (403 `MUST_CHANGE_PASSWORD`), and the app routes to `/password`.
+- **Rate limits** (`auth/rateLimit.ts`) are keyed by subject *and* IP — subject alone lets a script walk numbers, IP alone punishes a village behind one carrier NAT. Login: 5 wrong per phone per 15 min, 50 per IP per hour. Forgot-password: 3 per phone per day, 20 per IP per hour. Registration: 10 per IP per hour. This needs `app.set('trust proxy', 1)`. `retryInMr()` says the wait in days/hours/minutes and inflects for one.
+- **Registration signs you in** (`POST /farmers/register`, `POST /customers/register`), setting the credential and a session together. No SMS proves the phone; for farmers the admin's verification is that check.
+- **The token carries no identity.** It is `base64url({sid, role, iat}).HMAC`, signed with `SESSION_SECRET`; `sid` points at a `sessions` row that holds the user, so deleting the row revokes it instantly. `auth/crypto.ts` is the only file touching `node:crypto`, and every signature is domain-separated by purpose.
+- **Idle windows** (admin 8h, farmer/buyer 15 days) plus **absolute ceilings** (7d / 90d) so a copied token cannot live forever by being used. Past half the idle window the server re-stamps the token on **`X-Session-Token`**, which must stay in CORS `exposedHeaders`. Both api clients hold the token in memory and use `localStorage` only across a reload; on the farmer/buyer app the refreshed token must reach `wb.session` too (`AuthContext` is the only subscriber of `onTokenRefresh`/`onSessionExpired`).
+- `attachAuth` never rejects; `requireRole(...)` does (401 = dead session, 403 = not your door). **Only Log out and a 401 end a session** — Back, refresh and re-entering a section never do; login screens redirect an already-signed-in matching role home.
 
-**The token carries no identity.** `sid` points at a row in the `sessions` collection, and `req.auth.farmerId` is read from that row on every request — so a token cannot assert an identity the server did not issue, and deleting the row revokes it instantly. That is what makes logout and "the phone was stolen" real.
+### Verification, once
 
-- `auth/crypto.ts` is the only file that touches `node:crypto`. Every signature is **domain-separated by purpose**, so an HMAC made for one job (a hashed IP) cannot be presented as a session token.
-- **Phone + password, no SMS.** The rule is `shared/src/password.ts`: `MIN_PASSWORD = 6`, digits alone allowed (a farmer remembers a PIN, not a composition rule), no leading or trailing space; `passwordProblemMr()` is the one check, used by the screens and the routes. Hashes are scrypt (`hashPassword` in `auth/crypto.ts`). `POST /auth/login {phone, password, role}` answers one 401 for an unknown phone and a wrong password, and an unknown phone still pays for a hash (`burnPasswordTime`), so neither the message nor the timing says which numbers have accounts.
-- **Credentials are their own collection** (`credentials`, `auth/credentials.ts`), one row per phone *per role* - a farmer password does not open a buyer account on the same number. Never on the `Farmer` or `Customer` row, because those rows are sent whole to their owners' phones and a hash on them would travel too. Registration writes one: `POST /farmers/register` takes `phone` + `password` (409 if the phone is a farmer already), `POST /customers/register {phone, name, password}` is one screen (`registerCustomer()` in `db/customers.ts`; 409 if the phone already has a buyer credential, and 409 `CLAIM_VIA_ADMIN` if a buyer row for that phone already has addresses or orders - typing a number proves nothing, so such a buyer asks for a password and the admin reset is the ownership check; an empty row may be adopted). A farmer phone is taken by a farmer row *or* a farmer credential (`farmerPhoneTaken`). Uploads need a session; the wizard no longer uploads anything, and the payment QR is added on `/farmer/payment` afterwards.
-- **Rate limits** live in `auth/rateLimit.ts`, keyed by *both* subject and IP. This needs `app.set('trust proxy', 1)`; without it Cloud Run's front end makes every request share one address. Login: **5 per phone per 15 minutes, 50 per IP per hour**; a right password clears the phone's count. `retryInMr()` in `auth.routes.ts` says the wait back in days, hours or minutes, and inflects for one, because "1 दिवसांनी" tells a woman this was not written for her on the one screen where she is already being told no.
-- **Changing a password** (`POST /auth/password {current, next}`, `changeOwnPassword()` in `auth/credentials.ts`) spends the same `login:phone:` budget as login, so a live session is not a way to guess the owner's PIN, and signs out every other session of that person (`revokeAllForUser(..., exceptId)`), because a password is changed when someone else may know the old one.
-- **Admin reset** (`POST /admin/users/reset-password {role, userId, requestId?}`, the `ResetPassword` component behind `Confirm` on the farmer page, the order's buyer panel and the queue) sets a six-digit temporary password, returns it once, signs the person out everywhere and marks the credential `mustChangePassword`. `attachAuth` copies that flag onto `req.auth`, and `requireRole` answers **403 `MUST_CHANGE_PASSWORD`** on every farmer/customer route except `/auth/password` and `/auth/logout`. The app's `api.ts` publishes `onMustChangePassword`, `AuthContext` marks the session, and `Require` sends it to `/password`.
-- **Forgot password is a request to a person.** The public `/forgot-password/:role` page posts `POST /auth/password-requests {role, phone, name, village?}` (village required for a farmer, to tell two Rajesh Patils apart). It answers **200 `{ok:true}` for every valid body, account or not** - any difference would let a stranger test which numbers are registered; the matched account is noted for the admin only. Limits are counted before any lookup: **3 per phone per 24h, 20 per IP per hour**. Asking again while a request is OPEN refreshes its `at` instead of adding a row. The admin queue (`/password-requests` in the console, count on the dashboard and in the nav) lists OPEN rows longest wait first; the rule on that screen is to call the requesting number, confirm name and village, and read the temporary password out only on that call. A reset with `requestId` closes the row as DONE only when that request's matched account and role are the ones being reset; "Close" dismisses it with an optional reason. Closing an account deletes its credential and its requests (`forgetAuth` in `db/accountClose.ts`).
-- **Admins** are database records with scrypt hashes (`auth/admins.ts`), managed by `npm run admin:users`. There is no `ADMIN_PASSWORD`.
-- **Idle windows, not absolute**: admin 8h, farmer/customer 15 days (inactive for more than 15 days ends the session). Different because the risk differs, and because signing in again means typing a password a farmer rarely uses. There is also an **absolute** ceiling (admin 7d, others 90d) so a copied token cannot be kept alive forever by being used.
-- Past halfway through the window the server re-stamps the token onto the **`X-Session-Token`** response header; `frontend/src/lib/api.ts` and `admin/src/lib/api.ts` swap it in. This header must stay in the CORS `exposedHeaders` list or every session expires on a timer regardless of activity.
-- **The token is held in memory; `localStorage` only carries it across a reload.** Both api clients keep a `memoryToken` and fall back to storage only when it is empty. Reading storage on every request made the whole app depend on a write that fails silently — blocked site data, private mode, a full quota — and the failure mode was the worst on offer: signed in on screen, because React holds the session, and no credentials on the wire.
-- `attachAuth` never rejects — `requireRole(...)` does, so public routes stay public.
-- On the farmer/customer app the refreshed token must reach **`wb.session`**, not just `wb.token`: `api.ts` publishes `onTokenRefresh`/`onSessionExpired` and `AuthContext` is the only subscriber. The admin console publishes `onSessionExpired` the same way, and its `AuthContext` is likewise the only subscriber — clearing storage alone left React holding a signed-in session, so the shell stayed up and every panel on it re-requested with no token and got another 401. Writing it to `wb.token` alone means the next reload restores the original from `wb.session` and the slide is lost — the window then counts from login rather than from last use.
-- **Only two things end a session**: Log out, and a 401. Back, refresh and re-entering `/farmer` must never clear one, so the login screens redirect an already-signed-in matching role straight to its home instead of asking for the password again.
+A new farmer is `PENDING_VERIFICATION` and invisible to buyers. An admin checks the person once — usually a field visit — and `POST /admin/farmers/:id/verify` (or `npm run admin -- verify`) makes them `ACTIVE`, stamps `verifiedAt`/`verifiedBy`, and writes a `VERIFIED` notice. `canSellNow()` is simply `status === 'ACTIVE'`. Block/unblock and account restore key on `verifiedAt`, so they never drop a verified farmer back to waiting.
 
-### Deleting an account
+### Listings go live without approval
 
-`shared/src/accountClose.ts` is the rule, `backend/src/db/accountClose.ts` applies it, `backend/tests/account-close.test.ts` holds it, and `CloseAccountSheet` in `frontend/src/components/CloseAccount.tsx` is the screen.
+**Selling is free**: no packs, slots, subscription or edit limits. `initialListingStatus()` returns `LIVE` (or `DRAFT` when saved as one) — the person was checked once, and a listing is not checked again. A farmer may edit or delete any listing (`farmerMayDelete()` is always true); deleting splices the row and destroys its Cloudinary image. An admin's only listing action is **take-down** (`POST /admin/products/:id/moderate` with a required reason, `approve` refused): the row, its photo and its reports go at once and the reason reaches the farmer as a `PRODUCT_REJECTED` notice. Orders copy name, price and quantity into `OrderItem`, so deleting a product never empties history (`product-delete.test.ts`).
 
-- **The row stays and the person is erased.** `scrubFarmer()` empties every field that is her — phone, name, photo, village, the exact location, UPI, the questionnaire and FDRI answers, an admin's notices about her — and leaves the id, `status: 'CLOSED'`, the `farmerCode` printed on packaging, and the money. Three reasons it is not a row delete: a past order is the *buyer's* record as much as the farmer's (kept, and disclosed); `isBulkDelete()` refuses a persist that removes more than half a collection, and a farmer with five listings in a small catalogue is more than half of it; and orders and the admin console look a farmer up by id, so a dangling id is a blank shop name on somebody else's screen. `FARMER_PII_FIELDS` is the one list, walked by the test — a field added to `Farmer` and forgotten there is a phone number surviving a deletion.
-- **Her phone goes back into circulation**, because registration's uniqueness check compares stored phones and hers is now blank. Closing is not a ban.
-- **CLOSED is not in `canSellNow()`**, so the shop leaves the catalogue, `GET /farmers/:id` 404s and `POST /orders` refuses — from the status alone, with no product touched. That is also what makes the undo a one-line restore.
-- **Seven days between asking and erasing** (`UNDO_DAYS`). The shop closes and every session is revoked the moment she asks; `sweepClosedAccounts()` does the erasing later, at boot and on the 15-minute timer, a sweep rather than a timer because the week almost always contains a deploy. Restoring goes back to `ACTIVE` only if he was verified (`verifiedAt`), otherwise to `PENDING_VERIFICATION` — closing and restoring must not skip the check. Signing in during it puts a "your account is closing" notice at the top of My Business with one button (`POST /farmers/me/restore`). **A buyer gets no window**: what she loses is an address book, and her account is her phone number, so signing in again gives her a new empty one rather than this one back.
-- **Two screens and four digits stop a stray tap.** The entry point is deliberately nowhere near Log out — its own card at the very bottom of the profile, a quiet line rather than a red button — and the sheet walks the `CancelOrderSheet` shape: what it costs (her own listing count), why she is leaving, then **the last four digits of her own number, typed**. Not a word to copy, which is a literacy test, and not her password again, which is one more thing to remember and proves only possession of a phone she is already signed in on. The server re-checks all of it.
-- **An order in flight refuses the close** (409 with `openOrders`), on both sides. The sheet names the orders instead of printing an error: a buyer waiting on a delivery cannot be left holding an order whose farmer has vanished, and she already has the buttons to finish or cancel one.
-- **A closing buyer leaves the orders she placed**: `customerName` becomes the `ग्राहक` placeholder, `customerPhone` and `address` are emptied, her reviews keep their stars and lose her name. The pincode stays — it is a delivery area, not a doorstep.
-- Her bank QR image goes too, by its stored public id.
+### Produce rules
 
-### Order state machine
+`shared/src/produce.ts` and `crops.ts`, enforced by the wizard, the edit screen and the server alike (`listingProblems()`):
+
+- A listing names a **crop** from `CROPS`; its category is derived from the crop (`categoryFor()`), so onions cannot be filed under fruit. Only crop `other` lets the farmer pick a category, and the server refuses a `categoryId` not in `CATEGORIES` (`backend/src/db/seed.ts`).
+- **Unit** is kg, quintal, dozen, piece or litre; price is rupees per one unit. **Stock** and **minimum order** are whole units; stock 0 is "sold out for now". Orders do **not** decrement stock — the farmer keeps it current. `orderQtyProblem()` checks lines on the server; `cartStep()` steps the cart between minimum and stock.
+- **Harvest date** is required, never in the future, and for vegetables, leafy greens and fruit no older than `FRESH_MAX_DAYS` (60), counted in IST. **Cultivation** is organic, natural or chemical. Description ≤ 500.
+- The upload wizard asks one question per screen; `EditProduct` puts every field on one page, because a farmer who came to fix a price should not walk four screens.
+
+### Farmer profile, FDRI and codes
+
+- Registration also asks the paper's questionnaire (`shared/src/profile.ts`: age group, education, landholding, farmer types, selling channels, problems) — all optional and stored as codes, dropped rather than refused if unknown.
+- **FDRI** (`shared/src/fdri.ts`): ten yes/no indicators, one mark each; bands 0–3 low, 4–7 moderate, 8–10 high. Stored per indicator so each can be tabulated alone.
+- **Farmer code** (`shared/src/farmerCode.ts`): `F2C-<VILLAGE>-<NNN>`, serial **per village** so the code tells a coordinator where to go. Known survey villages have fixed codes in `VILLAGES`; others are transliterated from Devanagari. A new farmer whose phone matches a typed-in survey is linked to it (`linkSurveysByPhone`).
+
+### Location privacy and maps
+
+`shared/src/geo.ts`. A farm point is stored only with an explicit yes (`locationConsent`) and only if `isValidLatLng()` (roughly India). Buyers get it through `publicLocation()`: **rounded to two decimals (~1 km) and absent without consent** — the village, not the house. The **pickup place** is a spot the farmer chose to publish, so it needs no consent, but its point is rounded the same way. The admin map (`GET /admin/map`) shows exact points regardless of consent — the programme placing a farm on its own field map is why the point was collected — plus unlinked survey points.
+
+`MapView.tsx` is a Leaflet + OpenStreetMap wrapper, copied byte for byte between `frontend/` and `admin/`, using circle markers (bundlers break Leaflet's pin images). The buyer's map (`/shop/map`, `GET /catalog/map`) pins only farmers with something `publiclyVisible`.
+
+### Order state machine and pickup
 
 `shared/src/orderFlow.ts` is the single source of truth:
 
 ```
-PLACED → ACCEPTED → PACKED → OUT_FOR_DELIVERY → DELIVERED → COMPLETED
+PLACED → ACCEPTED → PACKED → OUT_FOR_DELIVERY → DELIVERED     (+ REJECTED, CANCELLED)
 ```
 
-Locked at six states. Payment is still a separate axis rather than a seventh state, but it is no longer independent of the walk: **a UPI order stops at `PACKED` until the farmer says the money arrived.** The backend validates transitions with `canTransition(from, to, order.fulfilment)`; the frontend draws its buttons from `actionsFor(order.status, order.fulfilment)`, never from `FARMER_ACTIONS` directly. Neither hard-codes a status string, and new code should not either.
+Five states, `DELIVERED` is the end. Payment is a separate axis. The backend validates with `canTransition(from, to, fulfilment)`; the frontend draws buttons from `actionsFor(status, fulfilment)`. Neither hard-codes a status string.
 
-**Pickup** (`Order.fulfilment: 'pickup'`, absent = delivery) skips `OUT_FOR_DELIVERY`: `PACKED` reads "ready for pickup" (`statusLabelKey(status, fulfilment)`) and the next step is `DELIVERED`, the buyer collecting it; the buyer sees three stages (`buyerStages(fulfilment)`). The UPI gate and the cancel rules are unchanged. A farmer offers delivery (`offersDelivery`, `?? true` on old rows), pickup (`pickup.place`), or both; `buildOrders()` refuses what she does not offer. On pickup the order's `address` is her pickup place, `deliveryFee` is 0 and no pincode rule applies.
+**Pickup** (`Order.fulfilment = 'pickup'`) is a branch, not new states: at `PACKED` the one action is "picked up" → `DELIVERED`, never "out for delivery". No address, no delivery fee; the order's address is the farmer's pickup place. A farmer offers delivery, pickup (a place in their profile) or both — never neither (`validateFarmerProfile`). The buyer sees `buyerStages()`: four stages for delivery (confirmed, shipped, out for delivery, delivered), three for pickup (confirmed, ready for pickup, picked up). The farmer's screens keep every state.
 
-**The buyer sees four stages, not five states** — `BUYER_STAGES` and `buyerStageIndex()` in `orderFlow.ts`, drawn by `OrderStatusBox` / `BuyerTracker` in `frontend/src/components/OrderTracker.tsx`: Order confirmed (`ACCEPTED`), Shipped (`PACKED`), Out for delivery (`OUT_FOR_DELIVERY`), Delivered — a bold title and the day, green dot and green line for every stage reached, red for an order that ended (showing only the stages it passed). The order screen opens with the product lines, the order number (copyable) and a one-line status box that expands into the tracker. The farmer's screens keep all five states (`Timeline` in `screens/farmer/Orders.tsx`). My Orders has three tabs — active, completed (delivered), cancelled.
+**Accept asks how long delivery will take** (`needsEstimate`): free text in the farmer's own words, four quick chips, skippable, stored by `cleanDeliveryEstimate()` on `ACCEPTED` only. A date picker would force a precision a village with one bus a day does not have.
 
 ### Money after acceptance, not before
 
-The buyer used to pay at checkout. Now the order reaches the farmer unpaid (`UPI_PENDING`), she accepts if she can deliver, and only then does the buyer pay — because her delivery-area list is a hint rather than a gate, rejection is an ordinary outcome, and a rejected prepaid order leaves the money in her account with no refund path in this app.
+The order reaches the farmer unpaid; they accept if they can fulfil it, and only then does the buyer pay — because rejection is ordinary and a rejected prepaid order has no refund path in this app. Two predicates say whose turn it is:
 
-Two predicates in `orderFlow.ts` say whose turn it is, and both sides read them rather than comparing statuses:
+- `awaitingCustomerPayment()` — UPI + `UPI_PENDING` + `ACCEPTED`. The buyer's screen shows the QR and UTR box from it; `POST /orders/:id/pay` refuses anything else.
+- `awaitingPaymentConfirmation()` — UPI and not yet `UPI_CONFIRMED`. `advance` refuses `PACKED` on it and the button is hidden. A typed UTR is a claim (`UPI_SUBMITTED`); only the farmer's `confirm-payment`, after checking their UPI app, is money.
 
-- `awaitingCustomerPayment()` — UPI + `UPI_PENDING` + `ACCEPTED`. The buyer's order screen draws the QR and the UTR box from this; `POST /orders/:id/pay` refuses anything else.
-- `awaitingPaymentConfirmation()` — UPI and not yet `UPI_CONFIRMED`. `POST /orders/:id/advance` refuses `PACKED` on it, and `Orders.tsx` hides the button so she does not discover the rule by being told no.
+### The two hand-typed numbers
 
-A typed UTR is a claim, not money: `UPI_SUBMITTED` only means the buyer says so. Only her own `confirm-payment`, made after looking at her UPI app, reaches `UPI_CONFIRMED`. Checkout no longer accepts a `paymentUtr` at all.
+`shared/src/payment.ts`. No gateway, no bank callback, so both numbers fail silently in opposite directions: a wrong **UPI ID** pays a stranger, a wrong **UTR** leaves a payment nothing matches.
+
+- **A UTR is exactly 12 digits** (the RRN, what a bank statement shows). `normalizeUtr()` strips spaces and hyphens and nothing else — stripping all non-digits could turn a long app transaction id into twelve digits that were never an RRN. **One UTR, one order**: re-using it on a second order is refused; re-posting on the same order is a correction.
+- **`upiProblem()` is not an allow-list.** `KNOWN_UPI_HANDLES` catches near-miss typos in the handle ("@ybll" → did you mean "@ybl"?); an unknown handle that is not a near miss is accepted, because new banks appear. `isValidUpi()` delegates here so every call site agrees.
+- The amount is printed beside the QR; the UPI ID has a copy icon (`.copyrow` never wraps). The submit button stays disabled while the number cannot be right. Both validators return Marathi.
+- **No "Pay" button on a `upi://pay` link while payees are personal UPI IDs**: UPI apps decline app-initiated payments to personal IDs as scam-shaped, while the same QR scanned from the gallery pays. `buildUpiLink()` sends no `tr` for the same reason. `PaySteps` (`components/PayFromPhone.tsx`) writes out screenshot → open UPI app → scan from gallery → check name and amount → come back; `useReturnFromApp` focuses the UTR box on return after the ID was copied.
 
 ### Calling an order off
 
-`shared/src/orderCancel.ts` is the rule; `backend/src/db/orderCancel.ts` applies it and `POST /orders/:id/cancel` is the one route, for both sides — which side is asking comes from the session, never the body. Both land on the existing `CANCELLED` state; the event's `by` says who.
-
-- **The buyer, only while `PLACED`.** Nothing has been paid (UPI is paid after acceptance) and nothing is cooking. After acceptance the button is gone and the screen says to call the farmer — "the customer asked to cancel" is on her list for exactly that.
-- **The farmer, from `ACCEPTED` to `OUT_FOR_DELIVERY`.** Before acceptance she has Reject; `DELIVERED` is not undone by a button. Her Cancel button sits below the content, never in the action bar her thumb lives on.
-- **Both sides walk the same three steps** in `CancelOrderSheet`, worded for the reader: "cancel it for certain?" (what it costs the other person), the reason, then "cancel this order?" (it cannot be undone) — only that third button sends it.
-- **Then the farmer gets a fourth screen: the refund.** The app moves no money, so whatever the buyer paid is in her account and only she can return it. `refundOwed()` reads it off `paymentStatus` — `confirmed`, `claimed` (a UTR, which she is told to check) or `none` (still told to return any cash or advance). It closes only on "I understand", and `RefundNotice` keeps saying it on the cancelled order's screen while money was reported; the buyer's screen says the farmer must send it back.
-- **A reason is always required, picked from a list.** "Other" is the escape hatch and the only one that needs typed words (5–200 characters). The event stores the reason **code** in `reason`, not a sentence, so each reader sees it in their own language; `note` carries words only for "other". Old rejects kept their translated sentence in `note` and are shown as written.
-- `endingEvent()` finds the event that ended an order; both apps' order screens and the admin order panel draw who stopped it and why from it. `backend/tests/order-cancel.test.ts` holds all of this.
-
-### The two numbers nobody can check for her
-
-`shared/src/payment.ts`. There is no gateway and no bank callback in this app,
-so both hand-typed numbers on the payment screens fail in opposite directions:
-a wrong **UPI ID** sends the money to a stranger, a wrong **UTR** leaves a real
-payment with nothing to match it against. The rule on both, on both sides of
-both flows, was `length < 6`.
-
-- **A UTR is exactly 12 digits** — the RRN, which is what a bank statement
-  shows and therefore the only reference a farmer checking by eye can find.
-  `normalizeUtr()` strips spaces and hyphens **and nothing else**: stripping
-  every non-digit would turn PhonePe's own long transaction id into twelve
-  digits that were never an RRN, and truncating it would invent one that looks
-  perfect and matches no line anywhere. Wrong input has to stay wrong to be
-  reportable.
-- **The same UTR may not be claimed on a second order.** One transaction has
-  one RRN. An order has no admin in the loop, so `POST /orders/:id/pay` refuses it outright — re-posting
-  it on the *same* order is a woman correcting a digit and is left alone.
-- **`upiProblem()` is not an allow-list, on purpose.** `KNOWN_UPI_HANDLES`
-  exists to catch a typo in the half of the address she cannot proofread: she
-  can read "sunita" back, but "ybll" looks exactly as right as "ybl". A handle
-  within one or two edits of a real one is refused *and named* ("तुम्हाला
-  "@ybl" म्हणायचे आहे का?"); an unknown handle that is not a near miss is
-  **accepted**, because new banks appear and this file does not, and locking a
-  farmer out of her own real UPI ID costs her every order she takes.
-- `isValidUpi()` in `farmer.ts` delegates here, so all seven call sites —
-  registration, profile edit, the QR screen, both server routes — tightened at
-  once and cannot drift apart. A test asserts they agree.
-- **The amount is on the screen, not only inside the QR.** The generated link
-  carries it and she cannot read a QR; paying the wrong figure into a UPI app
-  is the one mistake neither side can undo. `CopyValue` beside it is an icon
-  at the 44px floor and no word — labelled, the button was wider than the UPI
-  ID it belonged to, and the ID is the thing she is meant to read. `.copyrow`
-  never wraps: a long ID breaks across lines beside the button, because a
-  button pushed onto its own line under the ID read as a separate control.
-- The submit button is **disabled while the number cannot be right**. A live
-  button under a malformed UTR reads as "this is fine, press me", and it is the
-  last thing standing between her and an unmatchable payment.
-
-Both validators return **Marathi**, like `farmerProfileProblems` — it is what
-each side already puts in `fields`, and a second English table is one more
-thing to leave behind.
+`shared/src/orderCancel.ts` is the rule, `backend/src/db/orderCancel.ts` applies it, `POST /orders/:id/cancel` is the one route; which side is asking comes from the session. The **buyer** may cancel only while `PLACED`; the **farmer** from `ACCEPTED` to `OUT_FOR_DELIVERY` (before that they Reject). Both walk `CancelOrderSheet`'s three steps — consequence, reason from a list (`other` needs 5–200 typed characters), final confirm. The event stores the reason **code** so each reader sees their own language. Then the farmer gets a refund screen: `refundOwed()` reads `confirmed` / `claimed` / `none` off `paymentStatus`, because the app moves no money and only the farmer can return it. `endingEvent()` tells every order screen who stopped it and why.
 
 ### One farmer per cart
 
-The cart holds **one farmer's goods at a time**. The first shop a buyer adds
-from owns it until she empties it or orders from it; a product from another
-shop is refused on the spot, with the name of the shop that holds the cart and
-a button to go and look at it.
+`frontend/src/store/cartRules.ts` (`cartFarmer()`, `canAddFrom()`); `CartContext.add()` returns `false` instead of adding. The first shop added from owns the cart until it is emptied or ordered; a product from another shop is refused with that shop's name and a link to it. **Nothing is cleared on the buyer's behalf.** Quantity is editable on the cart line within minimum and stock. Grouping by farmer stays in checkout and `POST /orders` (an old saved cart can still hold two). "More from this shop" and `/shop/farmer/:farmerId` use the `farmerId` filter on `/catalog/products` so a phone on 4G fetches one shop, not the catalogue.
 
-`frontend/src/store/cartRules.ts` is the rule — `cartFarmer()`, `canAddFrom()`
-— and `CartContext.add()` is the only caller, returning `false` instead of
-adding. `ProductDetail` in `screens/customer/Browse.tsx` is the one screen
-that adds to a cart, so that is where the refusal is drawn.
-
-**Quantity is editable on the cart line**, in both directions. It was
-down-only for a while — quantity belongs on the product screen, where the
-stock is — which left a buyer who wanted a third jar tapping back into the
-catalogue to find the product again. The ceiling came to the cart instead:
-`Cart` already loads the catalogue for the farmer card, so the `+` stops at
-`stock` (or 20 for made-to-order), and a product that has since left the
-catalogue keeps what is in the basket and goes no higher. Zero still removes
-the line.
-
-**Nothing is ever cleared on her behalf.** Emptying a cart to make room for a
-tap is how a woman loses the only record of what she had chosen; the refusal
-points at the cart and lets her decide. `CartItem.farmerName` is copied in on
-the way so the message can name the shop without waiting for the catalogue.
-
-**A delivery charge of 0 means "ask the farmer", never "free".** No screen asks a farmer for a charge, so 0 is almost always one nobody set, and the cart printed a "free" she had never promised. `FarmerGroup.deliveryToAsk` (in `CartContext`) marks it: the cart line reads विक्रेतीला विचारा with a line saying the farmer will tell them the charge and that her phone is on the order the moment it is placed (true — `GET /orders/:id` returns it from `PLACED`); every total beside it reads *Total (without delivery)*; the checkout repeats the line before she commits; the farmer card on the product and shop pages says the same instead of ₹0. "Free" stays only where a farmer's own `freeDeliveryAbove` is met — that one is her promise.
-
-Grouping by farmer stays. Checkout, `POST /orders` and every delivery rule are
-built on it, one group is the honest shape of one farmer, and a cart saved in
-`localStorage` before this rule can still hold two - which is exactly why the
-`groups.length > 1` branches in `CartCheckout.tsx` are still there.
-
-Because the cart is locked, what else that farmer sells is the most useful
-thing on a product screen: **"More from this shop"** shows her three newest
-other listings, and `/shop/farmer/:farmerId` (`FarmerShop`) is the whole
-window - farmer card, delivery terms, every LIVE product. `/catalog/products`
-takes a `farmerId` filter so three products cost three products rather than
-the whole catalogue on rural 4G.
+**A delivery charge of 0 means "ask the farmer", never "free"** (`FarmerGroup.deliveryToAsk`): totals read "without delivery", and a signed-in buyer can get the farmer's number from `GET /catalog/farmers/:id/contact` to ask. "Free" only where the farmer's own `freeDeliveryAbove` is met. `POST /orders` answers 409 while any delivered order in the review window is unrated.
 
 ### Where an order may go
 
-`isMaharashtraPincode()` in `shared/src/farmer.ts` is the only hard geographic gate: 40–44, minus 403 which is Goa. Outside it the order is refused at `POST /orders` before the farmer sees it.
-
-**Inside it, her `pincodes` list is a hint, not a gate.** That list is usually one pincode typed at registration, and refusing 413002 because she wrote 413004 threw away orders she would have taken. The order reaches her with `outsideArea: true`, her order screen says so, and Accept means "yes, I can get there". The checkout and `PincodeBar` warn rather than block, for the same reason.
-
-### Verification, once
-
-A farmer is checked once, by a person, and after that his produce goes straight on sale. Produce changes daily; a queue per listing would sell yesterday's tomatoes. The check that remains is on the farmer.
-
-- **Registering makes him `PENDING_VERIFICATION`.** `POST /admin/farmers/:id/verify` (the *Verify farmer* button on his page in the console, behind `Confirm`) makes him `ACTIVE` and stamps `verifiedAt` and `verifiedBy`, and writes a `VERIFIED` notice he reads in his updates. It answers 409 for anyone not pending.
-- **`canSellNow(s)` in `shared/src/farmer.ts` is `status === 'ACTIVE'`**, and every public path asks it: `publiclyVisible`, serviceability, `GET /farmers/:id`, `POST /orders`, and putting a listing on sale. An unverified farmer's `LIVE` listing is not public.
-- **`initialListingStatus(asDraft)`** is `DRAFT` or `LIVE`. `POST /products` and `DRAFT → LIVE` refuse with 403 (`तुमची तपासणी झाल्यावर माल विक्रीसाठी जाईल`) while `!canSellNow`; drafts are his to write before the check.
-- **Unblocking and restoring a closed account go back to what the verification says** — `ACTIVE` only when `verifiedAt` is set — so neither is a way round the check.
-- **Free.** No packs, slots, edit limits or payment proof. He removes any of his own listings himself (`farmerMayDelete` is always true), and edits every field of a live one.
-- A listing that turns out wrong is reported and taken down (below). `backend/tests/verification.test.ts` holds the rule.
-- **Rows from the old statuses are normalised at boot** by `normalizeLegacyRows()` in `db/moderation.ts`: a `PENDING` product becomes `LIVE`, a `REJECTED` or `ARCHIVED` one is removed with its photo, and a `REGISTERED`, `PAYMENT_SUBMITTED` or `PAYMENT_REJECTED` farmer becomes `PENDING_VERIFICATION`.
+`isMaharashtraPincode()` (40–44, minus Goa's 403) is the only hard gate, checked at `POST /orders`. **Inside it the farmer's `pincodes` list is a hint**: an order outside it arrives with `outsideArea: true` and Accept means "yes, I can get there". Checkout and `PincodeBar` warn rather than block. Pickup orders skip the pincode check.
 
 ### What the public may see
 
-`publiclyVisible(product, farmer)` in `catalog.routes.ts` is the single rule, used by **both** the catalogue list and the by-id lookup: `LIVE` product, `ACTIVE` farmer, shop open. The two used to decide it separately, and a listing hidden from the list but readable by id is not hidden — it is findable by anyone who tries the id. Both halves matter: a LIVE product under a BLOCKED farmer is still off the shelf, and a shop closed for the afternoon takes its whole window with it.
+`publiclyVisible(product, farmer)` in `catalog.routes.ts` — `LIVE` product, `ACTIVE` (verified) farmer, shop open — is used by the list, the by-id lookup, reviews, the trace page and the map. A hidden listing answers **404, the same as an id that never existed**. A farmer leaves the API unauthenticated only as `PublicFarmer`, built by the **allow-list** `publicFarmer()` in `db/publicFarmer.ts`: name, photo, shop, farmer code, village, delivery terms, pincodes, UPI ID/QR, crops, rounded location (with consent), pickup place, and the derived rating. The phone is not on it; a buyer gets it on their own order, from `/contact`, or on a scanned trace page. `public-farmer.test.ts` asserts the exact key set.
 
-A hidden listing answers **404, not 403**, and the same 404 as an id that never existed — distinguishing them confirms that a draft she has not finished is there. `backend/tests/catalog-visibility.test.ts` holds the rule.
+### Trace QR
 
-**A farmer leaves the API unauthenticated only as `PublicFarmer`**, built by `publicFarmer()` in `backend/src/db/publicFarmer.ts` and used by the catalogue list, `GET /catalog/products/:id` and `GET /farmers/:id`. It is an **allow-list**: name, photo, shop, SMB ID, village, delivery terms, pincodes, UPI ID/QR, and the rating derived from reviews. It replaced a deny-list (`publicView`) that stripped seven named fields, and the product route, which sent her whole record — phone, admin notices, block reason, readiness answers — to anyone with a product id. Her phone reaches a buyer only on their own order. `backend/tests/public-farmer.test.ts` asserts the exact key set, so a new field on the card is a decision, not an accident.
+Every live listing has a QR (`components/ProductQr.tsx`, download as PNG or print one clean page) that opens `/trace/:productId` (`lib/trace.ts` builds the URL from the serving origin, so a preview deploy prints its own). `GET /catalog/products/:id/trace` (`traceView()`) returns the public card **plus the farmer's phone** — the farmer printed the code and the poster promises contact to whoever holds the produce — under the same `publiclyVisible` 404, so an unverified or blocked farmer's QR shows nothing.
 
-### Editing a listing
+### Price hint, demand chart, voice search
 
-The screen is `frontend/src/screens/farmer/EditProduct.tsx`, and it is
-deliberately **not** the wizard: one question per screen is right when the job
-is teaching a farmer what a listing needs, and wrong when the farmer came to
-fix one number. Every field is on one page and every field may change — crop,
-unit, price, stock, minimum order, harvest date, how it was grown. There is no
-edit limit. A listing on sale is held to the full `listingProblems` on save;
-the server judges only the fields a PATCH touched, so a tomato listed 61 days
-ago can still be paused.
+- **Price hint** (`PriceHint.tsx`, `GET /insights/price`, farmer only, `backend/src/insights/price.ts`): the median of live listings and last-30-day delivered orders for the same crop and unit, plus the latest Agmarknet mandi modal price when `DATA_GOV_IN_API_KEY` is set (Dharashiv, then Osmanabad, then Maharashtra; cached six hours; a failing feed is silence, never an error). Mandi prices are per quintal and convert only to kg and quintal. **Advice, never a default**: nothing writes into the price field, and each number carries its source. The feed's filter names have not been checked against the live API with a key.
+- **Demand chart** (`admin/src/screens/Demand.tsx`, `GET /admin/demand`): ordered versus on the shelf, per crop — a count, not a forecast; each crop pair has its own scale and a table repeats the numbers.
+- **Voice search**: `useVoiceInput.ts` wraps the Web Speech API in the app's language (`mr-IN` / `en-IN`). Every `VoiceInput` owns its own mic, including the catalogue search; the keyboard is never removed and the mic does not render where speech is unsupported.
 
-### Scroll position
+### Surveys and research
 
-`ScrollMemory` in `App.tsx` with `lib/scrollMemory.ts`: forward navigation
-starts at the top, **POP restores where she was**, keyed on the history entry
-rather than the path because the same screen reached twice is two different
-places she was reading. It was one `scrollTo(0, 0)` on every route change,
-which is right going forward and exactly wrong coming back - she scrolled deep
-into the catalogue, opened a product, pressed back, and the list had forgotten
-her.
+Coordinators type paper questionnaires into **Surveys** (`/api/admin/surveys`, `backend/src/db/surveys.ts`). Every answer is optional and a skipped one stays absent, so tables count "not answered" rather than "no". A survey is linked to a registered farmer by phone (automatically at registration, or by hand), and then that person is counted once, from their own record; closed accounts are never linkable.
 
-**The restore waits for the content rather than racing it.** Every screen
-fetches its own data, so at the moment she returns the list is one spinner
-tall and the browser clamps any scroll past that height — which is why "back
-goes to the first product" was the complaint. `makeRestorer()` in
-`scrollMemory.ts` keeps asking while the page is still too short (`waiting`),
-through the fetch and through the photographs that change the height again as
-they load, and stops as soon as it lands, as soon as the page is tall enough
-but the scroll went elsewhere, or at `RESTORE_WINDOW_MS`. A fixed number of
-tries was the old rule and it expired before a Cloud Run list on 4G arrived.
+**Research** (`shared/src/research.ts`, `GET /admin/research`, `admin/src/screens/Research.tsx`) builds Tables 1–9 from respondents = non-closed farmers + unlinked surveys. An FDRI score is banded only when all ten indicators were answered. Each table downloads as CSV via `shared/src/csv.ts` — UTF-8 **with BOM** and CRLF, so Excel opens Devanagari intact.
 
-Two things it must not do, both enforced in `ScrollMemory`: it **stops the
-moment she scrolls herself** (`wheel`, `touchstart`, `pointerdown`, `keydown`
-— never `scroll`, which is what the restore itself causes), and it **suspends
-saving while restoring**, or the clamped `0` of a page that is still a spinner
-is written over the place she actually left off.
+### Deleting an account
 
-**Back paints her place in the FIRST frame, not the second.** Two things make
-that true, and both are needed. `useAsync` takes an optional **`cacheKey`**
-(`lib/screenCache.ts`): the last answer that key received is rendered
-immediately, at full height, while the fetch goes out to replace it — so
-coming back no longer means spinner, then list, then a jump. And the restore
-runs in a **`useLayoutEffect`**, before the browser paints; as an ordinary
-effect it landed one frame late, which is exactly the blink of the top of the
-page people reported. Cache keys are on the screens she returns to (catalogue,
-categories, a category, a shop, a product, both order lists, her products).
-The cache is memory-only, capped at 40 entries, dropped for a key whose
-refetch fails, and **cleared when a session ends** — on a field coordinator's
-phone a kept "my products" is the previous woman's shop.
+`shared/src/accountClose.ts` is the rule, `backend/src/db/accountClose.ts` applies it, `CloseAccountSheet` (`components/CloseAccount.tsx`) is the screen.
 
-**Nothing is saved on the way out, and that is load-bearing.** Both the scroll
-listener's cleanup and the restore's teardown used to end with
-`rememberScroll(key, window.scrollY)` — "leaving is the one moment the
-position is certainly final". It is the one moment it is certainly *wrong*:
-by the time an effect cleanup runs, React has already swapped the tall
-catalogue for a short product page, the document is one screen high, and the
-browser has clamped the scroll to 0. So leaving wrote `0` over `1074`, and
-Back then restored the top faithfully — which is why "back always goes to the
-first product" survived a rewrite of the retry logic that was never the
-problem. Only real scroll events write a position now. Traced in a real
-browser over CDP on 20 September 2026; the console said
-`[mem] set default 1074` immediately followed by `[mem] set default 0`.
+- **The row stays; the person is erased.** `FARMER_PII_FIELDS` is the one list of what goes (phone, name, photo, village, UPI, questionnaire, FDRI, notices…), walked by `account-close.test.ts`; the id, `status: 'CLOSED'`, farmer code and order money stay. Past orders are the buyer's record, `isBulkDelete()` would refuse the row deletes, and other screens look farmers up by id.
+- The credential and password requests are removed, so the **phone can register again**. Linked surveys lose phone, point and photo; the answers stay as research.
+- **Seven days** (`UNDO_DAYS`) between asking and erasing: the shop closes and sessions end at once, `sweepClosedAccounts()` erases later (at boot and on the 15-minute timer). Signing in during the week shows a restore button (`POST /farmers/me/restore`). **A buyer gets no window** — their orders keep the `ग्राहक` placeholder name, phone and address emptied, pincode kept.
+- The sheet asks what it costs, why, then **the last four digits of their own number, typed** — not a word to copy, not an SMS. An order in flight refuses the close (409 with `openOrders`) and the sheet names those orders.
 
-That same clamp is why **`useAsync` reports `loading` only when it has nothing
-to show**. Screens render a spinner *instead of* their content, so flipping
-`loading` on a refetch replaced a tall list with a short spinner, the scroll
-had nowhere to go, and from the outside the page "jumped to the top when I did
-something at the bottom". A refetch now keeps the old data on screen until the
-new data lands.
+### Reviews
 
-**But only for the same screen.** Product A and product B are one component at
-two addresses — a card under "More from this shop" changes the id and React
-keeps the screen — so "keep what is on screen" left A's page, and A's Add
-button, standing at B's address until B arrived. `useAsync` now tags its data
-with `screenIdentity(deps, cacheKey)` and asks `shownFor()` on every render: a
-different id gets its own cached answer or a spinner, decided while drawing
-rather than in an effect, which would paint one frame of A first.
-`frontend/tests/screen-cache.test.ts` holds it.
+`shared/src/review.ts`, `backend/src/db/reviews.ts`, `RateOrderGate` in `components/Reviews.tsx`. One review per product per delivered order, every product on the order at once, stars required, words optional (≤ 500). No order, no review. While any delivered order inside `REVIEW_WINDOW_DAYS` (30) is unrated, the gate covers the buyer app (everything behind it `inert`) and `POST /orders` answers 409. A product's rating and a **farmer's rating (all their products' reviews together)** are derived on every request, never stored. Public reviews carry a first name only (`publicName`); `toPublicReview` strips ids and moderation fields. **Hide** (with a kept reason) is the only admin action.
 
-The screen cache saves **no server or database reads** and is not meant to:
-every screen still fetches on every visit, and the API answers from the
-in-memory store (see *Persistence*), so Firestore is read once per boot however
-often a screen is opened.
+### Reports and complaints
 
-### The upload wizard's draft
-
-A half-filled product is written to `localStorage` so that leaving the screen — most often to change the language from the profile screen — does not throw the work away. `frontend/src/screens/farmer/productDraft.ts` owns it.
-
-The key is `wb.draft.product.<farmerId>` and the farmer id is **also stored inside the payload**. The first version used one shared key, and on a field coordinator's phone, where farmer after farmer registers on the same handset, the next woman opened "New product" and found a stranger's photo on step 1. Nothing is written until `hasStarted()` is true, so opening the wizard and walking away leaves no trace, and `readDraft` deletes the old unkeyed `wb.draft.product` on sight.
-
-### Categories
-
-`CATEGORIES` in `backend/src/db/seed.ts`, served by `GET /api/catalog/categories`. It is a constant in code, not a collection: a product stores only `categoryId`, and the label, icon and photograph are all derived from it.
-
-The eight produce categories: `vegetables`, `leafy`, `fruits`, `grains`, `pulses`, `spices`, `processed`, `other`. Every crop in `shared/src/crops.ts` names one of them.
-
-**A listing's category comes from its crop.** `POST` and `PATCH /products` set `categoryId` from `cropById(cropId).categoryId` (`categoryFor()` in `shared/src/produce.ts`), so onions cannot be filed under fruit. Only the crop `other` has no category of its own, and there the farmer picks one. **A `categoryId` that is not in the list is refused with 400**, draft or not — a junk id would otherwise fall out of every category filter.
-
-**`other` is the escape hatch** for a crop the list forgot. It sorts last and has no entry in `categoryPhoto.ts`, because there is no honest picture of "everything else". `backend/tests/categories.test.ts` holds all of that.
-
-### Product photos
-
-**Every upload is compressed on the phone, and nothing over 5MB is accepted.** Product photos, her bank's QR and the payment screenshot all go through `uploadImage()` in `frontend/src/lib/upload.ts`, so anything uploaded later gets the same treatment. Each image is re-encoded as JPEG, small ones included, with quality stepped down until it meets a target size. The numbers are in `lib/compress.ts`: product 1200px and ~350KB; payment screenshot 1800px and ~600KB, because the admin has to *read* the UTR and time on it. The canvas is painted white first, since a transparent PNG pixel encodes as black in JPEG. Cloudinary's signed upload transformation in `uploads.routes.ts` repeats the same size caps, as a backstop for a phone that could not compress. `frontend/tests/compress.test.ts` holds it.
-
-`PhotoPicker` takes **one photo, from the gallery, and nothing else**. The camera button and the emoji fallback grid are both gone, so a photo is now required unless Cloudinary is off — the picker reports that upward through `onUnavailable` and the step stops being a wall the farmer cannot pass. Once a photo is in, "choose from gallery" is disabled rather than silently replacing it; the ✕ on the thumbnail is the way to change it. The file input resets its own `value`, or removing a photo and picking the same file again fires no `change` event at all.
-
-**Photos are shown by a plain `<img loading="lazy">` on the Cloudinary thumbnail URL** (`ProductImage`, sized by `cloudinaryThumb`), and repeat views come from the browser's own cache, which Cloudinary allows for 30 days. There was an in-memory LRU of blob URLs (`imageCache.ts`) on the belief that it saved reads; photos never touch the API or Firestore, so it saved none. It cost bandwidth instead — every card `fetch()`ed its photo on mount, so a catalogue downloaded whole while she looked at four — and evicting a blob revoked a URL a card on screen still held, so Back to a long list showed category stock photos. It was removed on 25 September 2026; do not bring a blob cache back.
-
-A listing that still has no picture — an old one, or Cloudinary off — falls back to a photograph of its **category**, never of a product: `frontend/src/lib/categoryPhoto.ts`. A generic bowl of spices above a farmer's turmeric is honest about being a category picture; a specific-looking photo of someone else's tomatoes is not. Only `spices` has an honest photograph today; every other category keeps the icon fallback on purpose — a wrong photo is worse than none.
-
-### Feedback: buyers rate products; a farmer's rating comes from them
-
-`shared/src/review.ts` is the rule, `backend/src/db/reviews.ts` applies it, `backend/tests/reviews.test.ts` holds it, and `RateOrderGate` in `frontend/src/components/Reviews.tsx` is the screen.
-
-- **One review per product per delivered order**, written by the buyer on that order through `POST /orders/:id/review` with `{ ratings: [{ productId, rating, comment? }] }`. **Every product on the order, all at once** (`ratingsProblem`) — a product listed twice is rated once. No order, no review: that stops a rival's one-stars and a farmer's own five-stars. Rating again replaces that product's review on that order.
-- **Stars required, words optional** (max 500). Every row of stars prints its number and a word (`rev.word.N`) — never stars alone.
-- **The buyer cannot skip it.** While any delivered order inside `REVIEW_WINDOW_DAYS` (30) is unrated (`needsRating`; the server lists them as `toRate` on `/orders/mine`), `RateOrderGate` covers the whole customer app, bottom tabs included, with no close button; `CustomerLayout` makes everything behind it `inert`. Rating one brings up the next. It checks on open, on return to the app, every two minutes, and on navigation (at most every 30 s). The server enforces the same rule: `POST /orders` answers 409 while any are waiting. Orders older than the window are never asked about.
-- **A farmer's rating is her products' ratings, taken together** — every visible review of every product she sells, each counted once (`ratingsByFarmer` / `farmerRating`), so a product rated often weighs more than one rated once. Buyers never rate her directly. It is on `PublicFarmer` (her card on the product and shop pages, with "across all her products"), on her home card and at the top of `/farmer/reviews`. The stored `Farmer.rating`/`ratingCount` are legacy and never read. Each catalogue product carries its own `rating`/`ratingCount`, derived from `reviews` on every request (`ratingsByProduct`) — a stored average goes stale the moment an admin hides a review. `GET /catalog/products/:id/reviews` is public exactly as far as the product is (`publiclyVisible`, same 404).
-- **First name only in public** (`publicName`, copied at write time). `toPublicReview` strips `customerId`, `farmerId` and every moderation field. Each review copies `productName`, so a deleted listing's reviews stay readable.
-- **Hide is the only admin action** (`POST /admin/reviews/:id/hide`, reason required and kept). A hidden review leaves the product's list and average; editing it does not bring it back; the buyer sees that it was hidden, the farmer stops seeing it.
-- **Where it shows:** product cards (stars only when there are some) and the product page (summary + every review) · the buyer's order screen (what they gave, with "change" inside the window) · her home card, `/farmer/reviews` and her order screen, each review naming its product · the admin **Reviews** screen (product column; low-ratings and hidden filters) and each farmer's page.
-- **Older whole-order reviews** are split once at boot (`splitOrderReviews`): the same stars and words on every product that order held, the original document kept for the first product and new ones added — nothing deleted.
-- `reviews` is a Firestore collection like the others and is **never seeded**. `purge:demo` removes reviews on the orders it removes.
+- **Reports** (`shared/src/report.ts`, `POST /reports`): buyers report products; buyers **and farmers** report reviews (the person a review is about can speak for themselves). One row per reporter per thing; a reason from the list, words only for `other`. **A report changes nothing on its own** — the listing stays live. It joins the admin **Reported** tab (`GET /admin/products?status=REPORTED`) or the Reviews screen's Reported filter; the way out is take-down or `clear-reports`, which closes rather than deletes (an admin disagreeing is a different fact from nobody complaining). Anonymous to the farmer.
+- **Complaints** (`shared/src/complaint.ts`, `POST /complaints` from Help & Training, farmer or buyer): a subject from the list (payment, order, product, account, other), 10–500 characters, recorded with who wrote it; the admin **Complaints** queue resolves them.
 
 ### The updates list
 
-`frontend/src/lib/notifications.ts` is **derived, never stored**. Every line comes from `OrderEvent`s already on the order, or from `farmer.notices` written by the admin handler that made the change — both already fetched. A `notifications` collection would be a second copy of facts we hold, wrong the first time somebody forgot to write a row. This is not push; the app has to be open.
+`frontend/src/lib/notifications.ts` is **derived, never stored** — from `OrderEvent`s already on the order and from `farmer.notices` written by the admin handler that made a change (verified, blocked, unblocked, listing taken down). One row per **order**, tagged with the order's own status via `STATUS_STYLE`, timed by the latest *other-side* event, showing only the other side's actions. Not push; the app has to be open.
 
-- **One row per ORDER, not per event.** An order that is accepted, packed, sent out and delivered is one row that changes, named after what is in it (`itemSummary`), wearing its state as a `Pill` drawn from `STATUS_STYLE` — the same colour and icon its order screen uses. Four rows repeating the same total, one per verb, is a history read back rather than an answer to "where is my order".
-- **The tag is the order's own `status`, not the last event the other side caused.** On the farmer's side those are rarely the same thing — a customer only ever causes `PLACED` and `CANCELLED` — so a tag drawn from the buyer's last move said "new order" on every row for ever, including ones she had packed and delivered herself.
-- Timed by the **latest** other-side event, which is what the bell's count compares against, so an order that moves again after she looked counts once rather than once per step. There is no per-row "new" mark: the tag already says where the order is, and a badge beside it is two things competing to be the thing she reads.
-- **The other side's actions only** (`e.by !== mine`). A farmer does not need telling she accepted an order two seconds ago.
-- An admin decision has no order and no product, so it carries no `title` and prints its own sentence instead. `noticeLabelKey` still writes those sentences per side — "Order placed" is a fact about a row, "You have a new order" is a thing to go and do.
+### Scroll position and the screen cache
 
-### Taking a listing down, and deleting one
+`ScrollMemory` in `App.tsx` with `lib/scrollMemory.ts`: forward navigation starts at the top, **POP restores**, keyed on the history entry. `makeRestorer()` keeps trying while the page is still too short, until it lands or `RESTORE_WINDOW_MS`; it stops the moment the user scrolls (`wheel`, `touchstart`, `pointerdown`, `keydown` — never `scroll`) and suspends saving while restoring. **Nothing is saved on the way out**: by the time a cleanup runs the next screen is mounted and the browser has clamped scroll to 0, so saving then wrote 0 over the real position.
 
-Validation functions in `shared/src/farmer.ts` run on **both** sides: the client for a fast friendly message, the server because the client can lie.
+`useAsync` takes a `cacheKey` (`lib/screenCache.ts`): the last answer paints in the first frame while the refetch goes out, and the restore runs in `useLayoutEffect`. It reports `loading` only when it has nothing to show, and tags data with `screenIdentity()` so product A's page never stands at product B's address. The cache is memory-only, capped at 40, dropped on a failed refetch and **cleared when a session ends** (shared handsets). It saves no server reads — the API answers from memory anyway.
 
-**A take-down is a removal, the moment it is made.** `POST /admin/products/:id/moderate` with `approve: false` and a reason splices the row, destroys its photo, deletes its reports, and writes a `PRODUCT_REJECTED` notice that carries the reason — which is where he reads every other admin decision. `approve: true` is refused with 400: listings are not approved one by one any more.
+### Drafts
 
-**Deleting a listing deletes the document.** `DELETE /products/:id` takes any of his own listings, splices the row and destroys its Cloudinary image (best effort, not awaited — the record is already gone and the farmer is waiting on a phone).
+- **Product wizard** (`screens/farmer/productDraft.ts`): `localStorage` key `wb.draft.product.<farmerId>`, farmer id also inside the payload, nothing written until `hasStarted()`; the old shared key `wb.draft.product` is deleted on sight. One shared key once showed the next farmer on a coordinator's phone a stranger's photo.
+- **Registration** (`screens/auth/farmerDraft.ts`): `sessionStorage`, keyed `wb.draft.farmer.<phone>`, never holding the password — a half-registered farmer's details must not outlive the tab on a shared phone.
 
-This is safe because **an order copies what it needs**: `OrderItem` carries the name, emoji, quantity and price from checkout, and nothing dereferences `productId` to draw an order. `backend/tests/product-delete.test.ts` holds that contract — normalising those fields away would quietly empty a year of order history the first time a listing is deleted.
+### Photos
 
-### Paying a farmer by UPI
-
-The buyer's order screen offers a QR, written steps, the UPI ID with a copy button, and a UTR box, in that order. **A phone cannot scan its own screen**, so the two routes that work from one handset are: take a screenshot of the QR, then scan it from the gallery inside PhonePe or Google Pay; or copy the UPI ID and paste it there. `PaySteps` in `components/PayFromPhone.tsx` writes the first route out one tap per line — screenshot (power + volume-down), open the app, scan, gallery icon, check name and amount, come back for the UTR.
-
-**There is no "Pay" button on a `upi://pay` link, and it must not come back while payees are personal UPI IDs.** It existed twice. The second time it opened PhonePe and Google Pay correctly, and they refused the payment with "declined for security reasons": UPI apps treat a payment that *another app* starts, to a *personal* UPI ID, as the shape of a scam, and every payee here is one. Nothing in the link fixes that; the same code scanned from the gallery pays fine (tested on real phones, 14 September 2026). A pay link works again only for business UPI IDs (PhonePe Business, Paytm for Business…), and then only for those accounts. `buildUpiLink()` sends no `tr` for the same reason: a merchant field on a personal ID is one more thing the risk check reads as a fake shop.
-
-The tap after paying is Back, so `lib/useReturnFromApp.ts` is armed when she copies the ID (a screenshot fires no event the page can hear, so that route does not arm it), and on her return (hidden, then visible — never `focus` alone) the screen scrolls the UTR box into view and focuses it, once per arming.
-
-### How long the delivery will take
-
-`Order.deliveryEstimate` — free text in her own words ("2 दिवसांत"), asked at
-the one moment she knows: `FARMER_ACTIONS.PLACED` carries `needsEstimate`, so
-tapping **Accept** opens the sheet before the order moves. A buyer whose order
-was accepted used to be told `ACCEPTED` and nothing about time, and "when?" is
-her next question.
-
-Not a date picker: the honest answer in a village with one bus a day is a
-phrase, and a calendar would make her invent a precision she does not have.
-Four chips carry the common answers because typing Marathi is the barrier, not
-knowing the reply. **Skipping is allowed** — a time she was pushed into
-inventing is worse for the buyer than none — and `cleanDeliveryEstimate()`
-stores nothing for an empty answer. It is kept only on the `ACCEPTED`
-transition, and shown on both order screens under the status.
-
-### What a listing is
-
-A listing is **produce**: a crop from `CROPS`, a unit, a price per unit, the
-stock, a minimum order, a harvest date and how it was grown. The rules are
-`listingProblems()` in `shared/src/produce.ts`, run by the wizard, the edit
-screen and the server alike, with Marathi messages keyed by field.
-
-- **Units** are `kg`, `quintal`, `dozen`, `piece`, `litre`. The price is for
-  ONE unit and is always printed with it (`₹40 / किलो`).
-- **Stock** is whole units, 0 meaning sold out for now. **Minimum order** is at
-  least 1 and never more than a non-zero stock.
-- **Harvest date** cannot be tomorrow. Fresh produce (vegetables, leafy, fruits)
-  older than `FRESH_MAX_DAYS` (60) is refused; grain and pulses keep. Buyers
-  read "harvested N days ago" (`harvestAgeDays`).
-- **Cultivation** is `organic`, `natural` or `chemical`, shown as icon + word.
-
-**The cart steps with `cartStep()`**: the first tap adds the minimum, + stops at
-the stock, and a − below the minimum takes the line out (because she tapped it —
-nothing is removed on her behalf). `CartItem` copies `minOrder`; a line saved
-in localStorage before that is read as minimum 1 (`lineMinOrder` in
-`cartRules.ts`). Stock below the minimum cannot be added at all.
-`backend/tests/produce.test.ts` holds the rules.
-
-**`POST /orders` holds the same rule** (`orderQtyProblem`): a quantity that is
-not a whole number, is below `max(1, minOrder)` or is above `stock` gets a 409
-with a Marathi message naming the product, the number and the unit. **An order
-does not decrement stock** — the farmer keeps the quantity current himself, as
-in the reference.
-
-An edit to a live listing is judged by `patchProblems()` in
-`products.routes.ts` on the fields it touched, plus what depends on them:
-changing the crop or category re-judges the harvest date, and changing the
-stock re-judges the minimum. `description` is capped at 500 characters on
-POST and PATCH, draft or not, like a review comment.
-
-### Reporting a listing or a review
-
-`shared/src/report.ts` holds the reasons; `POST /reports` (customer only)
-stores one row per buyer per thing — a second tap is a woman making sure it
-went, not a second complaint, and is answered as if it were the first. This is
-the only moderation signal that arrives *after* a listing is live.
-
-- **A report changes nothing on its own.** The listing stays LIVE: one annoyed
-  buyer must not be able to empty a woman's shop. It joins the admin console's
-  **Reported** tab (`GET /admin/products?status=REPORTED`), beside the Live
-  tab — there is no review queue, since listings are not approved one by
-  one. A reported REVIEW joins the console's Reviews screen under its
-  **Reported** filter (`?reported=true`), with `clear-reports` beside Hide.
-- **Either side may flag a review.** `POST /reports` takes `customer` or
-  `farmer` (`byRole`), because the person an abusive review is written about
-  is the one nobody else is in a position to speak for. Products are reported
-  by buyers, who are the only ones looking at them.
-- **Two ways out, both deliberate.** Take the listing down (deletes it, and
-  its reports with it) or `POST /admin/products/:id/clear-reports`, which
-  closes them with who looked. Closed rather than deleted: "three people
-  complained and an admin disagreed" is a different fact from "nobody ever
-  complained".
-- **A reason is always required**, from the list, and only `other` carries
-  typed words — a queue where every row says "inappropriate" cannot be
-  triaged. Reports are anonymous to the farmer.
-- `reports` is a Firestore collection, so it counts against the daily read
-  budget (docs/CAPACITY.md §4). `backend/tests/report.test.ts` holds the rules.
+Every upload goes through `uploadImage()` (`lib/upload.ts`) and is re-encoded on the phone as JPEG on a white canvas (`lib/compress.ts`: 1200px / ~350KB for products); nothing over 5MB is accepted, and Cloudinary's signed transformation in `uploads.routes.ts` repeats the caps. Uploads go **browser → Cloudinary** with a short-lived signature from `/api/uploads/signature`; bytes never pass the server. `PhotoPicker` takes one photo from the gallery; with Cloudinary off it reports `onUnavailable` so the step is not a wall. Photos render as plain `<img loading="lazy">` on a `cloudinaryThumb` URL and rely on the browser cache — **do not add a blob cache**. A listing with no photo shows its **category** picture (`lib/categoryPhoto.ts`), never another product's; categories with no honest picture show an icon.
 
 ### Sorting the admin lists
 
-Farmers, Products and Orders each have a **Sort by** menu. `admin/src/lib/sort.ts` holds one option table per list, because "highest" is a different number on each: what she has earned (delivered orders, added to `/admin/farmers` as `earned`), what a product costs, what an order came to. Sorting is client-side, since every list already arrives whole. Names go through an `Intl.Collator` for Marathi and English, so Devanagari and Latin names each sort properly and case is ignored. The choice is remembered per list in `localStorage`, and newest-first is the default everywhere. `admin/tests/sort.test.ts` holds it.
-
-### Other shared modules
-
-- `farmerCode.ts` — the `F2C-<VILLAGE>-<NNN>` ID. The serial is **per village**, not global, so the code tells a field coordinator where to go. Non-survey villages are transliterated from Devanagari.
-- `readiness.ts` — Digital Readiness Index. Six factors self-reported at registration (the day-one baseline), four **measured by the platform** from what the farmer actually does. Keep that split; it is what makes the before/after comparison meaningful.
+Farmers, Products and Orders each have a **Sort by** menu; `admin/src/lib/sort.ts` holds one option table per list. Client-side (lists arrive whole), names through an `Intl.Collator` for Marathi and English, newest first by default, the choice remembered per list in `localStorage` (`SortSelect`).
 
 ### Config and graceful degradation
 
-`backend/src/config.ts` reads everything from the environment, and every integration degrades rather than crashing. With an empty `.env`: JSON-file database, emoji instead of photos, and phone + password sign-in with no SMS provider. The boot banner (`describeConfig()`) prints what is actually live — check it before debugging a "broken" integration.
+`backend/src/config.ts` reads everything from the environment and every integration degrades: with an empty `.env` you get the JSON file, category pictures instead of uploads, and no mandi price. The boot banner (`describeConfig()`) prints what is live — check it before debugging a "broken" integration.
 
-`SESSION_SECRET` is the one exception: a fixed development fallback, but the server **refuses to boot in production without it**.
-
-`ALLOW_BULK_DELETE` is the other flag that is not about degradation. Unlike `ALLOW_DEV_RESET` it is honoured in production too, because the one time the guard behind it mattered, it mattered on the live database. Leave it blank in every `.env`; set it inline on the single command that means it (`ALLOW_BULK_DELETE=true npm run purge:demo -- --commit`).
-
-`CORS_ORIGIN` is comma-separated and parsed into a **list**, because two front ends on different origins call one API. Handing a comma-joined string straight to `cors()` matches neither and blocks both.
-
-Photos upload **direct from the browser to Cloudinary** via a short-lived signature from `/api/uploads/signature`; the bytes never pass through the server and the API secret never leaves it.
+- `SESSION_SECRET` has a development fallback; **production refuses to boot without it**.
+- `ALLOW_BULK_DELETE` is honoured in production too; leave it blank in every `.env`.
+- `CORS_ORIGIN` is comma-separated and parsed into a **list** — two front ends call one API, and a comma-joined string matches neither.
+- `DATA_GOV_IN_API_KEY` is optional (price hint's mandi line).
 
 ## Conventions
 
-- **Errors** are `{ error, messageMr, fields? }`. Every user-facing failure carries a Marathi message. `ApiError` in the frontend api client surfaces all three.
-- **No screen calls `fetch` directly** — `frontend/src/lib/api.ts` and `admin/src/lib/api.ts` are the only seams to the server.
-- **A panel that opens from a long list is a `<dialog>` opened with `showModal()`**, not a card appended to the page — the admin order detail used to render below the fold, and Open looked dead. Never `close()` it in an effect cleanup: StrictMode runs effect, cleanup, effect in development, the `close` event from that cleanup lands after the second `showModal()`, and `onClose` unmounts the dialog it just opened. Guard with `if (!dialog.open)` and let unmounting take it out of the top layer.
-- **i18n**: Marathi is the default and the source text, listed first in both apps' `LANGS`; English is the toggle. A key missing from English falls back to Marathi (`translate()` in each `strings.ts`). Every string goes through `t('key')` from `I18nProvider` — **placeholders included**, which is where they kept being missed: an English UI with a Marathi example inside the input is the same bug as an untranslated label. `frontend/tests/i18n.test.ts` asserts dictionary parity, that each dictionary is in its own language, that no component hard-codes a Devanagari `placeholder=`, and that every `t()` key a component asks for exists — a missing one renders as its own name, on screen, in both languages.
-- **Marathi follows one source**: `docs/MARATHI-STYLE.md`, which is the महाराष्ट्र शासन orthography (1972, rev. 2009) — the spelling these women were taught from बालभारती textbooks, and therefore the spelling they recognise. It settles postpositions (joined: `बाजारात`, never `बाजार मध्ये`), gender agreement (**ऑर्डर is neuter** — `ऑर्डर आले`, `माझे ऑर्डर` — भरणा masculine), Marathi word order over translated English (`… हे यावरून ठरते`, never `यावरून ठरते की …`), one word per thing, and `ॲ` as U+0972 rather than the ZWJ sequence. Two colloquial registers are deliberate and must not be "corrected": the landing CTAs (`मला विकायचं आहे`) and the reader's own first-person buttons (`नंतर करू`, formerly `नंतर करते`: the same first-person voice, made neutral because farmers are men and women). `frontend/tests/marathi.test.ts` and `admin/tests/marathi.test.ts` enforce the mechanically checkable half.
-- **English is not a translation of Marathi.** The two dictionaries are independent pieces of writing that say the same thing differently, so a Marathi fix never edits the English line beside it — and the reverse. `lp.collegeMr` and `onb.chooseLangSub` are the only two English entries that are Devanagari on purpose.
-- **Tests** are `node:test` + `node:assert/strict`, run through tsx. They read as prose explaining *why* a rule exists — match that when adding one.
-- Comments here explain reasoning and trade-offs, not mechanics. Follow suit rather than narrating what the code already says.
+- **Errors** are `{ error, messageMr, fields? }`; every user-facing failure carries Marathi. `ApiError` surfaces all three.
+- **No screen calls `fetch`** — `frontend/src/lib/api.ts` and `admin/src/lib/api.ts` are the only seams.
+- **A panel opened from a long list is a `<dialog>` with `showModal()`**. Never `close()` it in an effect cleanup (StrictMode's cleanup `close` lands after the second `showModal()`); guard with `if (!dialog.open)`.
+- **Marathi first.** Marathi is the default in **both** apps (`I18nProvider` reads `wb.lang` / `wb.admin.lang` and treats anything but `en` as `mr`); English is the toggle, remembered per app. A missing key falls back to **Marathi**, not English. Every string goes through `t('key')`, placeholders included. `frontend/tests/i18n.test.ts` and `admin/tests/i18n.test.ts` assert dictionary parity, each dictionary in its own language (only `app.name`, `lp.collegeMr` and `onb.chooseLangSub` are Devanagari in English), no hard-coded Devanagari `placeholder=`, and that every `t()` key exists.
+- **Marathi spelling follows `docs/MARATHI-STYLE.md`** (महाराष्ट्र शासन orthography): joined postpositions, **ऑर्डर is neuter**, Marathi word order, one word per thing, `ॲ` as U+0972, Latin digits. The farmer is **शेतकरी**. Deliberately colloquial and not to be "corrected": the landing CTAs (`मला विकायचं आहे`) and the reader's own first-person-plural buttons (`नंतर करू`). `marathi.test.ts` in both apps enforces the checkable half.
+- **English is not a translation of Marathi.** The dictionaries are independent writing; a fix to one never edits the line beside it.
+- **Gender-neutral, and no old branding.** All user-facing text, comments, tests and docs are gender-neutral: farmers and buyers are "they" (Marathi: plural forms, no gendered nouns such as उद्योजिका or विक्रेती). Nothing may reintroduce the name, wording or copy of the project this was forked from; the logo files are the only thing kept. The i18n and Marathi tests in `frontend/tests` and `admin/tests` fail on gendered pronouns and on the old brand words.
+- **Tests** are `node:test` + `node:assert/strict` via tsx, written as prose explaining *why* a rule exists.
+- Comments explain reasoning and trade-offs, not mechanics.
 
 ## Design rules (constraints, not preferences)
 
-From spec section 6, encoded in `frontend/src/styles/theme.css`:
+Encoded in `frontend/src/styles/theme.css`, whose `:root` **THEME SWAP POINT** block holds every colour, size and radius (leaf green and maroon):
 
-- Status is colour **+ icon + word**, never colour alone. Every icon carries a word.
-- 16px minimum text, 56px buttons, 44px touch targets.
+- Status is colour **+ icon + word**, never colour alone.
+- Body text 16px (`--t-base`), 54px buttons (`--btn-h`), 44px touch targets (`--tap`).
 - Four bottom tabs, one level deep. **No hamburger menu.**
-- One question per screen in wizards, with progress dots. **Editing is not a wizard** — `EditProduct` puts every field on one page, because four taps between the farmer and the price the farmer came to change is not simplicity.
-- Confirmation dialogs state the consequence, never a bare "Are you sure?"
-- An empty state never repeats the action already standing in the bar below it. `MyProducts` had "New product" twice, one above the other, and the second read as a different thing rather than the same one.
-- Latin digits (₹500, not ५००) — that is what is printed on money.
-- **No web fonts.** Android ships Noto Sans Devanagari, so Marathi renders from system fonts at zero network cost.
-- `theme.css` opens with a `:root` block marked **THEME SWAP POINT**; every colour, size and radius comes from those tokens, so retheming is a change to that block alone.
-
-Voice input (`frontend/src/lib/useVoiceInput.ts`) wraps the Web Speech API and is an **addition** — the keyboard is never removed, and the mic simply does not render where speech is unsupported. Every `VoiceInput` owns its own mic and dictates into itself; there is no app-wide microphone.
-
-Icons come from `react-icons` through `frontend/src/components/icons.tsx` (and `admin/src/components/icons.tsx`), the only files that name a vendor icon. **No emoji is shown anywhere in the three apps.** `STATUS_STYLE` and `PRODUCT_STATUS_STYLE` carry an icon *name* (`StatusIconName`, `ProductStatusIconName`) that `StatusIcon` / `ProductStatusIcon` draw; a product or order line with no photo shows `IconProduct`; how a crop was grown is `IconOrganic` / `IconNatural` / `IconChemical` beside its word; done screens show a green tick. `Product.emoji` and `Category.icon` are still stored but never rendered. The only marks of that kind left are a tick and a cross — as icons.
-
-The brand mark is a portrait of कै. शांताबाई (काकी) सिद्रामप्पा आलुरे, the woman the market is named for. `frontend/src/assets/logo.png` and `admin/src/assets/logo.png` are the same mark; both apps also carry it as a favicon from their `public/` folder. It already contains its own gold ring, so never give it a border or a background — either prints a second ring.
-
-The landing page follows the project poster: a hero card (logo, name Marathi first with `app.nameShort` under it, tagline, mission, four entry buttons), then need, workflow, features, outcomes and the college, each a `Card`. There are no photographs on it; `HeroArt` is a field drawn in CSS from the tokens.
+- One question per screen in wizards, with progress dots. **Editing is not a wizard.**
+- Confirmations state the consequence, never a bare "Are you sure?"
+- An empty state never repeats the action already in the bar below it.
+- Latin digits (₹500) — what is printed on money.
+- **No web fonts**; Android ships Noto Sans Devanagari.
+- Icons come from `react-icons` through `components/icons.tsx` in each app, the only files naming a vendor icon. **No emoji is shown anywhere**; `Product.emoji` and `Category.icon` are stored but not rendered.
+- First-time screens explain themselves with a per-section walkthrough (`lib/tours.ts`), replayable from Help & Training.
+- The brand mark is `frontend/src/assets/logo.png` and `admin/src/assets/logo.png` (the same image, also the favicons in `public/`). It carries its own ring — never add a border or background.
 
 ## Deployment shape
 
-One Cloud Run service (`shantai-api`, `asia-south1` — the API) and two Vercel projects from this same repo, distinguished only by Root Directory (`frontend` and `admin`). `VITE_API_URL` is read at **build** time, so changing it means redeploying.
+From `docs/DEPLOY.md`: one Cloud Run service **`f2c-api`** in `asia-south1`, built from the root `Dockerfile` (build context must be the repo root), and two Vercel projects from this repo — **`f2c-frontend`** (Root Directory `frontend`) and **`f2c-admin`** (Root Directory `admin`) — both tracking **`main`**. All accounts (Google Cloud, Firebase, Cloudinary folder `f2c`) are new and shared with nothing else.
 
-**The app is the `prathamesh2` branch, and both Vercel projects must track it by name.** `main` holds only the initial commit and `prathamesh` — GitHub's default branch — is an older copy from 8 September with no `admin/` and a lockfile missing rollup's Linux binary, so every default Vercel reaches for builds the wrong code or fails outright. The two branches share nothing after the initial commit; do not merge `prathamesh` in.
-
-The service needs two settings that are not Cloud Run's defaults, and neither is visible from the outside:
-
-- **Maximum instances 1.** See *Persistence* above. The default is 100.
-- **CPU always allocated** (`--no-cpu-throttling`). `save()` writes 400ms *after* the response has gone, and by default Cloud Run takes the CPU away the moment a response is sent — the write then waits for the next request, or for the `SIGTERM` flush when the instance is stopped.
-
-`SESSION_SECRET`, `FIREBASE_SERVICE_ACCOUNT` and `CLOUDINARY_URL` reach the service from **Secret Manager**, not as plain variables; a new secret version takes effect only on the next revision.
-
-How the container is built is not recorded in this repo: there is no Dockerfile and no `cloudbuild.yaml`. `docs/DEPLOY.md` says so, and is where that command belongs once somebody writes it down.
-
-**Both apps route in the browser, so both need `vercel.json`** — one catch-all rewrite to `index.html`, already committed in each folder. Without it every URL but the home page 404s on reload, which is the first thing anyone does with a link they were sent.
-
-**Neither Vite config sets `base`, and neither should.** The default absolute `/assets/…` is the only path right at every route depth: a relative one under the SPA rewrite makes `/farmer/orders` fetch `/farmer/assets/index-xxx.js`, receive `index.html`, and render a blank page. A `--mode capacitor` build with `base: './'`, `cap:*` scripts, `capacitor.config.json` and the `offline.html` its `errorPath` named all existed for a Capacitor APK that never shipped, and were removed. Nothing in the repo is Capacitor now; do not add a file that only a Capacitor build would read. The last two came back once, in `e0801ab` ("Preserve Capacitor and offline support"), with nothing reading them, and were removed again on 21 September 2026 — a dropped connection is `components/OfflineScreen.tsx`.
+- **Maximum instances 1** (see *Persistence*) and **CPU always allocated** (`--no-cpu-throttling`), because `save()` writes 400ms after the response and Cloud Run otherwise takes the CPU away. Neither is the default.
+- `SESSION_SECRET`, `FIREBASE_SERVICE_ACCOUNT` and `CLOUDINARY_URL` come from **Secret Manager**; a new version takes effect on the next revision. `CORS_ORIGIN` is both Vercel URLs.
+- `VITE_API_URL` is read at **build** time; changing it means redeploying. `VITE_*` values are public — never put a secret in one.
+- **Both apps need their `vercel.json`** catch-all rewrite to `index.html`, or every deep link 404s on reload. **Neither Vite config sets `base`**: the default absolute `/assets/…` is the only path correct at every route depth.
+- This is a website only. There is no mobile app, APK or WebView wrapper; do not add files only such a build would read. A dropped connection is `components/OfflineScreen.tsx`.
 
 ## Not built yet
 
-Farmer replies to reviews · chat · disputes · returns and refunds · coupons · real camera capture · QR decoding · courses and certificates · the farmer's own address book.
+Farmer replies to reviews · chat · disputes · returns and refunds · coupons · camera capture · QR decoding in the app · AI price recommendation · crop disease detection · demand forecasting · digital weighing receipts · FPO integration · cold chain.
