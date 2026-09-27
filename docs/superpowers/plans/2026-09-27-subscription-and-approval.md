@@ -38,7 +38,7 @@
 - Modify (backend): `backend/src/config.ts`, `backend/.env.example`, `backend/src/db/seed.ts`, `backend/src/db/firestore.ts`, `backend/src/db/moderation.ts`, `backend/src/db/accountClose.ts`, `backend/src/index.ts`, `backend/src/routes/farmers.routes.ts`, `backend/src/routes/products.routes.ts`, `backend/src/routes/catalog.routes.ts`, `backend/src/routes/orders.routes.ts`, `backend/src/routes/admin.routes.ts`, `backend/src/insights/price.ts`, `backend/scripts/admin.ts`, `backend/scripts/purge-demo-data.ts`
 - Modify (backend tests): `moderation.test.ts`, `verification.test.ts`, `account-close.test.ts`, `catalog-visibility.test.ts`, `trace.test.ts`, `map.test.ts`, `price-hint.test.ts`
 - Modify (frontend): `src/lib/api.ts`, `src/lib/notifications.ts`, `src/lib/tours.ts`, `src/components/ui.tsx`, `src/components/icons.tsx`, `src/components/NotificationBell.tsx`, `src/screens/Notifications.tsx`, `src/screens/farmer/MyBusiness.tsx`, `src/screens/farmer/MyProducts.tsx`, `src/screens/farmer/UploadProduct.tsx`, `src/screens/farmer/Misc.tsx`, `src/screens/auth/FarmerRegister.tsx`, `src/App.tsx`, `src/styles/theme.css`, `src/i18n/strings.ts`, `tests/notifications.test.ts`
-- Modify (admin): `src/lib/api.ts`, `src/lib/format.ts`, `src/lib/sort.ts`, `src/components/Shell.tsx`, `src/screens/Home.tsx`, `src/screens/Today.tsx`, `src/screens/Farmers.tsx`, `src/screens/FarmerDetail.tsx`, `src/App.tsx`, `src/styles/admin.css`, `src/i18n/strings.ts`, `tests/sort.test.ts`, `tests/format.test.ts`, `tests/i18n.test.ts`
+- Modify (admin): `src/lib/api.ts`, `src/lib/format.ts`, `src/lib/sort.ts`, `src/components/Shell.tsx`, `src/components/Confirm.tsx`, `src/components/FarmerActions.tsx`, `src/screens/Home.tsx`, `src/screens/Today.tsx`, `src/screens/Farmers.tsx`, `src/screens/FarmerDetail.tsx`, `src/App.tsx`, `src/styles/admin.css`, `src/i18n/strings.ts`, `tests/sort.test.ts`, `tests/format.test.ts`, `tests/i18n.test.ts`
 - Modify (docs): `CLAUDE.md`
 
 **Interfaces:**
@@ -77,6 +77,10 @@ export function allChecksDone(checks: unknown): boolean
 
 // backend
 export function applyApprovedPayment(farmer: Farmer, payment: SubscriptionPayment, approvedAt: string): void   // db/subscription.ts
+export function startTermOnVerify(farmer: Farmer, verifiedAt: string): boolean      // packs, no term → six months from verification
+export function grantSlots(farmer: Farmer, packs: number, at?: string): void
+export function revokeProblem(farmer: Farmer, products: Pick<Product, 'status'>[], packs: number): { used: number; wouldLeave: number } | null
+export function revokeSlots(farmer: Farmer, packs: number, at?: string): void
 export function rejectPayment(farmer: Farmer, payment: SubscriptionPayment, reason: string, by: string, at?: string): void
 export function backfillSubscriptionTerms(db: Pick<Db, 'farmers' | 'products' | 'payments'>, now?: Date): number
 export function screenshotProblem(url: unknown, cloudinary: { cloudName: string; folder: string } | null): string | null  // db/payments.ts
@@ -93,6 +97,9 @@ DELETE /products/:id                    → { ok, slots }
 GET  /admin/payments?status=PENDING|APPROVED|REJECTED|ALL → { payments }
 POST /admin/payments/:id/approve        { checks } → { payment, farmer }
 POST /admin/payments/:id/reject         { reason } → { payment }
+POST /admin/farmers/:id/verify          → also starts the term when packs were approved before verification
+POST /admin/farmers/:id/grant-slots     { packs } → { farmer }
+POST /admin/farmers/:id/revoke-slots    { packs } → { farmer } | 409 { used, wouldLeave }
 GET  /admin/farmers                     → rows + { slots, subscription }
 GET  /admin/farmers/:id                 → farmer + { slots, subscription }, payments
 GET  /admin/stats                       → + subscriptionsExpiring, subscriptionsExpired, pendingPayments, pendingProducts, subscriptionRevenue, approvedPaymentCount
@@ -109,7 +116,9 @@ import {
   subscriptionState, subscriptionView, termOpen,
 } from '@shared/subscription.js'
 import { slotInfo } from '@shared/farmer.js'
-import { applyApprovedPayment, backfillSubscriptionTerms } from '../src/db/subscription.js'
+import {
+  applyApprovedPayment, backfillSubscriptionTerms, grantSlots, revokeProblem, revokeSlots, startTermOnVerify,
+} from '../src/db/subscription.js'
 
 process.env.SESSION_SECRET = 'test-secret-for-unit-tests'
 const { publiclyVisible } = await import('../src/routes/catalog.routes.js')
@@ -207,6 +216,7 @@ test('an early renewal adds six months to the end of the current term', () => {
   assert.equal(endsAtAfterApproval(f, 'RENEWAL', approvedAt), '2027-09-15T06:30:00.000Z')
 })
 
+/** Verify before pay: the farmer is already checked, so the approval starts the six months. */
 test('the first pack starts the term; another pack mid-term adds slots and leaves the date', () => {
   const fresh = farmer({ packsApproved: 0, subscriptionEndsAt: undefined })
   applyApprovedPayment(fresh, payment('PACK'), '2026-09-15T06:30:00.000Z')
@@ -230,19 +240,103 @@ test('a pack approved after the shop paused reopens it too', () => {
 })
 
 /**
- * THE TWO GATES ARE INDEPENDENT. Paying is not how a farmer gets verified,
- * and it is not how a block is lifted. The term is written; the status is not.
+ * PAYING IS NOT HOW A FARMER GETS VERIFIED, and not how a block is lifted.
+ * The status is never written here.
  */
 test('paying neither verifies nor unblocks', () => {
-  const waiting = farmer({ status: 'PENDING_VERIFICATION', packsApproved: 0, subscriptionEndsAt: undefined })
+  const waiting = farmer({ status: 'PENDING_VERIFICATION', verifiedAt: undefined, packsApproved: 0, subscriptionEndsAt: undefined })
   applyApprovedPayment(waiting, payment('PACK'), '2026-09-15T06:30:00.000Z')
   assert.equal(waiting.status, 'PENDING_VERIFICATION')
-  assert.ok(waiting.subscriptionEndsAt, 'the term is running while the check is awaited')
   assert.equal(canSellNow(waiting, Date.parse('2026-09-16T00:00:00Z')), false)
 
   const blocked = farmer({ status: 'BLOCKED' })
   applyApprovedPayment(blocked, payment('RENEWAL'), '2027-04-01T06:30:00.000Z')
   assert.equal(blocked.status, 'BLOCKED')
+  assert.equal(blocked.subscriptionEndsAt, '2027-10-01T06:30:00.000Z', 'a verified farmer\'s renewal moves the date, blocked or not')
+})
+
+/**
+ * THE TERM NEVER RUNS WHILE THE FARMER IS UNVERIFIED. A farmer who pays first
+ * and waits a fortnight for the field visit must not lose a fortnight of a
+ * six-month shop. So an approval before verification grants the slots and
+ * nothing else, and verifying starts the six months from that moment.
+ */
+test('pay before verify: no term runs; verification starts six months from itself', () => {
+  const f = farmer({ status: 'PENDING_VERIFICATION', verifiedAt: undefined, packsApproved: 0, subscriptionEndsAt: undefined })
+  const p = payment('PACK')
+  applyApprovedPayment(f, p, '2026-09-15T06:30:00.000Z')
+  assert.equal(f.packsApproved, 1)
+  assert.equal(f.subscriptionEndsAt, undefined, 'the clock has not started')
+  assert.equal(p.termEndsAt, undefined, 'and the payment cannot say when it ends')
+  assert.deepEqual(f.notices!.map((n) => n.kind), ['PAYMENT_APPROVED'])
+
+  // The verify route stamps verifiedAt and then asks this.
+  f.status = 'ACTIVE'
+  f.verifiedAt = '2026-10-01T06:30:00.000Z'
+  assert.equal(startTermOnVerify(f, f.verifiedAt), true)
+  assert.equal(f.subscriptionEndsAt, '2027-04-01T06:30:00.000Z')
+  assert.equal(f.notices!.at(-1)!.kind, 'SUBSCRIPTION_RENEWED')
+  assert.equal(canSellNow(f, Date.parse('2026-10-02T00:00:00Z')), true)
+})
+
+test('verifying a farmer who has not paid starts nothing; verifying one already dated moves nothing', () => {
+  const unpaid = farmer({ verifiedAt: undefined, packsApproved: 0, subscriptionEndsAt: undefined })
+  assert.equal(startTermOnVerify(unpaid, '2026-10-01T06:30:00.000Z'), false)
+  assert.equal(unpaid.subscriptionEndsAt, undefined)
+  const dated = farmer()
+  assert.equal(startTermOnVerify(dated, '2026-10-01T06:30:00.000Z'), false)
+  assert.equal(dated.subscriptionEndsAt, '2027-03-15T06:30:00.000Z')
+})
+
+/** Two ₹50s approved before the visit are still ONE first term, not twelve months. */
+test('a renewal approved before verification is a first term like a pack, not a second one', () => {
+  const f = farmer({ status: 'PENDING_VERIFICATION', verifiedAt: undefined, packsApproved: 0, subscriptionEndsAt: undefined })
+  applyApprovedPayment(f, payment('PACK'), '2026-09-15T06:30:00.000Z')
+  applyApprovedPayment(f, payment('RENEWAL'), '2026-09-20T06:30:00.000Z')
+  assert.equal(f.packsApproved, 1, 'a renewal is not slots')
+  assert.equal(f.subscriptionEndsAt, undefined)
+  f.verifiedAt = '2026-10-01T06:30:00.000Z'
+  startTermOnVerify(f, f.verifiedAt)
+  assert.equal(f.subscriptionEndsAt, '2027-04-01T06:30:00.000Z', 'six months, once')
+})
+
+/**
+ * GOODWILL IS SLOTS, TIME IS PAID. A granted pack gives a verified farmer with
+ * no term a term to use it in, and never a day more to one who has a term.
+ * For an unverified farmer it is slots only - the term starts at verification
+ * like any pack's.
+ */
+test('granted slots start a term only for a verified farmer with none, and never extend one', () => {
+  const now = '2026-09-15T06:30:00.000Z'
+  const verifiedNoTerm = farmer({ packsApproved: 0, subscriptionEndsAt: undefined })
+  grantSlots(verifiedNoTerm, 2, now)
+  assert.equal(verifiedNoTerm.packsApproved, 2)
+  assert.equal(verifiedNoTerm.subscriptionEndsAt, '2027-03-15T06:30:00.000Z')
+  assert.deepEqual(verifiedNoTerm.notices!.at(-1), { id: `SLOTS_GRANTED:${now}`, at: now, kind: 'SLOTS_GRANTED', n: 10 })
+
+  const dated = farmer()
+  grantSlots(dated, 1, now)
+  assert.equal(dated.subscriptionEndsAt, '2027-03-15T06:30:00.000Z', 'the date did not move')
+
+  const unverified = farmer({ status: 'PENDING_VERIFICATION', verifiedAt: undefined, packsApproved: 0, subscriptionEndsAt: undefined })
+  grantSlots(unverified, 1, now)
+  assert.equal(unverified.packsApproved, 1)
+  assert.equal(unverified.subscriptionEndsAt, undefined)
+  assert.equal(unverified.status, 'PENDING_VERIFICATION', 'a gift is not a verification')
+})
+
+/** Taking packs back must not silently un-publish listings the farmer has live. */
+test('revoking never drops the allowance below the slots in use', () => {
+  const f = farmer({ packsApproved: 2 })
+  const inUse = Array.from({ length: 7 }, () => ({ status: 'LIVE' as const }))
+  assert.deepEqual(revokeProblem(f, inUse, 1), { used: 7, wouldLeave: 5 })
+  assert.equal(revokeProblem(f, inUse.slice(0, 5), 1), null)
+  revokeSlots(f, 1, '2026-09-15T06:30:00.000Z')
+  assert.equal(f.packsApproved, 1)
+  assert.equal(f.notices!.at(-1)!.kind, 'SLOTS_REVOKED')
+  assert.equal(f.notices!.at(-1)!.n, 5)
+  assert.equal(f.subscriptionEndsAt, '2027-03-15T06:30:00.000Z', 'time is not taken back with slots')
+  assert.equal(revokeProblem(farmer({ packsApproved: 0 }), [], 1), null, 'nothing to remove is refused by the console, not here')
 })
 
 test('what may be paid for: renewal from the reminder on, only renewal once paused', () => {
@@ -413,7 +507,7 @@ test('no packs means no room, not unlimited room', () => {
 - [ ] **Step 4: Shared types.** In `shared/src/types.ts`:
   - `ProductStatus = 'DRAFT' | 'PENDING' | 'LIVE' | 'PAUSED'`; `Product` gains `editCount?: number` (doc: how many of `MAX_EDITS` spent; absent reads 0).
   - `Farmer` gains `subscriptionEndsAt?: string` and `packsApproved?: number` (doc: absent reads 0; a row from before the rule).
-  - `AdminNoticeKind = 'VERIFIED' | 'BLOCKED' | 'UNBLOCKED' | 'PAYMENT_APPROVED' | 'PAYMENT_REJECTED' | 'PRODUCT_APPROVED' | 'PRODUCT_REJECTED' | 'SUBSCRIPTION_RENEWED'`; `AdminNotice.n` doc: "slots, where the sentence carries a number".
+  - `AdminNoticeKind = 'VERIFIED' | 'BLOCKED' | 'UNBLOCKED' | 'SLOTS_GRANTED' | 'SLOTS_REVOKED' | 'PAYMENT_APPROVED' | 'PAYMENT_REJECTED' | 'PRODUCT_APPROVED' | 'PRODUCT_REJECTED' | 'SUBSCRIPTION_RENEWED'` (ten); `AdminNotice.n` doc: "slots, where the sentence carries a number - slots, not packs; a pack is our word".
   - Add `PaymentApprovalStatus`, `SubscriptionPayment` and `AdminPaymentAccount` from `git show 5a4fa96:shared/src/types.ts` (the `/* Subscription */` block) with `sellerId`→`farmerId`, `sellerName`→`farmerName`, `womenBizId`→`farmerCode`.
   - `AdminStats` gains `subscriptionsExpiring`, `subscriptionsExpired`, `pendingPayments`, `pendingProducts`, `subscriptionRevenue`, `approvedPaymentCount` (docs from the old file).
 
@@ -490,7 +584,7 @@ export function slotInfo(f: Pick<Farmer, 'packsApproved'>, products: Pick<Produc
   - `backend/src/db/subscription.ts`:
 
 ```ts
-import type { Farmer, SubscriptionPayment } from '@shared/types.js'
+import type { Farmer, Product, SubscriptionPayment } from '@shared/types.js'
 import { RENEW_REMINDER_DAYS, SUBSCRIPTION_MONTHS, addMonths, endsAtAfterApproval, isExpired } from '@shared/subscription.js'
 import { PLAN, countUsedSlots } from '@shared/farmer.js'
 import { appendNotice } from './notices.js'
@@ -500,25 +594,82 @@ import type { Db } from './seed.js'
  * What approving a payment does to the account. The admin has already held
  * the UTR, time and screenshot against the statement (PAYMENT_CHECKS).
  *
- * A PACK adds five slots; either kind may move the end date (see
- * `endsAtAfterApproval`); the farmer is told in their updates list. STATUS IS
- * NEVER TOUCHED: verification is the other gate and has its own button, and a
- * blocked farmer stays blocked - paying is not how a block is lifted.
+ * A PACK adds five slots. THE TERM NEVER RUNS WHILE THE FARMER IS UNVERIFIED:
+ * for a farmer with no `verifiedAt` nothing else happens, whatever the kind -
+ * `startTermOnVerify` starts the six months when the field visit does, so a
+ * farmer who paid first is not charged for the wait, and a renewal approved
+ * before the visit does not buy a second term on top of the first. For a
+ * verified farmer either kind may move the end date (`endsAtAfterApproval`).
+ * STATUS IS NEVER TOUCHED: verification has its own button, and a blocked
+ * farmer stays blocked - paying is not how a block is lifted.
  */
 export function applyApprovedPayment(farmer: Farmer, payment: SubscriptionPayment, approvedAt: string): void {
   const kind = payment.kind ?? 'PACK'
+  if (kind === 'PACK') {
+    farmer.packsApproved = (farmer.packsApproved ?? 0) + 1
+    appendNotice(farmer, 'PAYMENT_APPROVED', { n: PLAN.slotsPerPack }, approvedAt)
+  }
+  if (!farmer.verifiedAt) return
+
   const wasExpired = isExpired(farmer, new Date(approvedAt).getTime())
   const before = farmer.subscriptionEndsAt
-
-  if (kind === 'PACK') farmer.packsApproved = (farmer.packsApproved ?? 0) + 1
   farmer.subscriptionEndsAt = endsAtAfterApproval(farmer, kind, approvedAt)
   payment.termEndsAt = farmer.subscriptionEndsAt
-
-  if (kind === 'PACK') appendNotice(farmer, 'PAYMENT_APPROVED', { n: PLAN.slotsPerPack }, approvedAt)
   // A renewal always says so; a pack only when it happened to reopen a paused shop.
   if (kind === 'RENEWAL' || (wasExpired && farmer.subscriptionEndsAt !== before)) {
     appendNotice(farmer, 'SUBSCRIPTION_RENEWED', { note: farmer.subscriptionEndsAt }, approvedAt)
   }
+}
+
+/**
+ * The other half of paying first: the six months start at the visit. Called
+ * by the verify route after it stamps `verifiedAt`. A farmer with no packs
+ * is simply verified and pays when they choose; one already dated (a
+ * re-verification can not happen, but a legacy row might carry a date) is
+ * left alone. Returns whether a term started, so the route can say so.
+ */
+export function startTermOnVerify(farmer: Farmer, verifiedAt: string): boolean {
+  if (!(farmer.packsApproved ?? 0) || farmer.subscriptionEndsAt) return false
+  farmer.subscriptionEndsAt = addMonths(verifiedAt, SUBSCRIPTION_MONTHS)
+  appendNotice(farmer, 'SUBSCRIPTION_RENEWED', { note: farmer.subscriptionEndsAt }, verifiedAt)
+  return true
+}
+
+/**
+ * Goodwill, a trainee batch, a demo account. Slots, in the farmer's own
+ * unit (a pack is our word). A verified farmer with no term gets one to use
+ * the slots in; a term is never extended - time is paid - and an unverified
+ * farmer's term starts at verification like any pack's. Status is not touched.
+ */
+export function grantSlots(farmer: Farmer, packs: number, at = new Date().toISOString()): void {
+  const granted = Math.max(1, Math.floor(packs))
+  farmer.packsApproved = (farmer.packsApproved ?? 0) + granted
+  if (farmer.verifiedAt && !farmer.subscriptionEndsAt) {
+    farmer.subscriptionEndsAt = addMonths(at, SUBSCRIPTION_MONTHS)
+  }
+  appendNotice(farmer, 'SLOTS_GRANTED', { n: granted * PLAN.slotsPerPack }, at)
+}
+
+/**
+ * Why packs cannot be taken back, or null. Counted by the same rule the
+ * farmer's meter uses, so drafts hold nothing; refusing keeps an admin from
+ * silently un-publishing live listings by mistyping a number.
+ */
+export function revokeProblem(
+  farmer: Pick<Farmer, 'packsApproved'>,
+  products: Pick<Product, 'status'>[],
+  packs: number,
+): { used: number; wouldLeave: number } | null {
+  const used = countUsedSlots(products)
+  const wouldLeave = Math.max(0, (farmer.packsApproved ?? 0) - Math.max(1, Math.floor(packs))) * PLAN.slotsPerPack
+  return wouldLeave < used ? { used, wouldLeave } : null
+}
+
+/** After `revokeProblem` said null. The term is left alone: time was paid or granted, and with zero slots nothing is on sale anyway. */
+export function revokeSlots(farmer: Farmer, packs: number, at = new Date().toISOString()): void {
+  const taken = Math.max(1, Math.floor(packs))
+  farmer.packsApproved = Math.max(0, (farmer.packsApproved ?? 0) - taken)
+  appendNotice(farmer, 'SLOTS_REVOKED', { n: taken * PLAN.slotsPerPack }, at)
 }
 
 /** A rejection changes the payment and tells the farmer. Nothing on the account moves. */
@@ -580,13 +731,44 @@ const slots = slotInfo(farmer, db.products.filter((p) => p.farmerId === farmerId
 if (!asDraft && slots.isFull) { res.status(402).json({ error: 'No slots left', messageMr: SLOTS_FULL_MR, slots }); return }
 ```
 
-  - `backend/src/routes/admin.routes.ts`: stats gain the six counters (port the `approvedPayments` / `subscriptionsExpiring` / `subscriptionsExpired` / `pendingPayments` / `pendingProducts` / `subscriptionRevenue` / `approvedPaymentCount` lines from `git show 5a4fa96:backend/src/routes/admin.routes.ts`, keeping the current buyer-based `repurchaseRate`); port `GET /payments`, `POST /payments/:id/approve` (unchanged logic, `applyApprovedPayment`), `POST /payments/:id/reject` (calls `rejectPayment(farmer, payment, reason, verifierName(db, req))`); `GET /farmers` rows and `GET /farmers/:id` gain `slots`, `subscription` and (detail) `payments` sorted newest first. No grant/revoke routes.
-  - `backend/scripts/admin.ts`: port `Payment` interface (renamed fields), `listPending`, `printPayments`, `stamp`, `approve` (with `--verified`), `reject`, and the `pending`/`approve`/`reject` cases from `git show 5a4fa96:backend/scripts/admin.ts`; keep `farmers`, `verify`, `set-password`. The `farmers` listing prints `slots.used/slots.total`. Header comment lists every command.
+  - `backend/src/routes/admin.routes.ts`: stats gain the six counters (port the `approvedPayments` / `subscriptionsExpiring` / `subscriptionsExpired` / `pendingPayments` / `pendingProducts` / `subscriptionRevenue` / `approvedPaymentCount` lines from `git show 5a4fa96:backend/src/routes/admin.routes.ts`, keeping the current buyer-based `repurchaseRate`); port `GET /payments`, `POST /payments/:id/approve` (unchanged logic, `applyApprovedPayment`), `POST /payments/:id/reject` (calls `rejectPayment(farmer, payment, reason, verifierName(db, req))`); `GET /farmers` rows and `GET /farmers/:id` gain `slots`, `subscription` and (detail) `payments` sorted newest first. In `POST /farmers/:id/verify`, after `notifyFarmer(farmer, 'VERIFIED')`, add `startTermOnVerify(farmer, farmer.verifiedAt)` — the CLI's `verify` reaches the same route and needs nothing else. Port `POST /farmers/:id/grant-slots` and `POST /farmers/:id/revoke-slots` from the same `git show`, reduced to:
+
+```ts
+adminRouter.post('/farmers/:id/grant-slots', (req, res) => {
+  const db = getDb()
+  const farmer = db.farmers.find((s) => s.id === req.params.id)
+  if (!farmer) { res.status(404).json({ error: 'Farmer not found', messageMr: 'हा शेतकरी सापडला नाही' }); return }
+  grantSlots(farmer, Number(req.body?.packs ?? 1))   // status untouched: a gift is not a verification
+  save()
+  res.json({ farmer })
+})
+
+adminRouter.post('/farmers/:id/revoke-slots', (req, res) => {
+  const db = getDb()
+  const farmer = db.farmers.find((s) => s.id === req.params.id)
+  if (!farmer) { res.status(404).json({ error: 'Farmer not found', messageMr: 'हा शेतकरी सापडला नाही' }); return }
+  const packs = Number(req.body?.packs ?? 1)
+  const problem = revokeProblem(farmer, db.products.filter((p) => p.farmerId === farmer.id), packs)
+  if (problem) {
+    res.status(409).json({
+      error: `${problem.used} slots are in use; that would leave ${problem.wouldLeave}`,
+      messageMr: `सध्या ${problem.used} जागा वापरात आहेत. इतक्या जागा काढता येणार नाहीत.`,
+      ...problem,
+    })
+    return
+  }
+  revokeSlots(farmer, packs)
+  save()
+  res.json({ farmer })
+})
+```
+
+  - `backend/scripts/admin.ts`: port `Payment` interface (renamed fields), `listPending`, `printPayments`, `stamp`, `approve` (with `--verified`), `reject`, `grant` (`/api/admin/farmers/:id/grant-slots`, matched by phone or farmer code), and the `pending`/`approve`/`reject`/`grant` cases from `git show 5a4fa96:backend/scripts/admin.ts`; keep `farmers`, `verify`, `set-password`. `verify` prints the term's end date when the answer carries `subscriptionEndsAt`. The `farmers` listing prints `slots.used/slots.total`. Header comment lists every command.
   - `backend/scripts/purge-demo-data.ts`: `doomedPayments = db.payments.filter((p) => seedFarmerIds.has(p.farmerId) || !db.farmers.some((f) => f.id === p.farmerId))`, shown, summed and filtered like the others.
 
 - [ ] **Step 9: Run** the Step 3 command plus `tests/catalog-visibility.test.ts tests/trace.test.ts tests/map.test.ts tests/price-hint.test.ts` → PASS. Then `cd backend && npm test && npm run typecheck`.
 
-- [ ] **Step 10: Frontend tests first.** In `frontend/tests/notifications.test.ts`: import `subscriptionFeed, visibleFeed`; change the `notif.verified` assertion to the new English (`'You are verified. With your subscription paid, your produce is on sale.'`); extend `kinds` to all eight; add:
+- [ ] **Step 10: Frontend tests first.** In `frontend/tests/notifications.test.ts`: import `subscriptionFeed, visibleFeed`; change the `notif.verified` assertion to the new English (`'You are verified. With your subscription paid, your produce is on sale.'`); extend `kinds` to all ten; restore the reference's "a granted pack is a sentence with the number in it" test (`git show 5a4fa96:frontend/tests/notifications.test.ts`) asserting `labelKey === 'notif.adm.SLOTS_GRANTED'`, `vars` `{ n: 5 }` and the English `'You have been given 5 more product slots'`; add:
 
 ```ts
 test('a renewal puts the new date in the sentence, not under it', () => {
@@ -616,16 +798,16 @@ test('the reminder week is one row timed from its start; a paused shop stands un
 
   (Rename the fixture helper `seller` → `farmer` if it still carries the old name.) Run `cd frontend && node --import tsx --test tests/notifications.test.ts` → FAIL.
 
-- [ ] **Step 11: `frontend/src/lib/notifications.ts`.** `ADMIN_NOTICE_PATH` adds `PAYMENT_APPROVED: '/farmer/products'`, `PAYMENT_REJECTED: '/farmer/subscription'`, `PRODUCT_APPROVED: '/farmer/products'`, `SUBSCRIPTION_RENEWED: '/farmer'`; `adminFeed` regains the `SUBSCRIPTION_RENEWED` branch (`vars: { date: shortDate(n.note) }`, `who: ''`); restore `subscriptionFeed` from `git show 5a4fa96:frontend/src/lib/notifications.ts` (`/seller/` → `/farmer/`, `SubscriptionView` type import). `NotificationBell.tsx` and `Notifications.tsx` merge `subscriptionFeed(me?.subscription)` beside `adminFeed(me?.farmer)`.
+- [ ] **Step 11: `frontend/src/lib/notifications.ts`.** `ADMIN_NOTICE_PATH` adds `SLOTS_GRANTED: '/farmer/products'`, `SLOTS_REVOKED: '/farmer/subscription'`, `PAYMENT_APPROVED: '/farmer/products'`, `PAYMENT_REJECTED: '/farmer/subscription'`, `PRODUCT_APPROVED: '/farmer/products'`, `SUBSCRIPTION_RENEWED: '/farmer'`; `adminFeed` regains the `SUBSCRIPTION_RENEWED` branch (`vars: { date: shortDate(n.note) }`, `who: ''`); restore `subscriptionFeed` from `git show 5a4fa96:frontend/src/lib/notifications.ts` (`/seller/` → `/farmer/`, `SubscriptionView` type import). `NotificationBell.tsx` and `Notifications.tsx` merge `subscriptionFeed(me?.subscription)` beside `adminFeed(me?.farmer)`.
 
 - [ ] **Step 12: `frontend/src/lib/api.ts`.** `me()` → `{ farmer: Farmer; slots: SlotInfo; subscription: SubscriptionView }`; `myProducts()` → `{ products; slots; subscription }`; `deleteProduct(id)` → `{ ok: true; slots: SlotInfo }` (doc: "drafts only - the server refuses a submitted listing" lands in Task 2); add `subscription()` and `submitPayment(kind, utr, paidAt, screenshotUrl?)` from `git show 5a4fa96:frontend/src/lib/api.ts` with `/sellers/` → `/farmers/` and `status: Farmer['status']` dropped from `submitPayment`'s answer (`{ payment }`). Type imports: `AdminPaymentAccount, SubscriptionPayment` from types, `SlotInfo` from `@shared/farmer.js`, `PaymentKind, SubscriptionView` from `@shared/subscription.js`.
 
 - [ ] **Step 13: Farmer screens.**
   - `components/SubscriptionNotice.tsx`: port `git show 5a4fa96:frontend/src/components/SubscriptionNotice.tsx` (`/seller/` → `/farmer/`, "HER" → "THE FARMER'S").
-  - `screens/farmer/Subscription.tsx`: port `git show 5a4fa96:frontend/src/screens/seller/Subscription.tsx`. Deltas: `/seller/…` → `/farmer/…`; `buildUpiLink` from `@shared/farmer.js`; UPI `note: renewing ? 'Shetkari Bazar renewal' : 'Shetkari Bazar subscription'` (never the old brand); `backTo="/farmer"`; in `PaymentWaiting` the "approved" branch's `(!latest && data.status === 'ACTIVE')` becomes `(!latest && data.subscription.state !== 'none')` — `ACTIVE` means verified now, not paid; comments gender-neutral. Everything it imports exists (`QrCode`, `PhotoPicker kind="payment"`, `PaySteps screenshot`, `CopyValue onCopied`, `useReturnFromApp`, `shortDate`, `Rupees`, `Field`, `TextInput`, `Notice`, icons `IconAllClear/IconCheck/IconTraining/IconWaiting/IconWarn/IconWhatsapp`).
+  - `screens/farmer/Subscription.tsx`: port `git show 5a4fa96:frontend/src/screens/seller/Subscription.tsx`. Deltas: `/seller/…` → `/farmer/…`; `buildUpiLink` from `@shared/farmer.js`; UPI `note: renewing ? 'Shetkari Bazar renewal' : 'Shetkari Bazar subscription'` (never the old brand); `backTo="/farmer"`; in `PaymentWaiting` the "approved" branch's `(!latest && data.status === 'ACTIVE')` becomes `(!latest && data.subscription.state !== 'none')` — `ACTIVE` means verified now, not paid — and that branch shows `<Notice tone="info">{t('sub.startsOnVerify')}</Notice>` under `wait.approvedSub` when `data.status !== 'ACTIVE'`, because a farmer who paid first has slots and no running clock; comments gender-neutral. Everything it imports exists (`QrCode`, `PhotoPicker kind="payment"`, `PaySteps screenshot`, `CopyValue onCopied`, `useReturnFromApp`, `shortDate`, `Rupees`, `Field`, `TextInput`, `Notice`, icons `IconAllClear/IconCheck/IconTraining/IconWaiting/IconWarn/IconWhatsapp`).
   - `App.tsx`: `<Route path="/farmer/waiting" element={<Require role="farmer"><PaymentWaiting /></Require>} />` outside the layout, and `<Route path="subscription" element={<Subscription />} />` inside `/farmer`.
   - `components/ui.tsx`: restore `SlotMeter` (`git show 78d261f -- frontend/src/components/ui.tsx`); `styles/theme.css`: restore the `.slotmeter` block (uses `--gold`, `--bg-2`, `--line`, all present in both palettes — no new hex).
-  - `MyBusiness.tsx`: `const slots = me.slots` (from `/farmers/me`; nothing is recomputed on the phone); `<SubscriptionNotice view={me.subscription} />` under the status notices; when `me.subscription.state === 'none'` and the farmer is not blocked/closed, a `Notice tone="warn" title={t('sub.noneTitle')}` with `sub.noneBody` and a `reg.payNow` button to `/farmer/subscription`; the expired shop-card variant (`sub.shopPaused` / `sub.shopPausedHint`, no toggle); the `SlotMeter` card `data-wt="biz-slots"` with `SubscriptionLine`, `biz.oneSlotLeft`, and the `biz.addSlots` button when `!expired && (slots.isFull || slots.total === 0)` — all from `git show 5a4fa96:frontend/src/screens/seller/MyBusiness.tsx`.
+  - `MyBusiness.tsx`: `const slots = me.slots` (from `/farmers/me`; nothing is recomputed on the phone); `<SubscriptionNotice view={me.subscription} />` under the status notices; when `me.subscription.state === 'none'` and the farmer is not blocked/closed: with `slots.total === 0` a `Notice tone="warn" title={t('sub.noneTitle')}` with `sub.noneBody` and a `reg.payNow` button to `/farmer/subscription`; with `slots.total > 0` (paid before the visit) a `Notice tone="info">{t('sub.startsOnVerify')}</Notice>` instead — the six months start when the farmer is verified, and asking for another ₹50 would be wrong; the expired shop-card variant (`sub.shopPaused` / `sub.shopPausedHint`, no toggle); the `SlotMeter` card `data-wt="biz-slots"` with `SubscriptionLine`, `biz.oneSlotLeft`, and the `biz.addSlots` button when `!expired && (slots.isFull || slots.total === 0)` — all from `git show 5a4fa96:frontend/src/screens/seller/MyBusiness.tsx`.
   - `MyProducts.tsx`: `SubscriptionNotice`, `SlotMeter` card, the `expired && p.status === 'LIVE'` pill (`sub.pausedPill`), `doDelete` takes `slots` from the answer, Add button `disabled={slots.isFull}` with the `prod.slotsFullTitle/Body` notice.
   - `UploadProduct.tsx`: stop importing `canSellNow`. Gates, in order, after `me` loads: `farmer.status !== 'ACTIVE'` → existing blocked/pending notice; `me.subscription.state === 'none' || 'expired'` → `EmptyState icon={IconLock} title={t('sub.uploadBlocked')} body={t('sub.uploadBlockedSub')}` with a button `t(state === 'none' ? 'reg.payNow' : 'sub.renewButton')` → `/farmer/subscription`; `me.slots.isFull` → `prod.slotsFullTitle/Body` with `prof.buyMore` and `biz.myProducts` buttons. Review step: replace the `prod.liveNow` notice with `<Notice tone="ok" title={t('prod.publish')}>{t('prod.willUseSlot', { used: me.slots.used + 1, total: me.slots.total })}</Notice>` (the "an admin checks first" sentence and the button label change in Task 2).
   - `Misc.tsx` (`FarmerProfile`): the `SlotMeter` card `data-wt="prof-slots"` with `prof.slotsHave` and `prof.buyMore` when `slots.left === 0`, reading `me.slots` rather than the old client-side `slotInfo(...)` (`git show 5a4fa96:frontend/src/screens/seller/Misc.tsx`); `FarmerHelp` FAQ regains `help.faq1`.
@@ -658,6 +840,7 @@ test('the reminder week is one row timed from its start; a paused shop stands un
   'wait.renewed': 'नूतनीकरण मंजूर झाले!', 'wait.renewedSub': 'तुमचे दुकान पुन्हा सुरू झाले आहे आणि {date} पर्यंत सुरू राहील.',
   'sub.noneTitle': 'वर्गणी अजून भरलेली नाही',
   'sub.noneBody': '₹50 भरून 5 उत्पादनांची जागा घ्या. मंजुरी आणि तपासणी झाल्यावर तुमचा माल ग्राहकांना दिसेल.',
+  'sub.startsOnVerify': 'तुमच्या जागा तयार आहेत. तुमचे 6 महिने तपासणी झाल्यावर सुरू होतील, म्हणजे वाट पाहण्याचे दिवस वाया जाणार नाहीत.',
   'sub.expiredTitle': 'तुमची वर्गणी संपली आहे — दुकान बंद आहे',
   'sub.expiredBody': '{date} रोजी 6 महिने पूर्ण झाले. सध्या ग्राहकांना तुमची उत्पादने दिसत नाहीत आणि नवीन ऑर्डर येणार नाहीत. ₹50 भरून नूतनीकरण करा. मंजुरी मिळताच तुमचे दुकान सर्व उत्पादनांसह आणि जागांसह पूर्वीसारखे सुरू होईल.',
   'sub.expiringTitle': '{n} दिवसांत तुमची वर्गणी संपेल', 'sub.expiringTitleOne': '1 दिवसात तुमची वर्गणी संपेल',
@@ -679,10 +862,14 @@ test('the reminder week is one row timed from its start; a paused shop stands un
   'wt.biz2': 'एका जागेत एक उत्पादन. जागा संपल्या तर ₹50 भरून आणखी 5 जागा घ्या.',
   'wt.pr1': 'तुमच्याकडे किती जागा आहेत ते इथे दिसते. आणखी हव्या असतील तर इथून घ्या.',
   'help.faq1': 'मी ₹50 भरले पण मंजूर झाले नाही',
+  /* What the office did to the account. Slots, not packs - a pack is our word. */
+  'notif.adm.SLOTS_GRANTED': 'तुम्हाला {n} नवीन जागा मिळाल्या आहेत',
+  'notif.adm.SLOTS_REVOKED': 'तुमच्या {n} जागा काढून घेतल्या आहेत',
   'notif.adm.PAYMENT_APPROVED': 'तुमचा ₹50 चा भरणा मंजूर झाला — {n} जागा मिळाल्या',
   'notif.adm.PAYMENT_REJECTED': 'तुमचा भरणा तपासणीत जुळला नाही',
   'notif.adm.PRODUCT_APPROVED': 'तुमचे उत्पादन मंजूर झाले आणि आता दिसत आहे',
-  'notif.adm.SUBSCRIPTION_RENEWED': 'नूतनीकरण मंजूर झाले — तुमचे दुकान {date} पर्यंत सुरू राहील',
+  // Also the first term starting at verification, so it does not say "renewal".
+  'notif.adm.SUBSCRIPTION_RENEWED': 'तुमची वर्गणी सुरू आहे — तुमचे दुकान {date} पर्यंत सुरू राहील',
   'notif.sub.expiring': '{date} रोजी तुमची वर्गणी संपेल — ₹50 भरून नूतनीकरण करा',
   'notif.sub.expired': 'तुमची वर्गणी संपली, दुकान बंद आहे — ₹50 भरून नूतनीकरण करा',
 ```
@@ -710,6 +897,7 @@ test('the reminder week is one row timed from its start; a paused shop stands un
   'wait.renewed': 'Renewal approved!', 'wait.renewedSub': 'Your shop is open again, until {date}.',
   'sub.noneTitle': 'No subscription yet',
   'sub.noneBody': 'Pay ₹50 for 5 product slots. Once the payment is approved and you are verified, your produce goes on sale.',
+  'sub.startsOnVerify': 'Your slots are ready. Your 6 months start when you are verified, so the days you wait are not lost.',
   'sub.expiredTitle': 'Your subscription has ended - your shop is closed',
   'sub.expiredBody': "Your 6 months ended on {date}. Customers can't see your products and no new orders can come in. Renew for ₹50 - once it's approved, your shop reopens exactly as it was, with all your products and slots.",
   'sub.expiringTitle': 'Your subscription ends in {n} days', 'sub.expiringTitleOne': 'Your subscription ends within a day',
@@ -731,20 +919,24 @@ test('the reminder week is one row timed from its start; a paused shop stands un
   'wt.biz2': 'One slot holds one product. Out of slots? Pay ₹50 for 5 more.',
   'wt.pr1': 'How many product slots you hold. Buy more from here.',
   'help.faq1': 'I paid the ₹50 but it is not approved yet',
+  'notif.adm.SLOTS_GRANTED': 'You have been given {n} more product slots',
+  'notif.adm.SLOTS_REVOKED': '{n} product slots were taken back',
   'notif.adm.PAYMENT_APPROVED': 'Your ₹50 payment was approved - {n} slots added',
   'notif.adm.PAYMENT_REJECTED': 'Your payment could not be matched',
   'notif.adm.PRODUCT_APPROVED': 'Your product was approved and is live',
-  'notif.adm.SUBSCRIPTION_RENEWED': 'Renewal approved - your shop is open until {date}',
+  'notif.adm.SUBSCRIPTION_RENEWED': 'Your subscription is active - your shop is open until {date}',
   'notif.sub.expiring': 'Your subscription ends on {date} - renew for ₹50',
   'notif.sub.expired': 'Your subscription has ended and your shop is closed - renew for ₹50',
 ```
 
   Then `cd frontend && npm test && npm run typecheck` → PASS (i18n parity, Marathi rules, every `t()` key, notifications).
 
-- [ ] **Step 15: Admin tests first.** `admin/tests/sort.test.ts`: restore the `PAYMENT_SORTS` import, its place in the "every list" loop and the "oldest first puts the longest wait at the top" test (`git show 5a4fa96:admin/tests/sort.test.ts`, fixture rows as `SubscriptionPayment[]`). `admin/tests/format.test.ts`: add `test('dateOnly keeps the year, in IST', () => assert.equal(dateOnly('2027-03-14T19:00:00.000Z'), '15 Mar 2027'))`. `admin/tests/i18n.test.ts`: the `nt.*` loop lists all eight kinds. Run `cd admin && npm test` → FAIL.
+- [ ] **Step 15: Admin tests first.** `admin/tests/sort.test.ts`: restore the `PAYMENT_SORTS` import, its place in the "every list" loop and the "oldest first puts the longest wait at the top" test (`git show 5a4fa96:admin/tests/sort.test.ts`, fixture rows as `SubscriptionPayment[]`). `admin/tests/format.test.ts`: add `test('dateOnly keeps the year, in IST', () => assert.equal(dateOnly('2027-03-14T19:00:00.000Z'), '15 Mar 2027'))`. `admin/tests/i18n.test.ts`: the `nt.*` loop lists all ten kinds. Run `cd admin && npm test` → FAIL.
 
 - [ ] **Step 16: Admin implementation.**
-  - `lib/api.ts`: `PaymentRow = SubscriptionPayment`; `FarmerRow` gains `slots: SlotInfo; subscription?: SubscriptionView`; `FarmerDetail` gains `payments: SubscriptionPayment[]`; add `payments(status = 'PENDING')`, `approvePayment(id, checks)`, `rejectPayment(id, reason)` (`git show 5a4fa96:admin/src/lib/api.ts`, `seller` → `farmer`); `stats()` doc lists the new counters.
+  - `lib/api.ts`: `PaymentRow = SubscriptionPayment`; `FarmerRow` gains `slots: SlotInfo; subscription?: SubscriptionView`; `FarmerDetail` gains `payments: SubscriptionPayment[]`; add `payments(status = 'PENDING')`, `approvePayment(id, checks)`, `rejectPayment(id, reason)`, `grantSlots(id, packs)`, `revokeSlots(id, packs)` (`git show 5a4fa96:admin/src/lib/api.ts`, `seller` → `farmer`); `stats()` doc lists the new counters.
+  - `components/Confirm.tsx`: restore `PackPicker` (`git show 78d261f -- admin/src/components/Confirm.tsx`); `styles/admin.css`: restore `.packbtn*` with `color: #fff` → `var(--on-dark)`.
+  - `components/FarmerActions.tsx`: port the grant and revoke buttons and their two `Confirm`s from `git show 5a4fa96:admin/src/components/SellerActions.tsx` (`Action = 'grant' | 'revoke' | 'block' | null`, `packs` state, `PackPicker`, `PLAN.slotsPerPack`, `used = farmer.slots?.used ?? 0`, the revoke title/description switching on `farmer.packsApproved`); `api.grantSlots` / `api.revokeSlots`; the Confirm stays open on the 409 so the server's "in use" sentence is read where it applies. Gender-neutral throughout.
   - `lib/format.ts`: restore `dateOnly` (`git show 5a4fa96:admin/src/lib/format.ts`). Keep the current `waited()`.
   - `lib/sort.ts`: restore `PAYMENT_SORTS` with `p.farmerName` and label keys `sort.farmerAZ` / `sort.farmerZA`. No `packsHigh`.
   - `components/Subscription.tsx`: port `git show 5a4fa96:admin/src/components/Subscription.tsx` (comment "HER" → "THE FARMER'S").
@@ -784,12 +976,21 @@ test('the reminder week is one row timed from its start; a paused shop stands un
   'pay.duplicate': 'तोच UTR पुन्हा',
   'pay.duplicateNote': 'हाच क्रमांक आधीही वापरला गेला आहे. दुसऱ्यांदा मंजूर केल्यास त्यांना विनाकारण दुप्पट जागा मिळतील.',
   'pay.kind.PACK': 'नवीन पॅक', 'pay.kind.RENEWAL': 'नूतनीकरण', 'pay.termUntil': '{date} पर्यंत दुकान सुरू',
-  'sd.payments': 'भरणा', 'sd.noPayments': 'अजून एकही भरणा आलेला नाही.', 'se.slots': 'जागा',
+  'sd.payments': 'भरणा', 'sd.noPayments': 'अजून एकही भरणा आलेला नाही.', 'se.slots': 'जागा', 'se.packs': 'पॅक',
   'se.subExpiring': '7 दिवसांत वर्गणी संपणारे', 'se.subExpired': 'वर्गणी संपलेले', 'se.subNone': 'वर्गणी न भरलेले',
+  'se.grantSlots': 'जागा द्या', 'se.grantSlotsHint': 'सद्भावना, प्रशिक्षण गट किंवा डेमो खात्यासाठी.',
+  'se.grantTitle': 'जागा द्यायच्या?',
+  'se.grantDesc': '{n} पॅक दिल्यास शेतकऱ्याला {slots} जागा मिळतील, म्हणजे ते आणखी {slots} उत्पादने पाठवू शकतील. पैसे न भरताच या जागा मिळतील. तपासणी झालेली असेल आणि वर्गणी सुरू नसेल तर आजपासून 6 महिन्यांची मुदत सुरू होईल; सुरू असलेली मुदत वाढणार नाही.',
+  'se.grantConfirm': 'हो, जागा द्या',
+  'se.revoke': 'जागा काढा', 'se.revokeTitle': 'जागा काढून घ्यायच्या?',
+  'se.revokeDesc': '{n} पॅक काढल्यास {slots} जागा कमी होतील. सध्या {used} जागा वापरात आहेत. वापरात असलेल्या जागांपेक्षा कमी करता येणार नाही.',
+  'se.revokeConfirm': 'हो, जागा काढा',
+  'se.revokeNoneTitle': 'काढण्यासाठी जागा नाहीत', 'se.revokeNoneDesc': 'या शेतकऱ्याकडे एकही मंजूर पॅक नाही.',
   'sub.none': 'वर्गणी सुरू नाही', 'sub.activeUntil': 'वर्गणी {date} पर्यंत',
   'sub.expiring': '{n} दिवसांत संपते · {date}', 'sub.expiringOne': '1 दिवसात संपते · {date}', 'sub.expiredSince': 'वर्गणी संपली · {date}',
+  'nt.SLOTS_GRANTED': 'जागा दिल्या', 'nt.SLOTS_REVOKED': 'जागा काढल्या',
   'nt.PAYMENT_APPROVED': 'भरणा मंजूर', 'nt.PAYMENT_REJECTED': 'भरणा नाकारला',
-  'nt.PRODUCT_APPROVED': 'उत्पादन प्रकाशित', 'nt.SUBSCRIPTION_RENEWED': 'वर्गणीचे नूतनीकरण',
+  'nt.PRODUCT_APPROVED': 'उत्पादन प्रकाशित', 'nt.SUBSCRIPTION_RENEWED': 'वर्गणीची मुदत',
   'sort.farmerAZ': 'शेतकऱ्याच्या नावानुसार (A → Z)', 'sort.farmerZA': 'शेतकऱ्याच्या नावानुसार (Z → A)',
 ```
 
@@ -820,12 +1021,21 @@ test('the reminder week is one row timed from its start; a paused shop stands un
   'pay.duplicate': 'Same UTR again',
   'pay.duplicateNote': 'This reference was already used. Approving it a second time gives a second pack of slots for one payment.',
   'pay.kind.PACK': 'New pack', 'pay.kind.RENEWAL': 'Renewal', 'pay.termUntil': 'Shop open until {date}',
-  'sd.payments': 'Payments', 'sd.noPayments': 'No payment has been submitted yet.', 'se.slots': 'Slots',
+  'sd.payments': 'Payments', 'sd.noPayments': 'No payment has been submitted yet.', 'se.slots': 'Slots', 'se.packs': 'packs',
   'se.subExpiring': 'Subscription ending within 7 days', 'se.subExpired': 'Subscription expired', 'se.subNone': 'No subscription yet',
+  'se.grantSlots': 'Grant slots', 'se.grantSlotsHint': 'Goodwill, a training batch, or a demo account.',
+  'se.grantTitle': 'Grant slots?',
+  'se.grantDesc': 'Granting {n} pack(s) gives the farmer {slots} slots, so they can send in {slots} more products. Nothing is paid. A verified farmer with no subscription gets 6 months from today; a running term is never extended.',
+  'se.grantConfirm': 'Yes, grant slots',
+  'se.revoke': 'Remove slots', 'se.revokeTitle': 'Remove slots?',
+  'se.revokeDesc': 'Removing {n} pack(s) takes away {slots} slots. {used} are in use right now, and the allowance cannot drop below what is already in use.',
+  'se.revokeConfirm': 'Yes, remove slots',
+  'se.revokeNoneTitle': 'Nothing to remove', 'se.revokeNoneDesc': 'This farmer has no approved packs.',
   'sub.none': 'No subscription yet', 'sub.activeUntil': 'Subscribed until {date}',
   'sub.expiring': 'Ends in {n} days · {date}', 'sub.expiringOne': 'Ends within a day · {date}', 'sub.expiredSince': 'Expired · {date}',
+  'nt.SLOTS_GRANTED': 'Slots granted', 'nt.SLOTS_REVOKED': 'Slots revoked',
   'nt.PAYMENT_APPROVED': 'Payment approved', 'nt.PAYMENT_REJECTED': 'Payment rejected',
-  'nt.PRODUCT_APPROVED': 'Listing published', 'nt.SUBSCRIPTION_RENEWED': 'Subscription renewed',
+  'nt.PRODUCT_APPROVED': 'Listing published', 'nt.SUBSCRIPTION_RENEWED': 'Subscription term',
   'sort.farmerAZ': 'Farmer name (A → Z)', 'sort.farmerZA': 'Farmer name (Z → A)',
 ```
 
@@ -833,17 +1043,17 @@ test('the reminder week is one row timed from its start; a paused shop stands un
 
 - [ ] **Step 18: `CLAUDE.md`.**
   - *What this is*: "…an admin verifies each one once, they pay ₹50 for a pack of five listing slots and six months of shop, each listing is published by an admin, buyers order…".
-  - *Commands*: add `npm run admin -- pending`, `npm run admin -- approve <id|phone|farmer-code> --verified`, `npm run admin -- reject <id> [reason]`; update the three test counts from the gate.
-  - *Verification, once*: append "Verification is one of **two** gates. `canSellNow()` in `shared/src/subscription.ts` is `status === 'ACTIVE'` **and** an open term; a verified farmer who has never paid is not on sale. Paying never changes status; verifying never moves the term."
+  - *Commands*: add `npm run admin -- pending`, `npm run admin -- approve <id|phone|farmer-code> --verified`, `npm run admin -- reject <id> [reason]`, `npm run admin -- grant <phone|farmer-code> [packs]`; update the three test counts from the gate.
+  - *Verification, once*: append "Verification is one of **two** gates. `canSellNow()` in `shared/src/subscription.ts` is `status === 'ACTIVE'` **and** an open term; a verified farmer who has never paid is not on sale. Paying never changes status. **The term never runs while the farmer is unverified**: a payment approved before the visit grants slots only, and `startTermOnVerify` (called by the verify route) starts the six months at verification when the farmer holds packs and no term — so nobody pays for the wait, and two ₹50s approved before the visit are still one first term."
   - Replace *Listings go live without approval* with a placeholder line "See *Nothing goes live until an admin publishes it* (Task 2)" — Task 2 writes that section.
-  - Add **Slots and subscription** after *Where an order may go*: port the reference section (`git show 5a4fa96:CLAUDE.md`, "### Slots and subscription" through the paragraph ending "…two sources for one figure is how an admin stops trusting either.") with these edits: seller→farmer and gender-neutral throughout; `shared/src/seller.ts`→`farmer.ts`; drop the paragraphs *A rejection is a removal* and *Deleting a draft deletes the document* (the current *Listings…*/Task 2 section covers them), drop *Inside the APK the ₹50 does not exist*, drop *There is no "Save QR to phone" button*, drop the "Submitting a payment no longer sets PAYMENT_SUBMITTED" bullet (replace with "The farmer's `status` carries no payment state; the queue's state is on the payment"), drop "Granted slots start a term…" (no grant route); the *Existing sellers* bullet becomes the §11.10 backfill rule (packs for what is on sale, six months from last approval or verification, floor 7 days); `revoke-slots` mention removed; `canSellNow` described as verified **and** term open. Keep the *₹50 needs proof* and *waiting time* paragraphs, the `ADMIN_PAYMENT_ACCOUNT` paragraph, and the `PaySteps` paragraph (already present under *The two hand-typed numbers* — cross-reference rather than duplicate).
+  - Add **Slots and subscription** after *Where an order may go*: port the reference section (`git show 5a4fa96:CLAUDE.md`, "### Slots and subscription" through the paragraph ending "…two sources for one figure is how an admin stops trusting either.") with these edits: seller→farmer and gender-neutral throughout; `shared/src/seller.ts`→`farmer.ts`; drop the paragraphs *A rejection is a removal* and *Deleting a draft deletes the document* (the current *Listings…*/Task 2 section covers them), drop *Inside the APK the ₹50 does not exist*, drop *There is no "Save QR to phone" button*, drop the "Submitting a payment no longer sets PAYMENT_SUBMITTED" bullet (replace with "The farmer's `status` carries no payment state; the queue's state is on the payment"); the *Admin* bullet keeps "granted slots start a term for a farmer who has none, but never extend one" and adds "only once verified — before that a grant is slots, and the term starts at verification like a pack's; neither grant nor revoke touches `status`, and revoke refuses (409) to drop below the slots in use"; the *Existing sellers* bullet becomes the §11.10 backfill rule (packs for what is on sale, six months from last approval or verification, floor 7 days); `canSellNow` described as verified **and** term open. Keep the *₹50 needs proof* and *waiting time* paragraphs, the `ADMIN_PAYMENT_ACCOUNT` paragraph, and the `PaySteps` paragraph (already present under *The two hand-typed numbers* — cross-reference rather than duplicate).
   - *Deleting an account*: the `FARMER_PII_FIELDS` bullet adds "and the farmer's ₹50 payments lose the payer (`scrubPayment`: name, phone, payer UPI, the screenshot destroyed by `publicIdFromUrl`) and keep the money".
   - *The updates list*: "…and from `subscriptionFeed()` — the reminder week, and a `standing` 'paused, renew' row that never ages out; `SUBSCRIPTION_RENEWED` carries the new date."
   - *Sorting the admin lists*: "Farmers, Products, Orders and Payments…".
   - *Config and graceful degradation*: bullet for `ADMIN_UPI_ID` / `ADMIN_UPI_NAME` / `ADMIN_BANK_NAME` and the boot banner's `Fee payee` line.
   - *Persistence*: the collections sentence names `payments`.
 
-- [ ] **Step 19: Gate.** `npm test && npm run typecheck && npm run build`. Then `npm run dev:all`: register a farmer, open `/farmer/subscription`, pay (any 12 digits, a screenshot, now), land on `/farmer/waiting`; in the console approve with the three checks; verify the farmer; the shop appears in the buyer catalogue. Set `subscriptionEndsAt` in `backend/data/db.json` to yesterday (API stopped) and confirm the catalogue hides the shop, My Business shows the paused card, the bell shows the standing row, and a renewal reopens it.
+- [ ] **Step 19: Gate.** `npm test && npm run typecheck && npm run build`. Then `npm run dev:all`: register a farmer, open `/farmer/subscription`, pay (any 12 digits, a screenshot, now), land on `/farmer/waiting`; in the console approve with the three checks — the farmer's page shows 5 slots and "no subscription yet", My Business says the six months start at verification; verify the farmer — the pill now reads a date six months out and the shop appears in the buyer catalogue. Grant a pack from the farmer's page (slots 10, date unchanged); try to remove two packs with a listing live → the 409 sentence stays in the dialog. Set `subscriptionEndsAt` in `backend/data/db.json` to yesterday (API stopped) and confirm the catalogue hides the shop, My Business shows the paused card, the bell shows the standing row, and a renewal reopens it.
 
 - [ ] **Step 20: Commit.**
 
@@ -851,12 +1061,14 @@ test('the reminder week is one row timed from its start; a paused shop stands un
 git add -A
 git commit -m "Bring back the ₹50 subscription, slots and payment proof
 
-₹50 = one pack of five listing slots and six months of shop, counted from
-the admin's approval in IST. A farmer sells only when verified AND the term
-is open; paying never changes status and verifying never moves the date.
-The payment carries a screenshot, the time paid and the UTR, and the admin
-approves only after three checks. Farmers from the free period get a term
-and enough packs at boot, never fewer than a week.
+₹50 = one pack of five listing slots and six months of shop, counted in
+IST from the admin's approval - or from the verification, when the farmer
+paid first, so nobody pays for the wait. A farmer sells only when verified
+AND the term is open; paying never changes status. The payment carries a
+screenshot, the time paid and the UTR, and the admin approves only after
+three checks. Admins can grant and take back slots; a grant never extends
+a term. Farmers from the free period get a term and enough packs at boot,
+never fewer than a week.
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
@@ -1158,7 +1370,8 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ## Self-review
 
-- Every interface named in a task's **Interfaces** block appears in its steps with the same name and signature (`termOpen`, `canSellNow(f, now)`, `slotInfo`, `rejectPayment`, `backfillSubscriptionTerms(db, now)`, `publiclyVisible(product, farmer, now)`, `approveProduct`).
+- Every interface named in a task's **Interfaces** block appears in its steps with the same name and signature (`termOpen`, `canSellNow(f, now)`, `slotInfo`, `rejectPayment`, `startTermOnVerify`, `grantSlots`, `revokeProblem`, `revokeSlots`, `backfillSubscriptionTerms(db, now)`, `publiclyVisible(product, farmer, now)`, `approveProduct`).
+- The term is written in exactly four places: `applyApprovedPayment` (verified farmer), `startTermOnVerify`, `grantSlots` (verified farmer with none) and `backfillSubscriptionTerms`; none of them runs for an unverified farmer, so a payment or a gift before the visit never starts the clock.
 - Task 1 adds `PENDING` to `ProductStatus` and `PRODUCT_STATUS_STYLE` but nothing creates one until Task 2 flips `initialListingStatus`; `slots.test.ts` compiles in Task 1 because the type is there.
 - The frontend never calls `canSellNow`: `UploadProduct` gates on `farmer.status` and `me.subscription.state`; `MyBusiness`/`MyProducts` read `subscription.state`.
 - Every dictionary key used in the steps is listed in a strings step for both languages; `prod.liveNow` is removed in the same step that stops using it.

@@ -416,8 +416,12 @@ A farmer sells only when **verified and subscribed**.
   path asks it: `publiclyVisible`, serviceability, `GET /farmers/:id`,
   `GET /catalog/farmers/:id/contact`, `POST /orders`, the price hint's
   platform median, and submitting a listing.
-- The two gates are independent. Paying does not change `status`; verifying
-  does not touch the term. The farmer may pay before or after verification.
+- Paying never changes `status`. The farmer may pay before or after
+  verification, and **the term never runs while the farmer is unverified**:
+  a payment approved for a `PENDING_VERIFICATION` farmer grants its slots and
+  starts no term; `POST /admin/farmers/:id/verify` then starts the six months
+  at the verification moment when the farmer holds approved packs and no term
+  (`startTermOnVerify`). Once verified, approval behaves as §11.2 says.
 - No screen computes the term on the phone. The API sends
   `subscriptionView` (server clock) on `/farmers/me`, `/products/mine`,
   `/farmers/me/subscription`, `/admin/farmers` and `/admin/farmers/:id`;
@@ -442,10 +446,25 @@ changes when the clock passes the date, and renewal is the date moving.
   full; otherwise `PACK` only when slots are full. Sent to the screen as
   `payable` and enforced on submit (`paymentKindProblem`, Marathi).
 - `applyApprovedPayment(farmer, payment, approvedAt)`: a `PACK` adds one to
-  `packsApproved`; either kind sets `subscriptionEndsAt` by the rule above and
-  copies it to `payment.termEndsAt`; writes `PAYMENT_APPROVED` (`n: 5`) for a
-  pack and `SUBSCRIPTION_RENEWED` (`note` = new end date) for a renewal or for
-  any payment that reopened an expired shop. Status is never changed.
+  `packsApproved` and writes `PAYMENT_APPROVED` (`n: 5`). **Unverified farmer
+  (`verifiedAt` absent):** nothing else — no term, `payment.termEndsAt`
+  unset, whatever the kind; a `RENEWAL` approved here buys no second term, so
+  verification starts exactly one. **Verified farmer:** either kind sets
+  `subscriptionEndsAt` by the rule above, copies it to `payment.termEndsAt`,
+  and writes `SUBSCRIPTION_RENEWED` (`note` = new end date) for a renewal or
+  for any payment that reopened an expired shop. Status is never changed.
+- `startTermOnVerify(farmer, verifiedAt)`: when `packsApproved > 0` and no
+  `subscriptionEndsAt`, sets it to `addMonths(verifiedAt, 6)` and writes
+  `SUBSCRIPTION_RENEWED` with the date. Called by the verify route (and so by
+  the CLI's `verify`); a farmer with no packs is verified and waits to pay.
+- Slots without money: `POST /admin/farmers/:id/grant-slots { packs }` adds
+  packs and writes `SLOTS_GRANTED` (`n` in slots); it starts a term only for a
+  **verified** farmer with none (six months from now) and never extends one —
+  goodwill is slots, time is paid. For an unverified farmer the term starts at
+  verification like any other pack. `POST /admin/farmers/:id/revoke-slots
+  { packs }` answers 409 when the remaining slots would fall below those in
+  use (`revokeProblem`), otherwise lowers `packsApproved` and writes
+  `SLOTS_REVOKED`; neither route touches `status` or the term.
 
 ### 11.3 Paying
 
@@ -491,7 +510,9 @@ changes when the clock passes the date, and renewal is the date moving.
   amount; kind pill; duplicate pill; "paid over 24 h before sending" pill.
 - CLI: `pending`, `approve <id|phone|farmer-code> --verified` (sends the
   three checks; refuses without the flag and never offers `all`), `reject
-  <id> [reason]`, `products`, `approve-product <id>`.
+  <id> [reason]`, `grant <phone|farmer-code> [packs]`, `products`,
+  `approve-product <id>`. `verify` goes through the same route, so it starts
+  the term of a farmer who paid first.
 
 ### 11.5 Listing approval
 
@@ -553,6 +574,10 @@ changes when the clock passes the date, and renewal is the date moving.
   `SubscriptionPill` (date and colour, tone by state) and slots `used/total`.
   The detail page lists every payment with kind, status, UTR, reason and
   the end date it set (`termEndsAt`).
+- **Grant / Remove slots** on the farmer's row and page (`FarmerActions`,
+  behind `Confirm` with a 1–3 `PackPicker`): the grant sentence says how many
+  slots and that no money changed hands; the revoke sentence says how many
+  are in use and that the allowance cannot drop below them.
 
 ### 11.8 The farmer's screens
 
@@ -566,6 +591,10 @@ changes when the clock passes the date, and renewal is the date moving.
 - The Upload screen gates in order: not verified → existing notice; no term
   or expired → a card with the pay/renew button; slots full → a card with
   "5 more slots" and My Products.
+- A farmer who paid before being verified is told, on My Business and on the
+  waiting screen's approved state, that **the six months start when they are
+  verified** (`sub.startsOnVerify`); the "pay ₹50" prompt is not shown to
+  someone who already holds packs.
 - The registration done screen adds "Now pay ₹50 for 5 slots" with a button
   to `/farmer/subscription`, under the pending-verification notice.
 - Updates list: `subscriptionFeed(view)` adds one derived row — the reminder
@@ -590,8 +619,10 @@ changes when the clock passes the date, and renewal is the date moving.
   `db/firestore.ts`, so it is loaded at boot, counted in the read budget,
   guarded by `isBulkDelete` and included in backups.
 - `AdminNoticeKind` adds `PAYMENT_APPROVED`, `PAYMENT_REJECTED`,
-  `PRODUCT_APPROVED`, `SUBSCRIPTION_RENEWED`. No `SLOTS_GRANTED` /
-  `SLOTS_REVOKED`: there is no grant route.
+  `PRODUCT_APPROVED`, `SUBSCRIPTION_RENEWED`, `SLOTS_GRANTED`,
+  `SLOTS_REVOKED` (ten in all). `SUBSCRIPTION_RENEWED` is worded as "your
+  shop is open until {date}" on both sides, because it also announces the
+  first term starting at verification.
 - Closing an account: `scrubFarmer` also scrubs the farmer's payments —
   `farmerName` → placeholder, `phone` and `payerUpi` emptied, the screenshot
   destroyed by the public id parsed from its URL (`publicIdFromUrl`);
@@ -618,12 +649,11 @@ changes when the clock passes the date, and renewal is the date moving.
 
 ### 11.11 Judgement calls where the decisions were silent
 
-1. **A pack approved before verification** starts the six months from the
-   approval, as the reference did, and leaves the farmer
-   `PENDING_VERIFICATION`. The days between approval and verification are
-   lost to the farmer. (The alternative — `verify` moving the date to six
-   months from verification when the term began earlier — is one line in the
-   verify handler if wanted.)
+1. **A pack approved before verification** grants its slots and starts no
+   term; the six months begin at verification (decided 2026-09-28). Those
+   payments carry no `termEndsAt` — the date they set is the one verification
+   writes, and it is on the farmer. The term-start notice reuses
+   `SUBSCRIPTION_RENEWED` rather than adding an eleventh kind.
 2. **A verified farmer with no subscription is not on sale.** The reference's
    `canSellNow` treated "no date" as "not expired", which was safe only
    because status did the gating; here status is verification, so the term
@@ -634,10 +664,14 @@ changes when the clock passes the date, and renewal is the date moving.
 4. **No farmer statuses for payments** (`PAYMENT_SUBMITTED`,
    `PAYMENT_REJECTED` are not restored); `sellerStatusAfterReject` is not
    ported. Rejecting a payment changes the payment and writes a notice.
-5. **Not restored**: `grant-slots` / `revoke-slots`, the record-outside-payment
-   route, the APK price-free twins, the "new payment" toast in the admin
-   shell (the sidebar badge is the signal), and a `packsHigh` sort. Say so if
-   any is wanted.
+5. **Not restored**: the record-outside-payment route, the APK price-free
+   twins, the "new payment" toast in the admin shell (the sidebar badge is
+   the signal), and a `packsHigh` sort. Say so if any is wanted.
+   `grant-slots` / `revoke-slots` **are** restored (decided 2026-09-28), with
+   two departures from the reference: neither touches `status` (the
+   reference flipped `REGISTERED ↔ ACTIVE`, which here would verify or
+   un-verify by the back door), and revoking to zero packs leaves the term
+   alone — with zero slots nothing can be in use, so nothing is on sale.
 6. **`slotInfo.isFull` with zero packs is full.**
 7. **`PENDING` listings are editable and unrationed**; approval is only from
    `PENDING`; the farmer cannot delete one.
@@ -650,9 +684,10 @@ changes when the clock passes the date, and renewal is the date moving.
 
 ### 11.12 Tests
 
-Ported and adapted (`backend/tests`): `subscription.test.ts`,
-`payment-proof.test.ts`, `payment-reject.test.ts`, `payment-account.test.ts`,
-`slots.test.ts`, `edit-limit.test.ts`, `listing-review.test.ts`. Rewritten:
+Ported and adapted (`backend/tests`): `subscription.test.ts` (also the
+term-at-verification cases and grant/revoke), `payment-proof.test.ts`,
+`payment-reject.test.ts`, `payment-account.test.ts`, `slots.test.ts`,
+`edit-limit.test.ts`, `listing-review.test.ts`. Rewritten:
 `verification.test.ts` (verified **and** subscribed), `moderation.test.ts`
 (`PENDING` untouched). Fixtures that build an `ACTIVE` farmer for a public
 path gain a future `subscriptionEndsAt` (`catalog-visibility`, `trace`,
