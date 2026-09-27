@@ -149,6 +149,14 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
             {' · '}{t('pr.stock')}: {product.stock} {t(`unit.${product.unit}`)}
           </div>
 
+          {/* Farmers may send a listing before the field visit; publishing it
+              verifies them (admin.routes.ts), so the admin is told first. */}
+          {pending && product.farmer?.status === 'PENDING_VERIFICATION' && (
+            <div className="small" style={{ marginTop: 8, color: 'var(--warn)' }}>
+              {t('pr.unverifiedNote')}
+            </div>
+          )}
+
           {/* What the buyers actually said, each with its reason, because
               "three reports" is a number and "two say the photo is not theirs"
               is a decision. Nobody's name: a report is anonymous to everyone

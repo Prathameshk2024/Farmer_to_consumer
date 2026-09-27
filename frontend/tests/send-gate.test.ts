@@ -3,20 +3,20 @@ import assert from 'node:assert/strict'
 import { sendBlock } from '../src/screens/farmer/sendGate.js'
 
 /**
- * PAST THE ₹50, DRAFTS ARE FREE. The wizard opens only once the payment is
- * approved (addProductBlock); after that, a farmer waiting for the field
- * visit or out of slots can still write a listing down. Only SENDING waits,
- * and this says for what, in the server's order - `noTerm` and `expired`
- * remain for a farmer whose term has not started yet or ran out mid-wizard.
+ * PAST THE ₹50, A LISTING GOES TO THE ADMIN. The wizard opens only once the
+ * payment is approved (addProductBlock). A farmer still waiting for the field
+ * visit has packs but no term (`none`), and must still be able to send: the
+ * admin publishing the listing is the check, and it verifies them. Only a
+ * term that ran out mid-wizard or no free slot keeps a listing a draft.
  */
-test('a verified farmer with an open term and a free slot can send', () => {
-  assert.equal(sendBlock('ACTIVE', 'active', false), null)
-  assert.equal(sendBlock('ACTIVE', 'expiring', false), null, 'the reminder week still sells')
+test('an approved farmer with a free slot can send, verified or not', () => {
+  assert.equal(sendBlock('active', false), null)
+  assert.equal(sendBlock('expiring', false), null, 'the reminder week still sells')
+  assert.equal(sendBlock('none', false), null, 'paid, waiting for the visit: the admin checks the listing')
 })
 
 test('otherwise sending waits, and the first reason is named', () => {
-  assert.equal(sendBlock('PENDING_VERIFICATION', 'none', true), 'notVerified')
-  assert.equal(sendBlock('ACTIVE', 'none', true), 'noTerm', 'never paid: the term, not the slots')
-  assert.equal(sendBlock('ACTIVE', 'expired', false), 'expired')
-  assert.equal(sendBlock('ACTIVE', 'active', true), 'slotsFull')
+  assert.equal(sendBlock('expired', true), 'expired', 'renewing comes before buying slots')
+  assert.equal(sendBlock('active', true), 'slotsFull')
+  assert.equal(sendBlock('none', true), 'slotsFull')
 })

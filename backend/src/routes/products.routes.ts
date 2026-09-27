@@ -3,7 +3,7 @@ import type { Farmer, Product, SubscriptionPayment } from '@shared/types.js'
 import {
   MAX_EDITS, countsAsEdit, editsAreLimited, editsLeft, farmerMayDelete, initialListingStatus, slotInfo,
 } from '@shared/farmer.js'
-import { type AddBlock, addProductBlock, subscriptionView, termOpen } from '@shared/subscription.js'
+import { type AddBlock, addProductBlock, subscriptionView } from '@shared/subscription.js'
 import { categoryFor, descriptionProblem, listingProblems } from '@shared/produce.js'
 import { getDb, newId, save } from '../db/store.js'
 import { CATEGORIES, isCategoryId } from '../db/seed.js'
@@ -85,9 +85,6 @@ productsRouter.get('/mine', requireRole('farmer'), (req, res) => {
   })
 })
 
-/** Why an unverified farmer's listing cannot go on sale yet. */
-const NOT_VERIFIED_MR = 'तुमची तपासणी झाल्यावर माल विक्रीसाठी जाईल'
-const NO_TERM_MR = 'तुमची वर्गणी सुरू नाही. ₹50 भरून मंजुरी मिळाल्यावर उत्पादने पाठवता येतील.'
 const SLOTS_FULL_MR = 'सर्व जागा भरल्या आहेत. आणखी 5 जागांसाठी ₹50 भरा.'
 
 const ADD_REFUSAL: Record<AddBlock, { error: string; messageMr: string }> = {
@@ -139,17 +136,9 @@ productsRouter.post('/', requireRole('farmer'), (req, res) => {
   const b = req.body as Partial<Product> & { asDraft?: boolean }
   const asDraft = !!b.asDraft
 
-  // Drafts are the farmer's to write before the check and with no slot free;
-  // sending one in waits for both and the term, in that order, so the
-  // message names the first thing the farmer can do about it.
-  if (!asDraft && farmer.status !== 'ACTIVE') {
-    res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
-    return
-  }
-  if (!asDraft && !termOpen(farmer)) {
-    res.status(403).json({ error: 'No open subscription', messageMr: NO_TERM_MR })
-    return
-  }
+  // Sending in does not wait for the field visit: the ₹50 is approved (the
+  // gate above), and the admin who publishes the listing is the person check.
+  // Publishing an unverified farmer's listing verifies them (admin.routes.ts).
   // THE SLOT GATE. The disabled button is a courtesy; this is the rule.
   const slots = slotInfo(farmer, db.products.filter((p) => p.farmerId === farmerId))
   if (!asDraft && slots.isFull) {
@@ -236,12 +225,9 @@ productsRouter.patch('/:id', requireRole('farmer'), (req, res) => {
     // Putting a draft on sale: the same checks as a new listing, so "save as
     // draft" is never a way round them.
     const farmer = db.farmers.find((s) => s.id === req.auth!.farmerId)!
-    if (farmer.status !== 'ACTIVE') {
-      res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
-      return
-    }
-    if (!termOpen(farmer)) {
-      res.status(403).json({ error: 'No open subscription', messageMr: NO_TERM_MR })
+    const unpaid = addRefusal(farmer, db.payments)
+    if (unpaid) {
+      res.status(403).json(unpaid)
       return
     }
     // THE SLOT GATE. The draft itself holds none, so it is counted without.

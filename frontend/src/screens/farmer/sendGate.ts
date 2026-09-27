@@ -1,25 +1,19 @@
-import type { FarmerStatus } from '@shared/types.js'
 import type { SubscriptionState } from '@shared/subscription.js'
 
 /**
  * Why a listing can be written but not SENT right now, or null when it can.
  *
- * Once the ₹50 is approved (`addProductBlock`, checked before the wizard
- * opens) drafts are free: the server takes one whatever the farmer's
- * verification or slots. So the wizard offers "save as draft" and says what
- * sending waits for. The
- * order is the server's (products.routes.ts): verification, term, slot, so
- * the sentence names the first thing the farmer can do about it.
+ * The wizard opens only once the ₹50 is approved (`addProductBlock`). From
+ * there a listing goes to the admin whether or not the field visit has
+ * happened - the admin who publishes it is the person check, and publishing
+ * verifies the farmer. So sending waits only for a term that ran out
+ * mid-wizard, or a free slot, in the server's order (products.routes.ts).
+ * `none` is not a block: an approved farmer awaiting the visit has packs and
+ * no term yet.
  */
-export type SendBlock = 'notVerified' | 'noTerm' | 'expired' | 'slotsFull'
+export type SendBlock = 'expired' | 'slotsFull'
 
-export function sendBlock(
-  status: FarmerStatus,
-  term: SubscriptionState,
-  slotsFull: boolean,
-): SendBlock | null {
-  if (status !== 'ACTIVE') return 'notVerified'
-  if (term === 'none') return 'noTerm'
+export function sendBlock(term: SubscriptionState, slotsFull: boolean): SendBlock | null {
   if (term === 'expired') return 'expired'
   if (slotsFull) return 'slotsFull'
   return null

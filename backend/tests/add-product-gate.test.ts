@@ -67,9 +67,14 @@ test('once approved the farmer may add, reminder week included', () => {
 /**
  * Approved before the field visit: the packs are there but the six months
  * start at verification (startTermOnVerify). The farmer has paid and been
- * approved; the visit is not theirs to fix, so drafts are open to them.
+ * approved; the visit is not theirs to fix, so they may add AND send in a
+ * listing. This refusal is the whole gate for sending (besides the slots):
+ * the admin who publishes the listing is the check, and publishing verifies
+ * the farmer.
  */
 test('approved packs waiting for verification count as paid', () => {
   assert.equal(addProductBlock({ packsApproved: 1 }, false, now), null)
   assert.equal(addProductBlock({ packsApproved: 0 }, false, now), 'unpaid')
+  const unverified = farmer({ status: 'PENDING_VERIFICATION', packsApproved: 1 })
+  assert.equal(addRefusal(unverified, [], now), null, 'waiting for the visit does not hold a listing back')
 })

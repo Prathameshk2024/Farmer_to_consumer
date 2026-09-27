@@ -144,10 +144,10 @@ export default function UploadProduct() {
     )
   }
 
-  /* Past the ₹50, drafts are free; SENDING waits for verification, a term
-     and a slot, in the server's order. The wizard stays open and the last step offers only
-     "save as draft" while `blocked` names what sending waits for. */
-  const blocked = sendBlock(farmer.status, me.subscription.state, me.slots.isFull)
+  /* Past the ₹50 a listing goes to the admin, field visit or not. SENDING
+     waits only for an open term and a free slot; the last step then offers
+     only "save as draft" while `blocked` names what sending waits for. */
+  const blocked = sendBlock(me.subscription.state, me.slots.isFull)
 
   const categories: Category[] = catData?.categories ?? []
   const catLabel = (c: { mr: string; en: string }) => (lang === 'mr' ? c.mr : c.en)
@@ -433,22 +433,19 @@ export default function UploadProduct() {
 
             {blocked ? (
               <Notice tone="warn" title={t('sub.uploadBlocked')}>
-                <div>
-                  {blocked === 'notVerified' ? t('biz.pendingVerification')
-                    : blocked === 'slotsFull' ? t('prod.slotsFullBody')
-                      : t('prod.draftOnlyPay')}
+                <div>{blocked === 'slotsFull' ? t('prod.slotsFullBody') : t('prod.draftOnlyPay')}</div>
+                <div style={{ marginTop: 'var(--s3)' }}>
+                  <Button size="sm" variant="ghost" onClick={() => nav('/farmer/subscription')}>
+                    {t(blocked === 'expired' ? 'sub.renewButton' : 'prof.buyMore')}
+                  </Button>
                 </div>
-                {blocked !== 'notVerified' && (
-                  <div style={{ marginTop: 'var(--s3)' }}>
-                    <Button size="sm" variant="ghost" onClick={() => nav('/farmer/subscription')}>
-                      {t(blocked === 'noTerm' ? 'reg.payNow' : blocked === 'expired' ? 'sub.renewButton' : 'prof.buyMore')}
-                    </Button>
-                  </div>
-                )}
               </Notice>
             ) : (
-              <Notice tone="ok" title={t('prod.publish')}>
-                {t('prod.willUseSlot', { used: me.slots.used + 1, total: me.slots.total })}
+              <Notice tone="info" title={t('prod.adminPublishes')}>
+                {t('prod.reviewNote')}
+                <div className="small muted" style={{ marginTop: 'var(--s2)' }}>
+                  {t('prod.willUseSlot', { used: me.slots.used + 1, total: me.slots.total })}
+                </div>
               </Notice>
             )}
 
@@ -479,7 +476,6 @@ export default function UploadProduct() {
               </Button>
             ) : (
               <>
-                <div className="small dim" style={{ textAlign: 'center' }}>{t('prod.reviewNote')}</div>
                 <Button onClick={() => void publish(false)} disabled={busy}>
                   {busy ? t('common.loading') : t('prod.publish')}
                 </Button>

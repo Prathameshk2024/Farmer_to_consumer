@@ -1,5 +1,5 @@
 import { Router, type Request } from 'express'
-import type { AdminStats } from '@shared/types.js'
+import type { AdminStats, Farmer } from '@shared/types.js'
 import type { Unit } from '@shared/produce.js'
 import { subscriptionState, subscriptionView } from '@shared/subscription.js'
 import { slotInfo } from '@shared/farmer.js'
@@ -214,16 +214,20 @@ adminRouter.post('/farmers/:id/verify', (req, res) => {
   if (farmer.status !== 'PENDING_VERIFICATION') {
     res.status(409).json({ error: 'Not pending', messageMr: 'हा शेतकरी आधीच तपासलेला आहे' }); return
   }
+  verifyFarmer(farmer, verifierName(db, req))
+  save()
+  res.json({ farmer })
+})
+
+function verifyFarmer(farmer: Farmer, by: string): void {
   farmer.status = 'ACTIVE'
   farmer.verifiedAt = new Date().toISOString()
-  farmer.verifiedBy = verifierName(db, req)
+  farmer.verifiedBy = by
   notifyFarmer(farmer, 'VERIFIED')
   // A farmer who paid before the visit has packs and no term; the six months
   // start now, so nobody pays for the wait.
   startTermOnVerify(farmer, farmer.verifiedAt)
-  save()
-  res.json({ farmer })
-})
+}
 
 /* ------------------------------------------------------------------ */
 /* Payment approvals                                                   */
@@ -446,6 +450,10 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
       return
     }
     product.status = 'LIVE'
+    // A listing sent in before the field visit: publishing it is the admin
+    // vouching for this farmer, so it verifies them too - otherwise a LIVE
+    // listing would stay hidden behind publiclyVisible() with nobody told why.
+    if (owner?.status === 'PENDING_VERIFICATION') verifyFarmer(owner, verifierName(db, req))
     // Told about their own product by name: "which one?" is the first question.
     if (owner) notifyFarmer(owner, 'PRODUCT_APPROVED', { subject: product.name })
     save()
