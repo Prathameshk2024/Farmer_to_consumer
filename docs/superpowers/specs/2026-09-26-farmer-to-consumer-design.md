@@ -33,8 +33,8 @@ the research tables for 100–200 surveyed farmers.
 | Delivery shape | Website only. No APK, no WebView wrapper, no push notifications. |
 | Login | Phone number + password. No OTP, no SMS provider. |
 | Forgotten password | A public request page (no OTP): the person leaves phone and name, an admin calls back from a queue in the console and gives a temporary password, which must be changed at next login. |
-| Fee | Free for farmers. No subscription, no slots, no payment-proof queue. |
-| Moderation | Admin verifies a farmer once. After that his listings go live immediately. Buyers report bad listings; admin takes them down. |
+| Fee | **Superseded by §11.** ₹50 buys one pack of 5 listing slots and keeps the shop open for 6 months; the farmer pays the college's UPI and an admin approves the proof by hand. |
+| Moderation | **Superseded by §11.** Admin verifies a farmer once, *and* every new listing waits as `PENDING` until an admin publishes it. Buyers report bad listings; admin takes them down. |
 | AI | No paid AI. Data-based price hint, demand/supply chart, voice search. |
 | Languages | Marathi (default) and English, as in the reference. No Hindi. Marathi first: the default in the farmer/buyer app and in the admin console, the source text of every string, and the fallback for a missing key. English is a toggle, written on its own. |
 | Hosting | Same as reference: one Cloud Run API (max instances 1, CPU always allocated), Firestore via `firebase-admin`, Cloudinary for photos, two Vercel projects (`frontend`, `admin`). |
@@ -70,11 +70,12 @@ screen and its section in `CLAUDE.md`.
   `seller.ts`, `backend/src/db/subscription.ts`, `db/payments.ts`,
   `screens/seller/Subscription.tsx`, `SubscriptionNotice`, admin `Payments.tsx`,
   admin `Subscription.tsx`, `ADMIN_PAYMENT_ACCOUNT`, subscription dashboard
-  counters, `backfillSubscriptionTerms`.
+  counters, `backfillSubscriptionTerms`. **Restored by §11.**
 - Per-listing approval: `PENDING` as a listing status, the Pending tab in admin
   Products. `initialListingStatus()` returns `LIVE` for a verified farmer.
+  **Restored by §11.**
 - Edit limits: `MAX_EDITS`, `EDIT_COUNTED_FIELDS`, `editsLeft()`. There are no
-  slots to rotate through, so the limit protects nothing.
+  slots to rotate through, so the limit protects nothing. **Restored by §11.**
 - Women-specific and packaged-food fields: FSSAI number, veg/non-veg,
   ingredients, material, `piecesPerPack`, `womenbiz.ts` naming.
 
@@ -185,8 +186,10 @@ description.
   quantity steps between minimum and stock.
 - Listing wizard stays one question per screen; the edit screen stays one page.
   Price and quantity are always editable.
-- A verified farmer's new listing is `LIVE` at once. `publiclyVisible()` is
-  unchanged in shape: `LIVE` product, `ACTIVE` (verified) farmer, shop open.
+- ~~A verified farmer's new listing is `LIVE` at once.~~ Superseded by §11: a
+  new listing is `PENDING` until an admin publishes it. `publiclyVisible()` is
+  unchanged in shape: `LIVE` product, farmer who `canSellNow` (verified and
+  subscribed), shop open.
 
 ### 5.5 Delivery and pickup
 
@@ -336,7 +339,8 @@ voice input is an addition, never a replacement for the keyboard.
 - `passwordRequests`: new. Role, phone, name, village (farmer), the matched
   account if any, time, status `OPEN` / `DONE` / `DISMISSED`, who closed it
   and when. Deleted with the account.
-- `payments` (subscription): removed.
+- `payments` (subscription): removed. **Restored by §11**, keyed by
+  `farmerId`/`farmerCode`.
 - `sessions`: drop `pushToken`, `pushLang`.
 
 The database starts empty. `SEED_DEMO_DATA` seeds the four sample farmers from
@@ -385,3 +389,274 @@ called done. `docs/MANUAL-TEST-PLAN.md` is rewritten for the new flows.
 
 Android app, push notifications, OTP/SMS, payment gateway, paid AI, crop
 disease detection, cold-chain, FPO integration, cross-district logistics.
+
+## 11. Addendum 2026-09-27: subscription and listing approval restored
+
+Date: 2026-09-27. Status: decided in chat; supersedes the Fee and Moderation
+rows of §2, the three "Restored by §11" removals in §4, the "LIVE at once"
+line of §5.4 and the `payments` line of §7. Everything else in this document
+stands. The work is a **port** of the reference project's rules into the
+current code (farmer names, produce model, redesigned screens), not a revert
+of commit `78d261f`; the exact removed code is at `git show 5a4fa96:<path>`.
+
+### 11.1 Two gates, both required
+
+A farmer sells only when **verified and subscribed**.
+
+- **Verification** is unchanged from §5.2: `PENDING_VERIFICATION` at
+  registration, `ACTIVE` after `POST /admin/farmers/:id/verify` (once, by a
+  person). `FarmerStatus` gains no new values; the payment queue's state lives
+  on the payment, never on the farmer.
+- **Subscription**: ₹50 = one **pack** = 5 listing slots, and the shop is
+  open for **6 calendar months** from the admin's approval of a payment.
+- `canSellNow(f, now)` in `shared/src/subscription.ts` is
+  `f.status === 'ACTIVE' && termOpen(f, now)`, where `termOpen` is
+  `subscriptionEndsAt` present and later than `now`. A verified farmer who has
+  never paid is **not** on sale; neither is one whose term ended. Every public
+  path asks it: `publiclyVisible`, serviceability, `GET /farmers/:id`,
+  `GET /catalog/farmers/:id/contact`, `POST /orders`, the price hint's
+  platform median, and submitting a listing.
+- The two gates are independent. Paying does not change `status`; verifying
+  does not touch the term. The farmer may pay before or after verification.
+- No screen computes the term on the phone. The API sends
+  `subscriptionView` (server clock) on `/farmers/me`, `/products/mine`,
+  `/farmers/me/subscription`, `/admin/farmers` and `/admin/farmers/:id`;
+  the frontend never calls `canSellNow`.
+
+### 11.2 The term
+
+`Farmer.subscriptionEndsAt` is the whole stored state. Expiry writes nothing:
+no listing flips, `isOpen` is untouched, no slot is released; the answer
+changes when the clock passes the date, and renewal is the date moving.
+
+- `addMonths(iso, 6)` counts calendar months in IST (+05:30) and clamps to
+  the last day of a short month: 31 Aug → 28 Feb.
+- States (`subscriptionState`): `none` (no date), `active`, `expiring`
+  (7 days or fewer left, `RENEW_REMINDER_DAYS`), `expired`.
+- `endsAtAfterApproval(f, kind, approvedAt)`: no term yet → 6 months from
+  approval, whatever was bought; already expired → 6 months from approval;
+  `RENEWAL` while open → 6 months after the **current** end; `PACK` mid-term →
+  unchanged.
+- `payableKinds(f, slotsLeft)`: never paid → `['PACK']`; expired →
+  `['RENEWAL']` only; expiring → `RENEWAL` first, then `PACK` if slots are
+  full; otherwise `PACK` only when slots are full. Sent to the screen as
+  `payable` and enforced on submit (`paymentKindProblem`, Marathi).
+- `applyApprovedPayment(farmer, payment, approvedAt)`: a `PACK` adds one to
+  `packsApproved`; either kind sets `subscriptionEndsAt` by the rule above and
+  copies it to `payment.termEndsAt`; writes `PAYMENT_APPROVED` (`n: 5`) for a
+  pack and `SUBSCRIPTION_RENEWED` (`note` = new end date) for a renewal or for
+  any payment that reopened an expired shop. Status is never changed.
+
+### 11.3 Paying
+
+- Payee: `ADMIN_PAYMENT_ACCOUNT` in `backend/src/config.ts`, read from
+  `ADMIN_UPI_NAME` / `ADMIN_UPI_ID` / `ADMIN_BANK_NAME`, defaulting to
+  `PRIN.JAWAHAR ARTS.SC.COM.` / `jasccollegeandur@sbi` / `State Bank of
+  India`. `backend/tests/payment-account.test.ts` asserts `upiProblem()` is
+  null on it and the label and bank are non-empty. No account number or IFSC.
+- Screen `/farmer/subscription` (`screens/farmer/Subscription.tsx`): amount,
+  `QrCode` of `buildUpiLink({ upiId, name: label, amount: 50, note })`,
+  `PaySteps screenshot`, payee name, `CopyValue` of the UPI ID arming
+  `useReturnFromApp`, then the three proofs: screenshot (`PhotoPicker
+  kind="payment"`), `paidAt` (`datetime-local`, pre-filled now), 12-digit UTR.
+  Submit stays disabled until all three pass. `/farmer/waiting` polls every
+  10 s while the tab is visible and settles on the **latest payment's**
+  status.
+- `POST /farmers/me/subscription/payment { kind, utr, paidAt, screenshotUrl,
+  payerUpi? }`: 409 while a `PENDING` payment exists (one at a time); 409
+  when `kind` is not payable; 400 on UTR (`utrProblem`), screenshot
+  (`screenshotProblem`) or time (`paidAtProblem`: not in the future beyond
+  10 minutes, not older than `PAID_AT_MAX_AGE_DAYS` = 7). A `kind` missing
+  from the body means the most urgent payable one.
+- `screenshotProblem(url, cloudinary)` in `backend/src/db/payments.ts`
+  accepts only `https://res.cloudinary.com/<cloud>/image/upload/…/<folder>/payment/…`;
+  with Cloudinary off it requires nothing, and the route says so as
+  `screenshotRequired: false`.
+- `duplicateUtr` is set when another farmer's payment carries the same UTR.
+  The row is still queued; the console flags it.
+
+### 11.4 Approving
+
+- `GET /admin/payments?status=PENDING|APPROVED|REJECTED|ALL`. No
+  `waitingHours` from the server: the console computes the wait from
+  `submittedAt` with `waited()` and re-reads the clock every 30 minutes.
+- `POST /admin/payments/:id/approve { checks }` refuses (400) unless `checks`
+  holds all of `PAYMENT_CHECKS = ['utr', 'dateTime', 'received']`
+  (`allChecksDone`), 404 unknown, 409 already decided. Then
+  `applyApprovedPayment`, `verifiedAt`/`verifiedBy` on the payment.
+- `POST /admin/payments/:id/reject { reason }`: no checklist; stores the
+  reason, writes a `PAYMENT_REJECTED` notice with it. The farmer's status and
+  term are untouched.
+- Console: screenshot thumbnail opening large beside the UTR, time and
+  amount; kind pill; duplicate pill; "paid over 24 h before sending" pill.
+- CLI: `pending`, `approve <id|phone|farmer-code> --verified` (sends the
+  three checks; refuses without the flag and never offers `all`), `reject
+  <id> [reason]`, `products`, `approve-product <id>`.
+
+### 11.5 Listing approval
+
+- `initialListingStatus(asDraft)` is `DRAFT` or `PENDING`, never `LIVE`.
+  `POST /admin/products/:id/moderate { approve: true }` is the only path to
+  `LIVE` (only from `PENDING`, 409 otherwise) and writes `PRODUCT_APPROVED`
+  (`subject` = name). `approve: false` with a required reason **deletes** the
+  row, its photo and its reports and writes `PRODUCT_REJECTED`, from any
+  status; the slot frees at that moment.
+- `SLOT_CONSUMING = ['PENDING', 'LIVE', 'PAUSED']`; `DRAFT` holds no slot.
+  `slotInfo(farmer, products)`: `total = packsApproved × 5`, `isFull = used
+  >= total` (zero packs is full, not unlimited), `almostFull` when one is
+  left.
+- Submitting (`POST /products`, and `PATCH` `DRAFT → LIVE`) refuses in this
+  order: 403 not verified; 403 no open term (`तुमची वर्गणी सुरू नाही…`); 402
+  no free slot (`slots` in the body). Drafts skip all three.
+- `farmerMayDelete(status)` is true only for `DRAFT`; `DELETE /products/:id`
+  answers 403 otherwise and My Products shows Remove only on a draft.
+- `LIVE ↔ PAUSED` stays the farmer's own free toggle. An edited `LIVE`
+  listing stays `LIVE`. A `PENDING` listing may be edited freely and stays
+  `PENDING`; the admin publishes the latest version.
+- Publishing a listing does not check the farmer's term: a `LIVE` listing
+  under an expired shop is hidden by `publiclyVisible` until renewal.
+- The farmer's copy says "send for checking" (`prod.publish`), never
+  "publish"; the review step says an admin looks first and how many slots
+  this uses.
+- Admin Products opens on a **Pending** tab (default filter `PENDING`),
+  then Live, then Reported; `AdminStats.pendingProducts` badges it.
+
+### 11.6 Two edits per live listing
+
+- `MAX_EDITS = 2`, counted on `Product.editCount` (absent reads as 0).
+- `EDIT_COUNTED_FIELDS = ['cropId', 'name', 'imageUrl', 'categoryId',
+  'unit', 'cultivation']`. Free for ever: `price`, `stock`, `minOrder`,
+  `harvestDate`, `description`, and the pause toggle.
+- `countsAsEdit(before, after)` compares **values** (blank equals blank,
+  whitespace-trimmed strings, numeric coercion), so a save that changed
+  nothing costs nothing. `editsAreLimited(status)` is `LIVE` or `PAUSED`.
+- `PATCH /products/:id` answers 409 `{ editsLeft: 0 }` when a counted change
+  arrives with none left; otherwise increments `editCount` on a counted save.
+- `EditProduct` shows edits left (info / warn at one / danger at none) and the
+  "price and stock stay free" line; at zero it disables crop, category, name,
+  photo (`PhotoPicker locked`), unit and cultivation, leaving the free fields
+  live.
+
+### 11.7 Admin console
+
+- **Payments** screen (`/payments`, sidebar badge `pendingPayments`), sorted
+  by `PAYMENT_SORTS` (newest, oldest = longest wait, amount, farmer name).
+- Dashboard counters on `AdminStats`: `subscriptionsExpiring`,
+  `subscriptionsExpired` (ACTIVE farmers in those states), `pendingPayments`,
+  `pendingProducts`, `subscriptionRevenue` (sum of APPROVED amounts, never
+  count × price), `approvedPaymentCount`. Home and Today show the two queues
+  and the two subscription counts; Today shows income and approved count.
+  `activeFarmers` already uses `canSellNow`, so it now counts subscribed
+  shops only.
+- **Farmers** list: status filter gains *ending within 7 days*, *expired*
+  and *no subscription yet*; each verified farmer's row and detail page carry
+  `SubscriptionPill` (date and colour, tone by state) and slots `used/total`.
+  The detail page lists every payment with kind, status, UTR, reason and
+  the end date it set (`termEndsAt`).
+
+### 11.8 The farmer's screens
+
+- `SubscriptionNotice` on My Business and My Products: the reminder week and
+  the paused shop, each with the date and a renew button; nothing while the
+  term is comfortably open. `SlotMeter` on My Business, My Products and the
+  profile, with "add slots" only when full or with no packs.
+- While expired, the shop-open card reads "paused, renews on approval" and
+  a `LIVE` listing's pill reads `sub.pausedPill`; the stored status is
+  untouched.
+- The Upload screen gates in order: not verified → existing notice; no term
+  or expired → a card with the pay/renew button; slots full → a card with
+  "5 more slots" and My Products.
+- The registration done screen adds "Now pay ₹50 for 5 slots" with a button
+  to `/farmer/subscription`, under the pending-verification notice.
+- Updates list: `subscriptionFeed(view)` adds one derived row — the reminder
+  (timed from `remindFrom`) or "paused, renew" (`standing`, never ages out);
+  `adminFeed` renders `SUBSCRIPTION_RENEWED` with the date in the sentence;
+  `PAYMENT_APPROVED`, `PAYMENT_REJECTED`, `PRODUCT_APPROVED` get their lines.
+  `notif.verified` now says the subscription still matters.
+- Help FAQ regains "I paid ₹50 but it is not approved"; the close-account
+  sheet says the ₹50 is not returned.
+
+### 11.9 Data model
+
+- `Farmer`: `subscriptionEndsAt?: string`, `packsApproved?: number` (absent
+  reads 0). `FarmerStatus` unchanged.
+- `Product`: `status: 'DRAFT' | 'PENDING' | 'LIVE' | 'PAUSED'`,
+  `editCount?: number`. No `REJECTED` or `ARCHIVED`: rejection deletes.
+- `payments` collection (`SubscriptionPayment`): `id`, `kind?`,
+  `termEndsAt?`, `farmerId`, `farmerName`, `farmerCode`, `phone`, `amount`,
+  `utr`, `payerUpi`, `screenshotUrl?`, `paidAt?`, `submittedAt`, `status`
+  (`PENDING | APPROVED | REJECTED`), `duplicateUtr`, `verifiedAt?`,
+  `verifiedBy?`, `rejectReason?`. Added to `COLLECTIONS` in
+  `db/firestore.ts`, so it is loaded at boot, counted in the read budget,
+  guarded by `isBulkDelete` and included in backups.
+- `AdminNoticeKind` adds `PAYMENT_APPROVED`, `PAYMENT_REJECTED`,
+  `PRODUCT_APPROVED`, `SUBSCRIPTION_RENEWED`. No `SLOTS_GRANTED` /
+  `SLOTS_REVOKED`: there is no grant route.
+- Closing an account: `scrubFarmer` also scrubs the farmer's payments —
+  `farmerName` → placeholder, `phone` and `payerUpi` emptied, the screenshot
+  destroyed by the public id parsed from its URL (`publicIdFromUrl`);
+  `amount`, `utr`, `kind`, dates and status stay, because they are the
+  programme's accounts.
+
+### 11.10 Existing data
+
+- `normalizeLegacyRows()` **stops** turning `PENDING` listings into `LIVE`;
+  `PENDING` is a real status again. It still removes `REJECTED`/`ARCHIVED`
+  rows with their photos and maps the old paid-before statuses to
+  `PENDING_VERIFICATION`.
+- `backfillSubscriptionTerms(db, now)` runs at boot after it, once per row:
+  every non-closed farmer with `verifiedAt` and no `subscriptionEndsAt` gets
+  one. Packs: if none, enough to hold the slots already in use, at least one
+  (`max(1, ceil(used / 5))`). End date: 6 months from the last approved
+  payment, else from `verifiedAt`, and never fewer than 7 days from `now`, so
+  no shop that was selling under the free rule closes without a reminder
+  week. A `PENDING_VERIFICATION` farmer with no payment is left alone.
+- The demo seed gives its four farmers `packsApproved: 1` and a term of six
+  months from their (60-day-old) verification; their four `LIVE` listings
+  stay `LIVE` and visible. No payments are seeded: an invented UTR is
+  invented money.
+
+### 11.11 Judgement calls where the decisions were silent
+
+1. **A pack approved before verification** starts the six months from the
+   approval, as the reference did, and leaves the farmer
+   `PENDING_VERIFICATION`. The days between approval and verification are
+   lost to the farmer. (The alternative — `verify` moving the date to six
+   months from verification when the term began earlier — is one line in the
+   verify handler if wanted.)
+2. **A verified farmer with no subscription is not on sale.** The reference's
+   `canSellNow` treated "no date" as "not expired", which was safe only
+   because status did the gating; here status is verification, so the term
+   must be present. Hence the backfill, and hence the seed carries a term.
+3. **Legacy verified farmers are given packs**, enough for what they already
+   have on sale, rather than being asked to pay within seven days or lose
+   their listings.
+4. **No farmer statuses for payments** (`PAYMENT_SUBMITTED`,
+   `PAYMENT_REJECTED` are not restored); `sellerStatusAfterReject` is not
+   ported. Rejecting a payment changes the payment and writes a notice.
+5. **Not restored**: `grant-slots` / `revoke-slots`, the record-outside-payment
+   route, the APK price-free twins, the "new payment" toast in the admin
+   shell (the sidebar badge is the signal), and a `packsHigh` sort. Say so if
+   any is wanted.
+6. **`slotInfo.isFull` with zero packs is full.**
+7. **`PENDING` listings are editable and unrationed**; approval is only from
+   `PENDING`; the farmer cannot delete one.
+8. **The counted photo field is `imageUrl` alone**; `imagePublicId` moves
+   with it.
+9. **Wait times on the Payments screen reuse the `pwr.wait.*` strings and
+   the existing `waited()`** rather than restoring a second copy.
+10. The order of refusals on submit is verification, term, slot, so the
+    message a farmer reads names the first thing they can do about it.
+
+### 11.12 Tests
+
+Ported and adapted (`backend/tests`): `subscription.test.ts`,
+`payment-proof.test.ts`, `payment-reject.test.ts`, `payment-account.test.ts`,
+`slots.test.ts`, `edit-limit.test.ts`, `listing-review.test.ts`. Rewritten:
+`verification.test.ts` (verified **and** subscribed), `moderation.test.ts`
+(`PENDING` untouched). Fixtures that build an `ACTIVE` farmer for a public
+path gain a future `subscriptionEndsAt` (`catalog-visibility`, `trace`,
+`map`, `price-hint`, `account-close`). Frontend: `notifications.test.ts`
+covers `SUBSCRIPTION_RENEWED` and `subscriptionFeed`; the i18n and Marathi
+tests guard every new string. Admin: `sort.test.ts` (`PAYMENT_SORTS`),
+`format.test.ts` (`dateOnly`), `i18n.test.ts` (the four new notice kinds).
