@@ -30,3 +30,4 @@ current-changes.patch
 # Claude Code local state (agent worktrees, local settings)
 .claude/worktrees/
 .claude/settings.local.json
+brag-output/
