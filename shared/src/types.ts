@@ -498,13 +498,11 @@ export interface SubscriptionPayment {
 export interface AdminPaymentAccount {
   label: string
   upiId: string
-  bankName: string
   /**
-   * Optional, and absent in practice: farmers pay by UPI, and a wrong account
-   * number printed under a QR code is worse than no account number.
+   * No account number or IFSC, deliberately: farmers pay by UPI, and a wrong
+   * account number printed under a QR code is worse than none.
    */
-  accountNo?: string
-  ifsc?: string
+  bankName: string
 }
 
 export interface Category {

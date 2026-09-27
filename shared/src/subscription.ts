@@ -32,6 +32,12 @@ import type { Farmer } from './types.js'
 export const SUBSCRIPTION_MONTHS = 6
 /** The farmer is warned this many days before the shop pauses. */
 export const RENEW_REMINDER_DAYS = 7
+/**
+ * When selling stopped being free. Only a farmer verified before this sold
+ * under the free rule and is owed a term by the boot backfill; one verified
+ * after it pays like anyone else.
+ */
+export const FREE_PERIOD_ENDED = '2026-09-28T00:00:00.000Z'
 
 const DAY = 86_400_000
 /** India has one time zone and no daylight saving: a fixed +5:30. */

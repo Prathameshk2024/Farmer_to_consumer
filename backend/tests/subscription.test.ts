@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { Product, Farmer, SubscriptionPayment } from '@shared/types.js'
 import {
-  addMonths, canSellNow, endsAtAfterApproval, payableKinds, paymentKindProblem,
+  FREE_PERIOD_ENDED, addMonths, canSellNow, endsAtAfterApproval, payableKinds, paymentKindProblem,
   subscriptionState, subscriptionView, termOpen,
 } from '@shared/subscription.js'
 import { slotInfo } from '@shared/farmer.js'
@@ -277,4 +277,29 @@ test('verified farmers from before the rule get a term and enough packs, never l
   assert.equal(by('closed').subscriptionEndsAt, undefined)
   assert.equal(by('dated').subscriptionEndsAt, '2027-03-15T06:30:00.000Z')
   assert.equal(backfillSubscriptionTerms(db, now), 0, 'idempotent')
+})
+
+/**
+ * The backfill runs on every boot, so it must not become a standing gift.
+ * A farmer verified after selling stopped being free never sold under the
+ * free rule; the next cold start must not hand them a pack and six months.
+ */
+test('the free-period backfill stops at the cutoff', () => {
+  const now = new Date('2026-10-15T06:30:00.000Z')
+  const before = new Date(Date.parse(FREE_PERIOD_ENDED) - 86_400_000).toISOString()
+  const after = new Date(Date.parse(FREE_PERIOD_ENDED) + 86_400_000).toISOString()
+  const db = {
+    farmers: [
+      farmer({ id: 'old', verifiedAt: before, subscriptionEndsAt: undefined, packsApproved: 0 }),
+      farmer({ id: 'new', verifiedAt: after, subscriptionEndsAt: undefined, packsApproved: 0 }),
+    ],
+    products: [] as Product[],
+    payments: [] as SubscriptionPayment[],
+  }
+  assert.equal(backfillSubscriptionTerms(db, now), 1)
+  const [old, fresh] = db.farmers
+  assert.ok(old!.subscriptionEndsAt, 'verified during the free period: given a term')
+  assert.equal(old!.packsApproved, 1)
+  assert.equal(fresh!.subscriptionEndsAt, undefined, 'verified after it: pays like anyone else')
+  assert.equal(fresh!.packsApproved, 0)
 })

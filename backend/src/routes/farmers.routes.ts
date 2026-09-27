@@ -32,7 +32,7 @@ import { recordAuthEvent } from '../auth/events.js'
 import { hashIp, maskPhone } from '../auth/crypto.js'
 import { hit, LIMITS } from '../auth/rateLimit.js'
 import { ADMIN_PAYMENT_ACCOUNT, cloudinary, usingCloudinary } from '../config.js'
-import { screenshotProblem } from '../db/payments.js'
+import { isDuplicateUtr, payerUpiProblem, screenshotProblem, storedScreenshot } from '../db/payments.js'
 
 export const farmersRouter: Router = Router()
 
@@ -575,15 +575,21 @@ farmersRouter.post('/me/subscription/payment', requireRole('farmer'), (req, res)
     })
     return
   }
+  const payerFault = payerUpiProblem(req.body?.payerUpi)
+  if (payerFault) {
+    res.status(400).json({ error: 'Invalid payer UPI ID', messageMr: payerFault, fields: { payerUpi: payerFault } })
+    return
+  }
   const paidAtFault = paidAtProblem(req.body?.paidAt)
   if (paidAtFault) {
     res.status(400).json({ error: 'Invalid payment time', messageMr: paidAtFault, fields: { paidAt: paidAtFault } })
     return
   }
 
-  // Reusing one reference number across accounts is the obvious attack on
-  // manual verification, so flag it here rather than hoping an admin spots it.
-  const duplicateUtr = db.payments.some((p) => p.utr === utr && p.farmerId !== farmerId)
+  // Reusing one reference number - across accounts, or one's own approved
+  // one again - is the obvious attack on manual verification, so flag it here
+  // rather than hoping an admin spots it.
+  const duplicateUtr = isDuplicateUtr(db.payments, utr)
 
   const payment: SubscriptionPayment = {
     id: newId('sp'),
@@ -594,8 +600,8 @@ farmersRouter.post('/me/subscription/payment', requireRole('farmer'), (req, res)
     phone: farmer.phone,
     amount: PLAN.price,
     utr,
-    payerUpi: String(req.body?.payerUpi ?? farmer.upiId ?? ''),
-    screenshotUrl: req.body?.screenshotUrl || undefined,
+    payerUpi: req.body?.payerUpi ? String(req.body.payerUpi).trim() : (farmer.upiId ?? ''),
+    screenshotUrl: storedScreenshot(req.body?.screenshotUrl, cloudinary),
     paidAt: new Date(req.body.paidAt).toISOString(),
     submittedAt: new Date().toISOString(),
     status: 'PENDING',

@@ -163,3 +163,37 @@ test('ऑर्डर is neuter, on both sides of the same order', () => {
   }
   assert.deepEqual(bad, [])
 })
+
+/**
+ * The same rule after a placeholder. "{at} शी" and "{date} पर्यंत" slipped
+ * past the test above because a placeholder is not a Devanagari letter, and
+ * the screen then prints "15 Mar 2027 पर्यंत" - two words where Marathi
+ * writes one.
+ */
+test('a postposition after a {placeholder} is joined to it too', () => {
+  const postpositions = ['शी', 'मध्ये', 'साठी', 'कडे', 'पर्यंत', 'पासून', 'नुसार', 'बद्दल']
+  const bad: string[] = []
+  for (const [lang, dict] of [['mr', dictionaries.mr]] as const) {
+    for (const [key, value] of Object.entries(dict)) {
+      for (const p of postpositions) {
+        if (new RegExp(`\\}\\s+${p}(\\s|$|[.,?!])`).test(value)) bad.push(`${lang}.${key} — "${p}"`)
+      }
+    }
+  }
+  assert.deepEqual(bad, [])
+})
+
+/**
+ * The farmer's ₹50 is भरणा throughout the subscription flow, and भरणा is
+ * masculine: "भरणा मिळाला", "भरणा मंजूर झाला". Mixing in पेमेंट (neuter)
+ * made one screen say "पेमेंट मिळाले" and the next "भरणा मंजूर झाला" about
+ * the same money.
+ */
+test('the ₹50 flow says भरणा, with masculine agreement', () => {
+  const mr = dictionaries.mr
+  for (const key of ['wait.title', 'wait.rejected', 'pay.screenshot', 'pay.needScreenshot']) {
+    assert.doesNotMatch(mr[key]!, /पेमेंट/, key)
+  }
+  assert.equal(mr['wait.title'], 'तुमचा भरणा मिळाला आहे')
+  assert.equal(mr['wait.rejected'], 'भरणा मंजूर झाला नाही')
+})

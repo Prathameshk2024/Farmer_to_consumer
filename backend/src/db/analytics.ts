@@ -1,6 +1,7 @@
 import type { Order, Farmer, FarmerWeek, WeekDay } from '@shared/types.js'
 import type { FdriBand } from '@shared/fdri.js'
 import type { Db } from './seed.js'
+import { canSellNow } from '@shared/subscription.js'
 
 /**
  * THE FARMER'S GROWTH, COMPUTED FROM THEIR ORDERS
@@ -126,4 +127,13 @@ export function fdriBandCounts(farmers: Pick<Farmer, 'fdriBand' | 'status'>[]): 
   const counted = farmers.filter((f) => f.status !== 'CLOSED')
   const bands: FdriBand[] = ['low', 'moderate', 'high']
   return bands.map((band) => ({ band, v: counted.filter((f) => f.fdriBand === band).length }))
+}
+
+/**
+ * Farmers a buyer can reach today: verified AND inside the paid six months.
+ * One definition for the dashboard and the impact report, so the two never
+ * print different "active" numbers for the same day.
+ */
+export function activeFarmerCount(farmers: Pick<Farmer, 'status' | 'subscriptionEndsAt'>[], now = Date.now()): number {
+  return farmers.filter((f) => canSellNow(f, now)).length
 }

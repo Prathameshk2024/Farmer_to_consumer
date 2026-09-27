@@ -1,5 +1,5 @@
 import type { Farmer, Product, SubscriptionPayment } from '@shared/types.js'
-import { RENEW_REMINDER_DAYS, SUBSCRIPTION_MONTHS, addMonths, endsAtAfterApproval, isExpired } from '@shared/subscription.js'
+import { FREE_PERIOD_ENDED, RENEW_REMINDER_DAYS, SUBSCRIPTION_MONTHS, addMonths, endsAtAfterApproval, isExpired } from '@shared/subscription.js'
 import { PLAN, countUsedSlots } from '@shared/farmer.js'
 import { appendNotice } from './notices.js'
 import type { Db } from './seed.js'
@@ -102,13 +102,18 @@ export function rejectPayment(farmer: Farmer, payment: SubscriptionPayment, reas
  * last approved payment or, failing that, their verification - never fewer
  * than RENEW_REMINDER_DAYS from today, so no shop closes the morning after a
  * deploy with no warning. Idempotent: a dated row is left alone, and so is an
- * unverified farmer, who pays when they choose.
+ * unverified farmer, who pays when they choose. Only farmers verified before
+ * FREE_PERIOD_ENDED qualify: anyone verified later never sold for free.
  */
 export function backfillSubscriptionTerms(db: Pick<Db, 'farmers' | 'products' | 'payments'>, now = new Date()): number {
   const floor = now.getTime() + RENEW_REMINDER_DAYS * 86_400_000
   let changed = 0
   for (const f of db.farmers) {
     if (f.subscriptionEndsAt || f.status === 'CLOSED' || !f.verifiedAt) continue
+    // Runs on every boot, so without this cutoff every farmer verified from
+    // now on who has not paid would be handed a free pack and six months at
+    // the next cold start.
+    if (Date.parse(f.verifiedAt) >= Date.parse(FREE_PERIOD_ENDED)) continue
     if (!f.packsApproved) {
       const used = countUsedSlots(db.products.filter((p) => p.farmerId === f.id))
       f.packsApproved = Math.max(1, Math.ceil(used / PLAN.slotsPerPack))

@@ -11,7 +11,7 @@ import { ADMIN_PAYMENT_ACCOUNT } from '../src/config.js'
  * perfectly scannable code that pays a stranger - and the farmer who paid has
  * a valid UTR for a transaction that never reached the programme.
  *
- * It sat in `db/seed.ts` as `shantabazar@okaxis`, invented alongside three
+ * It once sat in `db/seed.ts` as a placeholder handle, invented alongside
  * invented farmers, which is the last place a real payee should live.
  */
 
@@ -26,5 +26,15 @@ test('the payee is named, so a UPI app can be checked against the screen', () =>
 
 /** The demo account must never be what a real farmer is asked to pay. */
 test('the placeholder account is gone', () => {
-  assert.notEqual(ADMIN_PAYMENT_ACCOUNT.upiId, 'shantabazar@okaxis')
+  assert.notEqual(ADMIN_PAYMENT_ACCOUNT.upiId, 'demo-payee@okaxis')
+  assert.doesNotMatch(ADMIN_PAYMENT_ACCOUNT.upiId, /demo|example|placeholder/i)
+})
+
+/**
+ * No account number or IFSC. The farmer pays by UPI, so those lines would
+ * never be used, and a wrong account number printed under a QR is worse than
+ * none - it sends a careful payer to the wrong bank account.
+ */
+test('the payee carries a name, a UPI ID and a bank name - no account number, no IFSC', () => {
+  assert.deepEqual(Object.keys(ADMIN_PAYMENT_ACCOUNT).sort(), ['bankName', 'label', 'upiId'])
 })

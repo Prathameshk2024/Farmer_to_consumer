@@ -1,7 +1,7 @@
 import { Router, type Request } from 'express'
 import type { AdminStats } from '@shared/types.js'
 import type { Unit } from '@shared/produce.js'
-import { canSellNow, subscriptionState, subscriptionView } from '@shared/subscription.js'
+import { subscriptionState, subscriptionView } from '@shared/subscription.js'
 import { slotInfo } from '@shared/farmer.js'
 import { allChecksDone } from '@shared/payment.js'
 import { isValidLatLng } from '@shared/geo.js'
@@ -10,7 +10,7 @@ import { researchTables, respondents } from '@shared/research.js'
 import { summarizeReviews } from '@shared/review.js'
 import { getDb, save } from '../db/store.js'
 import { documentCount, startsWithinFreeReads } from '../db/firestore.js'
-import { fdriBandCounts } from '../db/analytics.js'
+import { activeFarmerCount, fdriBandCounts } from '../db/analytics.js'
 import { appendNotice as notifyFarmer } from '../db/notices.js'
 import { requireRole } from '../middleware/auth.js'
 import { findCustomer } from '../db/customers.js'
@@ -166,7 +166,7 @@ adminRouter.get('/stats', (_req, res) => {
       (o) => Date.now() - new Date(o.placedAt).getTime() < 7 * 86_400_000,
     ).length,
     // "Active" means a buyer can reach them today.
-    activeFarmers: db.farmers.filter((s) => canSellNow(s)).length,
+    activeFarmers: activeFarmerCount(db.farmers),
     subscriptionsExpiring: db.farmers.filter(
       (s) => s.status === 'ACTIVE' && subscriptionState(s) === 'expiring',
     ).length,
@@ -779,7 +779,7 @@ adminRouter.get('/impact', (_req, res) => {
     generatedAt: new Date().toISOString(),
     totals: {
       farmers: db.farmers.length,
-      activeFarmers: db.farmers.filter((s) => s.status === 'ACTIVE').length,
+      activeFarmers: activeFarmerCount(db.farmers),
       farmersWithEarnings: new Set(delivered.map((o) => o.farmerId)).size,
       earned: delivered.reduce((n, o) => n + o.total, 0),
       orders: delivered.length,

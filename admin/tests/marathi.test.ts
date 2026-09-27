@@ -110,3 +110,27 @@ test('ऑर्डर is neuter, on both sides of the same order', () => {
   }
   assert.deepEqual(bad, [])
 })
+
+/**
+ * The same rule after a placeholder. "{at} शी" and "{date} पर्यंत" slipped
+ * past the test above because a placeholder is not a Devanagari letter, and
+ * the screen then prints "15 Mar 2027 पर्यंत" - two words where Marathi
+ * writes one.
+ */
+test('a postposition after a {placeholder} is joined to it too', () => {
+  const postpositions = ['शी', 'मध्ये', 'साठी', 'कडे', 'पर्यंत', 'पासून', 'नुसार', 'बद्दल']
+  const bad: string[] = []
+  for (const [lang, dict] of [['mr', dictionaries.mr]] as const) {
+    for (const [key, value] of Object.entries(dict)) {
+      for (const p of postpositions) {
+        if (new RegExp(`\\}\\s+${p}(\\s|$|[.,?!])`).test(value)) bad.push(`${lang}.${key} — "${p}"`)
+      }
+    }
+  }
+  assert.deepEqual(bad, [])
+})
+
+/** What the admin reads beside the payer's ID: from which UPI ID it was paid, said plainly. */
+test('the payment queue names the payer UPI ID in full words', () => {
+  assert.equal(dictionaries.mr['pay.payerUpi'], 'ज्या UPI आयडीवरून भरले')
+})

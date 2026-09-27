@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { Order } from '@shared/types.js'
 import { emptyDb } from '../src/db/seed.js'
-import { farmerWeek, fdriBandCounts, startOfWeek } from '../src/db/analytics.js'
+import { activeFarmerCount, farmerWeek, fdriBandCounts, startOfWeek } from '../src/db/analytics.js'
 
 /**
  * "My growth" showed "not enough information yet" to every real farmer on the
@@ -181,4 +181,20 @@ test('FDRI band counts leave closed accounts out', () => {
   assert.deepEqual(counts, [
     { band: 'low', v: 1 }, { band: 'moderate', v: 1 }, { band: 'high', v: 0 },
   ])
+})
+
+/**
+ * "Active" on the impact report used to mean verified, while the dashboard
+ * meant verified and subscribed - two numbers for one word. A verified farmer
+ * whose term has lapsed, or who never paid, is not reachable by a buyer.
+ */
+test('active farmers are the ones a buyer can reach: verified and subscribed', () => {
+  const future = '2099-01-01T00:00:00.000Z'
+  const farmers = [
+    { status: 'ACTIVE' as const, subscriptionEndsAt: future },
+    { status: 'ACTIVE' as const },
+    { status: 'ACTIVE' as const, subscriptionEndsAt: '2000-01-01T00:00:00.000Z' },
+    { status: 'PENDING_VERIFICATION' as const, subscriptionEndsAt: future },
+  ]
+  assert.equal(activeFarmerCount(farmers), 1)
 })

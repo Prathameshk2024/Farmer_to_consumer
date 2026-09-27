@@ -20,7 +20,8 @@ import {
   AppBar, Button, Card, Dots, EmptyState, Field,
   Loading, Notice, TextInput, VoiceInput, useAsync,
 } from '../../components/ui.js'
-import { IconBack, IconLock, IconNext } from '../../components/icons.js'
+import { IconBack, IconNext } from '../../components/icons.js'
+import { sendBlock } from './sendGate.js'
 import { PageTour } from '../../components/Walkthrough.js'
 import { PriceHint } from '../../components/PriceHint.js'
 
@@ -105,59 +106,23 @@ export default function UploadProduct() {
 
   const farmer = me.farmer
 
-  /* The same gates the server applies, in the same order, so they are told
-     here rather than at the last step. First: not verified yet (or blocked). */
-  if (farmer.status !== 'ACTIVE') {
+  /* A blocked or closing account writes nothing. */
+  if (farmer.status === 'BLOCKED' || farmer.status === 'CLOSED') {
     return (
       <>
         <AppBar title={t('prod.add')} />
         <div className="screen stack">
-          {farmer.status === 'BLOCKED'
-            ? <Notice tone="danger">{t('biz.blockedTitle')}</Notice>
-            : <Notice tone="warn">{t('biz.pendingVerification')}</Notice>}
+          <Notice tone="danger">{t('biz.blockedTitle')}</Notice>
           <Button variant="ghost" onClick={() => nav('/farmer/products')}>{t('biz.myProducts')}</Button>
         </div>
       </>
     )
   }
 
-  /* Second: no open term - never paid, or the six months have run out. */
-  const term = me.subscription.state
-  if (term === 'none' || term === 'expired') {
-    return (
-      <>
-        <AppBar title={t('prod.add')} />
-        <div className="screen stack">
-          <Card>
-            <EmptyState
-              icon={IconLock}
-              title={t('sub.uploadBlocked')}
-              body={t('sub.uploadBlockedSub')}
-              action={
-                <Button onClick={() => nav('/farmer/subscription')}>
-                  {t(term === 'none' ? 'reg.payNow' : 'sub.renewButton')}
-                </Button>
-              }
-            />
-          </Card>
-        </div>
-      </>
-    )
-  }
-
-  /* Third: every slot in use. */
-  if (me.slots.isFull) {
-    return (
-      <>
-        <AppBar title={t('prod.add')} />
-        <div className="screen stack">
-          <Notice tone="warn" title={t('prod.slotsFullTitle')}>{t('prod.slotsFullBody')}</Notice>
-          <Button onClick={() => nav('/farmer/subscription')}>{t('prof.buyMore')}</Button>
-          <Button variant="ghost" onClick={() => nav('/farmer/products')}>{t('biz.myProducts')}</Button>
-        </div>
-      </>
-    )
-  }
+  /* Drafts are free; SENDING waits for verification, a term and a slot, in
+     the server's order. The wizard stays open and the last step offers only
+     "save as draft" while `blocked` names what sending waits for. */
+  const blocked = sendBlock(farmer.status, me.subscription.state, me.slots.isFull)
 
   const categories: Category[] = catData?.categories ?? []
   const catLabel = (c: { mr: string; en: string }) => (lang === 'mr' ? c.mr : c.en)
@@ -441,9 +406,26 @@ export default function UploadProduct() {
               </div>
             </Card>
 
-            <Notice tone="ok" title={t('prod.publish')}>
-              {t('prod.willUseSlot', { used: me.slots.used + 1, total: me.slots.total })}
-            </Notice>
+            {blocked ? (
+              <Notice tone="warn" title={t('sub.uploadBlocked')}>
+                <div>
+                  {blocked === 'notVerified' ? t('biz.pendingVerification')
+                    : blocked === 'slotsFull' ? t('prod.slotsFullBody')
+                      : t('prod.draftOnlyPay')}
+                </div>
+                {blocked !== 'notVerified' && (
+                  <div style={{ marginTop: 'var(--s3)' }}>
+                    <Button size="sm" variant="ghost" onClick={() => nav('/farmer/subscription')}>
+                      {t(blocked === 'noTerm' ? 'reg.payNow' : blocked === 'expired' ? 'sub.renewButton' : 'prof.buyMore')}
+                    </Button>
+                  </div>
+                )}
+              </Notice>
+            ) : (
+              <Notice tone="ok" title={t('prod.publish')}>
+                {t('prod.willUseSlot', { used: me.slots.used + 1, total: me.slots.total })}
+              </Notice>
+            )}
 
             {/* Said at the moment they commit, not buried in a policy page.
                 Publishing is theirs now; this is the other half of that. */}
@@ -466,16 +448,24 @@ export default function UploadProduct() {
           </div>
         ) : (
           <>
-            <Button onClick={() => void publish(false)} disabled={busy}>
-              {busy ? t('common.loading') : t('upl.publish')}
-            </Button>
+            {blocked ? (
+              <Button onClick={() => void publish(true)} disabled={busy}>
+                {busy ? t('common.loading') : t('prod.saveDraft')}
+              </Button>
+            ) : (
+              <Button onClick={() => void publish(false)} disabled={busy}>
+                {busy ? t('common.loading') : t('upl.publish')}
+              </Button>
+            )}
             <div className="btn-row">
               <Button variant="quiet" onClick={back}>
                 <IconBack aria-hidden="true" /> {t('common.back')}
               </Button>
-              <Button variant="quiet" onClick={() => void publish(true)} disabled={busy}>
-                {t('prod.saveDraft')}
-              </Button>
+              {!blocked && (
+                <Button variant="quiet" onClick={() => void publish(true)} disabled={busy}>
+                  {t('prod.saveDraft')}
+                </Button>
+              )}
             </div>
           </>
         )}

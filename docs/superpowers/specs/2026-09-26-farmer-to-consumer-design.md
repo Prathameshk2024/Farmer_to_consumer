@@ -588,9 +588,12 @@ changes when the clock passes the date, and renewal is the date moving.
 - While expired, the shop-open card reads "paused, renews on approval" and
   a `LIVE` listing's pill reads `sub.pausedPill`; the stored status is
   untouched.
-- The Upload screen gates in order: not verified → existing notice; no term
-  or expired → a card with the pay/renew button; slots full → a card with
-  "5 more slots" and My Products.
+- Drafts are free (§11.5: drafts skip all three refusals). The Upload wizard
+  stays open to every farmer who is not blocked or closing; only **sending**
+  waits. When the farmer cannot send (`sendBlock`, in the server's order: not
+  verified, no term, expired, slots full) the review step names the reason,
+  offers the pay / renew / "5 more slots" button where one applies, and its
+  one action is "save as draft". My Products' Add button is never disabled.
 - A farmer who paid before being verified is told, on My Business and on the
   waiting screen's approved state, that **the six months start when they are
   verified** (`sub.startsOnVerify`); the "pay ₹50" prompt is not shown to
@@ -636,8 +639,11 @@ changes when the clock passes the date, and renewal is the date moving.
   rows with their photos and maps the old paid-before statuses to
   `PENDING_VERIFICATION`.
 - `backfillSubscriptionTerms(db, now)` runs at boot after it, once per row:
-  every non-closed farmer with `verifiedAt` and no `subscriptionEndsAt` gets
-  one. Packs: if none, enough to hold the slots already in use, at least one
+  every non-closed farmer with `verifiedAt` **before `FREE_PERIOD_ENDED`**
+  (`2026-09-28T00:00:00.000Z`, `shared/src/subscription.ts`) and no
+  `subscriptionEndsAt` gets one. A farmer verified on or after the cutoff
+  never sold for free and gets nothing: the backfill runs on every boot, and
+  without the cutoff each cold start would hand an unpaid farmer a free term. Packs: if none, enough to hold the slots already in use, at least one
   (`max(1, ceil(used / 5))`). End date: 6 months from the last approved
   payment, else from `verifiedAt`, and never fewer than 7 days from `now`, so
   no shop that was selling under the free rule closes without a reminder

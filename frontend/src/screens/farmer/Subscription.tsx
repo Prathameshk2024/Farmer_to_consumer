@@ -195,9 +195,7 @@ export function Subscription() {
               <CopyValue value={account.upiId} onCopied={waitForReturn} />
             </div>
             <div className="small dim center">
-              {[account.bankName, account.accountNo && `A/C ${account.accountNo}`, account.ifsc]
-                .filter(Boolean)
-                .join(' · ')}
+              {account.bankName}
             </div>
           </div>
         </Card>

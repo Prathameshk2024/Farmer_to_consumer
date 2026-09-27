@@ -155,7 +155,8 @@ export default function MyProducts() {
           </div>
         )}
 
-        <Button onClick={() => nav('/farmer/upload')} disabled={slots.isFull}>
+        {/* Enabled even when full: drafts hold no slot and are always free. */}
+        <Button onClick={() => nav('/farmer/upload')}>
           <IconPlus aria-hidden="true" /> {t('prod.add')}
         </Button>
         {slots.isFull && (

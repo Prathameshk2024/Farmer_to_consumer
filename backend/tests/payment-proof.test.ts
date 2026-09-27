@@ -1,7 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { PAID_AT_MAX_AGE_DAYS, allChecksDone, paidAtProblem } from '@shared/payment.js'
-import { screenshotProblem } from '../src/db/payments.js'
+import type { SubscriptionPayment } from '@shared/types.js'
+import {
+  PAYER_UPI_MAX, isDuplicateUtr, payerUpiProblem, screenshotProblem, storedScreenshot,
+} from '../src/db/payments.js'
 
 /**
  * THE ₹50 NEEDS PROOF, NOT JUST TWELVE DIGITS.
@@ -64,4 +67,34 @@ test('approval needs all three checks, not some of them', () => {
   assert.equal(allChecksDone(['utr', 'dateTime']), false)
   assert.equal(allChecksDone('utr,dateTime,received'), false)
   assert.equal(allChecksDone(['received', 'utr', 'dateTime']), true)
+})
+
+/**
+ * One UTR is one payment. A farmer resending their own approved UTR would
+ * turn one ₹50 into a second pack, so their own rows count too. A rejected
+ * row does not: resending after a rejection is the correction we asked for.
+ */
+test('a UTR already used, even by the same farmer, is flagged; a rejected one is not', () => {
+  const rows = (status: SubscriptionPayment['status']) => [{ utr: '512309887711', status }]
+  assert.equal(isDuplicateUtr(rows('APPROVED'), '512309887711'), true, 'own approved UTR again')
+  assert.equal(isDuplicateUtr(rows('PENDING'), '512309887711'), true)
+  assert.equal(isDuplicateUtr(rows('REJECTED'), '512309887711'), false, 'a correction after rejection')
+  assert.equal(isDuplicateUtr(rows('APPROVED'), '999999999999'), false)
+})
+
+/** The payer UPI is reconciled against a bank statement: it has to be an address, and short. */
+test('the payer UPI ID must look like one and stay short; absent is fine', () => {
+  assert.equal(payerUpiProblem(undefined), null)
+  assert.equal(payerUpiProblem(''), null)
+  assert.equal(payerUpiProblem('9822011223@ybl'), null)
+  assert.notEqual(payerUpiProblem('not an address'), null)
+  assert.notEqual(payerUpiProblem(`${'a'.repeat(PAYER_UPI_MAX)}@ybl`), null)
+  assert.notEqual(payerUpiProblem(42), null)
+})
+
+/** With uploads off nothing was signed, so a client-sent link is not stored as proof. */
+test('a screenshot URL is only kept when uploads are on', () => {
+  assert.equal(storedScreenshot(ours, null), undefined)
+  assert.equal(storedScreenshot(ours, cloud), ours)
+  assert.equal(storedScreenshot('', cloud), undefined)
 })
