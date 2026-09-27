@@ -142,7 +142,7 @@ export default function MyProducts() {
                     >
                       <IconEdit aria-hidden="true" /> {t('common.edit')}
                     </Button>
-                    {/* A sold-out crop is theirs to take down themselves. */}
+                    {/* Drafts only: anything sent in holds a slot, and freeing one is the admin's call. */}
                     {farmerMayDelete(p.status) && (
                       <Button variant="ghost" size="sm" onClick={() => setToDelete(p)}>
                         <IconTrash aria-hidden="true" /> {t('prod.deleteDraft')}

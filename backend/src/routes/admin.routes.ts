@@ -350,7 +350,8 @@ adminRouter.post('/farmers/:id/revoke-slots', (req, res) => {
 
 adminRouter.get('/products', (req, res) => {
   const db = getDb()
-  const status = (req.query.status as string) ?? 'ALL'
+  // Opens on the listings waiting for a person to look at them.
+  const status = (req.query.status as string) ?? 'PENDING'
 
   const open = db.reports.filter((r) => !r.reviewedAt)
   const reportsFor = (id: string) => open.filter((r) => r.targetId === id)
@@ -404,13 +405,7 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
     return
   }
 
-  // Listings are not approved one by one any more; the farmer is verified
-  // once. Only taking a listing down is left, and an old client asking to
-  // approve must not be read as a take-down.
-  if (req.body?.approve) {
-    res.status(400).json({ error: 'Listings are not approved', messageMr: 'माल एकेक करून मंजूर होत नाही' })
-    return
-  }
+  const approve = !!req.body?.approve
   const reason = String(req.body?.reason ?? '').trim()
 
   /**
@@ -421,7 +416,7 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
    * product that vanishes for no stated cause. The console asks for one; this
    * is what makes the console's rule real rather than polite.
    */
-  if (!reason) {
+  if (!approve && !reason) {
     res.status(400).json({
       error: 'A rejection needs a reason - the farmer reads it in their own app',
       messageMr: 'नाकारण्याचे कारण लिहा',
@@ -438,6 +433,25 @@ adminRouter.post('/products/:id/moderate', (req, res) => {
    * decision. It is not lost with the row.
    */
   const owner = db.farmers.find((s) => s.id === product.farmerId)
+
+  /**
+   * PUBLISHING. The only path to LIVE: a person looks at the photo, the price
+   * and the cultivation claim before a buyer does. Only a waiting listing can
+   * be published - a paused one is the farmer's to resume, and a draft was
+   * never sent in.
+   */
+  if (approve) {
+    if (product.status !== 'PENDING') {
+      res.status(409).json({ error: 'Not waiting', messageMr: 'हे उत्पादन तपासणीसाठी आलेले नाही' })
+      return
+    }
+    product.status = 'LIVE'
+    // Told about their own product by name: "which one?" is the first question.
+    if (owner) notifyFarmer(owner, 'PRODUCT_APPROVED', { subject: product.name })
+    save()
+    res.json({ product })
+    return
+  }
 
   db.products.splice(db.products.indexOf(product), 1)
   // Its reports go with it: they are about a listing that no longer exists.

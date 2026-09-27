@@ -53,10 +53,11 @@ export function useHarvestLabel(): (harvestDate: string) => string {
  */
 
 /** Crops as chips, grouped by category the way a market is laid out. */
-export function CropPicker({ value, onPick, categories }: {
+export function CropPicker({ value, onPick, categories, disabled }: {
   value: string
   onPick: (cropId: string) => void
   categories: Category[]
+  disabled?: boolean
 }) {
   const { lang } = useI18n()
   return (
@@ -72,6 +73,7 @@ export function CropPicker({ value, onPick, categories }: {
                 <button
                   key={crop.id}
                   type="button"
+                  disabled={disabled}
                   className={`chip ${value === crop.id ? 'chip--on' : ''}`}
                   onClick={() => onPick(crop.id)}
                 >
@@ -87,10 +89,11 @@ export function CropPicker({ value, onPick, categories }: {
 }
 
 /** Only for the crop `other`, which has no category of its own. */
-export function CategoryPicker({ value, onPick, categories }: {
+export function CategoryPicker({ value, onPick, categories, disabled }: {
   value: string
   onPick: (categoryId: string) => void
   categories: Category[]
+  disabled?: boolean
 }) {
   const { lang } = useI18n()
   return (
@@ -99,6 +102,7 @@ export function CategoryPicker({ value, onPick, categories }: {
         <button
           key={c.id}
           type="button"
+          disabled={disabled}
           className={`chip ${value === c.id ? 'chip--on' : ''}`}
           onClick={() => onPick(c.id)}
         >
@@ -109,7 +113,11 @@ export function CategoryPicker({ value, onPick, categories }: {
   )
 }
 
-export function UnitPicker({ value, onPick }: { value: Unit; onPick: (u: Unit) => void }) {
+export function UnitPicker({ value, onPick, disabled }: {
+  value: Unit
+  onPick: (u: Unit) => void
+  disabled?: boolean
+}) {
   const t = useT()
   return (
     <div className="wrap-row">
@@ -117,6 +125,7 @@ export function UnitPicker({ value, onPick }: { value: Unit; onPick: (u: Unit) =
         <button
           key={u}
           type="button"
+          disabled={disabled}
           className={`chip ${value === u ? 'chip--on' : ''}`}
           onClick={() => onPick(u)}
         >
@@ -128,9 +137,10 @@ export function UnitPicker({ value, onPick }: { value: Unit; onPick: (u: Unit) =
 }
 
 /** Three big choices, each an icon, a word and what the word means. */
-export function CultivationPicker({ value, onPick }: {
+export function CultivationPicker({ value, onPick, disabled }: {
   value: Cultivation | ''
   onPick: (c: Cultivation) => void
+  disabled?: boolean
 }) {
   const t = useT()
   return (
@@ -142,6 +152,7 @@ export function CultivationPicker({ value, onPick }: {
             key={c}
             selected={value === c}
             onSelect={() => onPick(c)}
+            disabled={disabled}
             icon={<Icon />}
             title={t(`cult.${c}`)}
             sub={t(`cult.${c}Hint`)}

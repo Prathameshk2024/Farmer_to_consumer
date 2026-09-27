@@ -12,6 +12,8 @@
  *   npm run admin -- approve 9822011223 --verified
  *   npm run admin -- reject sp2 "UTR not in the bank statement"
  *   npm run admin -- grant 9822011223 2
+ *   npm run admin -- products
+ *   npm run admin -- approve-product <id>
  *   npm run admin -- set-password 9822011223 123456
  *
  * `set-password` is the exception: it writes the store directly, like
@@ -239,6 +241,44 @@ async function farmers(): Promise<void> {
   console.log('')
 }
 
+/** Listings sent in and waiting for a person to look at them. */
+async function products(): Promise<void> {
+  const r = await call<{ products: { id: string; name: string; cropId: string; farmer?: { farmerCode: string } }[] }>(
+    '/api/admin/products?status=PENDING',
+  )
+  if (!r.products.length) {
+    console.log(c.dim('
+  No products waiting to be checked.
+'))
+    return
+  }
+  console.log(c.bold(`
+  ${r.products.length} product(s) waiting
+`))
+  for (const p of r.products) {
+    console.log(`  ${c.bold(p.id.padEnd(16))} ${p.name}  ${c.dim(p.cropId)}  ${p.farmer?.farmerCode ?? ''}`)
+  }
+  console.log(c.dim('
+  Publish with:  npm run admin -- approve-product <id>
+'))
+}
+
+async function approveProduct(id: string | undefined): Promise<void> {
+  if (!id) {
+    console.error(c.red('
+  Usage: npm run admin -- approve-product <id>
+'))
+    process.exit(1)
+  }
+  await call(`/api/admin/products/${id}/moderate`, {
+    method: 'POST',
+    body: JSON.stringify({ approve: true }),
+  })
+  console.log(c.green(`
+  ✓ Product ${id} is live.
+`))
+}
+
 /** A password for one farmer, by phone, straight into `credentials`. */
 async function setPassword(phoneArg: string | undefined, password: string | undefined): Promise<void> {
   const problem = passwordProblemMr(password ?? '')
@@ -273,6 +313,8 @@ async function main(): Promise<void> {
     case 'approve': await approve(a1, a2 === '--verified'); break
     case 'reject': await reject(a1, a2 ?? 'UTR did not match the bank statement'); break
     case 'grant': await grant(a1, Number(a2 ?? 1)); break
+    case 'products': await products(); break
+    case 'approve-product': await approveProduct(a1); break
     default:
       console.log(`
   Commands:
@@ -284,6 +326,8 @@ async function main(): Promise<void> {
                                      approve after checking the screenshot - 5 slots
     reject <id> [reason]             reject a payment with a reason
     grant <phone|farmer-code> [packs]  slots with no payment; never extends a term
+    products                         listings waiting to be checked
+    approve-product <id>             publish a waiting listing
     set-password <phone> <password>  a demo password for a seeded farmer (API stopped)
 `)
   }

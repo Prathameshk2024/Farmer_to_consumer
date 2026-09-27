@@ -7,6 +7,7 @@ import { IconProducts } from '../components/icons.js'
 import { api, type ProductRow } from '../lib/api.js'
 import { rupees, when } from '../lib/format.js'
 import { TopBar } from '../components/Shell.js'
+import { useToast } from '../store/ToastContext.js'
 import {
   Button, Card, EmptyState, ErrorNote, Field, Loading, Notice, Pill,
   useAsync, useErrorText,
@@ -20,19 +21,21 @@ import {
  * is always empty. What an admin needs instead is the listings BUYERS have
  * flagged - the only moderation signal that arrives after a listing is live.
  */
-type Tab = 'LIVE' | 'REPORTED'
+type Tab = 'PENDING' | 'LIVE' | 'REPORTED'
 
 /**
  * Moderation is mostly looking, so the photo leads.
  *
- * There is no review queue here, and that is deliberate. A verified farmer's
- * listing goes on sale the moment the farmer sends it - produce changes daily, and a
- * queue per listing would sell yesterday's tomatoes. What this screen does is
- * the other direction: take a live listing down, with a reason the farmer reads.
+ * It opens on the listings waiting to be checked, because nothing reaches a
+ * buyer until an admin publishes it: a listing carries a photograph, a price
+ * and a claim about how the crop was grown, and it goes out under the
+ * programme's name, so a person looks before a buyer does. Rejecting a
+ * waiting listing and taking down a live one are the same act - the row goes,
+ * the slot comes back, and the reason reaches the farmer.
  */
 export function Products() {
   const t = useT()
-  const [tab, setTab] = useState<Tab>('LIVE')
+  const [tab, setTab] = useState<Tab>('PENDING')
   const [data, loading, error, reload] = useAsync(() => api.products(tab), [tab])
   const [sort, setSort] = useSort('products', PRODUCT_SORTS)
 
@@ -43,6 +46,9 @@ export function Products() {
       <TopBar title={t('pr.title')} />
       <div className="body stack">
         <div className="row wrap">
+          <Button small variant={tab === 'PENDING' ? 'primary' : 'quiet'} onClick={() => setTab('PENDING')}>
+            {t('pr.pendingTab')}
+          </Button>
           <Button small variant={tab === 'LIVE' ? 'primary' : 'quiet'} onClick={() => setTab('LIVE')}>
             {t('pr.liveTab')}
           </Button>
@@ -81,6 +87,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
   const t = useT()
   const { lang } = useI18n()
   const errorText = useErrorText()
+  const { toast } = useToast()
 
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
@@ -92,6 +99,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
    * Taking a listing down deletes it; the reason reaches the farmer as a notice.
    */
   const live = product.status === 'LIVE'
+  const pending = product.status === 'PENDING'
 
   async function run(action: () => Promise<unknown>) {
     setBusy(true)
@@ -124,6 +132,7 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
             {/* The farmer's words, rendered exactly as written. */}
             <span className="strong">{product.name}</span>
             {live && <Pill tone="ok">{t('pr.liveTab')}</Pill>}
+            {pending && <Pill tone="warn">{t('pr.pendingTab')}</Pill>}
           </div>
 
           <div className="small dim">
@@ -177,8 +186,21 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
                 {t('pr.clearReports')}
               </Button>
             )}
+            {pending && (
+              <Button
+                variant="ok"
+                small
+                disabled={busy}
+                onClick={() => void run(async () => {
+                  await api.approveProduct(product.id)
+                  toast(t('ok.productApproved'))
+                })}
+              >
+                {t('pr.publish')}
+              </Button>
+            )}
             <Button variant="danger" small disabled={busy} onClick={() => setRejecting(true)}>
-              {t('pr.takeDown')}
+              {pending ? t('pr.reject') : t('pr.takeDown')}
             </Button>
           </div>
         )}
@@ -200,7 +222,9 @@ export function ProductCard({ product, onDone }: { product: ProductRow; onDone: 
           {/* The consequence, spelled out at the moment of the decision. */}
           <div className="small dim-2">{t('pr.rejectDeletes')}</div>
           <div className="row">
-            <Button variant="danger" small disabled={busy} onClick={reject}>{t('pr.takeDown')}</Button>
+            <Button variant="danger" small disabled={busy} onClick={reject}>
+              {pending ? t('pr.reject') : t('pr.takeDown')}
+            </Button>
             <Button variant="quiet" small disabled={busy} onClick={() => setRejecting(false)}>
               {t('c.cancel')}
             </Button>

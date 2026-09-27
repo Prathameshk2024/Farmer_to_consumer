@@ -21,6 +21,7 @@ export default function PhotoPicker({
   onUploaded,
   onCleared,
   onUnavailable,
+  locked,
   kind = 'product',
   label,
 }: {
@@ -32,6 +33,12 @@ export default function PhotoPicker({
   kind?: 'product' | 'payment'
   /** What the button offers, when "choose a photo" is not specific enough. */
   label?: string
+  /**
+   * The photo is settled - the edits on this listing are spent. The picture
+   * still shows; the ways of changing it do not, because a button that only
+   * ever answers "no" is worse than no button.
+   */
+  locked?: boolean
 }) {
   const t = useT()
   const galleryRef = useRef<HTMLInputElement | null>(null)
@@ -104,6 +111,7 @@ export default function PhotoPicker({
             variant="quiet"
             size="sm"
             onClick={onCleared}
+            hidden={locked}
             style={{ position: 'absolute', top: 8, right: 8, width: 'auto' }}
           >
             <IconClose aria-hidden="true" />
@@ -132,13 +140,15 @@ export default function PhotoPicker({
 
       {error && <Notice tone="danger">{error}</Notice>}
 
-      <Button
-        variant="ghost"
-        onClick={() => galleryRef.current?.click()}
-        disabled={progress !== null || !!imageUrl}
-      >
-        <IconGallery aria-hidden="true" /> {label ?? t('photo.choose')}
-      </Button>
+      {!locked && (
+        <Button
+          variant="ghost"
+          onClick={() => galleryRef.current?.click()}
+          disabled={progress !== null || !!imageUrl}
+        >
+          <IconGallery aria-hidden="true" /> {label ?? t('photo.choose')}
+        </Button>
+      )}
 
       {/* Said up front. A limit they only meet by breaking it is a limit that
           costs them an upload and a retry on a slow connection. */}

@@ -298,7 +298,7 @@ export const api = {
   updateProduct: (id: string, body: Partial<Product>) =>
     patch<{ product: Product }>(`/products/${id}`, body),
 
-  /** Any of their own listings - a sold-out crop is theirs to take down. */
+  /** Drafts only - the server refuses a submitted listing. */
   deleteProduct: (id: string) => del<{ ok: true; slots: SlotInfo }>(`/products/${id}`),
 
   /* ---------------- catalog (public) ---------------- */
