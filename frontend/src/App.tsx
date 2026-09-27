@@ -32,6 +32,7 @@ import { FarmerGrowth, FarmerHelp, FarmerProfile } from './screens/farmer/Misc.j
 import { MyBuyers } from './screens/farmer/MyBuyers.js'
 import { FarmerReviews } from './screens/farmer/Reviews.js'
 import PaymentQr from './screens/farmer/PaymentQr.js'
+import { PaymentWaiting, Subscription } from './screens/farmer/Subscription.js'
 
 import {
   Categories, CategoryProducts, Explore, ProductDetail, FarmerShop,
@@ -205,6 +206,9 @@ export default function App() {
               <Route path="/register/customer" element={<CustomerRegister />} />
               <Route path="/password" element={<RequireSignedIn><ChangePassword /></RequireSignedIn>} />
 
+              {/* The waiting screen is full-page: nothing to tap away to while the ₹50 is checked. */}
+              <Route path="/farmer/waiting" element={<Require role="farmer"><PaymentWaiting /></Require>} />
+
               {/* ---- farmer app ------------------------------------ */}
               <Route path="/farmer" element={<Require role="farmer"><FarmerLayout /></Require>}>
                 <Route index element={<MyBusiness />} />
@@ -221,6 +225,7 @@ export default function App() {
                 <Route path="buyers" element={<MyBuyers />} />
                 <Route path="reviews" element={<FarmerReviews />} />
                 <Route path="payment" element={<PaymentQr />} />
+                <Route path="subscription" element={<Subscription />} />
               </Route>
 
               {/* ---- customer: standalone --------------------------- */}

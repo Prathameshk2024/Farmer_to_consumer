@@ -58,6 +58,30 @@ export function Confirm({
   )
 }
 
+/** A small number picker, so packs are chosen rather than typed blindly. */
+export function PackPicker({
+  value, onChange, max,
+}: {
+  value: number
+  onChange: (n: number) => void
+  max?: number
+}) {
+  return (
+    <div className="row" style={{ marginTop: 10, gap: 6 }}>
+      {[1, 2, 3].filter((n) => max === undefined || n <= max).map((n) => (
+        <button
+          key={n}
+          type="button"
+          className={`packbtn ${value === n ? 'packbtn--on' : ''}`}
+          onClick={() => onChange(n)}
+        >
+          {n}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /** Local state for one confirm-guarded action. */
 export function useConfirm() {
   const [open, setOpen] = useState(false)

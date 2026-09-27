@@ -4,9 +4,10 @@ import type { Product, Farmer } from '@shared/types.js'
 import { normalizeLegacyRows } from '../src/db/moderation.js'
 
 /**
- * Rows stored under the old queue-and-pay rules are brought into the new
- * statuses at boot: a waiting listing goes live, a refused or archived one is
- * removed with its photo, and an unpaid farmer waits for verification.
+ * Rows stored under removed rules are brought into the current statuses at
+ * boot: a refused or archived listing is removed with its photo, and an
+ * unpaid farmer waits for verification. A waiting listing is a real queue
+ * entry again - an admin publishes it - so it is left exactly as it is.
  */
 test('legacy statuses are normalised in place', () => {
   const products = [
@@ -25,8 +26,8 @@ test('legacy statuses are normalised in place', () => {
   ] as unknown as Farmer[]
   const destroyed: (string | undefined)[] = []
 
-  assert.equal(normalizeLegacyRows({ products, farmers }, (id) => destroyed.push(id)), 7)
-  assert.deepEqual(products.map((p) => [p.id, p.status]), [['pending', 'LIVE'], ['live', 'LIVE']])
+  assert.equal(normalizeLegacyRows({ products, farmers }, (id) => destroyed.push(id)), 6)
+  assert.deepEqual(products.map((p) => [p.id, p.status]), [['pending', 'PENDING'], ['live', 'LIVE']])
   assert.deepEqual(destroyed, [undefined, 'img/r'])
   assert.deepEqual(farmers.map((s) => s.status),
     ['PENDING_VERIFICATION', 'PENDING_VERIFICATION', 'PENDING_VERIFICATION', 'BLOCKED', 'ACTIVE', 'ACTIVE'])

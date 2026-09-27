@@ -6,7 +6,7 @@ import { useAuth } from '../store/AuthContext.js'
 import { TopBar } from '../components/Shell.js'
 import { Card, ErrorNote, Loading, SectionTitle, useAsync } from '../components/ui.js'
 import {
-  IconAllClear, IconGo, IconImpact, IconOrders, IconProducts,
+  IconAllClear, IconGo, IconImpact, IconOrders, IconPayments, IconProducts,
   IconFarmers, IconPasswords, IconToday,
 } from '../components/icons.js'
 
@@ -28,10 +28,13 @@ export function Home() {
   const [data, loading, error] = useAsync(() => api.stats(), [])
 
   const s = data?.stats
-  const queue = s ? s.pendingVerification + s.stuckOrders + s.openPasswordRequests : 0
+  const queue = s
+    ? s.pendingPayments + s.pendingProducts + s.pendingVerification + s.stuckOrders + s.openPasswordRequests
+    : 0
 
   const sections = [
-    { to: '/products', icon: IconProducts, label: t('nav.products'), body: t('home.sectionProducts') },
+    { to: '/payments', icon: IconPayments, label: t('nav.payments'), body: t('home.sectionPayments'), badge: s?.pendingPayments },
+    { to: '/products', icon: IconProducts, label: t('nav.products'), body: t('home.sectionProducts'), badge: s?.pendingProducts },
     { to: '/farmers', icon: IconFarmers, label: t('nav.farmers'), body: t('home.sectionFarmers'), badge: s?.pendingVerification },
     { to: '/orders', icon: IconOrders, label: t('nav.orders'), body: t('home.sectionOrders'), badge: s?.stuckOrders },
     { to: '/impact', icon: IconImpact, label: t('nav.impact'), body: t('home.sectionImpact') },
@@ -64,6 +67,8 @@ export function Home() {
             </Card>
           ) : (
             <div className="tiles">
+              <QueueTile n={s!.pendingPayments} label={t('today.pendingPayments')} onClick={() => nav('/payments')} />
+              <QueueTile n={s!.pendingProducts} label={t('today.pendingProducts')} onClick={() => nav('/products')} />
               <QueueTile n={s!.pendingVerification} label={t('se.waitingVerification')} onClick={() => nav('/farmers')} />
               <QueueTile n={s!.stuckOrders} label={t('today.stuckOrders')} onClick={() => nav('/orders')} />
               {s!.openPasswordRequests > 0 && (
@@ -79,6 +84,8 @@ export function Home() {
             <div className="tiles">
               <MiniStat n={s.activeFarmers} label={t('today.activeFarmers')} />
               <MiniStat n={s.newRegistrations} label={t('today.newThisWeek')} />
+              <MiniStat n={s.subscriptionsExpiring} label={t('today.subsExpiring')} />
+              <MiniStat n={s.subscriptionsExpired} label={t('today.subsExpired')} />
               <MiniStat n={s.ordersWeek} label={t('today.ordersWeek')} />
               <MiniStat n={rupees(s.farmersEarnedMonth)} label={t('today.earnedMonth')} />
               {/* Firestore is on the free Spark plan and every server start

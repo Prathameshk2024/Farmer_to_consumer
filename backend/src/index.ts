@@ -24,6 +24,7 @@ import {
 } from './config.js'
 import { farmerWeek } from './db/analytics.js'
 import { normalizeLegacyRows } from './db/moderation.js'
+import { backfillSubscriptionTerms } from './db/subscription.js'
 import { sweepClosedAccounts } from './db/accountClose.js'
 import { splitOrderReviews } from './db/reviews.js'
 
@@ -194,6 +195,13 @@ async function main() {
   // Rows stored under the old queue-and-pay statuses are brought into the
   // current ones before the first request can read them.
   if (normalizeLegacyRows(getDb()) > 0) save()
+  // Farmers verified under the free rule get a term and enough packs once,
+  // so the deploy that brings the ₹50 back does not empty their shelves.
+  const terms = backfillSubscriptionTerms(getDb())
+  if (terms > 0) {
+    console.log(`[subscription] gave ${terms} farmer(s) a six-month term`)
+    save()
+  }
   // Accounts whose seven days ran out while the server was off are erased
   // before the first request, for the same reason: the promise was a date,
   // not an uptime.

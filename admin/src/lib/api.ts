@@ -1,6 +1,9 @@
 import type {
   AdminStats, Complaint, Order, Product, RatingSummary, Report, Review, Farmer, Survey,
+  SubscriptionPayment,
 } from '@shared/types.js'
+import type { SlotInfo } from '@shared/farmer.js'
+import type { SubscriptionView } from '@shared/subscription.js'
 import type { ResearchTable } from '@shared/research.js'
 import type { FdriBand } from '@shared/fdri.js'
 
@@ -174,7 +177,14 @@ export type FarmerRow = Farmer & {
   productCount: number
   /** Delivered orders only, summed on the server. */
   earned?: number
+  /** Counted on the server by the same rule the farmer's own meter uses. */
+  slots: SlotInfo
+  /** Decided on the server's clock. */
+  subscription?: SubscriptionView
 }
+
+/** A ₹50 payment, as the queue shows it. */
+export type PaymentRow = SubscriptionPayment
 
 /**
  * Everything one farmer's page needs, in one answer.
@@ -187,6 +197,8 @@ export interface FarmerDetail {
   farmer: FarmerRow
   products: ProductRow[]
   orders: OrderRow[]
+  /** Every ₹50 this farmer sent, newest first. */
+  payments: SubscriptionPayment[]
   earned: number
   /** Hidden ones included and marked. */
   reviews: Review[]
@@ -244,8 +256,33 @@ export const api = {
    */
   logout: () => post<{ ok: true }>('/auth/logout'),
 
+  /**
+   * The dashboard counters, including the two queues (`pendingPayments`,
+   * `pendingProducts`), the subscription counts (`subscriptionsExpiring`,
+   * `subscriptionsExpired`) and the money (`subscriptionRevenue`,
+   * `approvedPaymentCount`).
+   */
   stats: () =>
     get<{ stats: AdminStats }>('/admin/stats'),
+
+  /** status: PENDING (default) | APPROVED | REJECTED | ALL */
+  payments: (status = 'PENDING') =>
+    get<{ payments: PaymentRow[] }>(`/admin/payments?status=${encodeURIComponent(status)}`),
+
+  /** `checks` is what the admin compared; the server refuses an approval without all of them. */
+  approvePayment: (id: string, checks: string[]) =>
+    post<{ payment: SubscriptionPayment; farmer?: Farmer }>(`/admin/payments/${id}/approve`, { checks }),
+
+  rejectPayment: (id: string, reason: string) =>
+    post<{ payment: SubscriptionPayment }>(`/admin/payments/${id}/reject`, { reason }),
+
+  /** Slots with no payment. Never extends a running term; never touches status. */
+  grantSlots: (id: string, packs: number) =>
+    post<{ farmer: Farmer }>(`/admin/farmers/${id}/grant-slots`, { packs }),
+
+  /** Takes packs back. Refused (409) if it would drop the farmer below the slots in use. */
+  revokeSlots: (id: string, packs: number) =>
+    post<{ farmer: Farmer }>(`/admin/farmers/${id}/revoke-slots`, { packs }),
 
   /** status: ALL (default) | LIVE | PAUSED | DRAFT | REPORTED */
   products: (status = 'ALL') =>

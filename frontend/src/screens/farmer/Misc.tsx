@@ -7,11 +7,11 @@ import { api } from '../../lib/api.js'
 import { Avatar } from '../../components/Avatar.js'
 import {
   AppBar, Button, Card, ConfirmSheet, CopyValue, EmptyState, FdriPill,
-  LanguagePicker, Loading, Notice, Pill, Rupees, SectionTitle, useAsync,
+  LanguagePicker, Loading, Notice, Pill, Rupees, SectionTitle, SlotMeter, useAsync,
 } from '../../components/ui.js'
 import {
   IconCall, IconCheck, IconDown, IconEdit, IconGrowth,
-  IconNext, IconQr, IconUp, IconWaiting,
+  IconNext, IconPlus, IconQr, IconUp, IconWaiting,
   IconWhatsapp,
 } from '../../components/icons.js'
 import { PageTour, TourMenu } from '../../components/Walkthrough.js'
@@ -38,6 +38,8 @@ export function FarmerProfile() {
   }
 
   const farmer = me.farmer
+  // From /farmers/me, counted on the server.
+  const slots = me.slots
 
   return (
     <>
@@ -71,6 +73,26 @@ export function FarmerProfile() {
             </div>
             <FdriPill band={farmer.fdriBand} />
           </div>
+        </Card>
+
+        <Card data-wt="prof-slots">
+          {/* No heading: "My products 1 / 5" with a meter under it already
+              says what this card is. */}
+          <SlotMeter
+            used={slots.used}
+            total={slots.total}
+            hint={t('prof.slotsHave', { total: slots.total, used: slots.used })}
+          />
+          {/* Only when there is something to buy. Offering "buy more" to a
+              farmer with three empty slots is asking for ₹50 they do not need
+              to spend, and the server refuses that payment anyway. */}
+          {slots.left === 0 && (
+            <div style={{ marginTop: 'var(--s3)' }}>
+              <Button size="sm" onClick={() => nav('/farmer/subscription')}>
+                <IconPlus aria-hidden="true" /> {t('prof.buyMore')}
+              </Button>
+            </div>
+          )}
         </Card>
 
         <Card data-wt="prof-pay">
@@ -232,6 +254,7 @@ export function FarmerHelp() {
         <Card>
           <SectionTitle>{t('help.faq')}</SectionTitle>
           <div className="stack-sm small">
+            <div>• {t('help.faq1')}</div>
             <div>• {t('help.faq2')}</div>
             <div>• {t('help.faq3')}</div>
           </div>

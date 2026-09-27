@@ -4,17 +4,16 @@ import { destroyImage } from '../routes/uploads.routes.js'
 /**
  * ROWS STORED UNDER RULES THAT NO LONGER EXIST.
  *
- * Listings used to wait in a queue (PENDING), be refused (REJECTED) or be
- * archived instead of deleted (ARCHIVED); farmers used to pay before selling
+ * Listings used to be refused (REJECTED) or be archived instead of deleted
+ * (ARCHIVED); farmers used to carry their payment in their status
  * (REGISTERED, PAYMENT_SUBMITTED, PAYMENT_REJECTED). None of those are in the
  * types any more, so a row still carrying one would be read as something it
  * is not. Run once at boot, in place - `db.products` is the live array every
  * route holds - and a no-op once the data is clean.
  *
- * A waiting listing goes on sale (its farmer still has to be verified before
- * anyone sees it); a refused or archived one is removed with its photo; an
- * unpaid farmer waits for verification; one already ACTIVE is stamped as
- * verified.
+ * A waiting listing (PENDING) is a queue entry again and is left alone; a
+ * refused or archived one is removed with its photo; an unpaid farmer waits
+ * for verification; one already ACTIVE is stamped as verified.
  */
 export function normalizeLegacyRows(
   db: Pick<Db, 'products' | 'farmers'>,
@@ -25,10 +24,7 @@ export function normalizeLegacyRows(
   for (let i = db.products.length - 1; i >= 0; i--) {
     const p = db.products[i]!
     const status = p.status as string
-    if (status === 'PENDING') {
-      p.status = 'LIVE'
-      changed++
-    } else if (status === 'REJECTED' || status === 'ARCHIVED') {
+    if (status === 'REJECTED' || status === 'ARCHIVED') {
       // The row is the only record of the photo's public id.
       void destroy(p.imagePublicId)
       db.products.splice(i, 1)

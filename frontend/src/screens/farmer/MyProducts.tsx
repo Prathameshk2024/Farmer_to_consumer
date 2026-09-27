@@ -8,9 +8,10 @@ import { useToast } from '../../store/ToastContext.js'
 import ProductImage from '../../components/ProductImage.js'
 import { PricePerUnit, useHarvestLabel } from '../../components/Produce.js'
 import { ProductQr } from '../../components/ProductQr.js'
+import { SubscriptionNotice } from '../../components/SubscriptionNotice.js'
 import {
-  AppBar, Button, Card, ConfirmSheet, EmptyState, Loading,
-  Pill, useAsync,
+  AppBar, Button, Card, ConfirmSheet, EmptyState, Loading, Notice,
+  Pill, SlotMeter, useAsync,
 } from '../../components/ui.js'
 import {
   IconClose, IconEdit, IconPause, IconPlay, IconPlus, IconProduct, IconQr, IconTrash, ProductStatusIcon,
@@ -35,7 +36,8 @@ export default function MyProducts() {
     return <><AppBar title={t('biz.myProducts')} backTo="/farmer" /><div className="screen"><EmptyState title="—" /></div></>
   }
 
-  const { products } = data
+  const { products, slots } = data
+  const expired = data.subscription.state === 'expired'
 
   async function togglePause(p: Product) {
     const res = await api.updateProduct(p.id, {
@@ -47,8 +49,8 @@ export default function MyProducts() {
 
   async function doDelete() {
     if (!toDelete) return
-    await api.deleteProduct(toDelete.id)
-    setData({ ...data!, products: products.filter((x) => x.id !== toDelete.id) })
+    const res = await api.deleteProduct(toDelete.id)
+    setData({ ...data!, products: products.filter((x) => x.id !== toDelete.id), slots: res.slots })
     setToDelete(null)
     toast(t('ok.draftRemoved'))
   }
@@ -57,6 +59,16 @@ export default function MyProducts() {
     <>
       <AppBar title={t('biz.myProducts')} backTo="/farmer" />
       <div className="screen stack">
+        <SubscriptionNotice view={data.subscription} />
+
+        <Card>
+          <SlotMeter
+            used={slots.used}
+            total={slots.total}
+            hint={slots.isFull ? t('biz.slotsFull') : t('biz.slotsLeft', { n: slots.left })}
+          />
+        </Card>
+
         {products.length === 0 ? (
           <Card>
             {/* No action here: the same button sits in the bar below, on every
@@ -94,7 +106,14 @@ export default function MyProducts() {
                       <PricePerUnit price={p.price} unit={p.unit} />
                       <div className="small dim">{harvested(p.harvestDate)}</div>
                       <div className="wrap-row" style={{ marginTop: 4 }}>
-                        <Pill tone={style.tone} icon={<ProductStatusIcon name={style.icon} />}>{t(style.labelKey)}</Pill>
+                        {/* While the shop is paused a LIVE listing is not live
+                            to anyone, so it does not say it is. Its own status
+                            is untouched - it reads LIVE again on renewal. */}
+                        {expired && p.status === 'LIVE' ? (
+                          <Pill tone="warn" icon={<ProductStatusIcon name="paused" />}>{t('sub.pausedPill')}</Pill>
+                        ) : (
+                          <Pill tone={style.tone} icon={<ProductStatusIcon name={style.icon} />}>{t(style.labelKey)}</Pill>
+                        )}
                         <Pill tone={outOfStock ? 'danger' : 'neutral'}>
                           {outOfStock
                             ? t('prod.outOfStock')
@@ -136,9 +155,12 @@ export default function MyProducts() {
           </div>
         )}
 
-        <Button onClick={() => nav('/farmer/upload')}>
+        <Button onClick={() => nav('/farmer/upload')} disabled={slots.isFull}>
           <IconPlus aria-hidden="true" /> {t('prod.add')}
         </Button>
+        {slots.isFull && (
+          <Notice tone="warn" title={t('prod.slotsFullTitle')}>{t('prod.slotsFullBody')}</Notice>
+        )}
       </div>
 
       {/* Spells out the consequence, never a bare "Are you sure?" */}

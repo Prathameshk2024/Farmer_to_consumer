@@ -24,8 +24,10 @@ function product(status: ProductStatus): Product {
   return { id: 'p4', farmerId: 's1', status } as Product
 }
 
+const FUTURE = '2099-01-01T00:00:00.000Z'
+
 function farmer(over: Partial<Farmer> = {}): Farmer {
-  return { id: 's1', status: 'ACTIVE', isOpen: true, ...over } as Farmer
+  return { id: 's1', status: 'ACTIVE', isOpen: true, subscriptionEndsAt: FUTURE, ...over } as Farmer
 }
 
 test('a live product from an open, approved shop is public', () => {
@@ -48,6 +50,11 @@ test('a blocked or unverified shop takes its live listings with it', () => {
   for (const status of states) {
     assert.equal(publiclyVisible(product('LIVE'), farmer({ status })), false, status)
   }
+})
+
+/** The paid six months are the second gate; nothing on the listing is rewritten when they end. */
+test('an expired shop takes its live listings with it', () => {
+  assert.equal(publiclyVisible(product('LIVE'), farmer({ subscriptionEndsAt: '2000-01-01T00:00:00.000Z' })), false)
 })
 
 /** Closed for the afternoon closes the window, not just the order button. */

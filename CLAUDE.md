@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-जवाहर शेतकरी बाजार / Jawahar Shetkari Bazar — a website where farmers in Maharashtra sell produce straight to buyers. Farmers register, an admin verifies each one once, their listings go on sale, buyers order for delivery or pickup and pay by UPI or cash. The admin console also holds field-survey entry and the research paper's Tables 1–9.
+जवाहर शेतकरी बाजार / Jawahar Shetkari Bazar — a website where farmers in Maharashtra sell produce straight to buyers. Farmers register, an admin verifies each one once, they pay ₹50 for a pack of five listing slots and six months of shop, each listing is published by an admin, buyers order for delivery or pickup and pay by UPI or cash. The admin console also holds field-survey entry and the research paper's Tables 1–9.
 
 - **frontend/** — farmer + buyer website (React/Vite)
 - **admin/** — admin console (React/Vite, deployed separately)
@@ -21,12 +21,16 @@ npm run dev            # API :4000 + farmer/buyer site :5173
 npm run dev:all        # the above + admin console :5174
 npm run dev:api | dev:web | dev:admin
 
-npm test               # backend (360) + frontend (133) + admin (36) tests
+npm test               # backend (396) + frontend (136) + admin (38) tests
 npm run typecheck      # all three workspaces
 npm run build          # backend tsc + both Vite builds
 
 npm run admin -- farmers                          # every farmer with status
-npm run admin -- verify <id|phone|farmer-code>    # verify a farmer from the CLI
+npm run admin -- verify <id|phone|farmer-code>    # verify a farmer from the CLI (starts the term if they paid first)
+npm run admin -- pending                          # ₹50 payments waiting for approval
+npm run admin -- approve <id|phone|farmer-code> --verified   # after checking UTR, time and bank statement
+npm run admin -- reject <id> [reason]             # reject a payment; the farmer reads the reason
+npm run admin -- grant <phone|farmer-code> [packs]           # slots with no payment; never extends a term
 npm run admin -- set-password <phone> <password>  # demo password for a (seeded) farmer; API stopped
 npm run admin:users -- create you@example.com "Your Name"   # admin accounts (list / passwd / disable / hash)
 npm run backfill:customers -- --help
@@ -59,7 +63,7 @@ The backend is `module: NodeNext`, which needs `.js` at runtime; both Vite confi
 
 ### Persistence: one synchronous interface, one process
 
-`backend/src/db/store.ts` exposes a **synchronous** `getDb()` backed by Firestore or a JSON file, chosen by whether `FIREBASE_*` credentials are present. The whole dataset is loaded at boot; `save()` schedules a diffed, batched write coalesced over 400ms.
+`backend/src/db/store.ts` exposes a **synchronous** `getDb()` backed by Firestore or a JSON file, chosen by whether `FIREBASE_*` credentials are present. The whole dataset (farmers, products, orders, payments, customers, reviews, reports, complaints, the auth collections, surveys) is loaded at boot; `save()` schedules a diffed, batched write coalesced over 400ms.
 
 - **`initStore()` finishes before the first request** — `index.ts` awaits it.
 - **Writes are diffed.** Only changed documents are sent; never add a path that rewrites a whole collection.
@@ -87,11 +91,13 @@ Firebase is **server-side only** (`firebase-admin`, service account). No Firebas
 
 ### Verification, once
 
-A new farmer is `PENDING_VERIFICATION` and invisible to buyers. An admin checks the person once — usually a field visit — and `POST /admin/farmers/:id/verify` (or `npm run admin -- verify`) makes them `ACTIVE`, stamps `verifiedAt`/`verifiedBy`, and writes a `VERIFIED` notice. `canSellNow()` is simply `status === 'ACTIVE'`. Block/unblock and account restore key on `verifiedAt`, so they never drop a verified farmer back to waiting.
+A new farmer is `PENDING_VERIFICATION` and invisible to buyers. An admin checks the person once — usually a field visit — and `POST /admin/farmers/:id/verify` (or `npm run admin -- verify`) makes them `ACTIVE`, stamps `verifiedAt`/`verifiedBy`, and writes a `VERIFIED` notice. Block/unblock and account restore key on `verifiedAt`, so they never drop a verified farmer back to waiting.
 
-### Listings go live without approval
+Verification is one of **two** gates. `canSellNow()` in `shared/src/subscription.ts` is `status === 'ACTIVE'` **and** an open term; a verified farmer who has never paid is not on sale. Paying never changes status. **The term never runs while the farmer is unverified**: a payment approved before the visit grants slots only, and `startTermOnVerify` (called by the verify route) starts the six months at verification when the farmer holds packs and no term — so nobody pays for the wait, and two ₹50s approved before the visit are still one first term.
 
-**Selling is free**: no packs, slots, subscription or edit limits. `initialListingStatus()` returns `LIVE` (or `DRAFT` when saved as one) — the person was checked once, and a listing is not checked again. A farmer may edit or delete any listing (`farmerMayDelete()` is always true); deleting splices the row and destroys its Cloudinary image. An admin's only listing action is **take-down** (`POST /admin/products/:id/moderate` with a required reason, `approve` refused): the row, its photo and its reports go at once and the reason reaches the farmer as a `PRODUCT_REJECTED` notice. Orders copy name, price and quantity into `OrderItem`, so deleting a product never empties history (`product-delete.test.ts`).
+### Listings
+
+See *Nothing goes live until an admin publishes it* (Task 2).
 
 ### Produce rules
 
@@ -158,6 +164,33 @@ The order reaches the farmer unpaid; they accept if they can fulfil it, and only
 
 `isMaharashtraPincode()` (40–44, minus Goa's 403) is the only hard gate, checked at `POST /orders`. **Inside it the farmer's `pincodes` list is a hint**: an order outside it arrives with `outsideArea: true` and Accept means "yes, I can get there". Checkout and `PincodeBar` warn rather than block. Pickup orders skip the pincode check.
 
+### Slots and subscription
+
+`shared/src/farmer.ts`. ₹50 = one pack = 5 listing slots (`PLAN`), no payment gateway — the farmer pays the programme's UPI and an admin approves by hand. `SLOT_CONSUMING` is `PENDING`, `LIVE`, `PAUSED` and deliberately excludes `DRAFT`, so a farmer can experiment before paying. `slotInfo()` reads zero packs as **full**, not unlimited: verification is the account gate now, so a verified farmer with no packs reaches the slot gate. Submitting refuses in order: 403 not verified, 403 no open term, 402 no free slot — so the message names the first thing the farmer can do about it. `backend/tests/slots.test.ts` holds the counting.
+
+**The ₹50 lasts six months.** `shared/src/subscription.ts` is the rule, `backend/src/db/subscription.ts` applies approvals, `backend/tests/subscription.test.ts` holds both.
+
+- **Only one date is stored: `Farmer.subscriptionEndsAt`.** Expiry writes nothing — no product flipped to `PAUSED`, the `isOpen` switch untouched, no slot released. Public routes ask `canSellNow()` (verified **and** term open): `publiclyVisible`, serviceability, `GET /farmers/:id`, `/contact`, `POST /orders`, the price hint's platform median; submitting a listing asks `termOpen()` after the verification check. So renewal is the date moving, and "everything exactly as before" — same packs, same products, same slots — is true by construction. Orders already in progress carry on.
+- **Six calendar months from the admin's approval**, counted in IST, clamped at month end (`addMonths`). One date for the whole shop however many packs; a **flat ₹50 `RENEWAL`** renews all of them. A `PACK` bought mid-term adds slots and leaves the date alone. A renewal paid in the reminder week adds six months to the *current end*, so no paid days are lost. Any payment approved for an already-paused shop reopens it from the approval. For an unverified farmer an approval moves no date at all (see *Verification, once*).
+- **What may be paid for is `payableKinds()`**, sent to the screen as `payable` and enforced on submit (`paymentKindProblem`): a pack when slots are full (or none are held), a renewal from `RENEW_REMINDER_DAYS` (7) before the end, and *only* a renewal once paused. One `PENDING` payment at a time (409). `SubscriptionPayment.kind` records which; a request with no `kind` means the most urgent open one.
+- **Every screen is told the state by the API** (`subscriptionView` and `slots`, on `/farmers/me`, `/products/mine`, `/farmers/me/subscription`, `/admin/farmers[/:id]`) — the server's clock, never the phone's; the frontend never calls `canSellNow`.
+- **The reminder is derived**: `subscriptionFeed()` turns the view into one row (see *The updates list*); an approved renewal, or a term started at verification, writes a `SUBSCRIPTION_RENEWED` notice carrying the new date. My Business and My Products show `SubscriptionNotice`; a paused shop's live listings read "paused" on the farmer's list while their stored status stays `LIVE`.
+- **The farmer's `status` carries no payment state**; the queue's state is on the payment. Rejecting a payment (`rejectPayment`) marks it, keeps the reason and writes `PAYMENT_REJECTED` — nothing on the account moves. The waiting screen settles on the latest payment's status.
+- **Admin:** a subscription pill (with the date) on every verified farmer in the register and on their page, filters for ending-this-week, expired and never paid, the kind and resulting end date on each payment, and `subscriptionsExpiring` / `subscriptionsExpired` / `subscriptionRevenue` / `approvedPaymentCount` on the dashboard. `activeFarmers` counts only shops a buyer can reach today. **Grant / remove slots** (`POST /admin/farmers/:id/grant-slots` / `revoke-slots`): granted slots start a term for a farmer who has none, but never extend one — time is paid — and only once verified; before that a grant is slots, and the term starts at verification like a pack's. Neither grant nor revoke touches `status`, and revoke refuses (409) to drop below the slots in use.
+- **Farmers from the free period** get a term once at boot from `backfillSubscriptionTerms`: packs enough for what is on sale (at least one), six months from their last approved payment or else their verification, and never fewer than seven days from the deploy, so no shop closes the morning after without a reminder week. Unverified and closed farmers are left alone.
+
+**Where the ₹50 goes is `ADMIN_PAYMENT_ACCOUNT` in `config.ts`**, env-readable (`ADMIN_UPI_ID`, `ADMIN_UPI_NAME`, `ADMIN_BANK_NAME`), defaulting to the college's own account. It is the one string in the app that moves real money and nothing downstream can catch it being wrong: the QR is generated FROM it, so a typo makes a perfectly scannable code that pays a stranger and leaves the farmer holding a valid UTR for a payment the programme never saw. `backend/tests/payment-account.test.ts` asserts it is payable and is not the old placeholder. No account number or IFSC — farmers pay by UPI, and a wrong A/C under a QR is worse than none; the payee NAME is stored exactly as printed on the poster so the farmer can check it against what their UPI app shows. The subscription screen pays it the way every payment here is paid — QR, `PaySteps`, copyable ID, no pay link (see *The two hand-typed numbers*).
+
+**The ₹50 needs proof, not twelve digits.** Anybody can type a UTR, and approving one grants five slots. So a subscription payment carries three things an admin holds against each other:
+
+- **A screenshot of the UPI app's success screen — required.** A `PhotoPicker` upload (`kind: 'payment'`) into its own signed Cloudinary folder. `screenshotProblem()` in `backend/src/db/payments.ts` accepts only a URL in *this* account's `…/payment/` folder, so a pasted link or a product photo cannot stand in for it. With Cloudinary off there is no way to attach one, so nothing is required, and `/farmers/me/subscription` says so as `screenshotRequired`.
+- **When the farmer paid** — `paidAt`, a `datetime-local` pre-filled with now. `paidAtProblem()` in `shared/src/payment.ts` refuses a time in the future (10 minutes' slack for phone clocks) or older than 7 days.
+- **The UTR**, as everywhere (`utrProblem`). Another farmer's payment with the same UTR sets `duplicateUtr`, and the console flags it.
+
+The admin queue (`/payments`) shows the screenshot inline and opens it large beside the UTR, the stated time and the amount. **Approve stays disabled until three checks are ticked** — the UTR matches, the date and time match, the money is on the bank statement — and `POST /admin/payments/:id/approve` refuses any request whose `checks` lack one of `PAYMENT_CHECKS`, so the checklist is the rule and not decoration. The CLI takes `approve <id> --verified` and offers no `approve all`. Rejecting needs no checklist: refusing an unproven payment is always safe. `backend/tests/payment-proof.test.ts` holds all of it.
+
+Because approval is by hand, **how long the farmer has been waiting is the number that makes somebody act on it**, and the console owns it: `waited()` in `admin/src/lib/format.ts` computes it from `submittedAt` and `Payments.tsx` re-reads the clock every 30 minutes so a console left open on a desk stops showing the age it had at page load. `/admin/payments` deliberately sends no `waitingHours`: a number computed on the server is frozen at the moment of the response, and two sources for one figure is how an admin stops trusting either.
+
 ### What the public may see
 
 `publiclyVisible(product, farmer)` in `catalog.routes.ts` — `LIVE` product, `ACTIVE` (verified) farmer, shop open — is used by the list, the by-id lookup, reviews, the trace page and the map. A hidden listing answers **404, the same as an id that never existed**. A farmer leaves the API unauthenticated only as `PublicFarmer`, built by the **allow-list** `publicFarmer()` in `db/publicFarmer.ts`: name, photo, shop, farmer code, village, delivery terms, pincodes, UPI ID/QR, crops, rounded location (with consent), pickup place, and the derived rating. The phone is not on it; a buyer gets it on their own order, from `/contact`, or on a scanned trace page. `public-farmer.test.ts` asserts the exact key set.
@@ -182,7 +215,7 @@ Coordinators type paper questionnaires into **Surveys** (`/api/admin/surveys`, `
 
 `shared/src/accountClose.ts` is the rule, `backend/src/db/accountClose.ts` applies it, `CloseAccountSheet` (`components/CloseAccount.tsx`) is the screen.
 
-- **The row stays; the person is erased.** `FARMER_PII_FIELDS` is the one list of what goes (phone, name, photo, village, UPI, questionnaire, FDRI, notices…), walked by `account-close.test.ts`; the id, `status: 'CLOSED'`, farmer code and order money stay. Past orders are the buyer's record, `isBulkDelete()` would refuse the row deletes, and other screens look farmers up by id.
+- **The row stays; the person is erased.** `FARMER_PII_FIELDS` is the one list of what goes (phone, name, photo, village, UPI, questionnaire, FDRI, notices…), walked by `account-close.test.ts`; the id, `status: 'CLOSED'`, farmer code and order money stay. The farmer's ₹50 payments lose the payer (`scrubPayment`: name, phone, payer UPI, the screenshot destroyed by `publicIdFromUrl`) and keep the money. Past orders are the buyer's record, `isBulkDelete()` would refuse the row deletes, and other screens look farmers up by id.
 - The credential and password requests are removed, so the **phone can register again**. Linked surveys lose phone, point and photo; the answers stay as research.
 - **Seven days** (`UNDO_DAYS`) between asking and erasing: the shop closes and sessions end at once, `sweepClosedAccounts()` erases later (at boot and on the 15-minute timer). Signing in during the week shows a restore button (`POST /farmers/me/restore`). **A buyer gets no window** — their orders keep the `ग्राहक` placeholder name, phone and address emptied, pincode kept.
 - The sheet asks what it costs, why, then **the last four digits of their own number, typed** — not a word to copy, not an SMS. An order in flight refuses the close (409 with `openOrders`) and the sheet names those orders.
@@ -198,7 +231,7 @@ Coordinators type paper questionnaires into **Surveys** (`/api/admin/surveys`, `
 
 ### The updates list
 
-`frontend/src/lib/notifications.ts` is **derived, never stored** — from `OrderEvent`s already on the order and from `farmer.notices` written by the admin handler that made a change (verified, blocked, unblocked, listing taken down). One row per **order**, tagged with the order's own status via `STATUS_STYLE`, timed by the latest *other-side* event, showing only the other side's actions. Not push; the app has to be open.
+`frontend/src/lib/notifications.ts` is **derived, never stored** — from `OrderEvent`s already on the order and from `farmer.notices` written by the admin handler that made a change (verified, blocked, unblocked, slots granted or taken back, payment approved or rejected, listing published or taken down), and from `subscriptionFeed()` — the reminder week, and a `standing` "paused, renew" row that never ages out; `SUBSCRIPTION_RENEWED` carries the new date. One row per **order**, tagged with the order's own status via `STATUS_STYLE`, timed by the latest *other-side* event, showing only the other side's actions. Not push; the app has to be open.
 
 ### Scroll position and the screen cache
 
@@ -217,7 +250,7 @@ Every upload goes through `uploadImage()` (`lib/upload.ts`) and is re-encoded on
 
 ### Sorting the admin lists
 
-Farmers, Products and Orders each have a **Sort by** menu; `admin/src/lib/sort.ts` holds one option table per list. Client-side (lists arrive whole), names through an `Intl.Collator` for Marathi and English, newest first by default, the choice remembered per list in `localStorage` (`SortSelect`).
+Farmers, Products, Orders and Payments each have a **Sort by** menu; `admin/src/lib/sort.ts` holds one option table per list. Client-side (lists arrive whole), names through an `Intl.Collator` for Marathi and English, newest first by default, the choice remembered per list in `localStorage` (`SortSelect`).
 
 ### Config and graceful degradation
 
@@ -227,6 +260,7 @@ Farmers, Products and Orders each have a **Sort by** menu; `admin/src/lib/sort.t
 - `ALLOW_BULK_DELETE` is honoured in production too; leave it blank in every `.env`.
 - `CORS_ORIGIN` is comma-separated and parsed into a **list** — two front ends call one API, and a comma-joined string matches neither.
 - `DATA_GOV_IN_API_KEY` is optional (price hint's mandi line).
+- `ADMIN_UPI_ID` / `ADMIN_UPI_NAME` / `ADMIN_BANK_NAME` move where the ₹50 goes (defaults: the college's account); the boot banner prints it as `Fee payee`.
 
 ## Conventions
 

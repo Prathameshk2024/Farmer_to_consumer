@@ -535,8 +535,28 @@ export function Stepper({
 }
 
 /* ================================================================== */
-/* Dots / money                                                        */
+/* Slot meter / dots / money                                           */
 /* ================================================================== */
+
+/** One bar per slot, filled for each one in use. The numbers come from the server. */
+export function SlotMeter({ used, total, hint }: { used: number; total: number; hint?: ReactNode }) {
+  const t = useT()
+  const n = Math.max(total, 1)
+  return (
+    <div className="slotmeter">
+      <div className="row-between">
+        <strong>{t('biz.myProducts')}</strong>
+        <span className="num dim">{used} / {total}</span>
+      </div>
+      <div className="slotmeter__bars" style={{ gridTemplateColumns: `repeat(${n}, 1fr)` }}>
+        {Array.from({ length: n }).map((_, i) => (
+          <div key={i} className={`slotmeter__bar ${i < used ? 'slotmeter__bar--on' : ''}`} />
+        ))}
+      </div>
+      {hint && <div className="small dim">{hint}</div>}
+    </div>
+  )
+}
 
 export function Dots({ step, total }: { step: number; total: number }) {
   return (

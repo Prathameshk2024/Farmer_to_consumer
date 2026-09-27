@@ -1,7 +1,9 @@
 import { Router, type Request } from 'express'
 import type { AdminStats } from '@shared/types.js'
 import type { Unit } from '@shared/produce.js'
-import { canSellNow } from '@shared/farmer.js'
+import { canSellNow, subscriptionState, subscriptionView } from '@shared/subscription.js'
+import { slotInfo } from '@shared/farmer.js'
+import { allChecksDone } from '@shared/payment.js'
 import { isValidLatLng } from '@shared/geo.js'
 import { fdriBand, fdriScore } from '@shared/fdri.js'
 import { researchTables, respondents } from '@shared/research.js'
@@ -16,6 +18,9 @@ import { closePasswordRequest, resetUserPassword } from '../auth/passwordRequest
 import type { PasswordRequest } from '../auth/types.js'
 import { destroyImage } from './uploads.routes.js'
 import { unlinkedSurveyPoints } from '../db/surveys.js'
+import {
+  applyApprovedPayment, grantSlots, rejectPayment, revokeProblem, revokeSlots, startTermOnVerify,
+} from '../db/subscription.js'
 
 /**
  * ADMIN API - BACKEND ONLY.
@@ -152,6 +157,8 @@ adminRouter.get('/stats', (_req, res) => {
   for (const o of db.orders) ordersByPhone.set(o.customerPhone, (ordersByPhone.get(o.customerPhone) ?? 0) + 1)
   const repeatBuyers = [...ordersByPhone.values()].filter((n) => n > 1).length
 
+  const approvedPayments = db.payments.filter((p) => p.status === 'APPROVED')
+
   const stats: AdminStats = {
     gmvMonth: earnedMonth,
     ordersToday: db.orders.filter((o) => new Date(o.placedAt).toDateString() === today).length,
@@ -160,11 +167,23 @@ adminRouter.get('/stats', (_req, res) => {
     ).length,
     // "Active" means a buyer can reach them today.
     activeFarmers: db.farmers.filter((s) => canSellNow(s)).length,
+    subscriptionsExpiring: db.farmers.filter(
+      (s) => s.status === 'ACTIVE' && subscriptionState(s) === 'expiring',
+    ).length,
+    subscriptionsExpired: db.farmers.filter(
+      (s) => s.status === 'ACTIVE' && subscriptionState(s) === 'expired',
+    ).length,
     totalFarmers: db.farmers.length,
     newRegistrations: db.farmers.filter(
       (s) => Date.now() - new Date(s.createdAt).getTime() < 7 * 86_400_000,
     ).length,
     pendingVerification: db.farmers.filter((s) => s.status === 'PENDING_VERIFICATION').length,
+    pendingPayments: db.payments.filter((p) => p.status === 'PENDING').length,
+    pendingProducts: db.products.filter((p) => p.status === 'PENDING').length,
+    // Summed from what was approved, never price times a count: a price
+    // change must not rewrite the money already taken.
+    subscriptionRevenue: approvedPayments.reduce((n, p) => n + (Number(p.amount) || 0), 0),
+    approvedPaymentCount: approvedPayments.length,
     stuckOrders: stuck.length,
     openDisputes: 0,
     farmersEarnedTotal: earnedTotal,
@@ -199,6 +218,128 @@ adminRouter.post('/farmers/:id/verify', (req, res) => {
   farmer.verifiedAt = new Date().toISOString()
   farmer.verifiedBy = verifierName(db, req)
   notifyFarmer(farmer, 'VERIFIED')
+  // A farmer who paid before the visit has packs and no term; the six months
+  // start now, so nobody pays for the wait.
+  startTermOnVerify(farmer, farmer.verifiedAt)
+  save()
+  res.json({ farmer })
+})
+
+/* ------------------------------------------------------------------ */
+/* Payment approvals                                                   */
+/* ------------------------------------------------------------------ */
+
+adminRouter.get('/payments', (req, res) => {
+  const db = getDb()
+  const status = (req.query.status as string) ?? 'PENDING'
+  // The waiting time is an SLA on somebody's livelihood, and the console draws
+  // it from `submittedAt` itself - a number computed here is frozen at the
+  // moment of the response, and this console sits open on a desk for hours.
+  const list = db.payments.filter((p) => (status === 'ALL' ? true : p.status === status))
+  res.json({ payments: list })
+})
+
+adminRouter.post('/payments/:id/approve', (req, res) => {
+  const db = getDb()
+  const payment = db.payments.find((p) => p.id === req.params.id)
+  if (!payment) {
+    res.status(404).json({ error: 'Payment not found', messageMr: 'हा भरणा सापडला नाही' })
+    return
+  }
+  if (payment.status !== 'PENDING') {
+    res.status(409).json({
+      error: `Already ${payment.status}`,
+      messageMr: 'यावर आधीच निर्णय झाला आहे',
+    })
+    return
+  }
+
+  /**
+   * Approval grants five slots, so it is not one click. The admin confirms
+   * the UTR and the date and time against the screenshot, and that the money
+   * actually reached the account - and the request says so, or it is refused.
+   * The checklist in the console is this rule, drawn.
+   */
+  if (!allChecksDone(req.body?.checks)) {
+    res.status(400).json({
+      error: 'Verify the UTR, date and time, and receipt before approving',
+      messageMr: 'मंजूर करण्याआधी UTR, तारीख-वेळ आणि पैसे जमा झाल्याची खात्री करा',
+    })
+    return
+  }
+
+  payment.status = 'APPROVED'
+  payment.verifiedAt = new Date().toISOString()
+  payment.verifiedBy = verifierName(db, req)
+
+  // A pack adds five slots; either kind can start, reopen or extend the six
+  // months of a verified farmer. The rules are in db/subscription.ts.
+  const farmer = db.farmers.find((s) => s.id === payment.farmerId)
+  if (farmer) applyApprovedPayment(farmer, payment, payment.verifiedAt)
+  save()
+  res.json({ payment, farmer })
+})
+
+adminRouter.post('/payments/:id/reject', (req, res) => {
+  const db = getDb()
+  const payment = db.payments.find((p) => p.id === req.params.id)
+  if (!payment) {
+    res.status(404).json({ error: 'Payment not found', messageMr: 'हा भरणा सापडला नाही' })
+    return
+  }
+  if (payment.status !== 'PENDING') {
+    // Rejecting an approved payment would leave its slots granted and say otherwise.
+    res.status(409).json({
+      error: `Already ${payment.status}`,
+      messageMr: 'यावर आधीच निर्णय झाला आहे',
+    })
+    return
+  }
+  const reason = String(req.body?.reason ?? '').trim() || 'UTR did not match the bank statement'
+  const by = verifierName(db, req)
+  const farmer = db.farmers.find((s) => s.id === payment.farmerId)
+  if (farmer) {
+    rejectPayment(farmer, payment, reason, by)
+  } else {
+    payment.status = 'REJECTED'
+    payment.rejectReason = reason
+    payment.verifiedAt = new Date().toISOString()
+    payment.verifiedBy = by
+  }
+  save()
+  res.json({ payment })
+})
+
+/** Goodwill, a trainee batch, a demo account. */
+adminRouter.post('/farmers/:id/grant-slots', (req, res) => {
+  const db = getDb()
+  const farmer = db.farmers.find((s) => s.id === req.params.id)
+  if (!farmer) { res.status(404).json({ error: 'Farmer not found', messageMr: 'हा शेतकरी सापडला नाही' }); return }
+  grantSlots(farmer, Number(req.body?.packs ?? 1))   // status untouched: a gift is not a verification
+  save()
+  res.json({ farmer })
+})
+
+/**
+ * Take slot packs back - for a pack granted in error. Refuses to drop the
+ * allowance below what is already in use: silently un-publishing live
+ * listings is not something an admin should do by mistyping a number.
+ */
+adminRouter.post('/farmers/:id/revoke-slots', (req, res) => {
+  const db = getDb()
+  const farmer = db.farmers.find((s) => s.id === req.params.id)
+  if (!farmer) { res.status(404).json({ error: 'Farmer not found', messageMr: 'हा शेतकरी सापडला नाही' }); return }
+  const packs = Number(req.body?.packs ?? 1)
+  const problem = revokeProblem(farmer, db.products.filter((p) => p.farmerId === farmer.id), packs)
+  if (problem) {
+    res.status(409).json({
+      error: `${problem.used} slots are in use; that would leave ${problem.wouldLeave}`,
+      messageMr: `सध्या ${problem.used} जागा वापरात आहेत. इतक्या जागा काढता येणार नाहीत.`,
+      ...problem,
+    })
+    return
+  }
+  revokeSlots(farmer, packs)
   save()
   res.json({ farmer })
 })
@@ -520,6 +661,8 @@ adminRouter.get('/farmers', (_req, res) => {
         ...s,
         productCount: products.length,
         earned: earned.get(s.id) ?? 0,
+        slots: slotInfo(s, products),
+        subscription: subscriptionView(s),
       }
     }),
   })
@@ -558,8 +701,13 @@ adminRouter.get('/farmers/:id', (req, res) => {
     farmer: {
       ...farmer,
       productCount: products.length,
+      slots: slotInfo(farmer, products),
+      subscription: subscriptionView(farmer),
     },
     products,
+    payments: db.payments
+      .filter((p) => p.farmerId === farmer.id)
+      .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)),
     orders,
     // Hidden ones included and marked: the admin is the person who hid them.
     reviews,

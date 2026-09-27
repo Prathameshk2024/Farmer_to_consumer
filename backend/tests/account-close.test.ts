@@ -1,15 +1,15 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import type { Order, Review, Farmer } from '@shared/types.js'
+import type { Order, Review, Farmer, SubscriptionPayment } from '@shared/types.js'
 import {
   FARMER_PII_FIELDS, UNDO_DAYS, closeReasonProblem, confirmProblem, daysUntilScrub, openOrders,
 } from '@shared/accountClose.js'
 import {
-  closeCustomer, openOrdersForFarmer, requestFarmerClose, restoreFarmer,
+  closeCustomer, openOrdersForFarmer, publicIdFromUrl, requestFarmerClose, restoreFarmer,
   scrubFarmer, sweepClosedAccounts,
 } from '../src/db/accountClose.js'
 import { emptyDb, type Db } from '../src/db/seed.js'
-import { canSellNow } from '@shared/farmer.js'
+import { canSellNow } from '@shared/subscription.js'
 import { cleanFdri } from '@shared/fdri.js'
 
 /**
@@ -70,6 +70,8 @@ function farmer(over: Partial<Farmer> = {}): Farmer {
     pincodes: ['413601'],
     status: 'ACTIVE',
     verifiedAt: '2026-01-02T00:00:00.000Z',
+    packsApproved: 1,
+    subscriptionEndsAt: new Date(Date.now() + 100 * DAY).toISOString(),
     notices: [{ id: 'n1', kind: 'BLOCKED', at: '2026-01-01T00:00:00.000Z' }],
     rating: 0,
     ratingCount: 0,
@@ -281,6 +283,41 @@ test('the bank QR is destroyed, not merely unlinked', () => {
   const destroyed: (string | undefined)[] = []
   scrubFarmer(dbWith(s), s, Date.now(), (id) => destroyed.push(id))
   assert.ok(destroyed.includes('f2c/qr/farmer'))
+})
+
+test('the money trail stays, the payer does not', () => {
+  const s = farmer()
+  const db = dbWith(s)
+  db.payments.push({
+    id: 'sp1', farmerId: 's1', farmerName: 'सुनीता पाटील', farmerCode: 'F2C-ANADUR-001',
+    phone: '9822011223', amount: 50, utr: '123456789012', payerUpi: '9822011223@ybl',
+    screenshotUrl: 'https://res.cloudinary.com/x/image/upload/v1/f2c/payment/proof.jpg',
+    submittedAt: '2026-02-01T00:00:00.000Z', status: 'APPROVED', duplicateUtr: false,
+  } as SubscriptionPayment)
+
+  const destroyed: (string | undefined)[] = []
+  scrubFarmer(db, s, Date.now(), (id) => destroyed.push(id))
+
+  const p = db.payments[0]!
+  assert.equal(p.amount, 50, 'the college still has to account for the money')
+  assert.equal(p.utr, '123456789012', 'and for the reference it arrived under')
+  assert.equal(p.phone, '')
+  assert.equal(p.payerUpi, '')
+  assert.equal(p.screenshotUrl, undefined)
+  assert.ok(
+    destroyed.includes('f2c/payment/proof'),
+    'the screenshot of their UPI app is destroyed, not merely unlinked',
+  )
+  assert.ok(destroyed.includes('f2c/qr/farmer'), 'so is their bank QR')
+})
+
+test('a Cloudinary URL yields the id the delete needs', () => {
+  assert.equal(
+    publicIdFromUrl('https://res.cloudinary.com/demo/image/upload/v1699/f2c/payment/a1.jpg'),
+    'f2c/payment/a1',
+  )
+  assert.equal(publicIdFromUrl(undefined), undefined)
+  assert.equal(publicIdFromUrl('not a url'), undefined, 'and nonsense names nothing')
 })
 
 /* ------------------------------------------------------------------ */

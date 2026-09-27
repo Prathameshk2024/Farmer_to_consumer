@@ -178,7 +178,7 @@ export default function EditProfile() {
     setErr('')
     try {
       const res = await api.setMyLocation(body)
-      setMe({ farmer: res.farmer })
+      setMe({ ...me!, farmer: res.farmer })
       toast('clear' in body ? t('reg.locationRemoved') : t('reg.locationSaved'))
     } catch (error) {
       setErr(error instanceof ApiError ? error.messageMr ?? error.message : 'Network error')

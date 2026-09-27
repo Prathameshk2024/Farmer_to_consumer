@@ -153,6 +153,7 @@ const PRODUCT_STATUS_ICON: Record<ProductStatusIconName, IconType> = {
   live: FiCircle,
   draft: FiEdit2,
   paused: FiPause,
+  pending: FiClock,
 }
 
 export function ProductStatusIcon({ name }: { name: ProductStatusIconName }) {

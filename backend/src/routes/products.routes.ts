@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { Product } from '@shared/types.js'
-import { canSellNow, initialListingStatus } from '@shared/farmer.js'
+import { initialListingStatus, slotInfo } from '@shared/farmer.js'
+import { subscriptionView, termOpen } from '@shared/subscription.js'
 import { categoryFor, descriptionProblem, listingProblems } from '@shared/produce.js'
 import { getDb, newId, save } from '../db/store.js'
 import { CATEGORIES, isCategoryId } from '../db/seed.js'
@@ -71,12 +72,21 @@ const NUMERIC = ['price', 'stock', 'minOrder'] as const
 
 /** The farmer's own products, drafts included. */
 productsRouter.get('/mine', requireRole('farmer'), (req, res) => {
+  const db = getDb()
   const farmerId = req.auth!.farmerId!
-  res.json({ products: getDb().products.filter((p) => p.farmerId === farmerId) })
+  const farmer = db.farmers.find((s) => s.id === farmerId)
+  const products = db.products.filter((p) => p.farmerId === farmerId)
+  res.json({
+    products,
+    slots: slotInfo(farmer ?? {}, products),
+    subscription: subscriptionView(farmer ?? {}),
+  })
 })
 
 /** Why an unverified farmer's listing cannot go on sale yet. */
 const NOT_VERIFIED_MR = 'तुमची तपासणी झाल्यावर माल विक्रीसाठी जाईल'
+const NO_TERM_MR = 'तुमची वर्गणी सुरू नाही. ₹50 भरून मंजुरी मिळाल्यावर उत्पादने पाठवता येतील.'
+const SLOTS_FULL_MR = 'सर्व जागा भरल्या आहेत. आणखी 5 जागांसाठी ₹50 भरा.'
 
 productsRouter.post('/', requireRole('farmer'), (req, res) => {
   const db = getDb()
@@ -90,9 +100,21 @@ productsRouter.post('/', requireRole('farmer'), (req, res) => {
   const b = req.body as Partial<Product> & { asDraft?: boolean }
   const asDraft = !!b.asDraft
 
-  // Drafts are the farmer's to write before the check; putting one on sale waits for it.
-  if (!asDraft && !canSellNow(farmer)) {
+  // Drafts are the farmer's to write before the check, before paying and
+  // with no slot free; sending one in waits for all three, in that order, so
+  // the message names the first thing the farmer can do about it.
+  if (!asDraft && farmer.status !== 'ACTIVE') {
     res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
+    return
+  }
+  if (!asDraft && !termOpen(farmer)) {
+    res.status(403).json({ error: 'No open subscription', messageMr: NO_TERM_MR })
+    return
+  }
+  // THE SLOT GATE. The disabled button is a courtesy; this is the rule.
+  const slots = slotInfo(farmer, db.products.filter((p) => p.farmerId === farmerId))
+  if (!asDraft && slots.isFull) {
+    res.status(402).json({ error: 'No slots left', messageMr: SLOTS_FULL_MR, slots })
     return
   }
   const refused = hardRefusal(b as Record<string, unknown>)
@@ -175,8 +197,19 @@ productsRouter.patch('/:id', requireRole('farmer'), (req, res) => {
     // Putting a draft on sale: the same checks as a new listing, so "save as
     // draft" is never a way round them.
     const farmer = db.farmers.find((s) => s.id === req.auth!.farmerId)!
-    if (!canSellNow(farmer)) {
+    if (farmer.status !== 'ACTIVE') {
       res.status(403).json({ error: 'Not verified', messageMr: NOT_VERIFIED_MR })
+      return
+    }
+    if (!termOpen(farmer)) {
+      res.status(403).json({ error: 'No open subscription', messageMr: NO_TERM_MR })
+      return
+    }
+    // THE SLOT GATE. The draft itself holds none, so it is counted without.
+    const others = db.products.filter((p) => p.farmerId === farmer.id && p.id !== current.id)
+    const slots = slotInfo(farmer, others)
+    if (slots.isFull) {
+      res.status(402).json({ error: 'No slots left', messageMr: SLOTS_FULL_MR, slots })
       return
     }
     const fields = publishProblems(merged)
@@ -222,5 +255,7 @@ productsRouter.delete('/:id', requireRole('farmer'), (req, res) => {
   // still know the public id, so it is now or never.
   void destroyImage(gone?.imagePublicId)
 
-  res.json({ ok: true })
+  const farmer = db.farmers.find((s) => s.id === req.auth!.farmerId)
+  const slots = slotInfo(farmer ?? {}, db.products.filter((p) => p.farmerId === req.auth!.farmerId))
+  res.json({ ok: true, slots })
 })

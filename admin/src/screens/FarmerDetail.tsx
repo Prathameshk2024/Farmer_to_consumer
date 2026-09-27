@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
-import type { AdminNotice } from '@shared/types.js'
+import type { AdminNotice, SubscriptionPayment } from '@shared/types.js'
 import { FDRI_INDICATORS, FDRI_QUESTIONS } from '@shared/fdri.js'
 import { cropById } from '@shared/crops.js'
 import {
@@ -8,9 +8,10 @@ import {
 } from '@shared/profile.js'
 import { useI18n, useT } from '../i18n/I18nProvider.js'
 import { api, type FarmerDetail as Detail } from '../lib/api.js'
-import { isStuck, maskedLabel, rupees, when } from '../lib/format.js'
+import { dateOnly, isStuck, maskedLabel, rupees, when } from '../lib/format.js'
 import { TopBar } from '../components/Shell.js'
 import { FarmerActions, StatusPill } from '../components/FarmerActions.js'
+import { PaymentKindPill, SubscriptionPill } from '../components/Subscription.js'
 import { Confirm, useConfirm } from '../components/Confirm.js'
 import { ResetPassword } from '../components/ResetPassword.js'
 import { ProductCard } from './Products.js'
@@ -82,7 +83,7 @@ export function FarmerDetail() {
           <Business detail={data} />
           <Fdri detail={data} />
           <ShopSettings detail={data} />
-          <Decisions notices={farmer.notices ?? []} />
+          <Decisions notices={farmer.notices ?? []} payments={data.payments} />
         </div>
 
         <Listings detail={data} onDone={reload} />
@@ -126,6 +127,8 @@ function Identity({ detail, onDone }: { detail: Detail; onDone: () => void }) {
           <div className="row wrap" style={{ gap: 8 }}>
             <span className="strong" style={{ fontSize: 17 }}>{farmer.name}</span>
             <StatusPill status={farmer.status} />
+            {/* Only once verified: before that the term cannot run. */}
+            {farmer.verifiedAt && <SubscriptionPill view={farmer.subscription} />}
             {!farmer.isOpen && <Pill tone="warn">{t('sd.shopClosed')}</Pill>}
           </div>
 
@@ -220,6 +223,7 @@ function Numbers({ detail }: { detail: Detail }) {
 
   return (
     <div className="tiles">
+      <Tile n={`${farmer.slots?.used ?? 0}/${farmer.slots?.total ?? 0}`} label={t('se.slots')} />
       <Tile n={live} label={t('sd.liveListings')} />
       <Tile n={orders.length} label={t('sd.ordersAll')} />
       <Tile n={delivered} label={t('sd.delivered')} />
@@ -374,13 +378,20 @@ function Check({ on, children }: { on: boolean; children: ReactNode }) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Verification, blocks and take-downs, newest first.
+ * Verification, grants, revokes, blocks, take-downs and payment decisions,
+ * newest first.
  *
- * A verification only changes a status, so without this list "who verified
- * them, and when" cannot be answered after the fact - which is exactly the
- * question asked when something looks wrong.
+ * A verification only changes a status and a granted pack is a number that is
+ * simply larger than it was, so without this list "who verified them, who gave
+ * them five slots, and when" cannot be answered after the fact - which is
+ * exactly the question asked when something looks wrong.
  */
-function Decisions({ notices }: { notices: AdminNotice[] }) {
+function Decisions({
+  notices, payments,
+}: {
+  notices: AdminNotice[]
+  payments: SubscriptionPayment[]
+}) {
   const t = useT()
   const rows = [...notices].reverse()
 
@@ -399,7 +410,43 @@ function Decisions({ notices }: { notices: AdminNotice[] }) {
                 {n.n != null && <span className="num small dim">{n.n}</span>}
                 <span className="small dim-2">{when(n.at)}</span>
               </div>
-              {n.note && <div className="small dim">{n.note}</div>}
+              {/* A renewal's note is the date it now runs to, stored as ISO. */}
+              {n.note && (
+                <div className="small dim">
+                  {n.kind === 'SUBSCRIPTION_RENEWED' ? t('pay.termUntil', { date: dateOnly(n.note) }) : n.note}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Every ₹50 this farmer has sent, decided or still waiting. */}
+      <div className="small dim-2" style={{ marginTop: 12 }}>{t('sd.payments')}</div>
+      {payments.length === 0 ? (
+        <div className="small dim-2">{t('sd.noPayments')}</div>
+      ) : (
+        <ul className="timeline">
+          {payments.map((p) => (
+            <li key={p.id}>
+              <div className="row" style={{ gap: 8 }}>
+                <span className="num small">{rupees(p.amount)}</span>
+                <PaymentKindPill kind={p.kind} />
+                <Pill tone={p.status === 'APPROVED' ? 'ok' : p.status === 'REJECTED' ? 'danger' : 'warn'}>
+                  {t(`pay.${p.status.toLowerCase()}`)}
+                </Pill>
+                <span className="small dim-2">{when(p.submittedAt)}</span>
+              </div>
+              {/* The renewal history: the date each approval left the shop open until. */}
+              {p.termEndsAt && (
+                <div className="small dim">{t('pay.termUntil', { date: dateOnly(p.termEndsAt) })}</div>
+              )}
+              {p.utr && <div className="small dim mono">UTR {p.utr}</div>}
+              {p.rejectReason && (
+                <div className="small" style={{ color: 'var(--danger)' }}>
+                  {t('c.reason')}: {p.rejectReason}
+                </div>
+              )}
             </li>
           ))}
         </ul>

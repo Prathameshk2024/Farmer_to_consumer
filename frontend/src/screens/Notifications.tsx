@@ -4,7 +4,7 @@ import { useT } from '../i18n/I18nProvider.js'
 import { useAuth } from '../store/AuthContext.js'
 import { api } from '../lib/api.js'
 import {
-  adminFeed, buildFeed, lastSeen, markSeen, mergeFeeds, splitFeed,
+  adminFeed, buildFeed, lastSeen, markSeen, mergeFeeds, splitFeed, subscriptionFeed,
   visibleFeed, whenKey, type Notice,
 } from '../lib/notifications.js'
 import { STATUS_STYLE, statusLabelKey } from '@shared/orderFlow.js'
@@ -61,6 +61,7 @@ export default function Notifications() {
         mergeFeeds(
           buildFeed(data?.orders ?? [], session.role),
           adminFeed(meData?.farmer),
+          subscriptionFeed(meData?.subscription),
         ),
         seenOnArrival,
       )

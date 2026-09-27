@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { AdminNotice, Order, Farmer } from '@shared/types.js'
 import {
-  adminFeed, buildFeed, daysAgo, mergeFeeds, noticeLabelKey, splitFeed, visibleFeed,
+  adminFeed, buildFeed, daysAgo, mergeFeeds, noticeLabelKey, splitFeed, subscriptionFeed, visibleFeed,
   whenKey, type Notice,
 } from '../src/lib/notifications.js'
 import { dictionaries } from '../src/i18n/strings.js'
@@ -156,7 +156,44 @@ test('being verified is a sentence of its own', () => {
   ]))
 
   assert.equal(row?.labelKey, 'notif.verified')
-  assert.equal(dictionaries.en[row!.labelKey], 'You are verified. Your produce is now on sale.')
+  assert.equal(dictionaries.en[row!.labelKey], 'You are verified. With your subscription paid, your produce is on sale.')
+})
+
+test('a granted pack is a sentence with the number in it', () => {
+  const [row] = adminFeed(farmer([
+    { id: 'a1', at: '2026-09-08T10:00:00.000Z', kind: 'SLOTS_GRANTED', n: 5 },
+  ]))
+
+  assert.equal(row?.labelKey, 'notif.adm.SLOTS_GRANTED')
+  assert.deepEqual(row?.vars, { n: 5 })
+  assert.equal(
+    dictionaries.en[row!.labelKey]?.replace('{n}', '5'),
+    'You have been given 5 more product slots',
+  )
+})
+
+test('a renewal puts the new date in the sentence, not under it', () => {
+  const [row] = adminFeed(farmer([
+    { id: 'a2', at: '2026-09-08T10:00:00.000Z', kind: 'SUBSCRIPTION_RENEWED', note: '2027-03-15T06:30:00.000Z' },
+  ]))
+  assert.equal(row?.labelKey, 'notif.adm.SUBSCRIPTION_RENEWED')
+  assert.deepEqual(row?.vars, { date: '15 Mar 2027' })
+  assert.equal(row?.reason, undefined, 'the ISO date is not printed raw as a reason')
+})
+
+test('the reminder week is one row timed from its start; a paused shop stands until renewed', () => {
+  const end = '2027-03-15T06:30:00.000Z'
+  const remindFrom = '2027-03-08T06:30:00.000Z'
+  const expiring = subscriptionFeed({ state: 'expiring', endsAt: end, daysLeft: 3, remindFrom })
+  assert.equal(expiring.length, 1)
+  assert.equal(expiring[0]!.at, remindFrom)
+  assert.equal(expiring[0]!.to, '/farmer/subscription')
+
+  const expired = subscriptionFeed({ state: 'expired', endsAt: end, daysLeft: 0, remindFrom })
+  assert.equal(expired[0]!.standing, true)
+  assert.equal(visibleFeed(expired, '', Date.parse(end) + 400 * 86_400_000).length, 1, 'a year later it is still true')
+  assert.deepEqual(subscriptionFeed({ state: 'active', endsAt: end }), [])
+  assert.deepEqual(subscriptionFeed(undefined), [])
 })
 
 /** No order behind it, so nothing may render an order id or a rupee amount. */
@@ -189,7 +226,10 @@ test('both halves of the list are one list, newest first', () => {
 })
 
 test('every admin line exists in both languages', () => {
-  const kinds: AdminNotice['kind'][] = ['VERIFIED', 'BLOCKED', 'UNBLOCKED', 'PRODUCT_REJECTED']
+  const kinds: AdminNotice['kind'][] = [
+    'VERIFIED', 'BLOCKED', 'UNBLOCKED', 'SLOTS_GRANTED', 'SLOTS_REVOKED',
+    'PAYMENT_APPROVED', 'PAYMENT_REJECTED', 'PRODUCT_APPROVED', 'PRODUCT_REJECTED', 'SUBSCRIPTION_RENEWED',
+  ]
   const missing = kinds
     .map((k) => adminFeed(farmer([{ id: k, at: '2026-09-08T00:00:00.000Z', kind: k }]))[0]!.labelKey)
     .filter((key) => !dictionaries.mr[key] || !dictionaries.en[key])

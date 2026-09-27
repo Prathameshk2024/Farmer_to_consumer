@@ -27,7 +27,7 @@ export function Today() {
 
   const s = data!.stats
 
-  const queue = s.pendingVerification + s.stuckOrders
+  const queue = s.pendingPayments + s.pendingProducts + s.pendingVerification + s.stuckOrders
 
   return (
     <>
@@ -42,6 +42,16 @@ export function Today() {
             </Card>
           ) : (
             <div className="tiles">
+              <ActionTile
+                n={s.pendingPayments}
+                label={t('today.pendingPayments')}
+                onClick={() => nav('/payments')}
+              />
+              <ActionTile
+                n={s.pendingProducts}
+                label={t('today.pendingProducts')}
+                onClick={() => nav('/products')}
+              />
               <ActionTile
                 n={s.pendingVerification}
                 label={t('se.waitingVerification')}
@@ -62,6 +72,11 @@ export function Today() {
             <Stat n={s.activeFarmers} label={t('today.activeFarmers')} />
             <Stat n={s.totalFarmers} label={t('today.totalFarmers')} />
             <Stat n={s.newRegistrations} label={t('today.newThisWeek')} />
+            <Stat n={s.subscriptionsExpiring} label={t('today.subsExpiring')} />
+            <Stat n={s.subscriptionsExpired} label={t('today.subsExpired')} />
+            {/* Summed from approved payments on the server, never price times a count. */}
+            <Stat n={rupees(s.subscriptionRevenue)} label={t('today.income')} />
+            <Stat n={s.approvedPaymentCount} label={t('today.paymentsApproved')} />
             <Stat n={s.ordersToday} label={t('today.ordersToday')} />
             <Stat n={s.ordersWeek} label={t('today.ordersWeek')} />
             <Stat n={rupees(s.farmersEarnedMonth)} label={t('today.earnedMonth')} />

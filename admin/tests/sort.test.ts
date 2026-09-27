@@ -1,14 +1,15 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { OrderRow, ProductRow, FarmerRow } from '../src/lib/api.js'
+import type { SubscriptionPayment } from '@shared/types.js'
 import {
-  ORDER_SORTS, PRODUCT_SORTS, FARMER_SORTS, sortRows,
+  ORDER_SORTS, PAYMENT_SORTS, PRODUCT_SORTS, FARMER_SORTS, sortRows,
 } from '../src/lib/sort.js'
 
 /**
  * Every list in the console can be reordered: newest or oldest, by name, and
  * by whichever number "highest" means on that list. These hold the orderings
- * an admin will actually rely on - the farmer who
+ * an admin will actually rely on - the queue read oldest-first, the farmer who
  * has earned most at the top - and the two ways sorting quietly goes wrong:
  * mixed-script names, and reordering the fetched array in place.
  */
@@ -18,7 +19,7 @@ const farmer = (id: string, over: Partial<FarmerRow>) =>
 const ids = (rows: { id: string }[]) => rows.map((r) => r.id)
 
 test('every list offers newest and oldest first, newest by default', () => {
-  for (const list of [FARMER_SORTS, PRODUCT_SORTS, ORDER_SORTS]) {
+  for (const list of [FARMER_SORTS, PRODUCT_SORTS, ORDER_SORTS, PAYMENT_SORTS]) {
     assert.equal(list[0]?.id, 'newest')
     assert.ok(list.some((o) => o.id === 'oldest'))
   }
@@ -76,6 +77,14 @@ test('orders: by amount, and by shop name', () => {
   ] as OrderRow[]
   assert.deepEqual(ids(sortRows(rows, ORDER_SORTS, 'amountHigh')), ['o2', 'o1', 'o3'])
   assert.deepEqual(ids(sortRows(rows, ORDER_SORTS, 'nameAZ')).slice(-2), ['o2', 'o1'])
+})
+
+test('payments: oldest first puts the longest wait at the top', () => {
+  const rows = [
+    { id: 'today', submittedAt: '2026-09-15T09:00:00Z' },
+    { id: 'monday', submittedAt: '2026-09-13T09:00:00Z' },
+  ] as SubscriptionPayment[]
+  assert.deepEqual(ids(sortRows(rows, PAYMENT_SORTS, 'oldest')), ['monday', 'today'])
 })
 
 test('sorting returns a copy and leaves the fetched list as it was', () => {

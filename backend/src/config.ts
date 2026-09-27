@@ -10,6 +10,8 @@
  * should be able to clone this repo and run it without any accounts at all.
  */
 
+import type { AdminPaymentAccount } from '@shared/types.js'
+
 function firstOf(...names: string[]): string | undefined {
   for (const n of names) {
     const v = process.env[n]
@@ -315,6 +317,29 @@ export const ALLOW_BULK_DELETE = /^(1|true|yes)$/i.test(firstOf('ALLOW_BULK_DELE
  */
 export const DATA_GOV_IN_API_KEY = process.env.DATA_GOV_IN_API_KEY?.trim() || ''
 
+/**
+ * WHERE THE ₹50 GOES.
+ *
+ * Read from the environment, defaulting to the programme's own account,
+ * because this is the one string in the app that moves real money and it can
+ * be wrong in a way nothing downstream can catch: the QR is generated FROM it,
+ * so a typo makes a perfectly scannable code that pays a stranger, and the
+ * farmer who paid holds a valid UTR for a transaction the programme never saw.
+ *
+ * Env-readable so the account can be changed on the host without a deploy -
+ * a college treasurer changing banks is not a code change.
+ *
+ * No account number or IFSC: farmers pay by UPI, those two lines were never
+ * used, and a wrong A/C number printed under a QR is worse than none.
+ */
+export const ADMIN_PAYMENT_ACCOUNT: AdminPaymentAccount = {
+  // As PRINTED on the poster, so the farmer can check it against the name
+  // their own UPI app shows after scanning.
+  label: firstOf('ADMIN_UPI_NAME') ?? 'PRIN.JAWAHAR ARTS.SC.COM.',
+  upiId: firstOf('ADMIN_UPI_ID') ?? 'jasccollegeandur@sbi',
+  bankName: firstOf('ADMIN_BANK_NAME') ?? 'State Bank of India',
+}
+
 export function describeConfig(): string {
   const lines = [
     `  Database       ${
@@ -324,6 +349,7 @@ export function describeConfig(): string {
     }`,
     `  Images         ${usingCloudinary ? `Cloudinary (${cloudinary!.cloudName})` : 'off - emoji only'}`,
     `  Mandi prices   ${DATA_GOV_IN_API_KEY ? 'on' : 'off (no DATA_GOV_IN_API_KEY)'}`,
+    `  Fee payee      ${ADMIN_PAYMENT_ACCOUNT.upiId} (${ADMIN_PAYMENT_ACCOUNT.label})`,
     `  CORS           ${CORS_ORIGIN === true ? 'any origin' : CORS_ORIGIN.join(', ')}`,
   ]
   if (IS_PROD && CORS_ORIGIN === true) {

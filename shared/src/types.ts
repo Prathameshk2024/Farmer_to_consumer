@@ -211,13 +211,18 @@ export type DispatchTime = 'same' | '1' | '23'
  * verified, on Tuesday" cannot be reconstructed after the fact. This is the smallest thing that can be: an append-only list on their own
  * record, trimmed, written by the same handler that made the change.
  */
-export type AdminNoticeKind = 'VERIFIED' | 'BLOCKED' | 'UNBLOCKED' | 'PRODUCT_REJECTED'
+export type AdminNoticeKind =
+  | 'VERIFIED' | 'BLOCKED' | 'UNBLOCKED'
+  | 'SLOTS_GRANTED' | 'SLOTS_REVOKED'
+  | 'PAYMENT_APPROVED' | 'PAYMENT_REJECTED'
+  | 'PRODUCT_APPROVED' | 'PRODUCT_REJECTED'
+  | 'SUBSCRIPTION_RENEWED'
 
 export interface AdminNotice {
   id: string
   at: string
   kind: AdminNoticeKind
-  /** A number the sentence carries. Legacy rows only; nothing writes it now. */
+  /** Slots, where the sentence carries a number - slots, not packs; a pack is our word. */
   n?: number
   /**
    * WHAT the decision was about - the product's name. Kept apart from the
@@ -360,6 +365,14 @@ export interface Farmer {
   /** Why they left, as a code from CLOSE_REASONS; `closeNote` has words only for "other". */
   closeReason?: string
   closeNote?: string
+  /**
+   * When the paid six months end (shared/src/subscription.ts). The whole
+   * stored state of the subscription: expiry writes nothing. Absent until a
+   * term has started.
+   */
+  subscriptionEndsAt?: string
+  /** ₹50 packs approved or granted, five slots each. Absent reads 0: a row from before the rule. */
+  packsApproved?: number
   /** When an admin checked this farmer, and who. Absent until then. */
   verifiedAt?: string
   verifiedBy?: string
@@ -406,7 +419,7 @@ export type PublicFarmer = Pick<
 /* Products                                                          */
 /* ------------------------------------------------------------------ */
 
-export type ProductStatus = 'DRAFT' | 'LIVE' | 'PAUSED'
+export type ProductStatus = 'DRAFT' | 'PENDING' | 'LIVE' | 'PAUSED'
 
 export type { Unit, Cultivation } from './produce.js'
 
@@ -438,8 +451,60 @@ export interface Product {
   description?: string
 
   status: ProductStatus
+  /** How many of `MAX_EDITS` counted edits this listing has spent. Absent reads 0. */
+  editCount?: number
   views: number
   createdAt: string
+}
+
+/* ------------------------------------------------------------------ */
+/* Subscription                                                        */
+/* ------------------------------------------------------------------ */
+
+export type PaymentApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export interface SubscriptionPayment {
+  id: string
+  /**
+   * What the ₹50 was for: five more slots, or six more months. Absent reads
+   * as a pack.
+   */
+  kind?: 'PACK' | 'RENEWAL'
+  /** The shop's end date this approval left the farmer with - the renewal history an admin reads. */
+  termEndsAt?: string
+  farmerId: string
+  farmerName: string
+  farmerCode: string
+  phone: string
+  amount: number
+  utr: string
+  payerUpi: string
+  /**
+   * The UPI app's success screen. Required on every submission made while
+   * uploads are switched on; absent only when they are off.
+   */
+  screenshotUrl?: string
+  /** When the farmer says they paid - read off that screen, and checked against it. */
+  paidAt?: string
+  submittedAt: string
+  status: PaymentApprovalStatus
+  /** Set when the same reference number was already used by someone else. */
+  duplicateUtr: boolean
+  verifiedAt?: string
+  verifiedBy?: string
+  rejectReason?: string
+}
+
+export interface AdminPaymentAccount {
+  label: string
+  upiId: string
+  bankName: string
+  /**
+   * Optional, and absent in practice: farmers pay by UPI, and a wrong account
+   * number printed under a QR code is worse than no account number.
+   */
+  accountNo?: string
+  ifsc?: string
 }
 
 export interface Category {
@@ -555,12 +620,24 @@ export interface AdminStats {
   gmvMonth: number
   ordersToday: number
   ordersWeek: number
-  /** Verified and not blocked - farmers anyone can buy from today. */
+  /** Verified, not blocked, and inside their subscription - farmers anyone can buy from today. */
   activeFarmers: number
   totalFarmers: number
   newRegistrations: number
+  /** Open, and pausing within RENEW_REMINDER_DAYS unless they renew. */
+  subscriptionsExpiring: number
+  /** Paused: the six months ran out and they have not renewed. */
+  subscriptionsExpired: number
   /** Registered and waiting for an admin to verify them once. */
   pendingVerification: number
+  /** ₹50 payments waiting for an admin's three checks. */
+  pendingPayments: number
+  /** Listings waiting for an admin to publish them. */
+  pendingProducts: number
+  /** Summed from APPROVED payment records, never from the plan price times a count. */
+  subscriptionRevenue: number
+  /** How many payments that total is made of. */
+  approvedPaymentCount: number
   stuckOrders: number
   openDisputes: number
   farmersEarnedTotal: number

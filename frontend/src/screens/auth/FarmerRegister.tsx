@@ -245,6 +245,8 @@ export default function FarmerRegister() {
           <FdriCard score={created.fdriScore} />
 
           <Notice tone="warn">{t('biz.pendingVerification')}</Notice>
+          <p className="small muted">{t('reg.doneNext')}</p>
+          <Button variant="ghost" onClick={() => nav('/farmer/subscription', { replace: true })}>{t('reg.payNow')}</Button>
           <Button onClick={() => nav('/farmer', { replace: true })}>
             {t('biz.title')}
           </Button>

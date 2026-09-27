@@ -8,8 +8,9 @@ import { useToast } from '../../store/ToastContext.js'
 import { api } from '../../lib/api.js'
 import {
   AppBar, Button, Card, EmptyState, Loading, Notice,
-  Pill, Rupees, SectionTitle, useAsync,
+  Pill, Rupees, SectionTitle, SlotMeter, useAsync,
 } from '../../components/ui.js'
+import { SubscriptionLine, SubscriptionNotice } from '../../components/SubscriptionNotice.js'
 import {
   IconAllClear, IconBuyers, IconChevron, IconGrowth, IconOrders, IconPause, IconPlay, IconProduct, StatusIcon, type IconType,
 } from '../../components/icons.js'
@@ -49,6 +50,10 @@ export default function MyBusiness() {
   }
 
   const farmer = me.farmer
+  // From /farmers/me: nothing about slots or the term is recomputed on the phone.
+  const slots = me.slots
+  const expired = me.subscription.state === 'expired'
+  const unpaid = me.subscription.state === 'none' && farmer.status !== 'BLOCKED' && farmer.status !== 'CLOSED'
   const orders = orderData?.orders ?? []
   const actionable = orders.filter(needsFarmerAction)
 
@@ -125,18 +130,70 @@ export default function MyBusiness() {
           <Notice tone="warn">{t('biz.pendingVerification')}</Notice>
         )}
 
-        {/* Shop open toggle: one tap, right at the top. */}
-        <Card className={farmer.isOpen ? '' : 'notice--warn'} data-wt="biz-shop">
-          <div className="row-between">
-            <div className="stack-sm" style={{ gap: 2 }}>
-              <strong>{farmer.isOpen ? t('biz.shopOpen') : t('biz.shopClosed')}</strong>
-              <span className="small dim">{t('biz.shopOpenHint')}</span>
+        {/* The renewal reminder and the paused shop, above everything they
+            affect. Nothing at all while the six months are comfortably open. */}
+        <SubscriptionNotice view={me.subscription} />
+
+        {/* No term yet. With no packs, the ₹50 is the next step. With packs
+            (paid before the visit) the six months start at verification, and
+            asking for another ₹50 would be wrong. */}
+        {unpaid && slots.total === 0 && (
+          <Notice tone="warn" title={t('sub.noneTitle')}>
+            <div>{t('sub.noneBody')}</div>
+            <div style={{ marginTop: 'var(--s3)' }}>
+              <Button size="sm" onClick={() => nav('/farmer/subscription')}>{t('reg.payNow')}</Button>
             </div>
-            <Button variant={farmer.isOpen ? 'quiet' : 'primary'} size="sm" onClick={toggleShop} style={{ flex: '0 0 auto', whiteSpace: 'nowrap' }}>
-              {farmer.isOpen ? <IconPause aria-hidden="true" /> : <IconPlay aria-hidden="true" />}
-              <span>{farmer.isOpen ? t('biz.closeShop') : t('biz.openShop')}</span>
-            </Button>
-          </div>
+          </Notice>
+        )}
+        {unpaid && slots.total > 0 && <Notice tone="info">{t('sub.startsOnVerify')}</Notice>}
+
+        {/* Shop open toggle: one tap, right at the top. While the subscription
+            has run out the shop is closed whatever the switch says, so the
+            card says that instead and the switch waits: flipping it would
+            change nothing a buyer can see, and the farmer's own choice is
+            kept for the day they renew. */}
+        {expired ? (
+          <Card className="notice--warn" data-wt="biz-shop">
+            <div className="stack-sm" style={{ gap: 2 }}>
+              <strong>{t('sub.shopPaused')}</strong>
+              <span className="small dim">{t('sub.shopPausedHint')}</span>
+            </div>
+          </Card>
+        ) : (
+          <Card className={farmer.isOpen ? '' : 'notice--warn'} data-wt="biz-shop">
+            <div className="row-between">
+              <div className="stack-sm" style={{ gap: 2 }}>
+                <strong>{farmer.isOpen ? t('biz.shopOpen') : t('biz.shopClosed')}</strong>
+                <span className="small dim">{t('biz.shopOpenHint')}</span>
+              </div>
+              <Button variant={farmer.isOpen ? 'quiet' : 'primary'} size="sm" onClick={toggleShop} style={{ flex: '0 0 auto', whiteSpace: 'nowrap' }}>
+                {farmer.isOpen ? <IconPause aria-hidden="true" /> : <IconPlay aria-hidden="true" />}
+                <span>{farmer.isOpen ? t('biz.closeShop') : t('biz.openShop')}</span>
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        <Card data-wt="biz-slots">
+          <SlotMeter
+            used={slots.used}
+            total={slots.total}
+            hint={slots.isFull ? t('biz.slotsFull') : t('biz.slotsLeft', { n: slots.left })}
+          />
+          <div style={{ marginTop: 'var(--s2)' }}><SubscriptionLine view={me.subscription} /></div>
+          {slots.almostFull && (
+            <div style={{ marginTop: 'var(--s3)' }}>
+              <Notice tone="warn">{t('biz.oneSlotLeft')}</Notice>
+            </div>
+          )}
+          {/* Buying slots waits for the renewal - see payableKinds. */}
+          {!expired && (slots.isFull || slots.total === 0) && (
+            <div style={{ marginTop: 'var(--s3)' }}>
+              <Button size="sm" onClick={() => nav('/farmer/subscription')}>
+                {t('biz.addSlots')}
+              </Button>
+            </div>
+          )}
         </Card>
 
         <div className="stat-row">

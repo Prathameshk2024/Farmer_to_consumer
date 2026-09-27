@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Category, Cultivation } from '@shared/types.js'
-import { canSellNow } from '@shared/farmer.js'
 import { cropById } from '@shared/crops.js'
 import { categoryFor, listingProblems } from '@shared/produce.js'
 import { useI18n, useT } from '../../i18n/I18nProvider.js'
@@ -21,7 +20,7 @@ import {
   AppBar, Button, Card, Dots, EmptyState, Field,
   Loading, Notice, TextInput, VoiceInput, useAsync,
 } from '../../components/ui.js'
-import { IconBack, IconNext } from '../../components/icons.js'
+import { IconBack, IconLock, IconNext } from '../../components/icons.js'
 import { PageTour } from '../../components/Walkthrough.js'
 import { PriceHint } from '../../components/PriceHint.js'
 
@@ -106,9 +105,9 @@ export default function UploadProduct() {
 
   const farmer = me.farmer
 
-  /* Not verified yet (or blocked): the server would refuse to put anything
-     on sale, so they are told here rather than at the last step. */
-  if (!canSellNow(farmer)) {
+  /* The same gates the server applies, in the same order, so they are told
+     here rather than at the last step. First: not verified yet (or blocked). */
+  if (farmer.status !== 'ACTIVE') {
     return (
       <>
         <AppBar title={t('prod.add')} />
@@ -116,6 +115,44 @@ export default function UploadProduct() {
           {farmer.status === 'BLOCKED'
             ? <Notice tone="danger">{t('biz.blockedTitle')}</Notice>
             : <Notice tone="warn">{t('biz.pendingVerification')}</Notice>}
+          <Button variant="ghost" onClick={() => nav('/farmer/products')}>{t('biz.myProducts')}</Button>
+        </div>
+      </>
+    )
+  }
+
+  /* Second: no open term - never paid, or the six months have run out. */
+  const term = me.subscription.state
+  if (term === 'none' || term === 'expired') {
+    return (
+      <>
+        <AppBar title={t('prod.add')} />
+        <div className="screen stack">
+          <Card>
+            <EmptyState
+              icon={IconLock}
+              title={t('sub.uploadBlocked')}
+              body={t('sub.uploadBlockedSub')}
+              action={
+                <Button onClick={() => nav('/farmer/subscription')}>
+                  {t(term === 'none' ? 'reg.payNow' : 'sub.renewButton')}
+                </Button>
+              }
+            />
+          </Card>
+        </div>
+      </>
+    )
+  }
+
+  /* Third: every slot in use. */
+  if (me.slots.isFull) {
+    return (
+      <>
+        <AppBar title={t('prod.add')} />
+        <div className="screen stack">
+          <Notice tone="warn" title={t('prod.slotsFullTitle')}>{t('prod.slotsFullBody')}</Notice>
+          <Button onClick={() => nav('/farmer/subscription')}>{t('prof.buyMore')}</Button>
           <Button variant="ghost" onClick={() => nav('/farmer/products')}>{t('biz.myProducts')}</Button>
         </div>
       </>
@@ -404,7 +441,9 @@ export default function UploadProduct() {
               </div>
             </Card>
 
-            <Notice tone="ok">{t('prod.liveNow')}</Notice>
+            <Notice tone="ok" title={t('prod.publish')}>
+              {t('prod.willUseSlot', { used: me.slots.used + 1, total: me.slots.total })}
+            </Notice>
 
             {/* Said at the moment they commit, not buried in a policy page.
                 Publishing is theirs now; this is the other half of that. */}

@@ -6,7 +6,8 @@
  * showing up in the customer catalogue beside them, which is not acceptable.
  *
  * This deletes them and everything hanging off them - their products, the
- * orders placed against them and the customers those orders created. Real farmers and anything belonging to them are left
+ * orders placed against them, the customers those orders created and any
+ * ₹50 payments of theirs. Real farmers and anything belonging to them are left
  * exactly as they are.
  *
  * A seed record is identified by the id shapes seed.ts hard-codes (s1, p3, o2,
@@ -76,6 +77,12 @@ async function main(): Promise<void> {
     (r) => seedFarmerIds.has(r.farmerId) || doomedOrders.some((o) => o.id === r.orderId),
   )
 
+  // A payment from a demo farmer, or one whose farmer is not in the database
+  // at all, is nobody's money.
+  const doomedPayments = db.payments.filter(
+    (p) => seedFarmerIds.has(p.farmerId) || !db.farmers.some((f) => f.id === p.farmerId),
+  )
+
   const show = (title: string, rows: string[]) => {
     console.log(`  ${title}`)
     console.log('  ' + '-'.repeat(74))
@@ -101,6 +108,9 @@ async function main(): Promise<void> {
   show('DELETING - customers', doomedCustomers.map(
     (c) => `${c.id.padEnd(16)} ${c.name || '(no name)'}`,
   ))
+  show('DELETING - payments', doomedPayments.map(
+    (p) => `${p.id.padEnd(16)} farmer=${p.farmerId.padEnd(10)} ₹${p.amount} UTR ${p.utr}`,
+  ))
   show('DELETING - reviews', doomedReviews.map(
     (r) => `${r.id.padEnd(16)} order=${r.orderId.padEnd(10)} ${r.rating}★`,
   ))
@@ -108,7 +118,7 @@ async function main(): Promise<void> {
   console.log(
     `  SUMMARY  ${seedFarmers.length} farmers, ${doomedProducts.length} products, ` +
       `${doomedOrders.length} orders, ${doomedCustomers.length} customers, ` +
-      `${doomedReviews.length} reviews`,
+      `${doomedPayments.length} payments, ${doomedReviews.length} reviews`,
   )
   console.log(`           ${realFarmers.length} registered farmer(s) kept`)
 
@@ -125,6 +135,7 @@ async function main(): Promise<void> {
   db.orders = db.orders.filter((o) => !doomedOrders.includes(o))
   db.customers = db.customers.filter((c) => !doomedCustomers.includes(c))
   db.reviews = db.reviews.filter((r) => !doomedReviews.includes(r))
+  db.payments = db.payments.filter((p) => !doomedPayments.includes(p))
 
   await flush()
   console.log('')

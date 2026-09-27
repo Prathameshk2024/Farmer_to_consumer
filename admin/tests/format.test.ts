@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { Order } from '@shared/types.js'
-import { isStuck, maskCustomer, maskedLabel, rupees, when } from '../src/lib/format.js'
+import { dateOnly, isStuck, maskCustomer, maskedLabel, rupees, when } from '../src/lib/format.js'
 
 function order(over: Partial<Order> = {}): Order {
   return {
@@ -93,6 +93,8 @@ test('an unparseable date renders as a dash rather than Invalid Date', () => {
 })
 
 /* ---------------- how long a request has waited ---------------- */
+
+test('dateOnly keeps the year, in IST', () => assert.equal(dateOnly('2027-03-14T19:00:00.000Z'), '15 Mar 2027'))
 
 test('a wait is told in the largest whole unit', async () => {
   const { waited } = await import('../src/lib/format.js')

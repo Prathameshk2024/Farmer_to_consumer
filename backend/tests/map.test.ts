@@ -5,10 +5,12 @@ process.env.SESSION_SECRET = 'test-secret-for-unit-tests'
 const { mapPins } = await import('../src/routes/catalog.routes.js')
 const { emptyDb } = await import('../src/db/seed.js')
 
+const FUTURE = '2099-01-01T00:00:00.000Z'
+
 test('only verified farmers with produce on sale, and only with consent, rounded', () => {
   const db = emptyDb()
   const f = (id: string, status: string, consent: boolean) => ({
-    id, status, isOpen: true, name: id, village: 'अणदूर', crops: ['onion'],
+    id, status, isOpen: true, subscriptionEndsAt: FUTURE, name: id, village: 'अणदूर', crops: ['onion'],
     lat: 17.99364, lng: 76.23361, locationConsent: consent }) as never
   db.farmers.push(f('a', 'ACTIVE', true), f('b', 'ACTIVE', false), f('c', 'PENDING_VERIFICATION', true), f('d', 'ACTIVE', true))
   const p = (id: string, farmerId: string) => ({ id, farmerId, status: 'LIVE', categoryId: 'vegetables' }) as never

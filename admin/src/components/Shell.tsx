@@ -9,7 +9,7 @@ import { Confirm } from './Confirm.js'
 import {
   IconBack, IconHome, IconImpact, IconOrders, IconProducts,
   IconComplaints, IconReviews, IconFarmers, IconToday, IconPasswords, IconDemand, IconMap,
-  IconSurveys, IconResearch,
+  IconSurveys, IconResearch, IconPayments,
 } from './icons.js'
 
 /**
@@ -61,7 +61,8 @@ export function Shell() {
   const items = [
     { to: '/', end: true, icon: IconHome, label: t('nav.home') },
     { to: '/today', icon: IconToday, label: t('nav.today') },
-    { to: '/products', icon: IconProducts, label: t('nav.products') },
+    { to: '/payments', icon: IconPayments, label: t('nav.payments'), badge: s?.pendingPayments },
+    { to: '/products', icon: IconProducts, label: t('nav.products'), badge: s?.pendingProducts },
     { to: '/farmers', icon: IconFarmers, label: t('nav.farmers'), badge: s?.pendingVerification },
     { to: '/orders', icon: IconOrders, label: t('nav.orders'), badge: s?.stuckOrders },
     { to: '/reviews', icon: IconReviews, label: t('nav.reviews') },

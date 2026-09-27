@@ -66,7 +66,10 @@ test('every admin decision a farmer can be shown has a label', () => {
   // shared/src/types.ts AdminNoticeKind. The farmer page reads these through a
   // template string, so the usage test below cannot see them - and an
   // unlabelled one prints "nt.VERIFIED" in the decision history.
-  for (const kind of ['VERIFIED', 'BLOCKED', 'UNBLOCKED', 'PRODUCT_REJECTED']) {
+  for (const kind of [
+    'VERIFIED', 'BLOCKED', 'UNBLOCKED', 'SLOTS_GRANTED', 'SLOTS_REVOKED',
+    'PAYMENT_APPROVED', 'PAYMENT_REJECTED', 'PRODUCT_APPROVED', 'PRODUCT_REJECTED', 'SUBSCRIPTION_RENEWED',
+  ]) {
     assert.ok(dictionaries.mr[`nt.${kind}`], `no Marathi label for ${kind}`)
     assert.ok(dictionaries.en[`nt.${kind}`], `no English label for ${kind}`)
   }

@@ -12,6 +12,8 @@ const { emptyDb } = await import('../src/db/seed.js')
  * their own.
  */
 
+const FUTURE = '2099-01-01T00:00:00.000Z'
+
 test('median of an odd and an even list; nothing for nothing', () => {
   assert.equal(median([30, 10, 20]), 20)
   assert.equal(median([10, 20, 30, 40]), 25)
@@ -27,7 +29,7 @@ test('a quintal price becomes a kilo price; dozens and pieces get none', () => {
 
 test('platform price counts live listings of the same crop and unit only', () => {
   const db = emptyDb()
-  const f = { id: 'f', status: 'ACTIVE', isOpen: true } as never
+  const f = { id: 'f', status: 'ACTIVE', isOpen: true, subscriptionEndsAt: FUTURE } as never
   db.farmers.push(f)
   const p = (id: string, price: number, unit = 'kg', status = 'LIVE', cropId = 'onion') =>
     ({ id, farmerId: 'f', cropId, unit, price, status }) as never

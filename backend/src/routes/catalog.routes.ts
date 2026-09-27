@@ -7,7 +7,7 @@ import {
   NO_RATING, productReviewsFor, ratingsByProduct, ratingsByFarmer, farmerRating,
 } from '../db/reviews.js'
 import { publicFarmer } from '../db/publicFarmer.js'
-import { canSellNow } from '@shared/farmer.js'
+import { canSellNow } from '@shared/subscription.js'
 import { cropById } from '@shared/crops.js'
 import { requireRole } from '../middleware/auth.js'
 
@@ -28,12 +28,13 @@ export const catalogRouter: Router = Router()
  */
 export function publiclyVisible(
   product: Pick<Product, 'status'> | undefined,
-  farmer: Pick<Farmer, 'status' | 'isOpen'> | undefined,
+  farmer: Pick<Farmer, 'status' | 'isOpen' | 'subscriptionEndsAt'> | undefined,
+  now = Date.now(),
 ): boolean {
   if (!product || !farmer) return false
-  // `canSellNow` is the verification: an unverified farmer's live listing
-  // stays off the shelf until an admin has checked them once.
-  return product.status === 'LIVE' && canSellNow(farmer) && !!farmer.isOpen
+  // `canSellNow` is both gates: verified once, and inside the paid six months.
+  // An expired term hides the listing without rewriting it.
+  return product.status === 'LIVE' && canSellNow(farmer, now) && !!farmer.isOpen
 }
 
 catalogRouter.get('/categories', (_req, res) => {

@@ -1,6 +1,7 @@
 import type {
-  Category, Complaint, Customer, Order, Product, Report, Review, Farmer, Survey,
+  Category, Complaint, Customer, Order, Product, Report, Review, Farmer, Survey, SubscriptionPayment,
 } from '@shared/types.js'
+import { addMonths } from '@shared/subscription.js'
 import { FDRI_INDICATORS, cleanFdri, fdriBand, fdriScore } from '@shared/fdri.js'
 import { deriveCustomersFromOrders } from './customers.js'
 import type { AdminUser, AuthEvent, Credential, PasswordRequest, SessionRecord } from '../auth/types.js'
@@ -34,6 +35,8 @@ export interface Db {
   passwordRequests: PasswordRequest[]
   /** Questionnaires typed in by coordinators. Never seeded: invented answers would be invented research. */
   surveys: Survey[]
+  /** The ₹50 ledger. Never seeded: an invented UTR is invented money. */
+  payments: SubscriptionPayment[]
 }
 
 /**
@@ -49,7 +52,7 @@ export function emptyDb(): Db {
   return {
     farmers: [], products: [], orders: [], customers: [], reviews: [],
     reports: [], complaints: [], sessions: [], admins: [], authEvents: [],
-    credentials: [], passwordRequests: [], surveys: [],
+    credentials: [], passwordRequests: [], surveys: [], payments: [],
   }
 }
 
@@ -68,6 +71,7 @@ export function withDefaults(raw: Partial<Db>): Db {
     credentials: raw.credentials ?? [],
     passwordRequests: raw.passwordRequests ?? [],
     surveys: raw.surveys ?? [],
+    payments: raw.payments ?? [],
   }
 }
 
@@ -123,7 +127,10 @@ export function seed(): Db {
   const shop = {
     upiVerified: true, isOpen: true, deliveryFee: 20, freeDeliveryAbove: 500, minOrder: 100,
     dispatch: 'same', pincodes: ['413603', '413601'], offersDelivery: true, status: 'ACTIVE',
-    verifiedAt: daysAgo(60), verifiedBy: 'seed', rating: 0, ratingCount: 0, qrScans: 0, qrOrders: 0,
+    verifiedAt: daysAgo(60), verifiedBy: 'seed',
+    // Six months from the verification, so the demo shops are on sale today.
+    packsApproved: 1, subscriptionEndsAt: addMonths(daysAgo(60), 6),
+    rating: 0, ratingCount: 0, qrScans: 0, qrOrders: 0,
   } as const
   const farmers: Farmer[] = [
     {
@@ -283,6 +290,8 @@ export function seed(): Db {
     credentials: [], passwordRequests: [],
     // No surveys: a questionnaire is a real person's answers.
     surveys: [],
+    // No payments: an invented UTR is invented money.
+    payments: [],
   }
 }
 

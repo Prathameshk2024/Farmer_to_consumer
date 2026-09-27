@@ -59,6 +59,7 @@ export type TourId =
 export const TOURS: Record<TourId, TourStep[]> = {
   'farmer.business': [
     { sel: '[data-wt="biz-shop"]', title: 'biz.shopOpen', body: 'wt.biz1' },
+    { sel: '[data-wt="biz-slots"]', title: 'prof.subscription', body: 'wt.biz2' },
     { sel: '[data-wt="biz-action"]', title: 'biz.needsAction', body: 'wt.biz3' },
     { sel: '[data-wt="biz-links"]', title: 'biz.myProducts', body: 'wt.biz4' },
   ],
@@ -68,6 +69,7 @@ export const TOURS: Record<TourId, TourStep[]> = {
     { sel: '[data-wt="up-next"]', title: 'common.next', body: 'wt.up3' },
   ],
   'farmer.profile': [
+    { sel: '[data-wt="prof-slots"]', title: 'prof.subscription', body: 'wt.pr1' },
     { sel: '[data-wt="prof-pay"]', title: 'prof.payment', body: 'wt.pr2' },
     { sel: '[data-wt="prof-lang"]', title: 'onb.chooseLang', body: 'wt.pr3' },
   ],

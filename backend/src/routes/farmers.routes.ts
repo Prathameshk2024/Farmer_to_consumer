@@ -1,9 +1,12 @@
 import { Router } from 'express'
-import type { Farmer } from '@shared/types.js'
+import type { Farmer, SubscriptionPayment } from '@shared/types.js'
 import {
-  defaultAbout, isValidPhone, isValidPincode,
-  normalizePhone, validateFarmerProfile, canSellNow,
+  PLAN, defaultAbout, isValidPhone, isValidPincode,
+  normalizePhone, slotInfo, validateFarmerProfile,
 } from '@shared/farmer.js'
+import {
+  type PaymentKind, canSellNow, payableKinds, paymentKindProblem, subscriptionView,
+} from '@shared/subscription.js'
 import { cleanFdri, fdriBand, fdriScore } from '@shared/fdri.js'
 import { isValidLatLng } from '@shared/geo.js'
 import { cropById } from '@shared/crops.js'
@@ -11,7 +14,7 @@ import {
   AGE_GROUPS, EDUCATION_LEVELS, FARMER_TYPES, LANDHOLDINGS, SELLING_CHANNELS, SELLING_PROBLEMS,
   pick, pickMany,
 } from '@shared/profile.js'
-import { upiProblem } from '@shared/payment.js'
+import { normalizeUtr, paidAtProblem, upiProblem, utrProblem } from '@shared/payment.js'
 import { passwordProblemMr } from '@shared/password.js'
 import { closeReasonProblem, confirmProblem } from '@shared/accountClose.js'
 import { openOrdersForFarmer, requestFarmerClose, restoreFarmer } from '../db/accountClose.js'
@@ -28,6 +31,8 @@ import { farmerPhoneTaken, setCredential } from '../auth/credentials.js'
 import { recordAuthEvent } from '../auth/events.js'
 import { hashIp, maskPhone } from '../auth/crypto.js'
 import { hit, LIMITS } from '../auth/rateLimit.js'
+import { ADMIN_PAYMENT_ACCOUNT, cloudinary, usingCloudinary } from '../config.js'
+import { screenshotProblem } from '../db/payments.js'
 
 export const farmersRouter: Router = Router()
 
@@ -187,6 +192,7 @@ farmersRouter.post('/register', (req, res) => {
     // Registration asks nothing more; the farmer turns pickup on in their profile.
     offersDelivery: true,
     status: 'PENDING_VERIFICATION',
+    packsApproved: 0,
     rating: 0,
     ratingCount: 0,
     qrScans: 0,
@@ -241,7 +247,10 @@ farmersRouter.get('/me', requireRole('farmer'), (req, res) => {
     res.status(404).json({ error: 'Farmer not found' })
     return
   }
-  res.json({ farmer })
+  // Slots and the term are decided here, on the server's clock and the
+  // server's products, so no screen recomputes them on the phone.
+  const products = db.products.filter((p) => p.farmerId === farmer.id)
+  res.json({ farmer, slots: slotInfo(farmer, products), subscription: subscriptionView(farmer) })
 })
 
 /**
@@ -461,6 +470,142 @@ farmersRouter.post('/me/restore', requireRole('farmer'), (req, res) => {
   restoreFarmer(farmer)
   save()
   res.json({ farmer })
+})
+
+/* ------------------------------------------------------------------ */
+/* Subscription: the 50 rupees                                         */
+/* ------------------------------------------------------------------ */
+
+farmersRouter.get('/me/subscription', requireRole('farmer'), (req, res) => {
+  const db = getDb()
+  const farmerId = req.auth!.farmerId!
+  const farmer = db.farmers.find((s) => s.id === farmerId)
+  if (!farmer) {
+    res.status(404).json({ error: 'Farmer not found' })
+    return
+  }
+  const products = db.products.filter((p) => p.farmerId === farmerId)
+  const slots = slotInfo(farmer, products)
+  res.json({
+    plan: PLAN,
+    account: ADMIN_PAYMENT_ACCOUNT,
+    slots,
+    status: farmer.status,
+    subscription: subscriptionView(farmer),
+    // What the farmer may pay for right now, most urgent first. The screen
+    // draws exactly this and the submit below refuses anything else.
+    payable: payableKinds(farmer, slots.left),
+    // The screen asks for exactly what the submit below will insist on.
+    screenshotRequired: usingCloudinary,
+    payments: db.payments
+      .filter((p) => p.farmerId === farmerId)
+      .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)),
+  })
+})
+
+/** The farmer has paid and is submitting the proof. */
+farmersRouter.post('/me/subscription/payment', requireRole('farmer'), (req, res) => {
+  const db = getDb()
+  const farmerId = req.auth!.farmerId!
+  const farmer = db.farmers.find((s) => s.id === farmerId)
+  if (!farmer) {
+    res.status(404).json({ error: 'Farmer not found' })
+    return
+  }
+
+  /**
+   * ONE PENDING PAYMENT AT A TIME.
+   *
+   * The screen hides the pay button once something is waiting, but the button
+   * is not the rule - a second tap on a slow connection, a back press onto the
+   * form, or anything that is not the app would otherwise put a second ₹50 row
+   * in the admin queue for the same money, and an admin who approves both
+   * grants two packs for one payment.
+   */
+  const waiting = db.payments.find(
+    (p) => p.farmerId === farmerId && p.status === 'PENDING',
+  )
+  if (waiting) {
+    res.status(409).json({
+      error: 'A payment is already waiting to be checked',
+      messageMr: 'तुमचा भरणा आधीच तपासणीसाठी पाठवला आहे.',
+    })
+    return
+  }
+
+  /**
+   * And only for something the farmer actually needs.
+   *
+   * A PACK when the slots are full - taking ₹50 for five slots while some are
+   * still empty is selling something already owned. A RENEWAL from the
+   * reminder onwards. An expired shop may only renew. A missing `kind` means
+   * the most urgent payable one.
+   */
+  const products = db.products.filter((p) => p.farmerId === farmerId)
+  const slots = slotInfo(farmer, products)
+  const kinds = payableKinds(farmer, slots.left)
+  const kind: PaymentKind =
+    req.body?.kind === 'RENEWAL' || req.body?.kind === 'PACK'
+      ? req.body.kind
+      : (kinds[0] ?? 'PACK')
+  const kindFault = paymentKindProblem(kind, farmer, slots.left)
+  if (kindFault) {
+    res.status(409).json({ error: `Nothing to pay for as ${kind}`, messageMr: kindFault })
+    return
+  }
+
+  const utr = normalizeUtr(req.body?.utr)
+  const utrFault = utrProblem(utr)
+  if (utrFault) {
+    res.status(400).json({ error: 'Invalid UTR', messageMr: utrFault, fields: { utr: utrFault } })
+    return
+  }
+
+  /**
+   * Twelve digits alone prove nothing - anybody can type them. The screenshot
+   * and the time the farmer paid are what an admin holds the UTR against, so
+   * a submission without them never reaches the queue.
+   */
+  const shotFault = screenshotProblem(req.body?.screenshotUrl, cloudinary)
+  if (shotFault) {
+    res.status(400).json({
+      error: 'Payment screenshot required',
+      messageMr: shotFault,
+      fields: { screenshot: shotFault },
+    })
+    return
+  }
+  const paidAtFault = paidAtProblem(req.body?.paidAt)
+  if (paidAtFault) {
+    res.status(400).json({ error: 'Invalid payment time', messageMr: paidAtFault, fields: { paidAt: paidAtFault } })
+    return
+  }
+
+  // Reusing one reference number across accounts is the obvious attack on
+  // manual verification, so flag it here rather than hoping an admin spots it.
+  const duplicateUtr = db.payments.some((p) => p.utr === utr && p.farmerId !== farmerId)
+
+  const payment: SubscriptionPayment = {
+    id: newId('sp'),
+    kind,
+    farmerId,
+    farmerName: farmer.name,
+    farmerCode: farmer.farmerCode,
+    phone: farmer.phone,
+    amount: PLAN.price,
+    utr,
+    payerUpi: String(req.body?.payerUpi ?? farmer.upiId ?? ''),
+    screenshotUrl: req.body?.screenshotUrl || undefined,
+    paidAt: new Date(req.body.paidAt).toISOString(),
+    submittedAt: new Date().toISOString(),
+    status: 'PENDING',
+    duplicateUtr,
+  }
+
+  // Appended: the queue's state lives on the payment, never on the farmer.
+  db.payments.push(payment)
+  save()
+  res.status(201).json({ payment })
 })
 
 /* ------------------------------------------------------------------ */

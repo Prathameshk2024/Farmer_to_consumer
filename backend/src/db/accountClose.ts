@@ -1,4 +1,4 @@
-import type { Order, Farmer } from '@shared/types.js'
+import type { Order, Farmer, SubscriptionPayment } from '@shared/types.js'
 import { openOrders, scrubDueAt } from '@shared/accountClose.js'
 import { cleanFdri } from '@shared/fdri.js'
 import type { Db } from './seed.js'
@@ -155,6 +155,9 @@ export function scrubFarmer(
     delete s.photoUrl
   }
 
+  for (const payment of db.payments.filter((p) => p.farmerId === farmer.id)) {
+    scrubPayment(payment, destroy)
+  }
   forgetSessions(db, farmer.id, now)
   return farmer
 }
@@ -212,6 +215,39 @@ function forgetAuth(db: Db, userId: string, phone: string): void {
  * nor logged out, held a LIVE session into an erased shop. Blanking rather
  * than deleting the rows keeps this clear of `isBulkDelete`.
  */
+/**
+ * The ₹50 ledger keeps what the college has to account for - amount, date,
+ * UTR, which pack - and loses the payer. The screenshot goes altogether: it is
+ * a photograph of the farmer's UPI app, with their name and balance on it.
+ */
+function scrubPayment(
+  payment: SubscriptionPayment,
+  destroy: (publicId: string | undefined) => unknown,
+): void {
+  void destroy(publicIdFromUrl(payment.screenshotUrl))
+  payment.farmerName = CLOSED_SHOP_NAME
+  payment.phone = ''
+  payment.payerUpi = ''
+  delete payment.screenshotUrl
+}
+
+/**
+ * The public id inside a Cloudinary delivery URL.
+ *
+ * A payment screenshot is stored as a URL and nothing else, so this is the
+ * only way to name the asset for deletion. `destroyImage` refuses anything
+ * outside this account's folder, so a mangled parse deletes nothing rather
+ * than something belonging to someone else.
+ */
+export function publicIdFromUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined
+  const after = url.split('/image/upload/')[1]
+  if (!after) return undefined
+  const path = after.replace(/^v\d+\//, '')
+  const dot = path.lastIndexOf('.')
+  return dot > 0 ? path.slice(0, dot) : path
+}
+
 function forgetSessions(db: Db, userId: string, now: number): void {
   revokeAllForUser(db, userId, 'logout', now)
   for (const session of db.sessions) {

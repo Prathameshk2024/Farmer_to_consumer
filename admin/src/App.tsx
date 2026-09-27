@@ -18,6 +18,7 @@ import { Demand } from './screens/Demand.js'
 import { MapScreen } from './screens/MapScreen.js'
 import { Surveys } from './screens/Surveys.js'
 import { Research } from './screens/Research.js'
+import { Payments } from './screens/Payments.js'
 
 /**
  * The admin console.
@@ -53,6 +54,7 @@ function Gate() {
       <Route element={<Shell />}>
         <Route path="/" element={<Home />} />
         <Route path="/today" element={<Today />} />
+        <Route path="/payments" element={<Payments />} />
         <Route path="/products" element={<Products />} />
         <Route path="/farmers" element={<Farmers />} />
         <Route path="/farmers/:farmerId" element={<FarmerDetail />} />

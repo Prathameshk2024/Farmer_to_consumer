@@ -1,7 +1,7 @@
 import type { Db } from '../db/seed.js'
 import type { Unit } from '@shared/produce.js'
 import { cropById } from '@shared/crops.js'
-import { canSellNow } from '@shared/farmer.js'
+import { canSellNow } from '@shared/subscription.js'
 import { DATA_GOV_IN_API_KEY } from '../config.js'
 
 /**

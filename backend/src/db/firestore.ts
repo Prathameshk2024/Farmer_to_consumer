@@ -35,7 +35,10 @@ import type { Db } from './seed.js'
  * in Firestore untouched, so restoring this entry is the whole rollback.
  */
 export const COLLECTIONS = [
-  'farmers', 'products', 'orders', 'customers', 'reviews', 'reports',
+  'farmers', 'products', 'orders',
+  // The ₹50 ledger: appended and mutated in place, never rewritten whole.
+  'payments',
+  'customers', 'reviews', 'reports',
   'complaints',
   // Auth state. `firestore.rules` already denies every client-SDK read, which
   // matters more for these three than for anything else in the list: `admins`

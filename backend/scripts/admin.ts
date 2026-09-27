@@ -6,8 +6,12 @@
  * HTTP and uses exactly the same endpoints the real console will, so anything
  * that works here will work there.
  *
- *   npx tsx backend/scripts/admin.ts farmers
- *   npx tsx backend/scripts/admin.ts verify 9822011223
+ *   npm run admin -- farmers
+ *   npm run admin -- verify 9822011223
+ *   npm run admin -- pending
+ *   npm run admin -- approve 9822011223 --verified
+ *   npm run admin -- reject sp2 "UTR not in the bank statement"
+ *   npm run admin -- grant 9822011223 2
  *   npm run admin -- set-password 9822011223 123456
  *
  * `set-password` is the exception: it writes the store directly, like
@@ -77,7 +81,136 @@ async function login(): Promise<void> {
   }
 }
 
-interface FarmerRow { id: string; name: string; phone: string; farmerCode: string; status: string }
+interface FarmerRow {
+  id: string; name: string; phone: string; farmerCode: string; status: string
+  packsApproved?: number; subscriptionEndsAt?: string
+  slots?: { used: number; total: number }
+}
+
+interface Payment {
+  id: string
+  kind?: 'PACK' | 'RENEWAL'
+  farmerId: string
+  farmerName: string
+  farmerCode: string
+  phone: string
+  amount: number
+  utr: string
+  payerUpi: string
+  screenshotUrl?: string
+  paidAt?: string
+  submittedAt: string
+  status: string
+  duplicateUtr: boolean
+}
+
+async function listPending(): Promise<Payment[]> {
+  const r = await call<{ payments: Payment[] }>('/api/admin/payments?status=PENDING')
+  return r.payments
+}
+
+function stamp(iso: string): string {
+  return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function printPayments(list: Payment[]): void {
+  if (!list.length) {
+    console.log(c.dim('\n  No payments waiting.\n'))
+    return
+  }
+  console.log(c.bold(`\n  ${list.length} payment(s) waiting for approval\n`))
+  for (const p of list) {
+    // Worked out here from the submission time: the server sends no wait.
+    const wait = Math.floor((Date.now() - Date.parse(p.submittedAt)) / 3_600_000)
+    const waitTxt =
+      wait > 24 ? c.red(`waiting ${wait}h`) : wait > 12 ? c.amber(`waiting ${wait}h`) : c.dim(`waiting ${wait}h`)
+    console.log(`  ${c.bold(p.id.padEnd(16))} ${p.farmerName}  ${c.dim(p.kind ?? 'PACK')}`)
+    console.log(`  ${''.padEnd(16)} ${c.dim(p.farmerCode)}  +91 ${p.phone}`)
+    console.log(`  ${''.padEnd(16)} ₹${p.amount}  UTR ${p.utr}  ${p.payerUpi}`)
+    console.log(`  ${''.padEnd(16)} paid ${p.paidAt ? stamp(p.paidAt) : c.amber('not stated')}  ·  sent ${stamp(p.submittedAt)}`)
+    console.log(`  ${''.padEnd(16)} screenshot ${p.screenshotUrl ?? c.red('NONE — check the bank statement')}`)
+    console.log(`  ${''.padEnd(16)} ${waitTxt}${p.duplicateUtr ? '  ' + c.red('DUPLICATE UTR — check carefully') : ''}`)
+    console.log('')
+  }
+  console.log(c.dim('  Open the screenshot, match its UTR, date and time, and find the ₹50 on the statement.'))
+  console.log(c.dim('  Then:  npm run admin -- approve <id|phone|farmer-code> --verified\n'))
+}
+
+/**
+ * One payment at a time, and only after saying it was checked.
+ *
+ * Each approval grants five slots on a UTR that anybody can type, so
+ * approving a queue without opening a single screenshot is exactly the hole
+ * the checklist closes - the API refuses an approval that does not carry the
+ * checks, and `--verified` is this script saying so. There is no `all`.
+ */
+async function approve(target: string | undefined, verified: boolean): Promise<void> {
+  if (!target || target === 'all' || !verified) {
+    console.error(c.red('\n  Approve one payment at a time, after checking it:'))
+    console.error('  npm run admin -- approve <id|phone|farmer-code> --verified')
+    console.error(c.dim('  --verified means: the UTR, date and time in the screenshot match, and the ₹50 is on the statement.\n'))
+    process.exit(1)
+  }
+
+  const pending = await listPending()
+  if (!pending.length) {
+    console.log(c.dim('\n  Nothing to approve.\n'))
+    return
+  }
+
+  const chosen = pending.filter((p) => p.id === target || p.phone === target || p.farmerCode === target)
+  if (!chosen.length) {
+    console.error(c.red(`\n  No pending payment matches "${target}".`))
+    printPayments(pending)
+    process.exit(1)
+  }
+
+  for (const p of chosen) {
+    const r = await call<{ farmer?: FarmerRow }>(
+      `/api/admin/payments/${p.id}/approve`,
+      { method: 'POST', body: JSON.stringify({ checks: ['utr', 'dateTime', 'received'] }) },
+    )
+    const f = r.farmer
+    console.log(
+      c.green(`\n  ✓ Approved ${p.id}`) +
+        `  ${p.farmerName} (${p.farmerCode})` +
+        (f ? `\n    ${(f.packsApproved ?? 0) * 5} product slots · ${
+          f.subscriptionEndsAt ? `shop open until ${stamp(f.subscriptionEndsAt)}` : 'the six months start at verification'
+        }` : ''),
+    )
+  }
+  console.log('')
+}
+
+async function reject(id: string | undefined, reason: string): Promise<void> {
+  if (!id) {
+    console.error(c.red('\n  Usage: npm run admin -- reject <id> [reason]\n'))
+    process.exit(1)
+  }
+  await call(`/api/admin/payments/${id}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  })
+  console.log(c.amber(`\n  ✗ Rejected ${id} — ${reason}\n`))
+}
+
+/** Slots with no payment: goodwill, a training batch, a demo account. Status is never touched. */
+async function grant(target: string | undefined, packs: number): Promise<void> {
+  const r = await call<{ farmers: FarmerRow[] }>('/api/admin/farmers')
+  const farmer = r.farmers.find((s) => s.phone === target || s.farmerCode === target)
+  if (!farmer) {
+    console.error(c.red(`\n  No farmer with phone or farmer code "${target ?? ''}".\n`))
+    process.exit(1)
+  }
+  const out = await call<{ farmer: FarmerRow }>(
+    `/api/admin/farmers/${farmer.id}/grant-slots`,
+    { method: 'POST', body: JSON.stringify({ packs }) },
+  )
+  console.log(
+    c.green(`\n  ✓ Granted ${packs} pack(s) to ${farmer.name} (${farmer.farmerCode})`) +
+      `\n    ${(out.farmer.packsApproved ?? 0) * 5} product slots\n`,
+  )
+}
 
 /** One farmer at a time, by phone, id or farmer code - after an admin has checked them. */
 async function verify(target: string | undefined): Promise<void> {
@@ -88,7 +221,10 @@ async function verify(target: string | undefined): Promise<void> {
     process.exit(1)
   }
   const out = await call<{ farmer: FarmerRow }>(`/api/admin/farmers/${farmer.id}/verify`, { method: 'POST' })
-  console.log(c.green(`\n  ✓ Verified ${out.farmer.name} (${out.farmer.farmerCode})\n`))
+  console.log(c.green(`\n  ✓ Verified ${out.farmer.name} (${out.farmer.farmerCode})`))
+  // A farmer who paid first starts the six months at this moment.
+  if (out.farmer.subscriptionEndsAt) console.log(`    shop open until ${stamp(out.farmer.subscriptionEndsAt)}`)
+  console.log('')
 }
 
 async function farmers(): Promise<void> {
@@ -97,7 +233,7 @@ async function farmers(): Promise<void> {
   for (const s of r.farmers) {
     const status = s.status === 'ACTIVE' ? c.green(s.status) : c.amber(s.status)
     console.log(
-      `  ${s.farmerCode.padEnd(18)} ${s.name.padEnd(18)} +91 ${s.phone}  ${status}`,
+      `  ${s.farmerCode.padEnd(18)} ${s.name.padEnd(18)} +91 ${s.phone}  ${status}  ${s.slots?.used ?? 0}/${s.slots?.total ?? 0} slots`,
     )
   }
   console.log('')
@@ -133,11 +269,21 @@ async function main(): Promise<void> {
   switch (cmd) {
     case 'farmers': await farmers(); break
     case 'verify': await verify(a1); break
+    case 'pending': printPayments(await listPending()); break
+    case 'approve': await approve(a1, a2 === '--verified'); break
+    case 'reject': await reject(a1, a2 ?? 'UTR did not match the bank statement'); break
+    case 'grant': await grant(a1, Number(a2 ?? 1)); break
     default:
       console.log(`
   Commands:
-    farmers                     every farmer with status
+    farmers                          every farmer with status and slot usage
     verify <id|phone|farmer-code>    verify a farmer once, after checking them
+                                     (starts the six months if they paid first)
+    pending                          ₹50 payments waiting for approval
+    approve <id|phone|farmer-code> --verified
+                                     approve after checking the screenshot - 5 slots
+    reject <id> [reason]             reject a payment with a reason
+    grant <phone|farmer-code> [packs]  slots with no payment; never extends a term
     set-password <phone> <password>  a demo password for a seeded farmer (API stopped)
 `)
   }

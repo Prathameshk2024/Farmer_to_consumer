@@ -1,4 +1,4 @@
-import type { OrderRow, ProductRow, FarmerRow } from './api.js'
+import type { OrderRow, PaymentRow, ProductRow, FarmerRow } from './api.js'
 
 /**
  * HOW EACH LIST CAN BE ORDERED.
@@ -77,6 +77,16 @@ export const ORDER_SORTS: SortOption<OrderRow>[] = [
   // The buyer is masked in this list, so the name to sort by is the shop's.
   nameAZ((o) => o.farmer, 'sort.shopAZ'),
   nameZA((o) => o.farmer, 'sort.shopZA'),
+]
+
+export const PAYMENT_SORTS: SortOption<PaymentRow>[] = [
+  newestFirst((p) => p.submittedAt),
+  // Oldest first is the queue read as a queue: whoever has waited longest.
+  oldestFirst((p) => p.submittedAt),
+  highest('amountHigh', 'sort.amountHigh', (p) => p.amount),
+  lowest('amountLow', 'sort.amountLow', (p) => p.amount),
+  nameAZ((p) => p.farmerName, 'sort.farmerAZ'),
+  nameZA((p) => p.farmerName, 'sort.farmerZA'),
 ]
 
 /**

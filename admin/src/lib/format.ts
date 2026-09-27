@@ -20,6 +20,21 @@ export function when(iso: string): string {
 }
 
 /**
+ * 15 Mar 2027 - a date WITH its year, in IST.
+ *
+ * `when()` drops the year because everything it prints is recent. A
+ * subscription end date is half a year away, and "15 Mar" is ambiguous in
+ * exactly the months when it matters.
+ */
+export function dateOnly(iso: string | undefined): string {
+  const d = new Date(iso ?? '')
+  if (Number.isNaN(d.getTime())) return '-'
+  return d.toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata',
+  })
+}
+
+/**
  * How long something has waited, in the largest whole unit: minutes under an
  * hour, hours under a day, then days. The screen turns it into words.
  */

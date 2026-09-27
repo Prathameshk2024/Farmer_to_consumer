@@ -11,9 +11,11 @@ const { emptyDb } = await import('../src/db/seed.js')
  * same "not found" as an id that never existed otherwise.
  */
 
+const FUTURE = '2099-01-01T00:00:00.000Z'
+
 function world(farmerStatus: string, productStatus: string, isOpen = true) {
   const db = emptyDb()
-  db.farmers.push({ id: 'f1', status: farmerStatus, isOpen, name: 'राजेश पाटील', phone: '9822011223',
+  db.farmers.push({ id: 'f1', status: farmerStatus, isOpen, subscriptionEndsAt: FUTURE, name: 'राजेश पाटील', phone: '9822011223',
     farmerCode: 'F2C-ANADUR-001', village: 'अणदूर', crops: ['tomato'], lat: 17.99364, lng: 76.23361,
     locationConsent: true, offersDelivery: true } as never)
   db.products.push({ id: 'p1', farmerId: 'f1', status: productStatus, cropId: 'tomato', name: 'टोमॅटो',

@@ -65,6 +65,48 @@ export function utrProblem(value: string | undefined): string | null {
 }
 
 /* ================================================================== */
+/* The ₹50: what a farmer must hand in, and what an admin must check    */
+/* ================================================================== */
+
+/**
+ * A twelve-digit UTR on its own proves nothing - anybody can type twelve
+ * digits, and the admin approving it grants five slots on that alone. So a
+ * subscription payment carries three things an admin can hold against each
+ * other and against the bank statement: the UTR the farmer typed, the time
+ * they say they paid, and a screenshot of the UPI app's success screen
+ * showing both.
+ */
+
+/** The phone's clock and the server's can disagree by a few minutes. */
+const PAID_AT_FUTURE_SLACK_MS = 10 * 60 * 1000
+/** A payment older than this is not the ₹50 for this pack. */
+export const PAID_AT_MAX_AGE_DAYS = 7
+
+export function paidAtProblem(value: unknown, now = Date.now()): string | null {
+  const at = typeof value === 'string' ? Date.parse(value) : NaN
+  if (Number.isNaN(at)) return 'पैसे भरल्याची तारीख आणि वेळ निवडा'
+  if (at > now + PAID_AT_FUTURE_SLACK_MS) {
+    return 'ही वेळ अजून यायची आहे. UPI ॲपमध्ये दिसणारी वेळ निवडा'
+  }
+  if (at < now - PAID_AT_MAX_AGE_DAYS * 86_400_000) {
+    return `ही तारीख ${PAID_AT_MAX_AGE_DAYS} दिवसांपेक्षा जुनी आहे. आत्ताच्या भरण्याची तारीख निवडा`
+  }
+  return null
+}
+
+/**
+ * What an admin confirms before a payment can be approved. The server refuses
+ * an approval that does not carry all three, so the checklist in the console
+ * is the rule and not a decoration.
+ */
+export const PAYMENT_CHECKS = ['utr', 'dateTime', 'received'] as const
+export type PaymentCheck = (typeof PAYMENT_CHECKS)[number]
+
+export function allChecksDone(checks: unknown): boolean {
+  return Array.isArray(checks) && PAYMENT_CHECKS.every((c) => checks.includes(c))
+}
+
+/* ================================================================== */
 /* UPI ID                                                              */
 /* ================================================================== */
 

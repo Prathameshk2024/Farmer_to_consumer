@@ -1,8 +1,10 @@
 import type {
   Address, Category, Customer, Order, Product,
   ProductRatingInput, PublicReview, PublicFarmer, RatingSummary, Review, Farmer, FarmerGroup, Fulfilment,
-  FarmerWeek, Session,
+  FarmerWeek, Session, AdminPaymentAccount, SubscriptionPayment,
 } from '@shared/types.js'
+import type { SlotInfo } from '@shared/farmer.js'
+import type { PaymentKind, SubscriptionView } from '@shared/subscription.js'
 import type { ReportReason, ReportTarget } from '@shared/report.js'
 import type { FdriAnswers } from '@shared/fdri.js'
 import type { ComplaintSubject } from '@shared/complaint.js'
@@ -250,7 +252,8 @@ export const api = {
   registerFarmer: (body: FarmerRegistration) =>
     post<{ farmer: Farmer; session: Session }>('/farmers/register', body),
 
-  me: () => get<{ farmer: Farmer }>('/farmers/me'),
+  /** `slots` and `subscription` are decided on the server - never work them out on the phone. */
+  me: () => get<{ farmer: Farmer; slots: SlotInfo; subscription: SubscriptionView }>('/farmers/me'),
 
   /** `pickup: null` turns pickup off. */
   updateMe: (patchBody: Partial<Omit<Farmer, 'pickup'>> & { pickup?: Farmer['pickup'] | null }) =>
@@ -264,10 +267,30 @@ export const api = {
 
   farmerById: (id: string) => get<{ farmer: PublicFarmer }>(`/farmers/${id}`),
 
+  subscription: () =>
+    get<{
+      plan: { price: number; slotsPerPack: number; months: number }
+      account: AdminPaymentAccount
+      slots: SlotInfo
+      status: Farmer['status']
+      subscription: SubscriptionView
+      /** What the farmer may pay for now, most urgent first. Empty means nothing is due. */
+      payable: PaymentKind[]
+      /** False only when the server has uploads switched off. */
+      screenshotRequired: boolean
+      payments: SubscriptionPayment[]
+    }>('/farmers/me/subscription'),
+
+  submitPayment: (kind: PaymentKind, utr: string, paidAt: string, screenshotUrl?: string) =>
+    post<{ payment: SubscriptionPayment }>(
+      '/farmers/me/subscription/payment',
+      { kind, utr, paidAt, screenshotUrl },
+    ),
+
   /* ---------------- products ---------------- */
 
   myProducts: () =>
-    get<{ products: Product[] }>('/products/mine'),
+    get<{ products: Product[]; slots: SlotInfo; subscription: SubscriptionView }>('/products/mine'),
 
   createProduct: (body: Partial<Product> & { asDraft?: boolean }) =>
     post<{ product: Product }>('/products', body),
@@ -276,7 +299,7 @@ export const api = {
     patch<{ product: Product }>(`/products/${id}`, body),
 
   /** Any of their own listings - a sold-out crop is theirs to take down. */
-  deleteProduct: (id: string) => del<{ ok: true }>(`/products/${id}`),
+  deleteProduct: (id: string) => del<{ ok: true; slots: SlotInfo }>(`/products/${id}`),
 
   /* ---------------- catalog (public) ---------------- */
 

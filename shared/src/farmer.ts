@@ -1,6 +1,7 @@
-import type { ProductStatus, Farmer } from './types.js'
+import type { ProductStatus, Farmer, Product } from './types.js'
 import { upiProblem } from './payment.js'
 import { cropById } from './crops.js'
+import { SUBSCRIPTION_MONTHS } from './subscription.js'
 
 /**
  * Selling is free. There are no packs, slots or edit limits: a farmer who can
@@ -12,6 +13,40 @@ export function farmerMayDelete(_status: ProductStatus): boolean {
 
 
 /**
+ * SUBSCRIPTION + LISTING SLOTS. ₹50 buys one PACK = 5 slots; the shop stays
+ * open SUBSCRIPTION_MONTHS from approval (shared/src/subscription.ts). No
+ * gateway: the farmer pays the programme's UPI and an admin approves by hand.
+ */
+export const PLAN = { price: 50, slotsPerPack: 5, months: SUBSCRIPTION_MONTHS }
+
+/**
+ * ONE LISTING, ONE SLOT, FOR GOOD. Spent when submitted, held while waiting,
+ * live or paused; only an admin's rejection or take-down - which deletes the
+ * row - gives it back. DRAFT holds none, so a farmer can experiment before paying.
+ */
+export const SLOT_CONSUMING: ProductStatus[] = ['PENDING', 'LIVE', 'PAUSED']
+
+export function countUsedSlots(products: Pick<Product, 'status'>[]): number {
+  return products.filter((p) => SLOT_CONSUMING.includes(p.status)).length
+}
+
+export interface SlotInfo { total: number; used: number; left: number; isFull: boolean; almostFull: boolean }
+
+export function slotInfo(f: Pick<Farmer, 'packsApproved'>, products: Pick<Product, 'status'>[]): SlotInfo {
+  const total = (f.packsApproved || 0) * PLAN.slotsPerPack
+  const used = countUsedSlots(products)
+  return {
+    total, used,
+    left: Math.max(0, total - used),
+    // Zero packs is FULL. Verification is the account gate now, so a
+    // verified farmer with no packs reaches this; `total > 0 &&` here read
+    // as unlimited room.
+    isFull: used >= total,
+    almostFull: total > 0 && total - used === 1,
+  }
+}
+
+/**
  * A verified farmer's listing is on sale the moment they send it. The person
  * check happens once, on the farmer (POST /admin/farmers/:id/verify), and
  * a listing that turns out wrong is reported and taken down.
@@ -20,13 +55,8 @@ export function initialListingStatus(asDraft: boolean): ProductStatus {
   return asDraft ? 'DRAFT' : 'LIVE'
 }
 
-/** May buyers see and order from this farmer right now? */
-export function canSellNow(s: Pick<Farmer, 'status'>): boolean {
-  return s.status === 'ACTIVE'
-}
-
 /** A listing's state, drawn as a line icon the app names - never an emoji. */
-export type ProductStatusIconName = 'live' | 'draft' | 'paused'
+export type ProductStatusIconName = 'live' | 'draft' | 'paused' | 'pending'
 
 export const PRODUCT_STATUS_STYLE: Record<
   ProductStatus,
@@ -34,6 +64,7 @@ export const PRODUCT_STATUS_STYLE: Record<
 > = {
   LIVE: { tone: 'ok', icon: 'live', labelKey: 'prod.live' },
   DRAFT: { tone: 'neutral', icon: 'draft', labelKey: 'prod.draft' },
+  PENDING: { tone: 'warn', icon: 'pending', labelKey: 'prod.pending' },
   PAUSED: { tone: 'neutral', icon: 'paused', labelKey: 'prod.paused' },
 }
 
